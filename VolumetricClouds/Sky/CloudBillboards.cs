@@ -125,7 +125,7 @@ namespace VolumetricClouds.Sky
             if (_camera == null)
                 return;
 
-            float coverage = Settings.Coverage != null ? Settings.Coverage.value : Settings.Defaults.Coverage;
+            float coverage = CloudShaderParams.CoverageStepped;
             int requested = Settings.CloudPuffCount != null
                 ? Mathf.Clamp(Mathf.RoundToInt(Settings.CloudPuffCount.value), 0, MaxPuffs)
                 : Mathf.Min((int)Settings.Defaults.PuffCount, MaxPuffs);

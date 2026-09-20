@@ -57,6 +57,9 @@ namespace VolumetricClouds.Sky
             _originalSunPosition = _sun.transform.position;
             _captured = true;
 
+            // Statics outlive a city; start this one on its own weather, not the last one's.
+            CloudWeather.Reset();
+
             Log.Msg("Sun '" + _sun.name + "' type=" + _sun.type +
                     " intensity=" + _sun.intensity +
                     " existingCookie=" + (_originalCookie == null ? "none" : _originalCookie.name) +
@@ -118,7 +121,7 @@ namespace VolumetricClouds.Sky
         /// <summary>Rewrites the CPU-side cookie, but only when something it depends on moved.</summary>
         private void RebuildFlatCookie(bool checker)
         {
-            float coverage = CloudShaderParams.Coverage;
+            float coverage = CloudShaderParams.CoverageStepped;
             float depth = CloudShadowMap.ShadowDepth(coverage);
 
             if (checker == _appliedChecker
@@ -143,10 +146,15 @@ namespace VolumetricClouds.Sky
             if (_sun == null)
                 return;
 
-            // The one place the wind advances; the visible clouds, the shadow map and the
-            // fallback cookie all read the same offset.
+            // The one place the cover and the wind advance; the visible clouds, the shadow map
+            // and the fallback cookie all read the same two values. The cover runs on real
+            // time, so Play It's rain slider shows its effect while the game is paused; the
+            // wind runs on simulation time, so a paused city has still clouds.
+            CloudWeather.Advance(Time.deltaTime);
+
             float speed = Settings.WindSpeed != null ? Settings.WindSpeed.value : Settings.Defaults.WindSpeed;
-            CloudWind.Advance(Time.deltaTime * speed * 10f * SimulationRate());
+            CloudWind.Advance(CloudWeather.WindDirection,
+                              Time.deltaTime * speed * 10f * CloudWeather.WindSpeedFactor * SimulationRate());
 
             // Every frame, not just on a settings change: the shadow map becomes ready a
             // moment after load, and the game is free to move the sun's transform.
@@ -157,6 +165,14 @@ namespace VolumetricClouds.Sky
                 _nextLogTime = Time.time + LogInterval;
 
                 float coverage = CloudShaderParams.Coverage;
+                Vector3 wind = CloudWeather.WindDirection;
+                Log.Msg("weather: " + (CloudWeather.Manual ? "OVERRIDDEN" : "followed") +
+                        " rain=" + CloudWeather.Rain.ToString("F2") +
+                        " gameCloud=" + CloudWeather.GameCloud.ToString("F2") +
+                        " overcast=" + CloudWeather.Overcast.ToString("F2") +
+                        " target=" + CloudWeather.Target().ToString("F2") +
+                        " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ")" +
+                        " x" + CloudWeather.WindSpeedFactor.ToString("F2"));
                 Log.Msg("coverage=" + coverage.ToString("F2") +
                         " shadows=" + _mode +
                         " shadowDepth=" + CloudShadowMap.ShadowDepth(coverage).ToString("F2") +

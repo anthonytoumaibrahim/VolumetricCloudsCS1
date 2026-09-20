@@ -4,6 +4,7 @@ using ColossalFramework;
 using ColossalFramework.UI;
 using UnityEngine;
 using VolumetricClouds.Lighting;
+using VolumetricClouds.Sky;
 
 namespace VolumetricClouds.UI
 {
@@ -24,6 +25,25 @@ namespace VolumetricClouds.UI
         private readonly List<UIButton> _tabs = new List<UIButton>();
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
+
+        private const float StatusInterval = 0.25f;
+        private UILabel _weatherStatus;
+        private float _nextStatusTime;
+
+        /// <summary>
+        /// Keeps the "what is the weather doing to the clouds right now" line current. The
+        /// cover is no longer a number the player typed, so the panel has to show it.
+        /// </summary>
+        public override void Update()
+        {
+            base.Update();
+
+            if (_weatherStatus == null || !isVisible || Time.time < _nextStatusTime)
+                return;
+
+            _nextStatusTime = Time.time + StatusInterval;
+            _weatherStatus.text = CloudWeather.Describe();
+        }
 
         public override void Start()
         {
@@ -112,11 +132,17 @@ namespace VolumetricClouds.UI
             height = TitleBarHeight + TabHeight + 2f * Margin + content;
         }
 
-        private static float BuildCloudsPage(UIPanel page)
+        private float BuildCloudsPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
-            rows.Percent("Intensity", Settings.Coverage, 0f, 100f, 1f);
+            // Intensity follows the game's weather between these two values; the override
+            // below is for skies the game cannot give on demand -- cloudy with no rain.
+            _weatherStatus = rows.Status(CloudWeather.Describe());
+            rows.Percent("Intensity: clear weather", Settings.WeatherFairCoverage, 0f, 100f, 1f);
+            rows.Percent("Intensity: rain", Settings.WeatherOvercastCoverage, 0f, 100f, 1f);
+            rows.Toggle("Override the weather with a fixed intensity", Settings.CoverageOverride);
+            rows.Percent("Fixed intensity", Settings.Coverage, 0f, 100f, 1f);
             rows.Value("Movement speed", Settings.WindSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
             rows.Toggle("Show clouds in the sky", Settings.CloudsVisible);
             rows.Value("Cloud altitude", Settings.CloudAltitude, 200f, 3000f, 50f, Metres);
@@ -227,6 +253,17 @@ namespace VolumetricClouds.UI
             public float Height
             {
                 get { return _y; }
+            }
+
+            /// <summary>A full-width line of text the panel keeps up to date itself.</summary>
+            public UILabel Status(string text)
+            {
+                UILabel label = UIBuilder.AddLabel(_page, text, new Vector3(0f, _y + 8f), 0.8f);
+                label.autoSize = false;
+                label.size = new Vector2(_page.width, 20f);
+                label.textColor = new Color32(185, 221, 254, 255);
+                _y += UIBuilder.RowHeight;
+                return label;
             }
 
             /// <summary>A setting stored as 0..1 (or a multiplier) but shown as a percentage.</summary>

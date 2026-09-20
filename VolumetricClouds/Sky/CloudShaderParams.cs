@@ -26,9 +26,22 @@ namespace VolumetricClouds.Sky
         private static readonly int IdDetailScale = Shader.PropertyToID("_DetailScale");
         private static readonly int IdWindOffset = Shader.PropertyToID("_WindOffset");
 
+        /// <summary>
+        /// The cover in effect: the weather's, or the slider's when it overrides. Never read
+        /// Settings.Coverage for rendering -- that is only what the override would ask for.
+        /// </summary>
         public static float Coverage
         {
-            get { return Settings.Coverage != null ? Mathf.Clamp01(Settings.Coverage.value) : Settings.Defaults.Coverage; }
+            get { return CloudWeather.Coverage; }
+        }
+
+        /// <summary>
+        /// The same, in 2% steps, for the CPU fallbacks (flat cookie, billboards) that rebuild
+        /// when the cover changes: it now drifts continuously with the weather.
+        /// </summary>
+        public static float CoverageStepped
+        {
+            get { return Mathf.Round(CloudWeather.Coverage * 50f) / 50f; }
         }
 
         public static void Apply(Material material, CloudDensityField field, Texture3D noise)

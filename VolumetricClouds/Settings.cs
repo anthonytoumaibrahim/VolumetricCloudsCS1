@@ -15,8 +15,23 @@ namespace VolumetricClouds
         public static SavedBool ShowInUnifiedUI { get; private set; }
         public static SavedInputKey ToggleKey { get; private set; }
 
-        /// <summary>Cloud coverage, 0..1. Drives both shadow density and world dimming.</summary>
+        /// <summary>
+        /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
+        /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
+        /// </summary>
         public static SavedFloat Coverage { get; private set; }
+
+        /// <summary>
+        /// Off (the default): the cover follows the game's weather. On: <see cref="Coverage"/>
+        /// fixes it, for skies the game cannot express -- cloudy with no rain, on demand.
+        /// </summary>
+        public static SavedBool CoverageOverride { get; private set; }
+
+        /// <summary>Following the weather: the cover on a clear day, 0..1.</summary>
+        public static SavedFloat WeatherFairCoverage { get; private set; }
+
+        /// <summary>Following the weather: the cover in rain or a full cloudy spell, 0..1.</summary>
+        public static SavedFloat WeatherOvercastCoverage { get; private set; }
 
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
         public static SavedFloat WindSpeed { get; private set; }
@@ -151,7 +166,12 @@ namespace VolumetricClouds
         /// </summary>
         public static class Defaults
         {
+            /// <summary>Anthony's overcast. Also the default cover in rain when following the weather.</summary>
             public const float Coverage = 0.98f;
+
+            /// <summary>A clear day: scattered cloud. A guess until he tunes it -- 98% was "just for demo".</summary>
+            public const float FairCoverage = 0.35f;
+
             public const float WindSpeed = 0.3f;
             public const float Altitude = 550f;
             public const float Thickness = 650f;
@@ -191,6 +211,9 @@ namespace VolumetricClouds
                     SavedInputKey.Encode(KeyCode.F4, false, false, false), true);
 
                 Coverage = new SavedFloat("Coverage", FileName, Defaults.Coverage, true);
+                CoverageOverride = new SavedBool("CoverageOverride", FileName, false, true);
+                WeatherFairCoverage = new SavedFloat("WeatherFairCoverage", FileName, Defaults.FairCoverage, true);
+                WeatherOvercastCoverage = new SavedFloat("WeatherOvercastCoverage", FileName, Defaults.Coverage, true);
                 WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
                 // New key rather than reusing CookieTileSize: the old 2000 m default was saved
                 // into existing settings files and is far too small for cloud-sized features.
