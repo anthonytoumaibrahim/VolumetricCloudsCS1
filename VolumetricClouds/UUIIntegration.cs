@@ -5,39 +5,30 @@ using UnityEngine;
 namespace VolumetricClouds
 {
     /// <summary>
-    /// Registers our button with Unified UI. UnifiedUILib.dll ships alongside this
-    /// mod, so the types always resolve; IsUUIEnabled() reports whether the UUI mod
-    /// itself is actually running.
+    /// Registers our button with Unified UI.
     /// </summary>
+    /// <remarks>
+    /// UnifiedUILib.dll ships alongside this mod, so the types always resolve. Registration
+    /// is deliberately NOT gated on UUIHelpers.IsUUIEnabled(): that only reports whether the
+    /// Unified UI *mod* is enabled, and the library hosts a panel of its own when it isn't
+    /// (it picks the newest UnifiedUILib loaded by any mod). Gating on it meant players
+    /// without the mod enabled saw every other mod's button in that panel except ours.
+    /// </remarks>
     public static class UUIIntegration
     {
         private static UUICustomButton _button;
 
         public static bool IsRegistered => _button != null;
 
-        public static bool IsAvailable()
-        {
-            try
-            {
-                return UUIHelpers.IsUUIEnabled();
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning("[VolumetricClouds] Unified UI availability check failed: " + e.Message);
-                return false;
-            }
-        }
-
         public static bool Register(Texture2D icon, Action<bool> onToggle)
         {
             if (_button != null)
                 return true;
 
-            if (!IsAvailable())
-                return false;
-
             try
             {
+                bool modEnabled = UUIHelpers.IsUUIEnabled();
+
                 _button = UUIHelpers.RegisterCustomButton(
                     name: "VolumetricClouds",
                     groupName: null,
@@ -47,12 +38,15 @@ namespace VolumetricClouds
                     onToolChanged: null,
                     hotkeys: new UUIHotKeys { ActivationKey = Settings.ToggleKey });
 
+                Log.Msg("Unified UI: registered=" + (_button != null) +
+                        " (Unified UI mod enabled=" + modEnabled +
+                        ", icon=" + (icon == null ? "MISSING" : icon.width + "x" + icon.height) + ")");
+
                 return _button != null;
             }
             catch (Exception e)
             {
-                Debug.LogError("[VolumetricClouds] Unified UI registration failed.");
-                Debug.LogException(e);
+                Log.Error("Unified UI registration failed; falling back to the HUD button.", e);
                 _button = null;
                 return false;
             }
@@ -69,7 +63,7 @@ namespace VolumetricClouds
             }
             catch (Exception e)
             {
-                Debug.LogException(e);
+                Log.Error("Releasing the Unified UI button threw.", e);
             }
 
             _button = null;
