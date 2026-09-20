@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ColossalFramework;
 using ColossalFramework.UI;
 using UnityEngine;
+using VolumetricClouds.Lighting;
 
 namespace VolumetricClouds.UI
 {
@@ -146,9 +147,12 @@ namespace VolumetricClouds.UI
 
             // Street lamps and buildings: batched lights whose glow reads _WeatherParams.z.
             // Distant groups get the far value, groups near the camera the safe near one.
-            rows.Toggle("Shrink distant light halos", Settings.HaloFogEnabled);
-            rows.Value("Far halos (lower = smaller)", Settings.HaloFogValue, -5f, 2f, 0.05f, v => v.ToString("F2"));
-            rows.Value("Near halos (keep above -0.5)", Settings.HaloFogNear, -1f, 2f, 0.05f, v => v.ToString("F2"));
+            // The shader's glow is 0.001 * (value + 0.5): -0.49 is as dim as it goes, and at or
+            // below -0.5 it takes log() of a negative number and paints the light's whole quad
+            // at full colour. So the sliders stop short of that.
+            rows.Toggle("Halos use their own fog value", Settings.HaloFogEnabled);
+            rows.Value("Far halos (-0.49 = faintest)", Settings.HaloFogValue, HaloFogOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
+            rows.Value("Near halos", Settings.HaloFogNear, HaloFogOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
             rows.Value("Blend starts at", Settings.HaloFogStart, 0f, 3000f, 50f, Metres);
             rows.Value("Blend complete at", Settings.HaloFogEnd, 200f, 8000f, 100f, Metres);
 

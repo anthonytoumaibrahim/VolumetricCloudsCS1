@@ -23,19 +23,34 @@ namespace VolumetricClouds.Lighting
     /// The glow shader scales the halo from _WeatherParams.z, the game's fog amount (the
     /// FogProperties vectors are clamped to 0..1 and ignored by it).
     ///
-    /// Pushing that value well below about -0.5 shrinks distant halos, which is the look we
-    /// want, but the shader's glow term then goes negative for lights near the camera and
-    /// the additive pass draws their proxy geometry as a box. We cannot edit the compiled
-    /// shader, and one shared material means one value for every light in the city.
+    /// What this buys: the halos can sit at their faintest (-0.49) while the WORLD keeps
+    /// whatever fog it likes, instead of the whole map being pinned to -0.5 just to tame the
+    /// lights. What it cannot buy is a halo smaller than the shader allows; see
+    /// <see cref="MinSafeFog"/> for why values at or below -0.5 draw a box, at any distance.
+    /// (The per-group distance blend below was built on the mistaken belief that the box only
+    /// affected lights near the camera. It is harmless, and still lets near and far differ
+    /// within the safe range.)
     ///
-    /// So each light layer gets its OWN clone of the material, and each clone gets a fog
-    /// value chosen from that group's distance to the camera: a safe value up close, the
-    /// aggressive one far away, blended in between. The game's own material is never
-    /// modified, which also makes this cleanly reversible: put the original reference back
-    /// and destroy the clones.
+    /// Each light layer gets its OWN clone of the material, carrying its own fog value. The
+    /// game's material is never modified, which makes this cleanly reversible: put the
+    /// original reference back and destroy the clones.
+    ///
+    /// Going further means replacing the shader, not feeding it: tools/shaderdump.ps1
+    /// disassembles it, and the vertex layout of the batched mesh is POSITION = quad corner,
+    /// NORMAL = light position, TANGENT = direction/spot, TEXCOORD0 = (1/range^2, intensity),
+    /// TEXCOORD1 = (switch-on threshold, blink pattern), COLOR = light colour.
     /// </remarks>
     public class HaloFogOverride : MonoBehaviour
     {
+        /// <summary>
+        /// The lowest fog value the game's glow shader survives. Disassembled, its pixel
+        /// shader computes k = 0.001 * (fog + 0.5), then glow = k * (1/x - 1), then
+        /// pow(glow, ...) via log/exp. At fog &lt;= -0.5, k is zero or negative, log() yields NaN,
+        /// and Direct3D's min(NaN, 1) returns 1 -- so the light's entire quad is drawn at full
+        /// colour. That is the "box". No fog value below this can ever work.
+        /// </summary>
+        public const float MinSafeFog = -0.49f;
+
         private const float LogInterval = 5f;
         private const int SweepEveryFrames = 120;
 
@@ -131,8 +146,8 @@ namespace VolumetricClouds.Lighting
             if (lights == null)
                 return;
 
-            _farFog = Settings.HaloFogValue != null ? Settings.HaloFogValue.value : -2f;
-            _nearFog = Settings.HaloFogNear != null ? Settings.HaloFogNear.value : -0.45f;
+            _farFog = Mathf.Max(MinSafeFog, Settings.HaloFogValue != null ? Settings.HaloFogValue.value : MinSafeFog);
+            _nearFog = Mathf.Max(MinSafeFog, Settings.HaloFogNear != null ? Settings.HaloFogNear.value : -0.45f);
             _blendStart = Settings.HaloFogStart != null ? Settings.HaloFogStart.value : 500f;
             _blendEnd = Settings.HaloFogEnd != null ? Settings.HaloFogEnd.value : 2500f;
             _blendEnd = Mathf.Max(_blendEnd, _blendStart + 1f);
