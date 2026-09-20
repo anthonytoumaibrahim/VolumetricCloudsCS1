@@ -18,7 +18,7 @@ namespace VolumetricClouds.Sky
     /// everywhere. How thick it is inside is a separate setting.
     ///
     /// History, because this took three attempts: a height-limited blanket, then soft
-    /// kilometre-wide banks with an exponential falloff. Anthony called both "a coating the
+    /// kilometre-wide banks with an exponential falloff. Both were called "a coating the
     /// way RenderIt does". They were translucent, had no boundary and did not shade
     /// themselves -- the three things that make a cloud read as a volume.
     /// </remarks>
@@ -31,7 +31,7 @@ namespace VolumetricClouds.Sky
         /// Extinction per metre inside the fog at 100% density: visibility of about 330 m, and
         /// from above a 90 m layer still passes around 60% of what is under it -- fog you see
         /// the city THROUGH, with body where it is thick. The third version shipped at 0.028
-        /// (visibility 110 m, nearly opaque from above), which Anthony found "just looks like
+        /// (visibility 110 m, nearly opaque from above), which was judged to "just look like
         /// the clouds but at the terrain level"; that look is still there at ~300% on the
         /// slider. The first two were thinner again AND had no boundary or shading, which is
         /// what made them a coating: density was never the only thing wrong with them.

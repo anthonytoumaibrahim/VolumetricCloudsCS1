@@ -331,10 +331,10 @@ namespace VolumetricClouds
         public static SavedBool DebugChecker { get; private set; }
 
         /// <summary>
-        /// Every default, in one place. Read off Anthony's own settings file on 2026-09-20 at
-        /// 20:00 (tools\read-settings.ps1), leaving out the values that file holds as
+        /// Every default, in one place. Read off the author's own settings file on 2026-09-20
+        /// at 20:00 (tools\read-settings.ps1), leaving out the values that file holds as
         /// experiments rather than as a look: the three overrides are all off here, the rain
-        /// endpoint is a full overcast rather than his 0, and lightning activity is 50%.
+        /// endpoint is a full overcast rather than its 0, and lightning activity is 50%.
         /// Re-snapshot before publishing, and read the result with a human eye.
         /// </summary>
         public static class Defaults
@@ -396,7 +396,7 @@ namespace VolumetricClouds
             public const bool DepthOcclusion = true;
 
             /// <summary>
-            /// Raymarch steps. 96 is the slider's maximum, what Anthony runs, and the shader's
+            /// Raymarch steps. 96 is the slider's maximum, what the author runs, and the shader's
             /// hard limit: CloudRaymarch.shader marches `for (int s = 0; s &lt; 96; s++)` while
             /// the step length is (exit - enter) / steps, so a higher number here only shortens
             /// the step and leaves the far end of every slab unmarched. Raising it means
@@ -441,10 +441,10 @@ namespace VolumetricClouds
             public const float FogSpeed = 3.6f;
 
             /// <summary>
-            /// Anthony runs 190%, but under a cloud brightness of 25% that the fog no longer
-            /// borrows: after the decoupling the fog is lit through the fixed
-            /// <see cref="Sky.CloudVolume.FogLightScale"/> of 0.5 instead, so half his number
-            /// puts a new subscriber's fog exactly where his looks today.
+            /// The author's file holds 190%, but under a cloud brightness of 25% that the fog no
+            /// longer borrows: after the decoupling the fog is lit through the fixed
+            /// <see cref="Sky.CloudVolume.FogLightScale"/> of 0.5 instead, so half that number
+            /// puts a new subscriber's fog exactly where the tuned one looks today.
             /// </summary>
             public const float FogBrightness = 0.95f;
 
@@ -454,7 +454,7 @@ namespace VolumetricClouds
 
             /// <summary>
             /// OFF: a night that looks nothing like vanilla is not something to do to someone
-            /// who never asked. Everything below it, though, is Anthony's night rather than a
+            /// who never asked. Everything below it, though, is the author's night rather than a
             /// neutral one -- ticking the box has to DO something.
             /// </summary>
             public const bool HaloEnabled = false;
@@ -471,7 +471,7 @@ namespace VolumetricClouds
             public const float HaloVehicleBrightness = 2.4f;
 
             /// <summary>
-            /// The older, cruder dynamic-light controls stay neutral. Anthony's file holds a
+            /// The older, cruder dynamic-light controls stay neutral. The author's file holds a
             /// range of 1.55 and an intensity of 1.4 with this switch OFF -- leftovers from an
             /// experiment, not a look.
             /// </summary>
@@ -502,7 +502,14 @@ namespace VolumetricClouds
                 Coverage = new SavedFloat("Coverage", FileName, Defaults.Coverage, true);
                 CoverageOverride = new SavedBool("CoverageOverride", FileName, Defaults.CoverageOverride, true);
                 WeatherFairCoverage = new SavedFloat("WeatherFairCoverage", FileName, Defaults.FairCoverage, true);
-                WeatherOvercastCoverage = new SavedFloat("WeatherOvercastCoverage", FileName, Defaults.OvercastCoverage, true);
+                // A new key rather than "WeatherOvercastCoverage": that one is saved as 0 on the
+                // one machine that has it. It was dragged to nothing while the row still lived on
+                // the F4 panel, and the polish pass then moved the row to Options -> Weather,
+                // where nobody looked at it again. A rain end BELOW the clear end inverts the
+                // whole mapping -- the wetter the game's weather, the emptier our sky -- so
+                // "Follow the game's weather" handed back a clear day in a downpour. Saved values
+                // of a slider that quietly stopped being visible are garbage.
+                WeatherOvercastCoverage = new SavedFloat("WeatherRainCoverage", FileName, Defaults.OvercastCoverage, true);
 
                 RainEnabled = new SavedBool("RainEnabled", FileName, Defaults.RainEnabled, true);
                 RainCurtains = new SavedFloat("RainCurtains", FileName, Defaults.RainCurtains, true);
@@ -531,7 +538,7 @@ namespace VolumetricClouds
                 // was an e-folding scale above a fixed level. "FogPatchiness" and "FogBanks"
                 // (a blanket/banks blend nobody understood) are gone.
                 // "FogDensityScale", not "FogDensity": 100% used to be an extinction of 0.028 /m,
-                // which Anthony found "just looks like the clouds but at the terrain level".
+                // which was judged to "just look like the clouds but at the terrain level".
                 // 100% is now a third of that, so a value saved under the old scale is wrong.
                 FogDensity = new SavedFloat("FogDensityScale", FileName, Defaults.FogDensity, true);
                 FogHeight = new SavedFloat("FogTopHeight", FileName, Defaults.FogHeight, true);

@@ -178,6 +178,7 @@ namespace VolumetricClouds.Sky
                         " rain=" + CloudWeather.Rain.ToString("F2") +
                         " gameCloud=" + CloudWeather.GameCloud.ToString("F2") +
                         " overcast=" + CloudWeather.Overcast.ToString("F2") +
+                        " map=" + CloudWeather.FairEnd.ToString("F2") + ".." + CloudWeather.RainEnd.ToString("F2") +
                         " target=" + CloudWeather.Target().ToString("F2") +
                         " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ")" +
                         " x" + CloudWeather.WindSpeedFactor.ToString("F2"));

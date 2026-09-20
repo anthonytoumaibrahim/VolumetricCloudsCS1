@@ -25,11 +25,14 @@ namespace VolumetricClouds.Sky
     public static class CloudWeather
     {
         /// <summary>
-        /// Rain at or above this means a fully overcast sky. The game's dome uses 0.25 (its
-        /// rain * 4); a little more travel makes Play It's slider useful at the low end, and
-        /// the game's own random rain never starts below 0.25 anyway.
+        /// Rain at or above this means a fully overcast sky -- the WHOLE of the game's range,
+        /// because Play It's rain slider is a slider and a slider that does nothing over its
+        /// top half is a bug. It used to be 0.3 (near the game's own dome, which saturates at
+        /// rain * 4 = 0.25), and everything from 30% up was one flat sky: rain set to 50% and
+        /// then to 100% gave no difference at all.
+        /// The shape below is what keeps light rain honest at the same time.
         /// </summary>
-        private const float RainForFullOvercast = 0.3f;
+        private const float RainForFullOvercast = 1f;
 
         /// <summary>
         /// Time constants, in real seconds, for the cover to reach a new target. Play It can
@@ -65,13 +68,34 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>How overcast the weather says it is, 0 (clear) .. 1 (rain or full cloud).</summary>
+        /// <remarks>
+        /// Eased OUT, not SmoothStep: the first drops should already put a heavy sky up there
+        /// (it does not drizzle out of a half-empty one), while the top of the range still has
+        /// somewhere to go. A SmoothStep is slow at BOTH ends, which was the worst of both --
+        /// light rain barely clouded over, and heavy rain was a plateau.
+        /// The game's own storms reach full overcast through m_currentCloud regardless: this
+        /// curve is what a rain slider moved on its own travels along.
+        /// </remarks>
         public static float Overcast
         {
             get
             {
-                float rain = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(Rain / RainForFullOvercast));
+                float t = Mathf.Clamp01(Rain / RainForFullOvercast);
+                float rain = 1f - (1f - t) * (1f - t);
                 return Mathf.Max(rain, GameCloud);
             }
+        }
+
+        /// <summary>The cover the mapping gives a clear day, 0..1.</summary>
+        public static float FairEnd
+        {
+            get { return Value(Settings.WeatherFairCoverage, Settings.Defaults.FairCoverage); }
+        }
+
+        /// <summary>The cover the mapping gives rain or a full cloudy spell, 0..1.</summary>
+        public static float RainEnd
+        {
+            get { return Value(Settings.WeatherOvercastCoverage, Settings.Defaults.OvercastCoverage); }
         }
 
         /// <summary>
@@ -132,15 +156,17 @@ namespace VolumetricClouds.Sky
             if (Manual)
                 return Value(Settings.Coverage, Settings.Defaults.Coverage);
 
-            float fair = Value(Settings.WeatherFairCoverage, Settings.Defaults.FairCoverage);
-            float overcast = Value(Settings.WeatherOvercastCoverage, Settings.Defaults.OvercastCoverage);
-            return Mathf.Lerp(fair, overcast, Overcast);
+            return Mathf.Lerp(FairEnd, RainEnd, Overcast);
         }
 
         /// <summary>
         /// One line for the panel and the log, and it says which of the three levels is in
         /// charge. An override is a SavedBool, so it survives the session: someone who forgot
         /// it is on will report the mod as broken, and a loud status line is the cheap fix.
+        /// While FOLLOWING it also prints the two ends of the mapping, because those live on
+        /// the options page and nothing else on screen says what the weather is being mapped
+        /// ONTO -- a rain end left at 0 makes the whole feature look dead, which is exactly
+        /// how it was found.
         /// </summary>
         public static string Describe()
         {
@@ -150,7 +176,9 @@ namespace VolumetricClouds.Sky
 
             return Manual
                 ? "OVERRIDDEN: intensity " + intensity + "  (the game says " + weather + ")"
-                : "Following the game: " + weather + "  ->  intensity " + intensity;
+                : "Following the game: " + weather + "  ->  intensity " + intensity +
+                  "  (clear " + (FairEnd * 100f).ToString("F0") + "% to rain " +
+                  (RainEnd * 100f).ToString("F0") + "%)";
         }
 
         private static float Value(SavedFloat setting, float fallback)

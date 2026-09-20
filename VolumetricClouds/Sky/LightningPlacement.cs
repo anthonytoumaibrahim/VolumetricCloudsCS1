@@ -9,14 +9,14 @@ namespace VolumetricClouds.Sky
     /// Pure maths with no engine call in it (Vector3, Quaternion and Mathf are all managed),
     /// so it can be exercised offline the way tools\test-lightning.ps1 does.
     ///
-    /// Why the viewport matters more than the rate. Measured from Anthony's log of 2026-09-20:
+    /// Why the viewport matters more than the rate. Measured from the log of 2026-09-20:
     /// with the override at 100% for 655 s the mod produced 199 strikes -- one every 3.3 s,
-    /// exactly what the slider promised -- and he reported "one every few in-game minutes".
+    /// exactly what the slider promised -- and it was seen as "one every few in-game minutes".
     /// The old placement picked a uniformly random compass direction 800 m to 7 km out, area
     /// weighted, so half of them were beyond 5 km and only about a fifth were anywhere near
     /// the front of the screen; a city-builder camera looks DOWN, so a strike 5 km away is
     /// usually above the top of the screen even when it is dead ahead. Most of the storm was
-    /// happening behind him. Putting seven in ten strikes inside the frustum is worth several
+    /// happening off screen. Putting seven in ten strikes inside the frustum is worth several
     /// times more SEEN lightning than raising the rate, and costs nothing in thunder.
     ///
     /// The other three in ten stay all-round on purpose: thunder from behind you is right.

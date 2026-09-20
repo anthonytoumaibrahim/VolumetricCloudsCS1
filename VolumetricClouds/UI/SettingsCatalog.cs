@@ -96,9 +96,9 @@ namespace VolumetricClouds.UI
         /// A deliberate, per-machine opt-in: once the player has made it, NOTHING but the
         /// player's own click on this row ever unmakes it. "Reset all settings to defaults"
         /// leaves it alone, and so must anything added later (a profile may ask to turn one ON,
-        /// never off). Volumetric fog and the advanced panel are the two: Anthony, after
-        /// finding his fog off at the start of a session -- "when enabled, SHOULD ALWAYS STAY
-        /// ON. Never turn it off again."
+        /// never off). Volumetric fog and the advanced panel are the two, after a session that
+        /// started with the fog switched off again -- "when enabled, SHOULD ALWAYS STAY ON.
+        /// Never turn it off again."
         /// </summary>
         public bool Sticky;
 

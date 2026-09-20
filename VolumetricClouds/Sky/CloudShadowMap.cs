@@ -111,8 +111,8 @@ namespace VolumetricClouds.Sky
         /// it is in shade.
         ///
         /// Darkness is deliberately the same at every coverage. Earlier versions blended it
-        /// towards an "overcast floor" as coverage rose; at the ~97% Anthony actually plays
-        /// at, that made the strength slider 3% of the result and it felt disconnected.
+        /// towards an "overcast floor" as coverage rose; at the ~97% this mod is actually
+        /// played at, that made the strength slider 3% of the result and it felt disconnected.
         /// Before that, a global dim was balanced against the cookie and erased the shadows
         /// at high coverage altogether.
         /// </remarks>

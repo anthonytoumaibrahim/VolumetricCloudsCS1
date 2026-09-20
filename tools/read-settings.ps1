@@ -6,7 +6,7 @@ param(
 )
 
 # Prints every value saved in a ColossalFramework settings file (.cgs), without the game.
-# "What does Anthony run right now?" is the question behind every shipping default, and
+# "What is actually being run right now?" is the question behind every shipping default, and
 # Settings.Defaults drifts away from the answer within a day of tuning.
 #
 #   .\read-settings.ps1
