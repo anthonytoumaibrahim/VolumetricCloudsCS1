@@ -13,12 +13,14 @@ namespace VolumetricClouds.Sky
     ///                           is an exact off-switch.
     ///
     ///   RainProperties          a "spindle" shell around the camera with a scrolling rain
-    ///                           texture -- the filter on the lens. Its Update ALSO schedules
-    ///                           the lightning flashes and the thunder sound, and draws the
-    ///                           shell unconditionally at the end of the same method, so the
-    ///                           component must stay enabled. Its material is a public field
-    ///                           read at draw time, though: swapping in a material that draws
-    ///                           nothing stops the shell and leaves the thunder alone.
+    ///                           texture. In a normal game this component is DISABLED (the
+    ///                           log says so: the particle renderer is the live one). Where
+    ///                           it is enabled, its Update also runs a legacy lightning and
+    ///                           thunder scheduler and draws the shell unconditionally at the
+    ///                           end of the same method -- so its enabled state is never
+    ///                           touched here. Its material is a public field read at draw
+    ///                           time: swapping in one that draws nothing stops the shell and
+    ///                           leaves whatever else that Update does alone.
     ///
     /// Nothing of the game's is modified or destroyed; restoring is putting two things back.
     /// </remarks>

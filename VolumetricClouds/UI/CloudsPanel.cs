@@ -14,7 +14,7 @@ namespace VolumetricClouds.UI
     /// </summary>
     public class CloudsPanel : UIPanel
     {
-        private const float PanelWidth = 540f;   // six tabs; "Rendering" is the widest label
+        private const float PanelWidth = 600f;   // seven tabs; "Rendering" is the widest label
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float TabHeight = 28f;
@@ -58,7 +58,8 @@ namespace VolumetricClouds.UI
             BuildTitleBar();
 
             _contentHeights.Add(BuildCloudsPage(AddPage("Clouds")));
-            _contentHeights.Add(BuildRainPage(AddPage("Rain")));
+            _contentHeights.Add(BuildWeatherPage(AddPage("Weather")));
+            _contentHeights.Add(BuildFogPage(AddPage("Fog")));
             _contentHeights.Add(BuildLightPage(AddPage("Light")));
             _contentHeights.Add(BuildRenderingPage(AddPage("Rendering")));
             _contentHeights.Add(BuildHalosPage(AddPage("Halos")));
@@ -154,7 +155,7 @@ namespace VolumetricClouds.UI
             return rows.Height;
         }
 
-        private static float BuildRainPage(UIPanel page)
+        private static float BuildWeatherPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
@@ -166,6 +167,34 @@ namespace VolumetricClouds.UI
             rows.Percent("Rain streaks near camera", Settings.RainStreaks, 0f, 300f, 5f);
             rows.Value("Streaks fade out above", Settings.RainStreakHeight, 100f, 1500f, 50f, Metres);
             rows.Toggle("Rain sound and wet roads follow the clouds", Settings.RainLocalised);
+
+            // The game's own strikes (heavy rain, the thunderstorm disaster) always light the
+            // clouds. "Activity" is EXTRA lightning that is only ever visual: it starts no
+            // fires, follows the rain unless overridden, and needs cloud to happen in.
+            rows.Toggle("Lightning lights the clouds and rain", Settings.LightningEnabled);
+            rows.Toggle("Replace the game's lightning bolt", Settings.LightningReplaceBolt);
+            rows.Percent("Lightning brightness", Settings.LightningBrightness, 0f, 300f, 5f);
+            rows.Toggle("Set lightning activity myself (default: from rain)", Settings.LightningOverride);
+            rows.Percent("Lightning activity", Settings.LightningActivity, 0f, 100f, 1f);
+            rows.Button("Test lightning (visual only, in front of the camera)", CloudLightning.RequestTest);
+            return rows.Height;
+        }
+
+        private static float BuildFogPage(UIPanel page)
+        {
+            Rows rows = new Rows(page);
+
+            // HOW MUCH fog is the game's weather, unless overridden -- and Play It cannot set
+            // fog, so the override is also the way to have some on demand.
+            rows.Toggle("Volumetric fog (replaces the game's grey-out)", Settings.FogEnabled);
+            rows.Toggle("Set the fog amount myself (default: from the weather)", Settings.FogOverride);
+            // "Amount" is how much of the low ground has fog on it, like cloud intensity is how
+            // much of the sky has cloud -- not how grey everything is.
+            rows.Percent("Fog amount (ground covered)", Settings.FogAmount, 0f, 100f, 1f);
+            rows.Percent("Fog thickness", Settings.FogThickness, 10f, 300f, 5f);
+            rows.Value("Fog bank height", Settings.FogHeight, 15f, 300f, 5f, Metres);
+            rows.Value("Fog drift speed", Settings.FogSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
+            rows.Percent("Banks (0% = even blanket)", Settings.FogPatchiness, 0f, 100f, 5f);
             return rows.Height;
         }
 
@@ -179,6 +208,10 @@ namespace VolumetricClouds.UI
             rows.Percent("Cloud brightness", Settings.CloudBrightness, 20f, 300f, 5f);
             rows.Percent("Clouds dim at full overcast to", Settings.MinIllumination, 30f, 100f, 1f);
             rows.Percent("Cloud density", Settings.CloudDensity, 20f, 300f, 5f);
+
+            // Night only; neither does anything by day.
+            rows.Percent("Clouds hide the stars at night", Settings.CloudNightOpacity, 0f, 100f, 5f);
+            rows.Percent("City glow on clouds at night", Settings.CityGlow, 0f, 300f, 5f);
             return rows.Height;
         }
 
@@ -269,6 +302,13 @@ namespace VolumetricClouds.UI
             public float Height
             {
                 get { return _y; }
+            }
+
+            public void Button(string label, Action onClick)
+            {
+                UIButton button = UIBuilder.AddButton(_page, label, new Vector2(_page.width, 26f), new Vector3(0f, _y + 4f));
+                button.eventClick += (component, e) => onClick();
+                _y += UIBuilder.RowHeight;
             }
 
             /// <summary>A full-width line of text the panel keeps up to date itself.</summary>

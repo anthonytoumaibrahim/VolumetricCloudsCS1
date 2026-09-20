@@ -208,9 +208,15 @@ namespace VolumetricClouds.Lighting
             return replacement.Material;
         }
 
+        /// <summary>
+        /// Lamps bloom in fog. The halo's fog input is ours now (it used to follow the world's
+        /// fog), so our fog has to feed it or a foggy night would have clear-night lamps.
+        /// </summary>
+        private const float HaloFogPerFog = 0.6f;
+
         private void UpdateMaterials()
         {
-            float fog = Value(Settings.HaloFogAmount, 0f);
+            float fog = Value(Settings.HaloFogAmount, 0f) + CloudFog.Amount * HaloFogPerFog;
             float brightness = Value(Settings.HaloBrightness, 1f);
             float tightness = Value(Settings.HaloTightness, 1f);
             float radius = Value(Settings.HaloRadius, 1f);
@@ -274,7 +280,7 @@ namespace VolumetricClouds.Lighting
             // pinning it here instead lets the WORLD's fog be real weather again.
             Vector4 weather = Shader.GetGlobalVector(IdWeatherParams);
             if (enabled)
-                weather.z = MinSafeFog;
+                weather.z = MinSafeFog + CloudFog.Amount * HaloFogPerFog;
 
             dynamicVolume.SetVector(IdWeatherParams, weather);
             _dynamicTouched = true;

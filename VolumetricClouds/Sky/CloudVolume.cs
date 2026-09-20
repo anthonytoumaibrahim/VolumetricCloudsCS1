@@ -46,6 +46,31 @@ namespace VolumetricClouds.Sky
         private static readonly int IdRainCurtainScale = Shader.PropertyToID("_RainCurtainScale");
         private static readonly int IdRainAmbient = Shader.PropertyToID("_RainAmbient");
         private static readonly int IdRainSun = Shader.PropertyToID("_RainSun");
+        private static readonly int IdNightOpacity = Shader.PropertyToID("_NightOpacity");
+        private static readonly int IdCloudExtent = Shader.PropertyToID("_CloudExtent");
+        private static readonly int IdCityLightTex = Shader.PropertyToID("_CityLightTex");
+        private static readonly int IdCityGlow = Shader.PropertyToID("_CityGlow");
+        private static readonly int IdCityMapSize = Shader.PropertyToID("_CityMapSize");
+        private static readonly int IdFogAmount = Shader.PropertyToID("_FogAmount");
+        private static readonly int IdFogDensity = Shader.PropertyToID("_FogDensity");
+        private static readonly int IdFogThreshold = Shader.PropertyToID("_FogThreshold");
+        private static readonly int IdFogTile = Shader.PropertyToID("_FogTile");
+        private static readonly int IdFogOffset = Shader.PropertyToID("_FogOffset");
+        private static readonly int IdFogBoil = Shader.PropertyToID("_FogBoil");
+        private static readonly int IdFogBase = Shader.PropertyToID("_FogBase");
+        private static readonly int IdFogHeight = Shader.PropertyToID("_FogHeight");
+        private static readonly int IdFogSteps = Shader.PropertyToID("_FogSteps");
+        private static readonly int IdFogMaxDistance = Shader.PropertyToID("_FogMaxDistance");
+        private static readonly int IdFogPatchiness = Shader.PropertyToID("_FogPatchiness");
+        private static readonly int IdFogAmbient = Shader.PropertyToID("_FogAmbient");
+        private static readonly int IdFogSun = Shader.PropertyToID("_FogSun");
+        private static readonly int IdCloudShadowTex = Shader.PropertyToID("_CloudShadowTex");
+        private static readonly int IdShadowAvailable = Shader.PropertyToID("_ShadowAvailable");
+        private static readonly int IdShadowOrigin = Shader.PropertyToID("_ShadowOrigin");
+        private static readonly int IdShadowRight = Shader.PropertyToID("_ShadowRight");
+        private static readonly int IdShadowUp = Shader.PropertyToID("_ShadowUp");
+        private static readonly int IdShadowSize = Shader.PropertyToID("_ShadowSize");
+        private static readonly int IdShadowDarkness = Shader.PropertyToID("_ShadowDarkness");
 
         /// <summary>
         /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
@@ -211,6 +236,7 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdUseDepth, useDepth ? 1f : 0f);
 
             ApplyLighting();
+            CloudLightning.ApplyTo(_material);
         }
 
         /// <summary>
@@ -221,11 +247,12 @@ namespace VolumetricClouds.Sky
         private void ApplyLighting()
         {
             Light key = null;
+            Light sun = null;
             DayNightProperties properties = DayNightProperties.instance;
 
             if (properties != null)
             {
-                Light sun = properties.m_SunLight != null ? properties.m_SunLight.GetComponent<Light>() : null;
+                sun = properties.m_SunLight != null ? properties.m_SunLight.GetComponent<Light>() : null;
                 Light moon = properties.m_MoonLight != null ? properties.m_MoonLight.GetComponent<Light>() : null;
 
                 key = sun;
@@ -283,12 +310,98 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdRainAmbient, new Vector4(ambient.r, ambient.g, ambient.b, 0f) * 0.6f);
             _material.SetVector(IdRainSun, new Vector4(sunColor.r, sunColor.g, sunColor.b, 0f) * 0.12f);
 
+            ApplyNight(sun);
+            ApplyFog(sun, ambient, sunColor);
+
             if (!_loggedLighting)
             {
                 _loggedLighting = true;
                 Log.Msg("cloud lighting key='" + (key == null ? "none" : key.name) + "' intensity=" +
                         (key == null ? 0f : key.intensity) + " sunColor=" + sunColor +
                         " ambientMode=" + RenderSettings.ambientMode + " ambient=" + ambient);
+            }
+        }
+
+        /// <summary>
+        /// 0 by day, 1 once the sun is well down. From the sun's elevation rather than its
+        /// intensity: the game keeps the sun bright until it is on the horizon, and the stars
+        /// are out before it has faded.
+        /// </summary>
+        private static float NightFactor(Light sun)
+        {
+            if (sun == null)
+                return 0f;
+
+            float elevation = -Mathf.Asin(Mathf.Clamp(sun.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2f, -8f, elevation));
+        }
+
+        /// <summary>Clouds that hide the stars, and the city's glow on whatever hangs over it.</summary>
+        private void ApplyNight(Light sun)
+        {
+            float night = NightFactor(sun);
+
+            float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
+            _material.SetFloat(IdNightOpacity, night * opacity);
+            _material.SetFloat(IdCloudExtent, _holder.transform.localScale.x);
+
+            // Sodium-lamp warm. The strength is judged against a night cloud, which is nearly
+            // black: enough to read as a glow over downtown, nowhere near daylight.
+            float glow = Settings.CityGlow != null ? Mathf.Max(0f, Settings.CityGlow.value) : 1f;
+            Texture cityMap = CityLights.Texture;
+            Vector4 glowColour = cityMap == null
+                ? Vector4.zero
+                : new Vector4(1f, 0.6f, 0.3f, 0f) * (0.22f * glow * night);
+
+            _material.SetTexture(IdCityLightTex, cityMap != null ? cityMap : Texture2D.blackTexture);
+            _material.SetVector(IdCityGlow, glowColour);
+            _material.SetFloat(IdCityMapSize, CityLights.MapSize);
+        }
+
+        /// <summary>
+        /// The fog layer and the shadow map it is lit through. The sun's OWN transform is used
+        /// for the lookup whatever is lighting the clouds: the shadow map is always rendered
+        /// along the sun, and at night it is simply white.
+        /// </summary>
+        private void ApplyFog(Light sun, Color ambient, Color sunColor)
+        {
+            float thickness = Settings.FogThickness != null ? Mathf.Max(0f, Settings.FogThickness.value) : 1f;
+            float height = Settings.FogHeight != null ? Mathf.Max(5f, Settings.FogHeight.value) : 70f;
+            float patchiness = Settings.FogPatchiness != null ? Mathf.Clamp01(Settings.FogPatchiness.value) : 1f;
+
+            _material.SetFloat(IdFogAmount, CloudFog.Active ? CloudFog.Amount : 0f);
+            _material.SetFloat(IdFogDensity, CloudFog.BaseExtinction * thickness);
+
+            // Banks are cut from the clouds' weather field with the threshold the solved table
+            // gives for the share of the ground they should cover: the clouds' own recipe.
+            _material.SetFloat(IdFogThreshold, _field.GetThreshold(CloudFog.Coverage));
+            _material.SetFloat(IdFogTile, CloudFog.Tile);
+            _material.SetVector(IdFogOffset, CloudFog.Offset);
+            _material.SetFloat(IdFogBoil, CloudFog.Boil);
+            _material.SetFloat(IdFogBase, CloudFog.BaseLevel);
+            _material.SetFloat(IdFogHeight, height);
+            _material.SetFloat(IdFogSteps, 20f);
+            _material.SetFloat(IdFogMaxDistance, 9000f);
+            _material.SetFloat(IdFogPatchiness, patchiness);
+
+            // Lit like the clouds (same brightness and overcast terms, so it sits in the same
+            // picture), a little brighter: fog is lit from all round, a cloud base from below.
+            _material.SetVector(IdFogAmbient, new Vector4(ambient.r, ambient.g, ambient.b, 0f) * 1.3f);
+            _material.SetVector(IdFogSun, new Vector4(sunColor.r, sunColor.g, sunColor.b, 0f) * 0.7f);
+
+            CloudShadowMap map = CloudShadowMap.Current;
+            bool shadows = Settings.CloudShadows == null || Settings.CloudShadows.value;
+            bool available = shadows && sun != null && map != null && map.IsReady && map.Texture != null;
+
+            _material.SetFloat(IdShadowAvailable, available ? 1f : 0f);
+            if (available)
+            {
+                _material.SetTexture(IdCloudShadowTex, map.Texture);
+                _material.SetVector(IdShadowOrigin, CloudShadowMap.Anchor);
+                _material.SetVector(IdShadowRight, sun.transform.right);
+                _material.SetVector(IdShadowUp, sun.transform.up);
+                _material.SetFloat(IdShadowSize, CloudShadowMap.CookieSize);
+                _material.SetFloat(IdShadowDarkness, CloudShadowMap.ShadowDepth(CloudShaderParams.Coverage));
             }
         }
 

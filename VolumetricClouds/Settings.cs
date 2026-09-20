@@ -54,6 +54,64 @@ namespace VolumetricClouds
         /// </summary>
         public static SavedBool RainLocalised { get; private set; }
 
+        /// <summary>Lightning lights the clouds and the rain from inside, and thunder gets our storm flashes.</summary>
+        public static SavedBool LightningEnabled { get; private set; }
+
+        /// <summary>Draw our own bolt, from our cloud base, instead of the game's fixed model.</summary>
+        public static SavedBool LightningReplaceBolt { get; private set; }
+
+        /// <summary>Multiplier on the flash in the clouds and on the bolt.</summary>
+        public static SavedFloat LightningBrightness { get; private set; }
+
+        /// <summary>
+        /// Off (the default): how often our visual-only lightning flashes follows the rain.
+        /// On: <see cref="LightningActivity"/> sets it, e.g. for a dry thunderstorm. Either
+        /// way it only ever happens inside cloud, and never starts a fire.
+        /// </summary>
+        public static SavedBool LightningOverride { get; private set; }
+
+        /// <summary>0..1: from a flash every half minute to one every few seconds.</summary>
+        public static SavedFloat LightningActivity { get; private set; }
+
+        /// <summary>
+        /// Volumetric fog in the cloud pass, in place of the game's even grey-out. The game's
+        /// distance haze, edge fog and pollution tint stay.
+        /// </summary>
+        public static SavedBool FogEnabled { get; private set; }
+
+        /// <summary>
+        /// Off (the default): the fog follows the game's weather. On: <see cref="FogAmount"/>
+        /// sets it -- the only way to have fog on demand, since Play It cannot set it.
+        /// </summary>
+        public static SavedBool FogOverride { get; private set; }
+
+        /// <summary>0..1.</summary>
+        public static SavedFloat FogAmount { get; private set; }
+
+        /// <summary>Multiplier on how dense the fog is at its base.</summary>
+        public static SavedFloat FogThickness { get; private set; }
+
+        /// <summary>Metres over which the fog thins by e above the level it lies on.</summary>
+        public static SavedFloat FogHeight { get; private set; }
+
+        /// <summary>
+        /// 1 = distinct banks of fog with clear air between, built like the clouds; 0 = an even
+        /// blanket everywhere (what a screen-space fog such as RenderIt's already gives).
+        /// </summary>
+        public static SavedFloat FogPatchiness { get; private set; }
+
+        /// <summary>Multiplier on how fast the fog banks drift and turn over. 0 = still.</summary>
+        public static SavedFloat FogSpeed { get; private set; }
+
+        /// <summary>
+        /// How much of the clouds' distance transparency is taken away at night, 0..1. At 1
+        /// the stars cannot be seen through a cloud; by day this has no effect at all.
+        /// </summary>
+        public static SavedFloat CloudNightOpacity { get; private set; }
+
+        /// <summary>Multiplier on the city's glow on clouds, rain and fog at night. 0 = off.</summary>
+        public static SavedFloat CityGlow { get; private set; }
+
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
         public static SavedFloat WindSpeed { get; private set; }
 
@@ -241,6 +299,26 @@ namespace VolumetricClouds
                 RainStreaks = new SavedFloat("RainStreaks", FileName, 1f, true);
                 RainStreakHeight = new SavedFloat("RainStreakHeight", FileName, 450f, true);
                 RainLocalised = new SavedBool("RainLocalised", FileName, true, true);
+
+                LightningEnabled = new SavedBool("LightningEnabled", FileName, true, true);
+                LightningReplaceBolt = new SavedBool("LightningReplaceBolt", FileName, true, true);
+                LightningBrightness = new SavedFloat("LightningBrightness", FileName, 1f, true);
+                LightningOverride = new SavedBool("LightningOverride", FileName, false, true);
+                LightningActivity = new SavedFloat("LightningActivity", FileName, 0.5f, true);
+
+                FogEnabled = new SavedBool("FogEnabled", FileName, true, true);
+                FogOverride = new SavedBool("FogOverride", FileName, false, true);
+                FogAmount = new SavedFloat("FogAmount", FileName, 0.5f, true);
+                FogThickness = new SavedFloat("FogThickness", FileName, 1f, true);
+                FogHeight = new SavedFloat("FogHeight", FileName, 70f, true);
+                // New key: "FogPatchiness" used to scale a gentle noise over a blanket that was
+                // everywhere; it now blends between that blanket and cloud-like banks. A value
+                // saved under the old meaning would bring most of the blanket back.
+                FogPatchiness = new SavedFloat("FogBanks", FileName, 1f, true);
+                FogSpeed = new SavedFloat("FogSpeed", FileName, 1f, true);
+
+                CloudNightOpacity = new SavedFloat("CloudNightOpacity", FileName, 1f, true);
+                CityGlow = new SavedFloat("CityGlow", FileName, 1f, true);
                 WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
                 // New key rather than reusing CookieTileSize: the old 2000 m default was saved
                 // into existing settings files and is far too small for cloud-sized features.

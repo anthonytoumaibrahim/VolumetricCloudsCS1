@@ -59,6 +59,7 @@ namespace VolumetricClouds.Sky
 
             // Statics outlive a city; start this one on its own weather, not the last one's.
             CloudWeather.Reset();
+            CloudFog.Reset();
 
             Log.Msg("Sun '" + _sun.name + "' type=" + _sun.type +
                     " intensity=" + _sun.intensity +
@@ -160,6 +161,9 @@ namespace VolumetricClouds.Sky
             // After the cover and the wind: where it rains is derived from both.
             CloudRain.Advance(_field, RainDrops.ShadersAvailable, Time.deltaTime, simulationRate);
 
+            // The fog is drawn by the volumetric cloud pass, so it needs that pass running.
+            CloudFog.Advance(Time.deltaTime, CloudVolume.IsActive, CloudWeather.WindDirection, simulationRate);
+
             // Every frame, not just on a settings change: the shadow map becomes ready a
             // moment after load, and the game is free to move the sun's transform.
             ApplyCookie();
@@ -177,6 +181,10 @@ namespace VolumetricClouds.Sky
                         " target=" + CloudWeather.Target().ToString("F2") +
                         " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ")" +
                         " x" + CloudWeather.WindSpeedFactor.ToString("F2"));
+                Log.Msg("fog: " + (!CloudFog.Active ? "off (the game's)" : CloudFog.Overridden ? "OVERRIDDEN" : "followed") +
+                        " gameFog=" + CloudFog.GameFog.ToString("F2") +
+                        " amount=" + CloudFog.Amount.ToString("F2") +
+                        " liesOn=" + CloudFog.BaseLevel.ToString("F0") + "m");
                 Log.Msg("coverage=" + coverage.ToString("F2") +
                         " shadows=" + _mode +
                         " shadowDepth=" + CloudShadowMap.ShadowDepth(coverage).ToString("F2") +
