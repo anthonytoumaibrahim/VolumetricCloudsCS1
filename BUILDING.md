@@ -110,3 +110,9 @@ your own installed copy.
 
 `CLAUDE.md` is the full technical record: the invariants, the facts read out of the game's IL,
 and every dead end. Read its *Invariants* section before changing anything under `Sky/`.
+
+## Publishing
+
+[docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) is the Workshop release checklist: what
+has to be verified in the game first, what the uploaded folder must contain, and which parts of
+the Workshop page live in the repository and which exist only inside Steam.
