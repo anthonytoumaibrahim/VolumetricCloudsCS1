@@ -93,7 +93,7 @@ public static class ShaderDump
     }
 
     static uint U32(byte[] b, int o) { return BitConverter.ToUInt32(b, o); }
-    static int Align4(int v) { return (v + 3) & ~3; }
+    static int AlignFrom(int v, int origin) { return origin + ((v - origin + 3) & ~3); }
 
     public static string Run(string assetFile, string shaderName, string outDir)
     {
@@ -101,34 +101,58 @@ public static class ShaderDump
         byte[] data = File.ReadAllBytes(assetFile);
         byte[] nameBytes = Encoding.ASCII.GetBytes(shaderName);
 
-        int at = -1;
-        for (int from = 0; ; )
+        // The name can occur several times as a length-prefixed string: a bundle keeps the
+        // object's own m_Name up front (a stripped player build does not), ahead of the copy
+        // inside m_ParsedForm that the platform arrays follow. Take the first occurrence whose
+        // trailing layout is self-consistent.
+        int at = -1, blobStart = 0, blobLength = 0;
+        uint[][] arrays = null;
+        string lastProblem = "shader name not found as a length-prefixed string";
+
+        for (int from = 0; at < 0; )
         {
             int hit = Find(data, nameBytes, from);
             if (hit < 0) break;
-            // The real m_Name is length-prefixed and is followed by a non-name byte.
-            if (hit >= 4 && U32(data, hit - 4) == nameBytes.Length) { at = hit; break; }
             from = hit + 1;
+            if (hit < 4 || U32(data, hit - 4) != nameBytes.Length) continue;
+
+            // Alignment is relative to the serialized file, which inside a bundle container
+            // does not start on a 4-byte boundary of the file on disk. The length prefix of
+            // this string IS aligned, so measure from there.
+            int origin = (hit - 4) & 3;
+            int p = AlignFrom(hit + nameBytes.Length, origin);
+            bool ok = true;
+            for (int i = 0; i < 2 && ok; i++)                                   // editor, fallback names
+            {
+                int len = (int)U32(data, p);
+                if (len < 0 || len > 256) { ok = false; break; }
+                p = AlignFrom(p + 4 + len, origin);
+            }
+            if (!ok) { lastProblem = "implausible string after the name at 0x" + hit.ToString("X"); continue; }
+
+            int deps = (int)U32(data, p); p += 4;
+            if (deps != 0) { lastProblem = "candidate at 0x" + hit.ToString("X") + " has dependencies"; continue; }
+            p += 4;                                                             // m_DisableNoSubshadersMessage
+
+            uint[][] candidate = new uint[4][];
+            for (int a = 0; a < 4 && ok; a++)
+            {
+                int n = (int)U32(data, p); p += 4;
+                if (n <= 0 || n > 16 || (a > 0 && n != candidate[0].Length)) { ok = false; break; }
+                candidate[a] = new uint[n];
+                for (int i = 0; i < n; i++, p += 4) candidate[a][i] = U32(data, p);
+            }
+            if (!ok) { lastProblem = "candidate at 0x" + hit.ToString("X") + " is not followed by the platform arrays"; continue; }
+
+            long total = 0;
+            foreach (uint c in candidate[2]) total += c;
+            int length = (int)U32(data, p); p += 4;
+            if (length != total) { lastProblem = "candidate at 0x" + hit.ToString("X") + ": blob length does not match"; continue; }
+
+            at = hit; arrays = candidate; blobLength = length; blobStart = p;
         }
-        if (at < 0) return "shader name not found as a length-prefixed string";
 
-        int p = Align4(at + nameBytes.Length);
-        for (int i = 0; i < 2; i++) { int len = (int)U32(data, p); p = Align4(p + 4 + len); }   // editor, fallback names
-        int deps = (int)U32(data, p); p += 4;
-        if (deps != 0) return "shader has dependencies; layout walk not implemented for that";
-        p += 4;                                                                                // m_DisableNoSubshadersMessage
-
-        uint[][] arrays = new uint[4][];
-        for (int a = 0; a < 4; a++)
-        {
-            int n = (int)U32(data, p); p += 4;
-            if (n <= 0 || n > 16) return "unexpected array length " + n + " at " + p + "; not a Unity 5.6 shader layout?";
-            arrays[a] = new uint[n];
-            for (int i = 0; i < n; i++, p += 4) arrays[a][i] = U32(data, p);
-        }
-
-        int blobLength = (int)U32(data, p); p += 4;
-        int blobStart = p;
+        if (at < 0) return lastProblem;
 
         log.AppendLine("shader '" + shaderName + "' at 0x" + at.ToString("X") + ", blob " + blobLength + " bytes");
         log.AppendLine("platforms: " + string.Join(", ", Array.ConvertAll(arrays[0], x => x.ToString())));

@@ -11,6 +11,31 @@ public static class BundleBuilder
     private const string OutputDir = "Bundles";
     private const string BundleName = "volumetricclouds";
 
+    /// <summary>
+    /// Verification only: an uncompressed copy in Bundles/debug, so tools/shaderdump.ps1 can
+    /// find and disassemble OUR compiled shaders and diff them against the game's originals.
+    /// Never shipped.
+    /// </summary>
+    public static void BuildUncompressed()
+    {
+        string dir = Path.Combine(OutputDir, "debug");
+        Directory.CreateDirectory(dir);
+
+        AssetBundleBuild build = new AssetBundleBuild
+        {
+            assetBundleName = BundleName,
+            assetNames = new[] { "Assets/VolumetricClouds/LightHalo.shader" },
+        };
+
+        BuildPipeline.BuildAssetBundles(
+            dir,
+            new[] { build },
+            BuildAssetBundleOptions.ForceRebuildAssetBundle | BuildAssetBundleOptions.UncompressedAssetBundle,
+            BuildTarget.StandaloneWindows64);
+
+        Debug.Log("UNCOMPRESSED DEBUG BUNDLE: " + Path.Combine(dir, BundleName));
+    }
+
     public static void Build()
     {
         Directory.CreateDirectory(OutputDir);
@@ -22,6 +47,7 @@ public static class BundleBuilder
             {
                 "Assets/VolumetricClouds/CloudRaymarch.shader",
                 "Assets/VolumetricClouds/CloudShadowMap.shader",
+                "Assets/VolumetricClouds/LightHalo.shader",
             },
         };
 

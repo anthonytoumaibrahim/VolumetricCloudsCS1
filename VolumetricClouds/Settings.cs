@@ -81,27 +81,33 @@ namespace VolumetricClouds
         /// <summary>Base width of a single puff, in metres.</summary>
         public static SavedFloat CloudPuffSize { get; private set; }
 
-        /// <summary>Give the light halos their own fog instead of the world's.</summary>
-        public static SavedBool HaloFogEnabled { get; private set; }
+        /// <summary>Take over the glow pass of batched (distant) lights. Off = untouched game.</summary>
+        public static SavedBool HaloEnabled { get; private set; }
 
         /// <summary>
-        /// The fog amount the halos see, on the same scale as the game's fog value (what
-        /// PersistentFogAdjuster edits): 0 is clear, 1 is foggy, negative extrapolates.
+        /// Use the ported replacement shader, which adds brightness/tightness/size and cannot
+        /// produce the NaN "box". Off = a copy of the game's shader with only fog overridden.
         /// </summary>
-        public static SavedFloat HaloFogValue { get; private set; }
+        public static SavedBool HaloReplaceShader { get; private set; }
 
         /// <summary>
-        /// The fog amount for lights close to the camera. Must stay in the range the game's
-        /// shader handles (about -0.49 and up): below it, nearby lights render as boxes.
-        /// <see cref="HaloFogValue"/> is what distant lights blend towards.
+        /// The fog amount the halos see, on the game's own scale (what PersistentFogAdjuster
+        /// edits): 0 is a clear night, 1 is foggy, -0.5 is no glow at all. Independent of the
+        /// world's fog.
         /// </summary>
-        public static SavedFloat HaloFogNear { get; private set; }
+        public static SavedFloat HaloFogAmount { get; private set; }
 
-        /// <summary>Distance at which halos start moving from the near value to the far one, in metres.</summary>
-        public static SavedFloat HaloFogStart { get; private set; }
+        /// <summary>Multiplier on glow amplitude. Replacement shader only.</summary>
+        public static SavedFloat HaloBrightness { get; private set; }
 
-        /// <summary>Distance at which halos have fully reached the far value, in metres.</summary>
-        public static SavedFloat HaloFogEnd { get; private set; }
+        /// <summary>
+        /// Multiplier on the falloff exponent: above 1 keeps the bright core and sheds the wide
+        /// haze, which is what makes a halo read as small. Replacement shader only.
+        /// </summary>
+        public static SavedFloat HaloTightness { get; private set; }
+
+        /// <summary>Multiplier on the glow's world radius. Replacement shader only.</summary>
+        public static SavedFloat HaloRadius { get; private set; }
 
         /// <summary>Master switch for the light-halo adjustments.</summary>
         public static SavedBool HaloAdjustEnabled { get; private set; }
@@ -192,11 +198,16 @@ namespace VolumetricClouds
                 CloudPuffCount = new SavedFloat("CloudPuffCount", FileName, Defaults.PuffCount, true);
                 CloudPuffSize = new SavedFloat("CloudPuffSize", FileName, Defaults.PuffSize, true);
 
-                HaloFogEnabled = new SavedBool("HaloFogEnabled", FileName, false, true);
-                HaloFogValue = new SavedFloat("HaloFogValue", FileName, 0f, true);
-                HaloFogNear = new SavedFloat("HaloFogNear", FileName, -0.45f, true);
-                HaloFogStart = new SavedFloat("HaloFogStart", FileName, 500f, true);
-                HaloFogEnd = new SavedFloat("HaloFogEnd", FileName, 2500f, true);
+                // All new keys. The old HaloFogEnabled/HaloFogValue belonged to an experiment where
+                // values like -5 were normal; here -5 would simply mean "no glow", and an old
+                // "enabled" must not switch on a replacement shader nobody has opted into.
+                // Defaults are neutral: enabling the feature reproduces a clear vanilla night.
+                HaloEnabled = new SavedBool("HaloEnabled", FileName, false, true);
+                HaloReplaceShader = new SavedBool("HaloReplaceShader", FileName, true, true);
+                HaloFogAmount = new SavedFloat("HaloFogAmount", FileName, 0f, true);
+                HaloBrightness = new SavedFloat("HaloBrightness", FileName, 1f, true);
+                HaloTightness = new SavedFloat("HaloTightness", FileName, 1f, true);
+                HaloRadius = new SavedFloat("HaloRadius", FileName, 1f, true);
 
                 HaloAdjustEnabled = new SavedBool("HaloAdjustEnabled", FileName, false, true);
                 HaloRangeScale = new SavedFloat("HaloRangeScale", FileName, 1f, true);

@@ -145,16 +145,16 @@ namespace VolumetricClouds.UI
         {
             Rows rows = new Rows(page);
 
-            // Street lamps and buildings: batched lights whose glow reads _WeatherParams.z.
-            // Distant groups get the far value, groups near the camera the safe near one.
-            // The shader's glow is 0.001 * (value + 0.5): -0.49 is as dim as it goes, and at or
-            // below -0.5 it takes log() of a negative number and paints the light's whole quad
-            // at full colour. So the sliders stop short of that.
-            rows.Toggle("Halos use their own fog value", Settings.HaloFogEnabled);
-            rows.Value("Far halos (-0.49 = faintest)", Settings.HaloFogValue, HaloFogOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
-            rows.Value("Near halos", Settings.HaloFogNear, HaloFogOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
-            rows.Value("Blend starts at", Settings.HaloFogStart, 0f, 3000f, 50f, Metres);
-            rows.Value("Blend complete at", Settings.HaloFogEnd, 200f, 8000f, 100f, Metres);
+            // Distant (batched) street and building lights. With everything at its default the
+            // replacement shader reproduces a clear vanilla night, so each slider can be judged
+            // against a known starting point. Fog stops at -0.49 because the GAME's shader,
+            // still used when the replacement is off, turns anything lower into a solid box.
+            rows.Toggle("Customise distant light halos", Settings.HaloEnabled);
+            rows.Toggle("Use the replacement halo shader", Settings.HaloReplaceShader);
+            rows.Value("Tightness (higher = smaller)", Settings.HaloTightness, 0.5f, 6f, 0.05f, v => v.ToString("F2") + "x");
+            rows.Percent("Brightness", Settings.HaloBrightness, 0f, 300f, 5f);
+            rows.Percent("Size (world radius)", Settings.HaloRadius, 10f, 150f, 5f);
+            rows.Value("Fog amount (0 = clear night)", Settings.HaloFogAmount, HaloOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
 
             // Vehicles and other dynamic lights: the only ones LightSystem.DrawLight handles.
             rows.Toggle("Adjust dynamic lights (vehicles)", Settings.HaloAdjustEnabled);
