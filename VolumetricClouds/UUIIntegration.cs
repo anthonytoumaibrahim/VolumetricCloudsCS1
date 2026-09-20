@@ -52,6 +52,37 @@ namespace VolumetricClouds
             }
         }
 
+        /// <summary>
+        /// Tells Unified UI whether our panel is open.
+        /// </summary>
+        /// <remarks>
+        /// Read from UnifiedUILib's IL: the hotkey and a click both end in ButtonBase.Toggle,
+        /// which is "if (IsActive) Deactivate() else Activate()" on the BUTTON's own flag -- it
+        /// never asks us. So when the panel is closed any other way (its own close button),
+        /// the button is left active, the next press "deactivates" a panel that is already
+        /// hidden, and only the press after that opens it. Setting IsPressed flips the flag
+        /// and the sprites without invoking the toggle callback, so this cannot loop.
+        /// </remarks>
+        public static void SetPressed(bool pressed)
+        {
+            if (_button == null)
+                return;
+
+            try
+            {
+                if (_button.IsPressed == pressed)
+                    return;
+
+                _button.IsPressed = pressed;
+                Log.Msg("Unified UI: button state corrected to " + (pressed ? "active" : "inactive") +
+                        " to match the panel");
+            }
+            catch (Exception e)
+            {
+                Log.Error("Syncing the Unified UI button state threw.", e);
+            }
+        }
+
         public static void Unregister()
         {
             if (_button == null)

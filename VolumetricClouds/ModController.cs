@@ -40,6 +40,7 @@ namespace VolumetricClouds
 
             _panel = UIView.GetAView().AddUIComponent(typeof(CloudsPanel)) as CloudsPanel;
             _panel.Hide();
+            _panel.eventVisibilityChanged += OnPanelVisibilityChanged;
 
             // One field feeds both the shadow cookie and the visible clouds.
             _field = new CloudDensityField(UnityEngine.Random.Range(1, 100000));
@@ -106,6 +107,11 @@ namespace VolumetricClouds
             if (Settings.ShowInUnifiedUI != null && Settings.ShowInUnifiedUI.value)
                 registered = UUIIntegration.Register(IconLoader.Load(), OnUUIToggled);
 
+            // A fresh button starts inactive, but this also runs from the "Show icon in
+            // Unified UI" checkbox -- which lives in the panel, so the panel is open.
+            if (registered && _panel != null)
+                UUIIntegration.SetPressed(_panel.isVisible);
+
             // Falling back also covers "wanted UUI but it isn't installed", which
             // would otherwise leave the player with no button at all.
             if (!registered)
@@ -131,8 +137,20 @@ namespace VolumetricClouds
             _hudButton = null;
         }
 
+        /// <summary>
+        /// The panel is the single source of truth for "open". Unified UI keeps a flag of its
+        /// own and toggles on that, so it is told about every change, whoever made it -- the
+        /// close button, the hotkey, the HUD button. See <see cref="UUIIntegration.SetPressed"/>.
+        /// </summary>
+        private void OnPanelVisibilityChanged(UIComponent component, bool visible)
+        {
+            UUIIntegration.SetPressed(visible);
+        }
+
         private void OnUUIToggled(bool active)
         {
+            Log.Msg("panel: Unified UI toggled it " + (active ? "on" : "off"));
+
             if (_panel == null)
                 return;
 
