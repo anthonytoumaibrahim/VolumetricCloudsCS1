@@ -30,13 +30,69 @@ Because the title and description exist only inside Steam, keep the source text 
 treat the Workshop box as a copy: draft it as `docs/workshop-description.txt` (not written yet)
 so the next update is an edit, not a rewrite from memory.
 
+## Specifications
+
+### Workshop cover image — `PreviewImage.png`
+
+| | |
+| --- | --- |
+| File name | `PreviewImage.png`, exactly — the game builds the path as `Path.Combine(stagingPath, "PreviewImage.png")` |
+| Where it goes | The root of `WorkshopStagingArea\<GUID>\`, over the default the game just wrote. Not the mod folder |
+| Dimensions | **512 × 512** recommended. Square is the convention, not a rule |
+| Aspect | 1:1. Steam's browse grid crops to a square thumbnail of roughly 270 px, so anything wider loses its edges there |
+| Format | PNG. Steam's API also accepts JPG and GIF ("suggested formats include JPG, PNG and GIF") |
+| File size | **Under 1 MB.** Steamworks documents that cap for additional preview files and gives no number for the primary one; every `PreviewImage.png` installed on this machine is under it, the largest at 941 KB. Treat 1 MB as the ceiling |
+| Colour | sRGB, 8-bit. Transparency is pointless here — it is composited on a dark page |
+| Design | It is read at thumbnail size first: one clear image of the sky, the mod's name large enough to survive a 270 px square, no fine text |
+
+Sizes actually shipped by mods installed here, for reference: 512² (Harmony, Unified UI), 500²,
+644², 800², 1024², 1440², 2048², and a handful of non-square ones. 512² is the safe default.
+
+### Workshop screenshots
+
+| | |
+| --- | --- |
+| Where | Steam only — the item's page, *Add/Edit images*. There is no field for these in the game |
+| Dimensions | **1920 × 1080** minimum; 2560 × 1440 is fine and looks better on the item page |
+| Aspect | 16:9, matching the game. Mixed aspects look untidy in the strip |
+| Format | JPEG at quality ~90, or PNG. A 1920 × 1080 PNG of a cloudy sky runs 2–4 MB; the same frame as JPEG is 300–600 KB |
+| File size | Keep each **under 1 MB**. That is the documented cap for additional preview files through the API, and it costs nothing to stay under it |
+| How many | 5–8. The first one is what appears beside the description |
+| Capture | In-game, at your normal resolution, UI hidden where the shot is about the sky. The Steam overlay's own screenshot key is the simplest route |
+| Video | Steam Workshop videos are **linked YouTube URLs**, not uploads |
+
+Shots worth having: day clouds with shadows moving across the city · a storm with lightning ·
+rain under a broken sky · night with the halos on · volumetric fog with sun shafts · the F4
+panel open against the sky · the options page.
+
+### In-game button icon — `CloudIcon.png`
+
+| | |
+| --- | --- |
+| Path | `VolumetricClouds/Resources/CloudIcon.png` — the resource name is hard-coded in `IconLoader`, so the name and folder cannot change |
+| Dimensions | **40 × 40**, the size Unified UI gives the button (`ButtonBase.Awake` sets 40) and the size the HUD fallback uses. **80 × 80** is the safe alternative if you want it sharp when the UI is scaled up above 1080p; it is scaled down cleanly. Nothing larger is useful |
+| Aspect | 1:1. The sprite is stretched to the button, so a non-square icon distorts |
+| Format | PNG-32, RGBA, **transparent background**. It is loaded with `Texture2D.LoadImage` into ARGB32 |
+| States | One image. Unified UI uses it for normal, hovered, pressed and disabled alike and draws its own button background behind it; the HUD fallback puts a game panel sprite behind it. Do not paint a frame or a background into the icon |
+| Design | A single flat silhouette in near-white or a very light tint, ~3 px of empty margin all round, no stroke thinner than 2 px, no text. It has to read at 40 px on a dark button |
+| File size | Irrelevant — it is embedded in the DLL. The current placeholder is 448 bytes |
+
+### Text
+
+| | |
+| --- | --- |
+| Workshop description | A subset of **BBCode** — `[h1]`, `[b]`, `[i]`, `[url=…]`, `[list]`/`[*]`, `[img]`. Markdown does nothing, so the README cannot be pasted in |
+| `Mod.Name` | One line, shown in the Content Manager and pre-filling the Workshop title |
+| `Mod.Description` | One or two sentences, shown under the name in the Content Manager |
+| Change note | Plain text, per update |
+
 ## 1. Code and content
 
 - [ ] `Mod.Description` rewritten — it is what the Content Manager shows, and it still reads
       *"Adds volumetric clouds to the game."* Mention rain, lightning, fog, halos, and that
       Harmony is required.
-- [ ] Button icon replaced (`Resources/CloudIcon.png`, 40×40 or 80×80, RGBA, transparent, light
-      silhouette, ~3 px margin). The current file is a 448-byte placeholder.
+- [ ] Button icon replaced — `Resources/CloudIcon.png`, to the spec above. The current file is a
+      448-byte placeholder.
 - [ ] `Settings.Defaults` re-snapshotted from the live `.cgs` with `tools/read-settings.ps1`,
       read with a human eye — the file also holds experiments and dead keys
       (`DebugSkipDrawLight`, the old `WeatherOvercastCoverage`) that must not be copied back.
@@ -82,13 +138,13 @@ exactly as it stands, so this is the release artifact.
 
 ## 4. Images
 
-- [ ] `PreviewImage.png` — square, 512×512, under 1 MB, readable as a small thumbnail. (Harmony
-      and Unified UI both ship 512×512; 644² and 1024² are the other common sizes.)
-- [ ] 5–8 screenshots at 1920×1080 or larger: day clouds with shadows across the city, a storm
-      with lightning, rain, night with the halos on, volumetric fog with sun shafts, the F4
-      panel, the options page.
-- [ ] Keep the masters somewhere outside the mod folder — anything left in it is uploaded to
-      every subscriber.
+Full dimensions, formats and limits are in *Specifications* above.
+
+- [ ] `PreviewImage.png` made: 512 × 512, PNG, under 1 MB, legible as a ~270 px thumbnail.
+- [ ] 5–8 screenshots captured at 1920 × 1080 or larger, 16:9, each under 1 MB.
+- [ ] The first screenshot chosen deliberately — it is the one shown beside the description.
+- [ ] Masters kept outside the mod folder. Anything left in that folder is uploaded to every
+      subscriber.
 
 ## 5. Text, written before the panel is opened
 
