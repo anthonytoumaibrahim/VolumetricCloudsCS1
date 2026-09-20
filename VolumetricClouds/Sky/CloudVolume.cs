@@ -57,11 +57,14 @@ namespace VolumetricClouds.Sky
         private static readonly int IdFogTile = Shader.PropertyToID("_FogTile");
         private static readonly int IdFogOffset = Shader.PropertyToID("_FogOffset");
         private static readonly int IdFogBoil = Shader.PropertyToID("_FogBoil");
-        private static readonly int IdFogBase = Shader.PropertyToID("_FogBase");
+        private static readonly int IdFogPool = Shader.PropertyToID("_FogPool");
+        private static readonly int IdFogFloor = Shader.PropertyToID("_FogFloor");
+        private static readonly int IdFogBreakup = Shader.PropertyToID("_FogBreakup");
+        private static readonly int IdTerrainTex = Shader.PropertyToID("_TerrainTex");
+        private static readonly int IdTerrainMapSize = Shader.PropertyToID("_TerrainMapSize");
         private static readonly int IdFogHeight = Shader.PropertyToID("_FogHeight");
         private static readonly int IdFogSteps = Shader.PropertyToID("_FogSteps");
         private static readonly int IdFogMaxDistance = Shader.PropertyToID("_FogMaxDistance");
-        private static readonly int IdFogPatchiness = Shader.PropertyToID("_FogPatchiness");
         private static readonly int IdFogAmbient = Shader.PropertyToID("_FogAmbient");
         private static readonly int IdFogSun = Shader.PropertyToID("_FogSun");
         private static readonly int IdCloudShadowTex = Shader.PropertyToID("_CloudShadowTex");
@@ -140,6 +143,9 @@ namespace VolumetricClouds.Sky
 
             if (_noise == null && !TryUploadNoise())
                 return;
+
+            // Once: find out how shaders see the weather texture, so its CPU twin can match.
+            _field.MeasureGpuDecoding();
 
             UpdateShadowMap();
 
@@ -365,29 +371,55 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private void ApplyFog(Light sun, Color ambient, Color sunColor)
         {
-            float thickness = Settings.FogThickness != null ? Mathf.Max(0f, Settings.FogThickness.value) : 1f;
-            float height = Settings.FogHeight != null ? Mathf.Max(5f, Settings.FogHeight.value) : 70f;
-            float patchiness = Settings.FogPatchiness != null ? Mathf.Clamp01(Settings.FogPatchiness.value) : 1f;
+            float density = Settings.FogDensity != null ? Mathf.Max(0f, Settings.FogDensity.value) : 1f;
+            float height = Settings.FogHeight != null ? Mathf.Max(10f, Settings.FogHeight.value) : 90f;
+            float breakup = Settings.FogBreakup != null ? Mathf.Clamp01(Settings.FogBreakup.value) : 0.5f;
 
-            _material.SetFloat(IdFogAmount, CloudFog.Active ? CloudFog.Amount : 0f);
-            _material.SetFloat(IdFogDensity, CloudFog.BaseExtinction * thickness);
+            // The fog lies on the terrain map; until that exists there is nothing to lie on.
+            Texture terrain = TerrainHeightMap.Texture;
+            bool ready = CloudFog.Active && terrain != null;
 
-            // Banks are cut from the clouds' weather field with the threshold the solved table
-            // gives for the share of the ground they should cover: the clouds' own recipe.
-            _material.SetFloat(IdFogThreshold, _field.GetThreshold(CloudFog.Coverage));
+            _material.SetFloat(IdFogAmount, ready ? CloudFog.Amount : 0f);
+            _material.SetFloat(IdFogDensity, CloudFog.BaseExtinction * density);
+
+            // Where there is fog comes from the clouds' weather field, thresholded for the share
+            // of the map it should cover. The threshold is solved against the field AS THE GPU
+            // READS IT (gamma-decoded, measured), so "fog amount 30%" really is fog over about
+            // a third of the map -- with the clouds' own table it covered a fraction of that,
+            // which drove the slider to 100%, where fog is everywhere.
+            _material.SetFloat(IdFogThreshold, _field.GetThresholdAsDrawn(CloudFog.Amount, CloudFog.CoverSoftness));
             _material.SetFloat(IdFogTile, CloudFog.Tile);
             _material.SetVector(IdFogOffset, CloudFog.Offset);
             _material.SetFloat(IdFogBoil, CloudFog.Boil);
-            _material.SetFloat(IdFogBase, CloudFog.BaseLevel);
+            _material.SetFloat(IdFogPool, TerrainHeightMap.PoolLevel);
+            _material.SetFloat(IdFogFloor, TerrainHeightMap.Lowest - 10f);
             _material.SetFloat(IdFogHeight, height);
-            _material.SetFloat(IdFogSteps, 20f);
+            _material.SetFloat(IdFogBreakup, breakup * 0.8f);
+
+            // Steps follow the Quality slider: the fog is the most expensive thing on screen
+            // when the camera is inside it, and that slider is the lever for weaker GPUs.
+            float quality = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
+            _material.SetFloat(IdFogSteps, Mathf.Clamp(quality * 0.3f, 8f, 32f));
             _material.SetFloat(IdFogMaxDistance, 9000f);
-            _material.SetFloat(IdFogPatchiness, patchiness);
+
+            if (terrain != null)
+                _material.SetTexture(IdTerrainTex, terrain);
+            _material.SetFloat(IdTerrainMapSize, TerrainHeightMap.MapSize);
 
             // Lit like the clouds (same brightness and overcast terms, so it sits in the same
             // picture), a little brighter: fog is lit from all round, a cloud base from below.
-            _material.SetVector(IdFogAmbient, new Vector4(ambient.r, ambient.g, ambient.b, 0f) * 1.3f);
-            _material.SetVector(IdFogSun, new Vector4(sunColor.r, sunColor.g, sunColor.b, 0f) * 0.7f);
+            // On top of that its own brightness, as the clouds have theirs, and a tint: the
+            // light it is in still colours it (orange at sunset, blue at night), the tint
+            // leans that towards a cold blue-grey or a warm haze.
+            float fogBrightness = Settings.FogBrightness != null ? Mathf.Max(0f, Settings.FogBrightness.value) : 1f;
+            float tint = Settings.FogTint != null ? Mathf.Clamp(Settings.FogTint.value, -1f, 1f) : 0f;
+            Color lean = tint < 0f
+                ? Color.Lerp(Color.white, new Color(0.78f, 0.93f, 1.18f), -tint)
+                : Color.Lerp(Color.white, new Color(1.18f, 1f, 0.76f), tint);
+            lean *= fogBrightness;
+
+            _material.SetVector(IdFogAmbient, new Vector4(ambient.r * lean.r, ambient.g * lean.g, ambient.b * lean.b, 0f) * 1.3f);
+            _material.SetVector(IdFogSun, new Vector4(sunColor.r * lean.r, sunColor.g * lean.g, sunColor.b * lean.b, 0f) * 0.7f);
 
             CloudShadowMap map = CloudShadowMap.Current;
             bool shadows = Settings.CloudShadows == null || Settings.CloudShadows.value;

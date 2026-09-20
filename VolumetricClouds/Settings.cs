@@ -85,23 +85,26 @@ namespace VolumetricClouds
         /// </summary>
         public static SavedBool FogOverride { get; private set; }
 
-        /// <summary>0..1.</summary>
+        /// <summary>0..1: the share of the map that has fog on it. 1 = everywhere.</summary>
         public static SavedFloat FogAmount { get; private set; }
 
-        /// <summary>Multiplier on how dense the fog is at its base.</summary>
-        public static SavedFloat FogThickness { get; private set; }
+        /// <summary>Multiplier on how thick the fog is inside (how far you can see in it).</summary>
+        public static SavedFloat FogDensity { get; private set; }
 
-        /// <summary>Metres over which the fog thins by e above the level it lies on.</summary>
+        /// <summary>Metres from the ground to the top of the fog.</summary>
         public static SavedFloat FogHeight { get; private set; }
 
-        /// <summary>
-        /// 1 = distinct banks of fog with clear air between, built like the clouds; 0 = an even
-        /// blanket everywhere (what a screen-space fog such as RenderIt's already gives).
-        /// </summary>
-        public static SavedFloat FogPatchiness { get; private set; }
+        /// <summary>0 = solid, 1 = wispy: how hard fine noise eats into it. The fog's "Break-up".</summary>
+        public static SavedFloat FogBreakup { get; private set; }
 
-        /// <summary>Multiplier on how fast the fog banks drift and turn over. 0 = still.</summary>
+        /// <summary>Multiplier on how fast the fog drifts and churns. 0 = still.</summary>
         public static SavedFloat FogSpeed { get; private set; }
+
+        /// <summary>Multiplier on the fog's light, as Cloud brightness is for the clouds: whiter or greyer.</summary>
+        public static SavedFloat FogBrightness { get; private set; }
+
+        /// <summary>-1 cool blue-grey .. 0 neutral .. +1 warm. The fog's colour, on top of the light it is in.</summary>
+        public static SavedFloat FogTint { get; private set; }
 
         /// <summary>
         /// How much of the clouds' distance transparency is taken away at night, 0..1. At 1
@@ -309,12 +312,19 @@ namespace VolumetricClouds
                 FogEnabled = new SavedBool("FogEnabled", FileName, true, true);
                 FogOverride = new SavedBool("FogOverride", FileName, false, true);
                 FogAmount = new SavedFloat("FogAmount", FileName, 0.5f, true);
-                FogThickness = new SavedFloat("FogThickness", FileName, 1f, true);
-                FogHeight = new SavedFloat("FogHeight", FileName, 70f, true);
-                // New key: "FogPatchiness" used to scale a gentle noise over a blanket that was
-                // everywhere; it now blends between that blanket and cloud-like banks. A value
-                // saved under the old meaning would bring most of the blanket back.
-                FogPatchiness = new SavedFloat("FogBanks", FileName, 1f, true);
+                // New keys throughout, because the third fog means different things by them:
+                // density multiplies an extinction nearly four times higher than "FogThickness"
+                // did, and height is now the TOP of the layer above the ground where "FogHeight"
+                // was an e-folding scale above a fixed level. "FogPatchiness" and "FogBanks"
+                // (a blanket/banks blend nobody understood) are gone.
+                // "FogDensityScale", not "FogDensity": 100% used to be an extinction of 0.028 /m,
+                // which Anthony found "just looks like the clouds but at the terrain level".
+                // 100% is now a third of that, so a value saved under the old scale is wrong.
+                FogDensity = new SavedFloat("FogDensityScale", FileName, 1f, true);
+                FogHeight = new SavedFloat("FogTopHeight", FileName, 90f, true);
+                FogBrightness = new SavedFloat("FogBrightness", FileName, 1f, true);
+                FogTint = new SavedFloat("FogTint", FileName, 0f, true);
+                FogBreakup = new SavedFloat("FogBreakup", FileName, 0.5f, true);
                 FogSpeed = new SavedFloat("FogSpeed", FileName, 1f, true);
 
                 CloudNightOpacity = new SavedFloat("CloudNightOpacity", FileName, 1f, true);

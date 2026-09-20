@@ -94,12 +94,200 @@ namespace VolumetricClouds.Sky
             return Threshold(coverage);
         }
 
-        /// <summary>Cloud amount at a point in field space, 0..1, for a given coverage.</summary>
+        /// <summary>
+        /// Cloud amount at a point in field space, 0..1, for a given coverage: the CPU twin of
+        /// the shaders' "saturate((weather - threshold) / softness)". Called from the
+        /// simulation thread (CloudRain.LocalRain), so it touches nothing but these arrays.
+        /// </summary>
         public float SampleCloud(float u, float v, float coverage)
         {
             int x = Wrap(Mathf.FloorToInt(u * Resolution), Resolution);
             int y = Wrap(Mathf.FloorToInt(v * Resolution), Resolution);
-            return Mathf.Clamp01((_density[y * Resolution + x] - Threshold(coverage)) / Softness);
+            return Mathf.Clamp01((AsTheGpuReadsIt(_density[y * Resolution + x]) - Threshold(coverage)) / Softness);
+        }
+
+        /// <summary>
+        /// True if the GPU gamma-decodes <see cref="DensityTexture"/> when a shader samples it.
+        /// </summary>
+        /// <remarks>
+        /// The texture is created without the "linear" flag, the game renders in linear colour
+        /// space, and in that combination Unity treats an ARGB32 texture as sRGB: a stored 0.5
+        /// reaches the shader as 0.21. The clouds were TUNED like that and look right, so the
+        /// texture stays as it is -- but the CPU twin above must then read the field the same
+        /// way, or the rain the player sees and the rain the roads and the sound react to are
+        /// cut from two different fields. Rather than reason about it, it is measured once:
+        /// see <see cref="MeasureGpuDecoding"/>.
+        /// </remarks>
+        public bool GpuReadsSrgb { get; private set; }
+
+        private bool _decodingMeasured;
+
+        /// <summary>
+        /// Blits the density texture to a LINEAR render target and reads it back. The texture
+        /// holds the same value in all four channels, and a GPU only ever gamma-decodes RGB,
+        /// never alpha -- so if red comes back darker than alpha, shaders see decoded values.
+        /// Main thread, once; needs nothing but the texture.
+        /// </summary>
+        public void MeasureGpuDecoding()
+        {
+            if (_decodingMeasured)
+                return;
+
+            _decodingMeasured = true;
+
+            const int size = 64;
+            RenderTexture target = RenderTexture.GetTemporary(size, size, 0,
+                RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            RenderTexture previous = RenderTexture.active;
+            Texture2D readback = null;
+
+            try
+            {
+                Graphics.Blit(DensityTexture, target);
+
+                readback = new Texture2D(size, size, TextureFormat.ARGB32, false, true);
+                RenderTexture.active = target;
+                readback.ReadPixels(new Rect(0, 0, size, size), 0, 0, false);
+
+                // Mid-range texels only: at 0 and 1 the two readings agree anyway.
+                Color32[] pixels = readback.GetPixels32();
+                double red = 0, alpha = 0, decoded = 0;
+                int used = 0;
+
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    if (pixels[i].a < 90 || pixels[i].a > 200)
+                        continue;
+
+                    red += pixels[i].r / 255.0;
+                    alpha += pixels[i].a / 255.0;
+                    decoded += SrgbToLinear(pixels[i].a / 255f);
+                    used++;
+                }
+
+                if (used == 0)
+                {
+                    Log.Warn("weather texture readback found no mid-range texels; assuming shaders read it undecoded.");
+                    return;
+                }
+
+                red /= used;
+                alpha /= used;
+                decoded /= used;
+
+                GpuReadsSrgb = System.Math.Abs(red - decoded) < System.Math.Abs(red - alpha);
+
+                Log.Msg("weather texture as the GPU reads it: stored " + alpha.ToString("F3") + " comes back as " +
+                        red.ToString("F3") + " (undecoded would be " + alpha.ToString("F3") + ", sRGB-decoded " +
+                        decoded.ToString("F3") + ") over " + used + " texels -> " +
+                        (GpuReadsSrgb
+                            ? "DECODED; the CPU twin now decodes too, so rain sound, wet roads and lightning agree with what is drawn"
+                            : "not decoded; the CPU twin already matches"));
+            }
+            catch (System.Exception e)
+            {
+                Log.Error("Measuring how the GPU reads the weather texture threw.", e);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(target);
+                if (readback != null)
+                    UnityEngine.Object.Destroy(readback);
+            }
+        }
+
+        private float AsTheGpuReadsIt(float stored)
+        {
+            return GpuReadsSrgb ? SrgbToLinear(stored) : stored;
+        }
+
+        private int[] _drawnHistogram;
+        private float[] _drawnTable;
+        private float _drawnSoftness = -1f;
+        private bool _drawnForSrgb;
+
+        /// <summary>
+        /// The threshold that really covers <paramref name="coverage"/> of the field ON
+        /// SCREEN, for a shader that tests "saturate((weather - threshold) / softness)".
+        /// </summary>
+        /// <remarks>
+        /// <see cref="GetThreshold"/> is solved against the stored densities, but the GPU
+        /// compares gamma-decoded ones (measured: 0.547 is read as 0.277), so its "40%" covers
+        /// far less than 40%. The clouds were tuned against exactly that and must keep it --
+        /// and the rain with them, whose "always beneath cloud" guarantee comes from sharing
+        /// the clouds' table. Anything NEW that promises the player a share of the map (the
+        /// fog) asks here instead. Main thread only; rebuilt if the measurement or the
+        /// softness changes.
+        /// </remarks>
+        public float GetThresholdAsDrawn(float coverage, float softness)
+        {
+            if (_drawnTable == null || _drawnForSrgb != GpuReadsSrgb || !Mathf.Approximately(_drawnSoftness, softness))
+            {
+                if (_drawnHistogram == null)
+                {
+                    _drawnHistogram = new int[HistogramBins];
+                    _drawnTable = new float[ThresholdSteps + 1];
+                }
+
+                System.Array.Clear(_drawnHistogram, 0, _drawnHistogram.Length);
+                for (int i = 0; i < _density.Length; i++)
+                {
+                    int bin = Mathf.Clamp((int)(AsTheGpuReadsIt(_density[i]) * HistogramBins), 0, HistogramBins - 1);
+                    _drawnHistogram[bin]++;
+                }
+
+                for (int step = 0; step <= ThresholdSteps; step++)
+                    _drawnTable[step] = Solve(_drawnHistogram, step / (float)ThresholdSteps, softness);
+
+                _drawnForSrgb = GpuReadsSrgb;
+                _drawnSoftness = softness;
+            }
+
+            float t = Mathf.Clamp01(coverage) * ThresholdSteps;
+            int index = Mathf.Clamp((int)t, 0, ThresholdSteps - 1);
+            return Mathf.Lerp(_drawnTable[index], _drawnTable[index + 1], t - index);
+        }
+
+        /// <summary>The bisection of <see cref="SolveThreshold"/>, for any histogram and softness.</summary>
+        private float Solve(int[] histogram, float targetMean, float softness)
+        {
+            if (targetMean <= 0f)
+                return 1f + softness;
+            if (targetMean >= 1f)
+                return -softness;
+
+            float low = -softness;
+            float high = 1f + softness;
+
+            for (int i = 0; i < 24; i++)
+            {
+                float mid = (low + high) * 0.5f;
+
+                float sum = 0f;
+                for (int bin = 0; bin < HistogramBins; bin++)
+                {
+                    if (histogram[bin] != 0)
+                        sum += Mathf.Clamp01(((bin + 0.5f) / HistogramBins - mid) / softness) * histogram[bin];
+                }
+
+                // Mean falls as the threshold rises.
+                if (sum / _density.Length > targetMean)
+                    low = mid;
+                else
+                    high = mid;
+            }
+
+            return (low + high) * 0.5f;
+        }
+
+        /// <summary>The sRGB transfer function, in plain managed maths: this runs on the simulation thread.</summary>
+        private static float SrgbToLinear(float v)
+        {
+            if (v <= 0.04045f)
+                return v / 12.92f;
+
+            return (float)System.Math.Pow((v + 0.055f) / 1.055f, 2.4);
         }
 
         private const float Softness = 0.18f;

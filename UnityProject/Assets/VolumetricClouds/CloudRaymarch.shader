@@ -75,25 +75,31 @@ Shader "VolumetricClouds/CloudRaymarch"
             float3 _CityGlow;          // colour * strength * how much it is night; 0 by day
             float _CityMapSize;        // metres the map spans, centred on the world origin
 
-            // Fog: built like the clouds, not like a screen effect. BANKS of it are cut from the
-            // same weather field with a threshold solved for the share of the ground they
-            // cover, eroded into billows by the 3D noise, lie on _FogBase and stand taller
-            // where they are thicker. They drift on the wind and slowly turn over, and are lit
-            // through the clouds' own shadow map -- which is what makes shafts of sun stand in
-            // them under a broken sky.
+            // Fog: a CLOUD LAYER LYING ON THE GROUND, not a haze. Two earlier versions -- a
+            // height-limited blanket, then soft kilometre-wide banks with an exponential
+            // falloff -- both read as a coating, for the reasons a cloud does not: they were
+            // translucent, had no boundary, and did not shade themselves. So this one is
+            // dense, measured from the GROUND up (_TerrainTex) to a defined, lumpy top, shaded
+            // by its own thickness towards the sun, and its billows are pushed around by a
+            // drifting swirl so they shear, curl and merge instead of sliding past as one
+            // rigid pattern.
             float _FogAmount;          // 0..1: fades the whole thing in and out
-            float _FogDensity;         // extinction per metre in the heart of a bank
-            float _FogThreshold;       // weather-field threshold for the fog's coverage
+            float _FogDensity;         // extinction per metre inside the fog
+            float _FogThreshold;       // weather-field threshold: how much of the map has fog
             float _FogTile;            // metres one tile of the weather field spans, for fog
             float3 _FogOffset;         // how far the fog has drifted
-            float _FogBoil;            // slow turnover of the billows
-            float _FogBase;
-            float _FogHeight;          // metres over which a full bank thins by e
+            float _FogBoil;            // phase of the swirl, 0..1
+            float _FogPool;            // fog gathers on ground below this level
+            float _FogHeight;          // metres from the ground to the top of the layer
+            float _FogBreakup;         // 0 solid .. 1 wispy
             float _FogSteps;
             float _FogMaxDistance;
-            float _FogPatchiness;
             float3 _FogAmbient;
             float3 _FogSun;
+
+            sampler2D _TerrainTex;     // TerrainHeightMap: ground (or water) height in metres
+            float _TerrainMapSize;
+            float _FogFloor;           // just under the lowest ground on the map
 
             sampler2D _CloudShadowTex; // CloudShadowMap: light reaching the ground, 1 - darkness .. 1
             float _ShadowAvailable;
@@ -329,74 +335,158 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return float4(light, transmittance);
             }
 
-            // Fog density at p, 0..1 before _FogDensity. The clouds' recipe, one storey down.
-            float FogAt(float3 p)
+            // Height of the ground (or the water on it) under p.
+            float GroundAt(float3 p)
             {
-                // Where the banks are: the clouds' weather field, read at another scale and
-                // another place, so a fog bank is not simply the footprint of a cloud.
-                float2 uv = (p.xz - _FogOffset.xz) / _FogTile + float2(0.37, 0.61);
-                float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
-                float bank = saturate((weather - _FogThreshold) / 0.22);
-
-                // Patchiness 0 is the old even blanket; 1 is banks with clear air between.
-                bank = lerp(1.0, bank, _FogPatchiness);
-                if (bank <= 0.0)
-                    return 0.0;
-
-                // A thick bank stands taller than a thin one, so banks are domed, not slabs.
-                float scale = _FogHeight * (0.45 + 0.9 * bank);
-                float profile = exp(-max(p.y - _FogBase, 0.0) / scale);
-
-                // Billows: the same erosion that shapes the clouds -- where the bank is thin
-                // only the strongest noise survives, so edges come out ragged and wispy. The
-                // noise drifts a little faster than the banks and slowly turns over.
-                float3 q = (p - _FogOffset * 1.3) / float3(650.0, 260.0, 650.0);
-                q.y += _FogBoil;
-                float billow = tex3Dlod(_NoiseTex, float4(q, 0)).r;
-                float shaped = saturate(Remap(billow, 1.0 - bank, 1.0, 0.0, 1.0)) * bank * 1.6;
-
-                return lerp(1.0, shaped, _FogPatchiness) * profile;
+                return tex2Dlod(_TerrainTex, float4(p.xz / _TerrainMapSize + 0.5, 0, 0)).r;
             }
 
-            // Fog lying on the ground. Same return convention as the other two.
-            float4 MarchFog(float3 origin, float3 dir, float tStart, float tEnd, float jitter, float cosTheta)
+            // Fog density at p, 0..1 before _FogDensity: the clouds' recipe, lying on the ground.
+            // `above` is p's height over the ground, which every caller already has.
+            float FogAt(float3 p, float above, bool detailed)
             {
-                if (tEnd <= tStart)
+                float h = above / _FogHeight;
+                if (h >= 1.0 || h < -0.25)
+                    return 0.0;
+                h = max(h, 0.0);
+
+                // Where there is fog: the clouds' weather field, read at another scale and
+                // another place so a fog patch is not a cloud's footprint. It gathers on low
+                // ground: a little extra wherever the ground is below the pooling level.
+                float2 uv = (p.xz - _FogOffset.xz) / _FogTile + float2(0.37, 0.61);
+                float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
+                float pooling = saturate((_FogPool - (p.y - above)) / 150.0) * 0.1;
+                float cover = saturate((weather + pooling - _FogThreshold) / 0.1);
+                if (cover <= 0.0)
+                    return 0.0;
+
+                // Solid from the ground up, rounding off into the top: a boundary, which an
+                // exponential falloff never has.
+                float shaped = cover * (1.0 - smoothstep(0.4, 1.0, h));
+
+                // FLOW. The noise lookup is displaced by a larger, slower swirl that drifts on
+                // its own and turns over with _FogBoil, so billows shear, curl and merge; and
+                // the upper part of the layer is carried further than the ground layer, which
+                // drags. A pattern that only translated would slide past like a texture.
+                float3 carried = p - _FogOffset * (1.0 + 0.35 * h);
+                float3 s = (p - _FogOffset * 0.55) / 1300.0;   // slower than what it displaces
+                s.y += _FogBoil;
+                float2 swirl = tex3Dlod(_NoiseTex, float4(s, 0)).rg - 0.5;
+
+                float3 q = carried / float3(360.0, 210.0, 360.0);
+                q.xz += swirl * 0.75;
+                q.y -= _FogBoil * 2.0;
+                float base = tex3Dlod(_NoiseTex, float4(q, 0)).r;
+
+                // The clouds' own shaping: where the cover is thin only the strongest noise
+                // survives, so the layer breaks into lumps with a billowing top.
+                float d = saturate(Remap(base, 1.0 - shaped, 1.0, 0.0, 1.0)) * shaped;
+
+                // Wisps: fine noise eats into it, moving faster than the billows and rising.
+                if (detailed && d > 0.0 && _FogBreakup > 0.0)
+                {
+                    float3 w = (p - _FogOffset * 1.8) / 85.0;
+                    w.y -= _FogBoil * 9.0;
+                    float wisp = tex3Dlod(_NoiseTex, float4(w, 0)).g;
+                    d = saturate(Remap(d, wisp * _FogBreakup, 1.0, 0.0, 1.0));
+                }
+
+                return d;
+            }
+
+            // Fog lying on the ground, along the ray up to tEnd. Same return convention as the
+            // other two.
+            //
+            // The layer follows the terrain, so the part of the ray inside it cannot be found
+            // by intersecting a slab. Instead the ray is walked coarsely -- one height lookup a
+            // step -- until it first comes within the layer's height of the ground, and the
+            // real march starts from the step before. From above that puts every sample in the
+            // last stretch before the ground; from inside the fog it starts at the camera.
+            float4 MarchFog(float3 origin, float3 dir, float tEnd, float jitter, float cosTheta)
+            {
+                if (tEnd <= 0.0)
                     return float4(0, 0, 0, 1);
 
-                float steps = clamp(_FogSteps, 4.0, 32.0);
+                float tStart = -1.0;
+                if (origin.y - GroundAt(origin) < _FogHeight)
+                {
+                    tStart = 0.0;
+                }
+                else
+                {
+                    float tBefore = 0.0;
+
+                    [loop]
+                    for (int c = 1; c <= 14; c++)
+                    {
+                        // Finer near the camera, where a missed patch would be seen.
+                        float f = (float)c / 14.0;
+                        float t = tEnd * f * f;
+                        float3 p = origin + dir * t;
+
+                        if (p.y - GroundAt(p) < _FogHeight)
+                        {
+                            tStart = tBefore;
+                            break;
+                        }
+
+                        tBefore = t;
+                    }
+                }
+
+                if (tStart < 0.0)
+                    return float4(0, 0, 0, 1);
+
+                // A ray climbing out of the fog leaves it for good soon after.
+                if (dir.y > 0.02)
+                    tEnd = min(tEnd, tStart + (_FogHeight * 1.5 + 60.0) / dir.y);
+
+                float steps = clamp(_FogSteps, 6.0, 40.0);
                 float len = tEnd - tStart;
+                bool fromInside = tStart <= 0.0;
 
                 // Fog glows around the sun: a strong forward lobe over a flat base.
                 float phase = 0.35 + 0.65 * min(HenyeyGreenstein(cosTheta, 0.65), 6.0);
+                float strength = _FogDensity * saturate(_FogAmount * 5.0);
 
                 float transmittance = 1.0;
                 float3 light = 0;
                 float tPrev = tStart;
 
                 [loop]
-                for (int s = 0; s < 32; s++)
+                for (int s = 0; s < 40; s++)
                 {
                     if ((float)s >= steps || transmittance < 0.02)
                         break;
 
-                    // Lengthening segments, as for the rain: at street level it is the fog
-                    // within a few hundred metres that has to be right.
+                    // From inside, segments lengthen with distance: it is the fog within a few
+                    // hundred metres that has to be right. From outside the stretch is short
+                    // and every part of it matters equally.
                     float f = ((float)s + 1.0) / steps;
-                    float tNext = tStart + len * f * f;
+                    float tNext = tStart + len * (fromInside ? f * f : f);
                     float segment = tNext - tPrev;
                     float t = tPrev + segment * jitter;
 
                     float3 p = origin + dir * t;
+                    float above = p.y - GroundAt(p);
+                    float d = FogAt(p, above, true);
 
-                    // _FogAmount fades the banks in over its first fifth; how MUCH ground they
-                    // cover is in _FogThreshold.
-                    float fade = saturate(1.0 - t / _FogMaxDistance);
-                    float sigma = _FogDensity * saturate(_FogAmount * 5.0) * FogAt(p) * fade;
-
-                    if (sigma > 1e-7)
+                    if (d > 0.001)
                     {
-                        float3 lit = _FogAmbient + _FogSun * (SunShaft(p) * phase);
+                        float fade = saturate(1.0 - t / _FogMaxDistance);
+                        float sigma = strength * d * fade;
+
+                        // Self-shadowing: how much fog lies between here and the sun, from one
+                        // look a short way towards it. This is what gives the billows form --
+                        // lit tops and flanks, dim hollows -- instead of an even glow.
+                        float3 sunward = p + _SunDir * (_FogHeight * 0.4);
+                        float shade = FogAt(sunward, sunward.y - GroundAt(sunward), false);
+                        float sun = exp(-shade * strength * _FogHeight * 0.9);
+
+                        float h = saturate(above / _FogHeight);
+                        float3 lit = _FogAmbient * (0.55 + 0.45 * h)
+                                   + _FogSun * (SunShaft(p) * sun * phase);
+
                         if (_FlashCount > 0.5)
                             lit += Lightning(p) * 0.5;
                         if (_CityGlow.r + _CityGlow.g + _CityGlow.b > 0.0)
@@ -467,24 +557,28 @@ Shader "VolumetricClouds/CloudRaymarch"
                     rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta);
                 }
 
-                // The part of the ray inside the fog layer, found the same way: below its top.
-                // The thickest bank has a scale height of 1.35 * _FogHeight; four of those up,
-                // 2% of it is left.
+                // The fog follows the terrain, so MarchFog finds its own stretch of the ray; all
+                // it needs is where the ray ends.
                 float4 fog = float4(0, 0, 0, 1);
-                float fogTop = _FogBase + _FogHeight * 5.4;
-                bool cameraInFog = origin.y < fogTop;
+                bool cameraInFog = false;
                 if (_FogAmount > 0.001 && _FogDensity > 0.0)
                 {
-                    float tTop = (fogTop - origin.y) / dy;
-                    float fStart = cameraInFog ? 0.0 : (dir.y < 0.0 ? tTop : 1e9);
-                    float fEnd = (cameraInFog && dir.y > 0.0) ? tTop : 1e9;
+                    cameraInFog = origin.y - GroundAt(origin) < _FogHeight;
 
-                    // Without depth there is no ground; stop a little under the fog's base.
-                    if (dir.y < 0.0)
-                        fEnd = min(fEnd, (_FogBase - 50.0 - origin.y) / dy);
+                    // A ray that starts above the fog and never descends will not meet it
+                    // (bar a fogged mountainside above the camera, which is not worth fourteen
+                    // lookups on every pixel of sky).
+                    if (cameraInFog || dir.y < 0.0)
+                    {
+                        float fEnd = min(sceneDist, _FogMaxDistance);
 
-                    fEnd = min(fEnd, min(sceneDist, _FogMaxDistance));
-                    fog = MarchFog(origin, dir, fStart, fEnd, jitter, cosTheta);
+                        // With depth occlusion off there is no ground to stop at; use the
+                        // lowest ground on the map.
+                        if (dir.y < 0.0)
+                            fEnd = min(fEnd, (_FogFloor - origin.y) / dy);
+
+                        fog = MarchFog(origin, dir, fEnd, jitter, cosTheta);
+                    }
                 }
 
                 // Clouds never overlap the other two along a ray, so they composite exactly:

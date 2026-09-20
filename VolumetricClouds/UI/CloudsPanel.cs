@@ -28,6 +28,7 @@ namespace VolumetricClouds.UI
 
         private const float StatusInterval = 0.25f;
         private UILabel _weatherStatus;
+        private UILabel _fogStatus;
         private float _nextStatusTime;
 
         /// <summary>
@@ -38,11 +39,15 @@ namespace VolumetricClouds.UI
         {
             base.Update();
 
-            if (_weatherStatus == null || !isVisible || Time.time < _nextStatusTime)
+            if (!isVisible || Time.time < _nextStatusTime)
                 return;
 
             _nextStatusTime = Time.time + StatusInterval;
-            _weatherStatus.text = CloudWeather.Describe();
+
+            if (_weatherStatus != null)
+                _weatherStatus.text = CloudWeather.Describe();
+            if (_fogStatus != null)
+                _fogStatus.text = CloudFog.Describe();
         }
 
         public override void Start()
@@ -180,21 +185,23 @@ namespace VolumetricClouds.UI
             return rows.Height;
         }
 
-        private static float BuildFogPage(UIPanel page)
+        private float BuildFogPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
-            // HOW MUCH fog is the game's weather, unless overridden -- and Play It cannot set
-            // fog, so the override is also the way to have some on demand.
-            rows.Toggle("Volumetric fog (replaces the game's grey-out)", Settings.FogEnabled);
-            rows.Toggle("Set the fog amount myself (default: from the weather)", Settings.FogOverride);
-            // "Amount" is how much of the low ground has fog on it, like cloud intensity is how
-            // much of the sky has cloud -- not how grey everything is.
-            rows.Percent("Fog amount (ground covered)", Settings.FogAmount, 0f, 100f, 1f);
-            rows.Percent("Fog thickness", Settings.FogThickness, 10f, 300f, 5f);
-            rows.Value("Fog bank height", Settings.FogHeight, 15f, 300f, 5f, Metres);
-            rows.Value("Fog drift speed", Settings.FogSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
-            rows.Percent("Banks (0% = even blanket)", Settings.FogPatchiness, 0f, 100f, 5f);
+            // Laid out and worded like the Clouds tab, on purpose: the fog is a cloud layer on
+            // the ground, and every slider is the fog's version of one over there. Each does
+            // one thing, in the direction its name says -- more is more.
+            _fogStatus = rows.Status(CloudFog.Describe());
+            rows.Toggle("Volumetric fog", Settings.FogEnabled);
+            rows.Toggle("Override the weather with a fixed fog amount", Settings.FogOverride);
+            rows.Percent("Fog amount", Settings.FogAmount, 0f, 100f, 1f);
+            rows.Percent("Fog density", Settings.FogDensity, 10f, 500f, 5f);
+            rows.Value("Fog height", Settings.FogHeight, 20f, 1000f, 10f, Metres);
+            rows.Percent("Fog break-up (solid to wispy)", Settings.FogBreakup, 0f, 100f, 5f);
+            rows.Value("Fog speed", Settings.FogSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
+            rows.Percent("Fog brightness", Settings.FogBrightness, 20f, 300f, 5f);
+            rows.Value("Fog colour (cool to warm)", Settings.FogTint, -1f, 1f, 0.05f, FogTintName);
             return rows.Height;
         }
 
@@ -267,6 +274,14 @@ namespace VolumetricClouds.UI
             rows.Toggle("Show icon in Unified UI", Settings.ShowInUnifiedUI, ModController.RefreshButton);
             rows.Toggle("Debug: project a checkerboard instead of shadows", Settings.DebugChecker);
             return rows.Height;
+        }
+
+        private static string FogTintName(float value)
+        {
+            if (Mathf.Abs(value) < 0.025f)
+                return "neutral";
+
+            return (value < 0f ? "cool " : "warm ") + Mathf.RoundToInt(Mathf.Abs(value) * 100f) + "%";
         }
 
         private static string Metres(float value)

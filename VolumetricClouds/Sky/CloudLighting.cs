@@ -184,7 +184,9 @@ namespace VolumetricClouds.Sky
                 Log.Msg("fog: " + (!CloudFog.Active ? "off (the game's)" : CloudFog.Overridden ? "OVERRIDDEN" : "followed") +
                         " gameFog=" + CloudFog.GameFog.ToString("F2") +
                         " amount=" + CloudFog.Amount.ToString("F2") +
-                        " liesOn=" + CloudFog.BaseLevel.ToString("F0") + "m");
+                        " drift=(" + CloudFog.Offset.x.ToString("F0") + "," + CloudFog.Offset.z.ToString("F0") + ")m" +
+                        " swirl=" + CloudFog.Boil.ToString("F2") +
+                        " terrainMap=" + (TerrainHeightMap.Ready ? "ready" : "pending"));
                 Log.Msg("coverage=" + coverage.ToString("F2") +
                         " shadows=" + _mode +
                         " shadowDepth=" + CloudShadowMap.ShadowDepth(coverage).ToString("F2") +
