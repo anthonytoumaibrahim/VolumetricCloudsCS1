@@ -30,17 +30,29 @@ namespace VolumetricClouds
         /// <summary>Clouds cast shadows on the ground.</summary>
         public static SavedBool CloudShadows { get; private set; }
 
+        /// <summary>How much direct sunlight thick cloud removes from the ground below it, 0..1.</summary>
+        public static SavedFloat CloudShadowDarkness { get; private set; }
+
         /// <summary>
-        /// How much direct sunlight a thick cloud removes under scattered cover, 0..1. Eases
-        /// off towards overcast so full cover still lands on <see cref="MinIllumination"/>.
+        /// Multiplier on cloud optical depth for shadows only. Above 1, thin cloud and cloud
+        /// edges cast a fuller shadow, so more of the ground reads as shaded.
         /// </summary>
-        public static SavedFloat CloudShadowStrength { get; private set; }
+        public static SavedFloat CloudShadowFullness { get; private set; }
 
         /// <summary>Raymarched clouds (needs the embedded shader bundle); off means billboards.</summary>
         public static SavedBool UseVolumetric { get; private set; }
 
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
         public static SavedFloat CloudThickness { get; private set; }
+
+        /// <summary>
+        /// How hard fine noise erodes the clouds: 0 leaves smooth solid masses, the 0.3
+        /// default gives soft cumulus, higher tears them into ragged tufts and opens gaps.
+        /// </summary>
+        public static SavedFloat CloudBreakup { get; private set; }
+
+        /// <summary>Frequency of that erosion noise: low tears off big chunks, high makes fine wisps.</summary>
+        public static SavedFloat CloudBreakupScale { get; private set; }
 
         /// <summary>Multiplier on cloud optical density.</summary>
         public static SavedFloat CloudDensity { get; private set; }
@@ -68,6 +80,28 @@ namespace VolumetricClouds
 
         /// <summary>Base width of a single puff, in metres.</summary>
         public static SavedFloat CloudPuffSize { get; private set; }
+
+        /// <summary>Give the light halos their own fog instead of the world's.</summary>
+        public static SavedBool HaloFogEnabled { get; private set; }
+
+        /// <summary>
+        /// The fog amount the halos see, on the same scale as the game's fog value (what
+        /// PersistentFogAdjuster edits): 0 is clear, 1 is foggy, negative extrapolates.
+        /// </summary>
+        public static SavedFloat HaloFogValue { get; private set; }
+
+        /// <summary>
+        /// The fog amount for lights close to the camera. Must stay in the range the game's
+        /// shader handles (about -0.49 and up): below it, nearby lights render as boxes.
+        /// <see cref="HaloFogValue"/> is what distant lights blend towards.
+        /// </summary>
+        public static SavedFloat HaloFogNear { get; private set; }
+
+        /// <summary>Distance at which halos start moving from the near value to the far one, in metres.</summary>
+        public static SavedFloat HaloFogStart { get; private set; }
+
+        /// <summary>Distance at which halos have fully reached the far value, in metres.</summary>
+        public static SavedFloat HaloFogEnd { get; private set; }
 
         /// <summary>Master switch for the light-halo adjustments.</summary>
         public static SavedBool HaloAdjustEnabled { get; private set; }
@@ -109,10 +143,15 @@ namespace VolumetricClouds
                 // into existing settings files and is far too small for cloud-sized features.
                 WeatherTileSize = new SavedFloat("WeatherTileSize", FileName, 10000f, true);
                 CloudShadows = new SavedBool("CloudShadows", FileName, true, true);
-                CloudShadowStrength = new SavedFloat("CloudShadowStrength", FileName, 0.65f, true);
+                // New keys rather than reusing CloudShadowStrength: that slider had almost no
+                // effect at high coverage, so saved values of it are not meaningful.
+                CloudShadowDarkness = new SavedFloat("CloudShadowDarkness", FileName, 0.55f, true);
+                CloudShadowFullness = new SavedFloat("CloudShadowFullness", FileName, 2.5f, true);
                 UseVolumetric = new SavedBool("UseVolumetric", FileName, true, true);
                 CloudThickness = new SavedFloat("CloudThickness", FileName, 600f, true);
                 CloudDensity = new SavedFloat("CloudDensity", FileName, 1f, true);
+                CloudBreakup = new SavedFloat("CloudBreakup", FileName, 0.3f, true);
+                CloudBreakupScale = new SavedFloat("CloudBreakupScale", FileName, 4.3f, true);
                 CloudBrightness = new SavedFloat("CloudBrightness", FileName, 1f, true);
                 CloudQuality = new SavedFloat("CloudQuality", FileName, 48f, true);
                 CloudDepthOcclusion = new SavedBool("CloudDepthOcclusion", FileName, true, true);
@@ -122,6 +161,12 @@ namespace VolumetricClouds
                 CloudAltitude = new SavedFloat("CloudAltitude", FileName, 900f, true);
                 CloudPuffCount = new SavedFloat("CloudPuffCount", FileName, 300f, true);
                 CloudPuffSize = new SavedFloat("CloudPuffSize", FileName, 700f, true);
+
+                HaloFogEnabled = new SavedBool("HaloFogEnabled", FileName, false, true);
+                HaloFogValue = new SavedFloat("HaloFogValue", FileName, 0f, true);
+                HaloFogNear = new SavedFloat("HaloFogNear", FileName, -0.45f, true);
+                HaloFogStart = new SavedFloat("HaloFogStart", FileName, 500f, true);
+                HaloFogEnd = new SavedFloat("HaloFogEnd", FileName, 2500f, true);
 
                 HaloAdjustEnabled = new SavedBool("HaloAdjustEnabled", FileName, false, true);
                 HaloRangeScale = new SavedFloat("HaloRangeScale", FileName, 1f, true);

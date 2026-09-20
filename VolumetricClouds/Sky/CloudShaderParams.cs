@@ -22,6 +22,8 @@ namespace VolumetricClouds.Sky
         private static readonly int IdNoiseTile = Shader.PropertyToID("_NoiseTile");
         private static readonly int IdDensityScale = Shader.PropertyToID("_DensityScale");
         private static readonly int IdAbsorption = Shader.PropertyToID("_Absorption");
+        private static readonly int IdDetailStrength = Shader.PropertyToID("_DetailStrength");
+        private static readonly int IdDetailScale = Shader.PropertyToID("_DetailScale");
         private static readonly int IdWindOffset = Shader.PropertyToID("_WindOffset");
 
         public static float Coverage
@@ -46,6 +48,8 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdNoiseTile, NoiseTile);
             material.SetFloat(IdDensityScale, density);
             material.SetFloat(IdAbsorption, Absorption);
+            material.SetFloat(IdDetailStrength, Settings.CloudBreakup != null ? Settings.CloudBreakup.value : 0.3f);
+            material.SetFloat(IdDetailScale, Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : 4.3f);
             material.SetVector(IdWindOffset, CloudWind.Offset);
         }
     }

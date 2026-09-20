@@ -34,6 +34,7 @@ namespace VolumetricClouds.Sky
         private static readonly int IdLightForward = Shader.PropertyToID("_LightForward");
         private static readonly int IdCookieSize = Shader.PropertyToID("_CookieSize");
         private static readonly int IdShadowDepth = Shader.PropertyToID("_ShadowDepth");
+        private static readonly int IdShadowFullness = Shader.PropertyToID("_ShadowFullness");
         private static readonly int IdShadowSteps = Shader.PropertyToID("_ShadowSteps");
 
         /// <summary>The live shadow map, if the shader was available. Read by CloudLighting.</summary>
@@ -78,23 +79,32 @@ namespace VolumetricClouds.Sky
         /// </summary>
         /// <remarks>
         /// The shadow map is the *only* thing that darkens the world; there is no separate
-        /// global sun dimming. Gaps between clouds get full sun, ground under cloud gets the
-        /// level below, and the world darkens with coverage simply because more of it is in
-        /// shade. That level runs from (1 - strength) under scattered cloud up to the
-        /// illumination floor at overcast, so 100% coverage is an even overcast at exactly
-        /// the floor, while 95% still has bright sun patches sliding through the gaps.
+        /// global sun dimming. Gaps between clouds get full sun, ground under thick cloud
+        /// gets (1 - darkness), and the world darkens with coverage simply because more of
+        /// it is in shade.
         ///
-        /// An earlier version split the job with a global dim and faded the shadows out
-        /// towards overcast to stop the two multiplying. That left high coverage with no
-        /// visible light and shade at all.
+        /// Darkness is deliberately the same at every coverage. Earlier versions blended it
+        /// towards an "overcast floor" as coverage rose; at the ~97% Anthony actually plays
+        /// at, that made the strength slider 3% of the result and it felt disconnected.
+        /// Before that, a global dim was balanced against the cookie and erased the shadows
+        /// at high coverage altogether.
         /// </remarks>
         public static float ShadowDepth(float coverage)
         {
-            float floor = Settings.MinIllumination != null ? Mathf.Clamp01(Settings.MinIllumination.value) : 0.65f;
-            float strength = Settings.CloudShadowStrength != null ? Mathf.Clamp01(Settings.CloudShadowStrength.value) : 0.65f;
+            return Settings.CloudShadowDarkness != null
+                ? Mathf.Clamp01(Settings.CloudShadowDarkness.value)
+                : 0.55f;
+        }
 
-            float underCloud = Mathf.Lerp(Mathf.Min(1f - strength, floor), floor, Mathf.Clamp01(coverage));
-            return Mathf.Clamp01(1f - underCloud);
+        /// <summary>Multiplier on optical depth for shadows only; see CloudShadowMap.shader.</summary>
+        public static float ShadowFullness
+        {
+            get
+            {
+                return Settings.CloudShadowFullness != null
+                    ? Mathf.Max(0.01f, Settings.CloudShadowFullness.value)
+                    : 2.5f;
+            }
         }
 
         public void Render(Light sun, CloudDensityField field, Texture3D noise)
@@ -119,6 +129,7 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdLightForward, t.forward);
             _material.SetFloat(IdCookieSize, CookieSize);
             _material.SetFloat(IdShadowDepth, ShadowDepth(CloudShaderParams.Coverage));
+            _material.SetFloat(IdShadowFullness, ShadowFullness);
             _material.SetFloat(IdShadowSteps, Steps);
 
             RenderTexture previous = RenderTexture.active;

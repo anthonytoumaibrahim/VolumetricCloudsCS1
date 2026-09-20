@@ -112,6 +112,8 @@ namespace VolumetricClouds.UI
             rows.Toggle("Show clouds in the sky", Settings.CloudsVisible);
             rows.Value("Cloud altitude", Settings.CloudAltitude, 200f, 3000f, 50f, Metres);
             rows.Value("Layer thickness", Settings.CloudThickness, 150f, 2000f, 50f, Metres);
+            rows.Percent("Break-up (solid to ragged)", Settings.CloudBreakup, 0f, 100f, 5f);
+            rows.Value("Break-up detail (big to fine)", Settings.CloudBreakupScale, 1.5f, 10f, 0.25f, v => v.ToString("F2") + "x");
             rows.Value("Weather pattern size", Settings.WeatherTileSize, 3000f, 20000f, 500f, Kilometres);
         }
 
@@ -120,9 +122,10 @@ namespace VolumetricClouds.UI
             Rows rows = new Rows(page);
 
             rows.Toggle("Clouds cast shadows on the ground", Settings.CloudShadows);
-            rows.Percent("Shadow strength", Settings.CloudShadowStrength, 0f, 95f, 5f);
-            rows.Percent("Light under full overcast", Settings.MinIllumination, 30f, 100f, 1f);
+            rows.Percent("Shadow darkness", Settings.CloudShadowDarkness, 0f, 95f, 5f);
+            rows.Value("Shadow fullness", Settings.CloudShadowFullness, 0.5f, 8f, 0.25f, v => v.ToString("F2") + "x");
             rows.Percent("Cloud brightness", Settings.CloudBrightness, 20f, 300f, 5f);
+            rows.Percent("Clouds dim at full overcast to", Settings.MinIllumination, 30f, 100f, 1f);
             rows.Percent("Cloud density", Settings.CloudDensity, 20f, 300f, 5f);
         }
 
@@ -141,11 +144,18 @@ namespace VolumetricClouds.UI
         {
             Rows rows = new Rows(page);
 
-            rows.Toggle("Adjust night light halos (experimental)", Settings.HaloAdjustEnabled);
-            rows.Percent("Halo size", Settings.HaloRangeScale, 10f, 200f, 5f);
-            rows.Percent("Halo brightness", Settings.HaloIntensityScale, 10f, 200f, 5f);
-            rows.Value("Hide halos closer than", Settings.HaloNearDistance, 0f, 500f, 10f, Metres);
-            rows.Toggle("Debug: suppress DrawLight entirely", Settings.DebugSkipDrawLight);
+            // Street lamps and buildings: batched lights whose glow reads _WeatherParams.z.
+            // Distant groups get the far value, groups near the camera the safe near one.
+            rows.Toggle("Shrink distant light halos", Settings.HaloFogEnabled);
+            rows.Value("Far halos (lower = smaller)", Settings.HaloFogValue, -5f, 2f, 0.05f, v => v.ToString("F2"));
+            rows.Value("Near halos (keep above -0.5)", Settings.HaloFogNear, -1f, 2f, 0.05f, v => v.ToString("F2"));
+            rows.Value("Blend starts at", Settings.HaloFogStart, 0f, 3000f, 50f, Metres);
+            rows.Value("Blend complete at", Settings.HaloFogEnd, 200f, 8000f, 100f, Metres);
+
+            // Vehicles and other dynamic lights: the only ones LightSystem.DrawLight handles.
+            rows.Toggle("Adjust dynamic lights (vehicles)", Settings.HaloAdjustEnabled);
+            rows.Percent("Dynamic light size", Settings.HaloRangeScale, 10f, 200f, 5f);
+            rows.Value("Hide dynamic halos within", Settings.HaloNearDistance, 0f, 500f, 10f, Metres);
         }
 
         private static void BuildGeneralPage(UIPanel page)

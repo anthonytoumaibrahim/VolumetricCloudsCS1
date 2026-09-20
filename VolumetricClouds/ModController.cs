@@ -53,6 +53,7 @@ namespace VolumetricClouds
             _volume = gameObject.AddComponent<CloudVolume>();
             _volume.Initialise(_field);
             gameObject.AddComponent<HaloController>();
+            gameObject.AddComponent<HaloFogOverride>();
 
             BuildButton();
         }
@@ -109,6 +110,9 @@ namespace VolumetricClouds
             // would otherwise leave the player with no button at all.
             if (!registered)
                 CreateHudButton();
+
+            Log.Msg("panel button: " + (registered ? "Unified UI" : "HUD button") +
+                    " (Unified UI wanted=" + (Settings.ShowInUnifiedUI != null && Settings.ShowInUnifiedUI.value) + ")");
         }
 
         private void CreateHudButton()

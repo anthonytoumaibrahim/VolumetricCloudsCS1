@@ -28,7 +28,10 @@ public static class BundleBuilder
         AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(
             OutputDir,
             new[] { build },
-            BuildAssetBundleOptions.None,
+            // Always rebuild. The incremental check only hashes the .shader files themselves,
+            // so an edit confined to CloudCommon.cginc would otherwise yield a byte-identical,
+            // stale bundle -- with no error anywhere.
+            BuildAssetBundleOptions.ForceRebuildAssetBundle,
             BuildTarget.StandaloneWindows64);
 
         if (manifest == null)

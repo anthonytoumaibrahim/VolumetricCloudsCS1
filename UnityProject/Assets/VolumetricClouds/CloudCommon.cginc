@@ -20,6 +20,8 @@ float _WeatherTile;
 float _NoiseTile;
 float _DensityScale;
 float _Absorption;
+float _DetailStrength;   // how hard the fine noise eats into the cloud: 0 = solid blocks, ~0.3 default, higher = ragged and wispy
+float _DetailScale;      // frequency of that fine noise relative to the base shape
 float3 _WindOffset;
 
 float Remap(float v, float a, float b, float c, float d)
@@ -54,10 +56,13 @@ float SampleDensity(float3 p, bool detailed)
 
     float d = saturate(Remap(base, 1.0 - shaped, 1.0, 0.0, 1.0)) * shaped;
 
-    if (detailed && d > 0.0)
+    // Erosion: subtract fine cellular noise from the solid shape. This is what breaks a
+    // cloud up from one smooth mass into lobes, tufts and ragged edges. Thin parts of the
+    // cloud vanish first, so raising the strength also opens gaps through it.
+    if (detailed && d > 0.0 && _DetailStrength > 0.0)
     {
-        float detail = tex3Dlod(_NoiseTex, float4(uvNoise * 4.3, 0)).g;
-        d = saturate(Remap(d, detail * 0.3, 1.0, 0.0, 1.0));
+        float detail = tex3Dlod(_NoiseTex, float4(uvNoise * _DetailScale, 0)).g;
+        d = saturate(Remap(d, detail * _DetailStrength, 1.0, 0.0, 1.0));
     }
 
     return d * _DensityScale;
