@@ -76,8 +76,9 @@
   <Target Name="DeployToGame" AfterTargets="Build">
     <MakeDir Directories="$(ModsDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsDir)" />
-    <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="$(ModsDir)"
-          Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    <!-- The PDB is deliberately NOT deployed. Unity 5.6's Mono reads .mdb, not .pdb, so it
+         gives the game nothing (no line numbers in any stack trace), while the Workshop
+         uploads whatever sits in this folder, along with the source paths inside it. -->
     <Copy SourceFiles="$(LibsDir)\UnifiedUILib.dll" DestinationFolder="$(ModsDir)" />
     <Copy SourceFiles="$(LibsDir)\CitiesHarmony.API.dll" DestinationFolder="$(ModsDir)" />
     <Message Importance="high" Text="Deployed $(AssemblyName).dll -> $(ModsDir)" />
