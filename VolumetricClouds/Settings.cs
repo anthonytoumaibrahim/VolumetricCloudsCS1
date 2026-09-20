@@ -121,6 +121,36 @@ namespace VolumetricClouds
         /// <summary>Spike aid: projects a checkerboard instead of clouds.</summary>
         public static SavedBool DebugChecker { get; private set; }
 
+        /// <summary>
+        /// Default cloud settings, tuned by Anthony in his own city on 2026-09-20. The single
+        /// source of truth: both the saved-setting constructors and the fallbacks scattered
+        /// through the renderers read these, so the two cannot drift apart.
+        /// </summary>
+        public static class Defaults
+        {
+            public const float Coverage = 0.98f;
+            public const float WindSpeed = 0.3f;
+            public const float Altitude = 550f;
+            public const float Thickness = 650f;
+            public const float WeatherTileSize = 20000f;
+            public const float Breakup = 0.55f;
+            public const float BreakupScale = 2.75f;
+            public const float Density = 2.6f;
+            public const float Brightness = 0.2f;
+            public const float MinIllumination = 0.73f;
+            public const float ShadowDarkness = 0.7f;
+            public const float ShadowFullness = 7.75f;
+
+            /// <summary>
+            /// Raymarch steps. 96 is the slider's maximum and was chosen on an RTX 5070 Ti;
+            /// cost scales linearly, so this is the first thing to lower on a weaker GPU.
+            /// </summary>
+            public const float Quality = 96f;
+
+            public const float PuffCount = 600f;
+            public const float PuffSize = 900f;
+        }
+
         private static bool _initialised;
 
         public static void Init()
@@ -137,30 +167,30 @@ namespace VolumetricClouds
                 ToggleKey = new SavedInputKey("ToggleKey", FileName,
                     SavedInputKey.Encode(KeyCode.F4, false, false, false), true);
 
-                Coverage = new SavedFloat("Coverage", FileName, 0.5f, true);
-                WindSpeed = new SavedFloat("WindSpeed", FileName, 1f, true);
+                Coverage = new SavedFloat("Coverage", FileName, Defaults.Coverage, true);
+                WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
                 // New key rather than reusing CookieTileSize: the old 2000 m default was saved
                 // into existing settings files and is far too small for cloud-sized features.
-                WeatherTileSize = new SavedFloat("WeatherTileSize", FileName, 10000f, true);
+                WeatherTileSize = new SavedFloat("WeatherTileSize", FileName, Defaults.WeatherTileSize, true);
                 CloudShadows = new SavedBool("CloudShadows", FileName, true, true);
                 // New keys rather than reusing CloudShadowStrength: that slider had almost no
                 // effect at high coverage, so saved values of it are not meaningful.
-                CloudShadowDarkness = new SavedFloat("CloudShadowDarkness", FileName, 0.55f, true);
-                CloudShadowFullness = new SavedFloat("CloudShadowFullness", FileName, 2.5f, true);
+                CloudShadowDarkness = new SavedFloat("CloudShadowDarkness", FileName, Defaults.ShadowDarkness, true);
+                CloudShadowFullness = new SavedFloat("CloudShadowFullness", FileName, Defaults.ShadowFullness, true);
                 UseVolumetric = new SavedBool("UseVolumetric", FileName, true, true);
-                CloudThickness = new SavedFloat("CloudThickness", FileName, 600f, true);
-                CloudDensity = new SavedFloat("CloudDensity", FileName, 1f, true);
-                CloudBreakup = new SavedFloat("CloudBreakup", FileName, 0.3f, true);
-                CloudBreakupScale = new SavedFloat("CloudBreakupScale", FileName, 4.3f, true);
-                CloudBrightness = new SavedFloat("CloudBrightness", FileName, 1f, true);
-                CloudQuality = new SavedFloat("CloudQuality", FileName, 48f, true);
+                CloudThickness = new SavedFloat("CloudThickness", FileName, Defaults.Thickness, true);
+                CloudDensity = new SavedFloat("CloudDensity", FileName, Defaults.Density, true);
+                CloudBreakup = new SavedFloat("CloudBreakup", FileName, Defaults.Breakup, true);
+                CloudBreakupScale = new SavedFloat("CloudBreakupScale", FileName, Defaults.BreakupScale, true);
+                CloudBrightness = new SavedFloat("CloudBrightness", FileName, Defaults.Brightness, true);
+                CloudQuality = new SavedFloat("CloudQuality", FileName, Defaults.Quality, true);
                 CloudDepthOcclusion = new SavedBool("CloudDepthOcclusion", FileName, true, true);
-                MinIllumination = new SavedFloat("MinIllumination", FileName, 0.65f, true);
+                MinIllumination = new SavedFloat("MinIllumination", FileName, Defaults.MinIllumination, true);
 
                 CloudsVisible = new SavedBool("CloudsVisible", FileName, true, true);
-                CloudAltitude = new SavedFloat("CloudAltitude", FileName, 900f, true);
-                CloudPuffCount = new SavedFloat("CloudPuffCount", FileName, 300f, true);
-                CloudPuffSize = new SavedFloat("CloudPuffSize", FileName, 700f, true);
+                CloudAltitude = new SavedFloat("CloudAltitude", FileName, Defaults.Altitude, true);
+                CloudPuffCount = new SavedFloat("CloudPuffCount", FileName, Defaults.PuffCount, true);
+                CloudPuffSize = new SavedFloat("CloudPuffSize", FileName, Defaults.PuffSize, true);
 
                 HaloFogEnabled = new SavedBool("HaloFogEnabled", FileName, false, true);
                 HaloFogValue = new SavedFloat("HaloFogValue", FileName, 0f, true);

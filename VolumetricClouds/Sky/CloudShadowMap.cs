@@ -93,7 +93,7 @@ namespace VolumetricClouds.Sky
         {
             return Settings.CloudShadowDarkness != null
                 ? Mathf.Clamp01(Settings.CloudShadowDarkness.value)
-                : 0.55f;
+                : Settings.Defaults.ShadowDarkness;
         }
 
         /// <summary>Multiplier on optical depth for shadows only; see CloudShadowMap.shader.</summary>
@@ -103,7 +103,7 @@ namespace VolumetricClouds.Sky
             {
                 return Settings.CloudShadowFullness != null
                     ? Mathf.Max(0.01f, Settings.CloudShadowFullness.value)
-                    : 2.5f;
+                    : Settings.Defaults.ShadowFullness;
             }
         }
 

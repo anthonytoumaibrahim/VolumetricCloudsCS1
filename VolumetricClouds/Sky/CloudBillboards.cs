@@ -125,10 +125,10 @@ namespace VolumetricClouds.Sky
             if (_camera == null)
                 return;
 
-            float coverage = Settings.Coverage != null ? Settings.Coverage.value : 0.5f;
+            float coverage = Settings.Coverage != null ? Settings.Coverage.value : Settings.Defaults.Coverage;
             int requested = Settings.CloudPuffCount != null
                 ? Mathf.Clamp(Mathf.RoundToInt(Settings.CloudPuffCount.value), 0, MaxPuffs)
-                : 300;
+                : Mathf.Min((int)Settings.Defaults.PuffCount, MaxPuffs);
 
             if (!Mathf.Approximately(coverage, _builtCoverage) || requested != _builtCount)
             {
@@ -150,8 +150,8 @@ namespace VolumetricClouds.Sky
             if (requested <= 0)
                 return;
 
-            float altitude = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : 900f;
-            float baseSize = Settings.CloudPuffSize != null ? Settings.CloudPuffSize.value : 700f;
+            float altitude = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
+            float baseSize = Settings.CloudPuffSize != null ? Settings.CloudPuffSize.value : Settings.Defaults.PuffSize;
 
             // Oversample the grid, since only cloudy cells produce a puff.
             int grid = Mathf.CeilToInt(Mathf.Sqrt(requested / Mathf.Max(0.05f, coverage)));

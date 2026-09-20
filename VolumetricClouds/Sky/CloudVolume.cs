@@ -186,7 +186,7 @@ namespace VolumetricClouds.Sky
 
         private void UpdateMaterial()
         {
-            float steps = Settings.CloudQuality != null ? Settings.CloudQuality.value : 48f;
+            float steps = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
             bool useDepth = Settings.CloudDepthOcclusion == null || Settings.CloudDepthOcclusion.value;
 
             CloudShaderParams.Apply(_material, _field, _noise);
@@ -217,7 +217,7 @@ namespace VolumetricClouds.Sky
                     key = moon;
             }
 
-            float brightness = Settings.CloudBrightness != null ? Settings.CloudBrightness.value : 1f;
+            float brightness = Settings.CloudBrightness != null ? Settings.CloudBrightness.value : Settings.Defaults.Brightness;
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
             Vector3 sunDir = Vector3.up;
@@ -232,7 +232,7 @@ namespace VolumetricClouds.Sky
                 // the global sun dimming; that is gone now, so apply the same curve here to
                 // keep the look unchanged.
                 float illuminationFloor = Settings.MinIllumination != null
-                    ? Mathf.Clamp01(Settings.MinIllumination.value) : 0.65f;
+                    ? Mathf.Clamp01(Settings.MinIllumination.value) : Settings.Defaults.MinIllumination;
                 float overcast = Mathf.Lerp(1f, illuminationFloor, CloudShaderParams.Coverage);
 
                 sunColor = c * (key.intensity * 0.25f * brightness * overcast);

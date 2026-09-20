@@ -110,7 +110,7 @@ namespace VolumetricClouds.Sky
                 _mode = checker ? "checker" : "flat-cookie";
                 RebuildFlatCookie(checker);
                 _sun.cookie = _field.Texture;
-                _sun.cookieSize = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : 10000f;
+                _sun.cookieSize = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
                 t.position = _originalSunPosition + CloudWind.Offset;
             }
         }
@@ -145,7 +145,7 @@ namespace VolumetricClouds.Sky
 
             // The one place the wind advances; the visible clouds, the shadow map and the
             // fallback cookie all read the same offset.
-            float speed = Settings.WindSpeed != null ? Settings.WindSpeed.value : 1f;
+            float speed = Settings.WindSpeed != null ? Settings.WindSpeed.value : Settings.Defaults.WindSpeed;
             CloudWind.Advance(Time.deltaTime * speed * 10f * SimulationRate());
 
             // Every frame, not just on a settings change: the shadow map becomes ready a

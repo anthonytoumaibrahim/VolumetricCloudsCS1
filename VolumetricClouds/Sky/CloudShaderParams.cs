@@ -28,15 +28,15 @@ namespace VolumetricClouds.Sky
 
         public static float Coverage
         {
-            get { return Settings.Coverage != null ? Mathf.Clamp01(Settings.Coverage.value) : 0.5f; }
+            get { return Settings.Coverage != null ? Mathf.Clamp01(Settings.Coverage.value) : Settings.Defaults.Coverage; }
         }
 
         public static void Apply(Material material, CloudDensityField field, Texture3D noise)
         {
-            float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : 900f;
-            float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : 600f;
-            float tile = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : 10000f;
-            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : 1f;
+            float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
+            float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
+            float tile = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
+            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
 
             material.SetTexture(IdWeatherTex, field.DensityTexture);
             material.SetTexture(IdNoiseTex, noise);
@@ -48,8 +48,8 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdNoiseTile, NoiseTile);
             material.SetFloat(IdDensityScale, density);
             material.SetFloat(IdAbsorption, Absorption);
-            material.SetFloat(IdDetailStrength, Settings.CloudBreakup != null ? Settings.CloudBreakup.value : 0.3f);
-            material.SetFloat(IdDetailScale, Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : 4.3f);
+            material.SetFloat(IdDetailStrength, Settings.CloudBreakup != null ? Settings.CloudBreakup.value : Settings.Defaults.Breakup);
+            material.SetFloat(IdDetailScale, Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale);
             material.SetVector(IdWindOffset, CloudWind.Offset);
         }
     }
