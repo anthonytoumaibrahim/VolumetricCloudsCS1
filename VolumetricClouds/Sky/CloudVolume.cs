@@ -38,6 +38,22 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSunDir = Shader.PropertyToID("_SunDir");
         private static readonly int IdSunColor = Shader.PropertyToID("_SunColor");
         private static readonly int IdAmbientColor = Shader.PropertyToID("_AmbientColor");
+        private static readonly int IdRainShaftDensity = Shader.PropertyToID("_RainShaftDensity");
+        private static readonly int IdRainSteps = Shader.PropertyToID("_RainSteps");
+        private static readonly int IdRainMaxDistance = Shader.PropertyToID("_RainMaxDistance");
+        private static readonly int IdRainFloor = Shader.PropertyToID("_RainFloor");
+        private static readonly int IdRainFall = Shader.PropertyToID("_RainFall");
+        private static readonly int IdRainCurtainScale = Shader.PropertyToID("_RainCurtainScale");
+        private static readonly int IdRainAmbient = Shader.PropertyToID("_RainAmbient");
+        private static readonly int IdRainSun = Shader.PropertyToID("_RainSun");
+
+        /// <summary>
+        /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
+        /// downpours are several times denser, but a city builder has to stay readable from a
+        /// kilometre up: at this value 1 km of heavy rain still passes about half the view.
+        /// </summary>
+        private const float RainExtinction = 0.0006f;
+        private const float RainMaxDistance = 14000f;
 
         public void Initialise(CloudDensityField field)
         {
@@ -254,6 +270,18 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdSunDir, sunDir.normalized);
             _material.SetVector(IdSunColor, new Vector4(sunColor.r, sunColor.g, sunColor.b, 0f));
             _material.SetVector(IdAmbientColor, new Vector4(ambient.r, ambient.g, ambient.b, 0f));
+
+            // Rain curtains are lit like the underside of the clouds they hang from (which is
+            // why they go through the same brightness and overcast terms), a little dimmer.
+            float curtains = Settings.RainCurtains != null ? Mathf.Max(0f, Settings.RainCurtains.value) : 1f;
+            _material.SetFloat(IdRainShaftDensity, CloudRain.Active ? RainExtinction * curtains : 0f);
+            _material.SetFloat(IdRainSteps, 20f);
+            _material.SetFloat(IdRainMaxDistance, RainMaxDistance);
+            _material.SetFloat(IdRainFloor, 0f);
+            _material.SetFloat(IdRainFall, -CloudRain.FallOffset.y);
+            _material.SetFloat(IdRainCurtainScale, CloudRain.CurtainScale);
+            _material.SetVector(IdRainAmbient, new Vector4(ambient.r, ambient.g, ambient.b, 0f) * 0.6f);
+            _material.SetVector(IdRainSun, new Vector4(sunColor.r, sunColor.g, sunColor.b, 0f) * 0.12f);
 
             if (!_loggedLighting)
             {

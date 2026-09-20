@@ -37,9 +37,10 @@ namespace VolumetricClouds.Lighting
     /// the fog amount overridden (clamped to the range it survives).
     ///
     /// Dynamic lights (vehicles and the like, LightSystem.DrawLight) use an instanced variant
-    /// with no port. They are left on the WORLD's fog, only clamped to what that shader
-    /// survives: the sliders here are tuned against the ported shader and mean something
-    /// else to the game's.
+    /// with no port. The sliders here are tuned against the ported shader and mean something
+    /// else to the game's, so that material just gets the smallest glow its shader can draw
+    /// (fog pinned to <see cref="MinSafeFog"/>) -- independent of the world's fog, so foggy
+    /// weather no longer has to be sacrificed to keep vehicle halos small.
     /// </remarks>
     public class HaloOverride : MonoBehaviour
     {
@@ -254,10 +255,10 @@ namespace VolumetricClouds.Lighting
 
         /// <summary>
         /// Dynamic lights share one instanced material, on the game's own shader. While the
-        /// feature is on it sees the world's fog clamped to what that shader survives. A value
-        /// set on a material cannot be un-set in Unity 5.6, so once touched it is kept in step
-        /// with the world for good: unclamped while the feature is off, which is exactly what
-        /// the shader global would have given it.
+        /// feature is on its fog is pinned to the minimum. A value set on a material cannot be
+        /// un-set in Unity 5.6, so once touched it is kept in step with the world for good:
+        /// the world's own value while the feature is off, which is exactly what the shader
+        /// global would have given it.
         /// </summary>
         private void SyncDynamicVolume(LightSystem lights, bool enabled)
         {
@@ -268,9 +269,12 @@ namespace VolumetricClouds.Lighting
             if (dynamicVolume == null)
                 return;
 
+            // While the feature is on, vehicle halos are pinned to the smallest glow the game's
+            // shader can draw. That is what PersistentFogAdjuster's -0.5 world fog used to buy;
+            // pinning it here instead lets the WORLD's fog be real weather again.
             Vector4 weather = Shader.GetGlobalVector(IdWeatherParams);
             if (enabled)
-                weather.z = Mathf.Max(MinSafeFog, weather.z);
+                weather.z = MinSafeFog;
 
             dynamicVolume.SetVector(IdWeatherParams, weather);
             _dynamicTouched = true;

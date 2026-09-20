@@ -54,6 +54,8 @@ namespace VolumetricClouds
             _volume = gameObject.AddComponent<CloudVolume>();
             _volume.Initialise(_field);
             gameObject.AddComponent<GameCloudDome>();
+            gameObject.AddComponent<RainDrops>().Initialise(_field);
+            gameObject.AddComponent<GameRain>();
             gameObject.AddComponent<HaloController>();
             gameObject.AddComponent<HaloOverride>();
 

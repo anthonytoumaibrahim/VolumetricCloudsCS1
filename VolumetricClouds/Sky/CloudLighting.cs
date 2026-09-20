@@ -152,9 +152,13 @@ namespace VolumetricClouds.Sky
             // wind runs on simulation time, so a paused city has still clouds.
             CloudWeather.Advance(Time.deltaTime);
 
+            float simulationRate = SimulationRate();
             float speed = Settings.WindSpeed != null ? Settings.WindSpeed.value : Settings.Defaults.WindSpeed;
             CloudWind.Advance(CloudWeather.WindDirection,
-                              Time.deltaTime * speed * 10f * CloudWeather.WindSpeedFactor * SimulationRate());
+                              Time.deltaTime * speed * 10f * CloudWeather.WindSpeedFactor * simulationRate);
+
+            // After the cover and the wind: where it rains is derived from both.
+            CloudRain.Advance(_field, RainDrops.ShadersAvailable, Time.deltaTime, simulationRate);
 
             // Every frame, not just on a settings change: the shadow map becomes ready a
             // moment after load, and the game is free to move the sun's transform.
@@ -212,6 +216,9 @@ namespace VolumetricClouds.Sky
 
         private void OnDestroy()
         {
+            // The sound-and-wet-roads patch outlives the city; hand the game its rain back.
+            CloudRain.Clear();
+
             if (!_captured || _sun == null)
                 return;
 

@@ -68,4 +68,33 @@ float SampleDensity(float3 p, bool detailed)
     return d * _DensityScale;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Rain. One definition of WHERE it rains, used by the rain curtains (CloudRaymarch), the
+// streaks near the camera (RainDrops) and -- ported to C# in CloudRain.LocalRain -- the rain
+// sound and wet roads. Same rule as the density above: never fork it.
+//
+// It rains where the weather field clears a HIGHER threshold than the clouds' own, i.e. under
+// the thickest part of the cover. The C# side picks that threshold from the same solved table
+// (the threshold for a smaller coverage), so the rain cells are a subset of the clouds by
+// construction: light rain is a few showers under the biggest clouds, heavy rain is
+// everywhere there is cloud.
+float _RainAmount;       // the game's rain, 0..1
+float _RainThreshold;
+float3 _RainSlant;       // xz: metres a drop drifts downwind per metre it falls
+
+// How hard it is raining at p, 0..1. Zero above the cloud base.
+float SampleRain(float3 p)
+{
+    float below = _CloudBottom - p.y;
+    if (below < 0.0)
+        return 0.0;
+
+    // A drop at this height left the cloud base upwind of where it is now, so the curtains
+    // lean with the wind exactly as the streaks fall.
+    float2 xz = p.xz - _RainSlant.xz * below;
+    float2 uv = (xz - _WindOffset.xz) / _WeatherTile;
+    float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
+    return _RainAmount * saturate((weather - _RainThreshold) / _Softness);
+}
+
 #endif

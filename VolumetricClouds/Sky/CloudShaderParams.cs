@@ -25,6 +25,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdDetailStrength = Shader.PropertyToID("_DetailStrength");
         private static readonly int IdDetailScale = Shader.PropertyToID("_DetailScale");
         private static readonly int IdWindOffset = Shader.PropertyToID("_WindOffset");
+        private static readonly int IdRainAmount = Shader.PropertyToID("_RainAmount");
+        private static readonly int IdRainThreshold = Shader.PropertyToID("_RainThreshold");
+        private static readonly int IdRainSlant = Shader.PropertyToID("_RainSlant");
 
         /// <summary>
         /// The cover in effect: the weather's, or the slider's when it overrides. Never read
@@ -64,6 +67,12 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdDetailStrength, Settings.CloudBreakup != null ? Settings.CloudBreakup.value : Settings.Defaults.Breakup);
             material.SetFloat(IdDetailScale, Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale);
             material.SetVector(IdWindOffset, CloudWind.Offset);
+
+            // Where it rains (SampleRain): the same field, thresholded for the smaller
+            // coverage it rains under, so rain is always beneath cloud.
+            material.SetFloat(IdRainAmount, CloudRain.Amount);
+            material.SetFloat(IdRainThreshold, field.GetThreshold(CloudRain.RainCoverage));
+            material.SetVector(IdRainSlant, CloudRain.Slant);
         }
     }
 }

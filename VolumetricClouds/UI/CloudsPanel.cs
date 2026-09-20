@@ -14,7 +14,7 @@ namespace VolumetricClouds.UI
     /// </summary>
     public class CloudsPanel : UIPanel
     {
-        private const float PanelWidth = 470f;
+        private const float PanelWidth = 540f;   // six tabs; "Rendering" is the widest label
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float TabHeight = 28f;
@@ -58,6 +58,7 @@ namespace VolumetricClouds.UI
             BuildTitleBar();
 
             _contentHeights.Add(BuildCloudsPage(AddPage("Clouds")));
+            _contentHeights.Add(BuildRainPage(AddPage("Rain")));
             _contentHeights.Add(BuildLightPage(AddPage("Light")));
             _contentHeights.Add(BuildRenderingPage(AddPage("Rendering")));
             _contentHeights.Add(BuildHalosPage(AddPage("Halos")));
@@ -150,6 +151,21 @@ namespace VolumetricClouds.UI
             rows.Percent("Break-up (solid to ragged)", Settings.CloudBreakup, 0f, 100f, 5f);
             rows.Value("Break-up detail (big to fine)", Settings.CloudBreakupScale, 1.5f, 10f, 0.25f, v => v.ToString("F2") + "x");
             rows.Value("Weather pattern size", Settings.WeatherTileSize, 3000f, 20000f, 500f, Kilometres);
+            return rows.Height;
+        }
+
+        private static float BuildRainPage(UIPanel page)
+        {
+            Rows rows = new Rows(page);
+
+            // How MUCH it rains is the game's (random weather, Play It, a thunderstorm). This
+            // is only how it looks and where it falls: under the thickest cloud, never from a
+            // clear patch of sky.
+            rows.Toggle("Replace the game's rain", Settings.RainEnabled);
+            rows.Percent("Rain curtains under clouds", Settings.RainCurtains, 0f, 300f, 5f);
+            rows.Percent("Rain streaks near camera", Settings.RainStreaks, 0f, 300f, 5f);
+            rows.Value("Streaks fade out above", Settings.RainStreakHeight, 100f, 1500f, 50f, Metres);
+            rows.Toggle("Rain sound and wet roads follow the clouds", Settings.RainLocalised);
             return rows.Height;
         }
 

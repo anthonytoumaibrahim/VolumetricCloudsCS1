@@ -33,6 +33,27 @@ namespace VolumetricClouds
         /// <summary>Following the weather: the cover in rain or a full cloudy spell, 0..1.</summary>
         public static SavedFloat WeatherOvercastCoverage { get; private set; }
 
+        /// <summary>
+        /// Replace the game's camera-locked rain with ours: curtains under the clouds and
+        /// world-anchored streaks near the camera, both only where it is raining.
+        /// </summary>
+        public static SavedBool RainEnabled { get; private set; }
+
+        /// <summary>Multiplier on how dense the rain curtains under the clouds are. 0 = none.</summary>
+        public static SavedFloat RainCurtains { get; private set; }
+
+        /// <summary>Multiplier on how many streaks show near the camera. 0 = none.</summary>
+        public static SavedFloat RainStreaks { get; private set; }
+
+        /// <summary>Camera height above the ground, in metres, at which the streaks are gone.</summary>
+        public static SavedFloat RainStreakHeight { get; private set; }
+
+        /// <summary>
+        /// The rain sound and wet roads follow the clouds too. The one setting that changes
+        /// what the simulation sees (see SampleRainIntensityPatch).
+        /// </summary>
+        public static SavedBool RainLocalised { get; private set; }
+
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
         public static SavedFloat WindSpeed { get; private set; }
 
@@ -214,6 +235,12 @@ namespace VolumetricClouds
                 CoverageOverride = new SavedBool("CoverageOverride", FileName, false, true);
                 WeatherFairCoverage = new SavedFloat("WeatherFairCoverage", FileName, Defaults.FairCoverage, true);
                 WeatherOvercastCoverage = new SavedFloat("WeatherOvercastCoverage", FileName, Defaults.Coverage, true);
+
+                RainEnabled = new SavedBool("RainEnabled", FileName, true, true);
+                RainCurtains = new SavedFloat("RainCurtains", FileName, 1f, true);
+                RainStreaks = new SavedFloat("RainStreaks", FileName, 1f, true);
+                RainStreakHeight = new SavedFloat("RainStreakHeight", FileName, 450f, true);
+                RainLocalised = new SavedBool("RainLocalised", FileName, true, true);
                 WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
                 // New key rather than reusing CookieTileSize: the old 2000 m default was saved
                 // into existing settings files and is far too small for cloud-sized features.

@@ -11,10 +11,20 @@ public static class BundleBuilder
     private const string OutputDir = "Bundles";
     private const string BundleName = "volumetricclouds";
 
+    /// <summary>Every shader the mod ships. Add new ones here and nowhere else.</summary>
+    private static readonly string[] Shaders =
+    {
+        "Assets/VolumetricClouds/CloudRaymarch.shader",
+        "Assets/VolumetricClouds/CloudShadowMap.shader",
+        "Assets/VolumetricClouds/LightHalo.shader",
+        "Assets/VolumetricClouds/RainDrops.shader",
+        "Assets/VolumetricClouds/Invisible.shader",
+    };
+
     /// <summary>
     /// Verification only: an uncompressed copy in Bundles/debug, so tools/shaderdump.ps1 can
-    /// find and disassemble OUR compiled shaders and diff them against the game's originals.
-    /// Never shipped.
+    /// find and disassemble OUR compiled shaders -- to diff a port against the game's
+    /// original, or simply to prove a shader really compiled. Never shipped.
     /// </summary>
     public static void BuildUncompressed()
     {
@@ -24,7 +34,7 @@ public static class BundleBuilder
         AssetBundleBuild build = new AssetBundleBuild
         {
             assetBundleName = BundleName,
-            assetNames = new[] { "Assets/VolumetricClouds/LightHalo.shader" },
+            assetNames = Shaders,
         };
 
         BuildPipeline.BuildAssetBundles(
@@ -43,12 +53,7 @@ public static class BundleBuilder
         AssetBundleBuild build = new AssetBundleBuild
         {
             assetBundleName = BundleName,
-            assetNames = new[]
-            {
-                "Assets/VolumetricClouds/CloudRaymarch.shader",
-                "Assets/VolumetricClouds/CloudShadowMap.shader",
-                "Assets/VolumetricClouds/LightHalo.shader",
-            },
+            assetNames = Shaders,
         };
 
         AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(
