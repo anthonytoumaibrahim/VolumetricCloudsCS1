@@ -361,3 +361,28 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# ---------------------------------------------------------------------------
+# Unity project (UnityProject/) - only Assets/ and ProjectSettings/ are source.
+# Library/ is a machine-specific import cache that Unity regenerates on open.
+# ---------------------------------------------------------------------------
+UnityProject/Library/
+UnityProject/Temp/
+UnityProject/Obj/
+UnityProject/Logs/
+UnityProject/Build/
+UnityProject/Builds/
+UnityProject/build.log
+UnityProject/*.csproj
+UnityProject/*.sln
+UnityProject/*.unityproj
+UnityProject/*.userprefs
+UnityProject/*.pidb
+UnityProject/*.booproj
+
+# Intermediate bundle output. build-bundle.ps1 copies the result to
+# VolumetricClouds/Resources/volumetricclouds.bundle, which IS tracked.
+UnityProject/Bundles/
+
+# The Visual Studio template above ignores *.meta, but Unity asset metadata
+# (stable GUIDs) belongs in source control.
+!UnityProject/Assets/**/*.meta
