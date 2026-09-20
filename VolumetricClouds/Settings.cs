@@ -109,20 +109,37 @@ namespace VolumetricClouds
         /// <summary>Multiplier on the glow's world radius. Replacement shader only.</summary>
         public static SavedFloat HaloRadius { get; private set; }
 
-        /// <summary>Master switch for the light-halo adjustments.</summary>
+        /// <summary>
+        /// Lamps closer to the camera than this (metres) get the three "near" multipliers below
+        /// in full, fading out to none at twice the distance. A halo has a fixed world size, so
+        /// what makes a distant lamp a crisp dot makes one 100 m away a blob. 0 = off.
+        /// Replacement shader only.
+        /// </summary>
+        public static SavedFloat HaloNearLightDistance { get; private set; }
+
+        /// <summary>Near lamps: multiplier on top of <see cref="HaloBrightness"/>.</summary>
+        public static SavedFloat HaloNearLightBrightness { get; private set; }
+
+        /// <summary>Near lamps: multiplier on top of <see cref="HaloTightness"/>.</summary>
+        public static SavedFloat HaloNearLightTightness { get; private set; }
+
+        /// <summary>Near lamps: multiplier on top of <see cref="HaloRadius"/>.</summary>
+        public static SavedFloat HaloNearLightRadius { get; private set; }
+
+        /// <summary>Master switch for the dynamic-light (vehicle) adjustments.</summary>
         public static SavedBool HaloAdjustEnabled { get; private set; }
 
-        /// <summary>Multiplier on halo radius. 1 leaves the game untouched.</summary>
+        /// <summary>Multiplier on a dynamic light's range. 1 leaves the game untouched.</summary>
         public static SavedFloat HaloRangeScale { get; private set; }
 
-        /// <summary>Multiplier on halo brightness. 1 leaves the game untouched.</summary>
+        /// <summary>Multiplier on a dynamic light's brightness. 1 leaves the game untouched.</summary>
         public static SavedFloat HaloIntensityScale { get; private set; }
 
-        /// <summary>Lights closer than this skip the volume pass. 0 disables the cutoff.</summary>
-        public static SavedFloat HaloNearDistance { get; private set; }
-
-        /// <summary>Diagnostic: suppress LightSystem.DrawLight entirely.</summary>
-        public static SavedBool DebugSkipDrawLight { get; private set; }
+        /// <summary>
+        /// Dynamic lights closer than this skip the volume pass. 0 disables the cutoff. Nothing
+        /// to do with <see cref="HaloNearLightDistance"/>: street lamps are never dynamic.
+        /// </summary>
+        public static SavedFloat DynamicHaloCutoff { get; private set; }
 
         /// <summary>Spike aid: projects a checkerboard instead of clouds.</summary>
         public static SavedBool DebugChecker { get; private set; }
@@ -209,12 +226,23 @@ namespace VolumetricClouds
                 HaloTightness = new SavedFloat("HaloTightness", FileName, 1f, true);
                 HaloRadius = new SavedFloat("HaloRadius", FileName, 1f, true);
 
+                // 300 m is the distance Anthony named; the multipliers start neutral, so the
+                // distance alone changes nothing.
+                HaloNearLightDistance = new SavedFloat("HaloNearLightDistance", FileName, 300f, true);
+                HaloNearLightBrightness = new SavedFloat("HaloNearLightBrightness", FileName, 1f, true);
+                HaloNearLightTightness = new SavedFloat("HaloNearLightTightness", FileName, 1f, true);
+                HaloNearLightRadius = new SavedFloat("HaloNearLightRadius", FileName, 1f, true);
+
                 HaloAdjustEnabled = new SavedBool("HaloAdjustEnabled", FileName, false, true);
                 HaloRangeScale = new SavedFloat("HaloRangeScale", FileName, 1f, true);
                 HaloIntensityScale = new SavedFloat("HaloIntensityScale", FileName, 1f, true);
-                HaloNearDistance = new SavedFloat("HaloNearDistance", FileName, 0f, true);
+                DynamicHaloCutoff = new SavedFloat("HaloNearDistance", FileName, 0f, true);
 
-                DebugSkipDrawLight = new SavedBool("DebugSkipDrawLight", FileName, false, true);
+                // There is deliberately no DebugSkipDrawLight any more. It suppressed every
+                // dynamic light, was saved as true during one experiment, and then lost its
+                // checkbox when the settings moved into the panel -- so it stayed on, unseen,
+                // hiding vehicle lights for every session after. A debug switch that can
+                // change the picture must never outlive its UI.
                 DebugChecker = new SavedBool("DebugChecker", FileName, false, true);
 
                 _initialised = true;

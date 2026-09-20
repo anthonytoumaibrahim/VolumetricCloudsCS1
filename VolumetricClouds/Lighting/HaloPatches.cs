@@ -4,10 +4,9 @@ using UnityEngine;
 namespace VolumetricClouds.Lighting
 {
     /// <summary>
-    /// Adjusts halo size and suppresses the volume pass near the camera. Parameter names
-    /// must match the game's, which is how Harmony binds them. Returning false skips the
-    /// original method, which the debug switch uses to prove whether this call is what
-    /// draws the lights at all.
+    /// Adjusts the size of dynamic lights and suppresses their volume pass near the camera.
+    /// Parameter names must match the game's, which is how Harmony binds them. The prefix
+    /// returns true: returning false would skip the original and the light with it.
     /// </summary>
     [HarmonyPatch(typeof(LightSystem), nameof(LightSystem.DrawLight), new[]
     {

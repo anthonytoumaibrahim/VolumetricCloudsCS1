@@ -1,5 +1,7 @@
 // Replacement for the game's 'Custom/Lights/GroupVolume' shader: the pass that draws the glow
-// around batched (distant) street and building lights.
+// around street and building lights. Those are baked into per-area meshes and drawn by this
+// pass at EVERY distance, right up to the camera -- they never go through the game's dynamic
+// light path -- so this one shader owns a lamp's halo from 5 m to 30 km.
 //
 // This is a hand port of the game's compiled shader, made from its Direct3D 11 disassembly
 // (tools/shaderdump.ps1), deliberately kept close to the original instruction order so it can
@@ -13,6 +15,11 @@
 //   _HaloBrightness  scales the glow amplitude directly, instead of only via fog
 //   _HaloTightness   scales the falloff exponent: > 1 keeps the bright core, loses the wide haze
 //   _HaloRadius      scales the glow's world radius (the light's baked range / 2)
+//   _HaloNear*       multipliers on the three above for lights close to the camera. A halo has
+//                    a fixed WORLD size, so settings that make a distant lamp a crisp dot make
+//                    a lamp 100 m away a blob. Blended per light, in the vertex shader, from
+//                    full effect inside _HaloNearDistance to none at twice that, so nothing
+//                    pops as the camera moves. All 1 = no effect.
 //
 // Batched light mesh vertex layout (written by LightEffect.PopulateGroupData):
 //   POSITION   a corner of the light's bounding quad, in group space
@@ -62,6 +69,10 @@ Shader "VolumetricClouds/LightHalo"
             float _HaloBrightness;
             float _HaloTightness;
             float _HaloRadius;
+            float _HaloNearDistance;
+            float _HaloNearBrightness;
+            float _HaloNearTightness;
+            float _HaloNearRadius;
 
             // { rampStart, rampEnd, fallEnd, period } per blink pattern.
             static const float4 kBlink[7] =
@@ -95,6 +106,7 @@ Shader "VolumetricClouds/LightHalo"
                 float4 axis : TEXCOORD3;
                 float4 color : COLOR0;
                 float2 colorUV : TEXCOORD4;
+                float2 tuning : TEXCOORD5;      // x brightness, y tightness, for THIS light
             };
 
             // x*x*(3-2x): the polynomial half of smoothstep, for an already-saturated x.
@@ -121,18 +133,27 @@ Shader "VolumetricClouds/LightHalo"
                 float3 local = v.vertex.xyz * visible;
                 float3 world = mul(unity_ObjectToWorld, float4(local, v.vertex.w)).xyz;
 
+                float3 toCamera = _WorldSpaceCameraPos - v.lightPos;
+                float dist2 = dot(toCamera, toCamera);
+                float dist = sqrt(dist2);
+
+                // Not in the original: how "near" this light is, 1 inside _HaloNearDistance
+                // falling to 0 at twice that, and the three controls blended accordingly.
+                float nearRange = max(_HaloNearDistance, 1.0);
+                float nearness = 1.0 - smoothstep(nearRange, 2.0 * nearRange, dist);
+                float radiusScale = _HaloRadius * lerp(1.0, _HaloNearRadius, nearness);
+                o.tuning = float2(_HaloBrightness * lerp(1.0, _HaloNearBrightness, nearness),
+                                  _HaloTightness * lerp(1.0, _HaloNearTightness, nearness));
+
                 // The corner's offset from the light encodes the quad: x,y pick the corner,
                 // z is the light's range. The group matrix is a pure translation.
-                float3 offset = (world - v.lightPos) * _HaloRadius;
+                float3 offset = (world - v.lightPos) * radiusScale;
                 float3 groupTranslation = world - local;
                 float cornerX = offset.x * 0.5;
                 float cornerY = offset.y * 0.5;
                 float radius = offset.z * 0.5;
 
-                float3 toCamera = _WorldSpaceCameraPos - v.lightPos;
-                float dist2 = dot(toCamera, toCamera);
                 float tangentLength = sqrt(max(dist2 - radius * radius, 0.001));
-                float dist = sqrt(dist2);
                 float3 towards = toCamera * rsqrt(dist2);
                 float alongView = dot(toCamera, _CameraForward.xyz);
 
@@ -165,7 +186,7 @@ Shader "VolumetricClouds/LightHalo"
                 o.viewRay = mul(UNITY_MATRIX_V, mul(unity_ObjectToWorld, float4(finalLocal, v.vertex.w))).xyz
                           * float3(-1.0, -1.0, 1.0);
 
-                float invRange2 = v.rangeIntensity.x / (_HaloRadius * _HaloRadius);
+                float invRange2 = v.rangeIntensity.x / (radiusScale * radiusScale);
                 o.light = float4(v.lightPos, invRange2 * 4.0);
                 o.axis = v.axis;
                 o.color = float4(bright, bright, bright, 1.0) * v.color;
@@ -215,8 +236,8 @@ Shader "VolumetricClouds/LightHalo"
 
                 // THE FIX, part one. The original is "scatter * 0.001 + epsilon" with no floor,
                 // which goes negative once fog < -0.5.
-                float amplitude = max(scatter * 0.001 + epsilon, 0.0) * _HaloBrightness;
-                float exponent = (1.0 - 0.2 * scatter) * _HaloTightness;
+                float amplitude = max(scatter * 0.001 + epsilon, 0.0) * i.tuning.x;
+                float exponent = (1.0 - 0.2 * scatter) * i.tuning.y;
 
                 // Closest approach of the view ray to the spotlight's axis plane...
                 float3 a = i.axis.zxy * 1000.0;

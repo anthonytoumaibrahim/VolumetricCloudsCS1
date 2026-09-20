@@ -3,18 +3,19 @@ using UnityEngine;
 namespace VolumetricClouds.Lighting
 {
     /// <summary>
-    /// Shared state for the light-halo patches.
+    /// Shared state for the DrawLight patches, which reach DYNAMIC lights only.
     /// </summary>
     /// <remarks>
-    /// DrawLight runs for every visible light every frame -- hundreds a frame at night --
-    /// so everything here is a plain static field refreshed once per frame by
-    /// <see cref="HaloController"/>. Reading SavedFloat.value per call would put the
-    /// settings system on the hot path.
+    /// LightEffect.RenderEffect opens with "if (m_batchedLight &amp;&amp; !id.IsEmpty) return", so a
+    /// street or building lamp never gets here at any distance; what does is lights that are
+    /// not batched (vehicles, for one) and batched ones rendered without an instance id.
+    /// That is still hundreds of calls a frame at night, so everything here is a plain static
+    /// field refreshed once per frame by <see cref="HaloController"/>. Reading
+    /// SavedFloat.value per call would put the settings system on the hot path.
     /// </remarks>
     public static class HaloAdjuster
     {
         public static bool Enabled;
-        public static bool SkipDrawLight;
         public static float RangeScale = 1f;
         public static float IntensityScale = 1f;
         public static float NearDistanceSqr;
@@ -33,7 +34,7 @@ namespace VolumetricClouds.Lighting
         /// <summary>
         /// Shrinks the halo and, for lights close to the camera, skips the volume pass.
         /// </summary>
-        /// <returns>false to skip the original DrawLight entirely.</returns>
+        /// <returns>Always true: the original DrawLight must run, or the light vanishes.</returns>
         public static bool Adjust(Vector3 pos, ref float intensity, ref float range, ref bool volume)
         {
             LongCalls++;
@@ -47,11 +48,6 @@ namespace VolumetricClouds.Lighting
                 ObservedMaxRange = range;
             if (intensity > ObservedMaxIntensity)
                 ObservedMaxIntensity = intensity;
-
-            // Decisive test: suppressing the call entirely should make these lights
-            // vanish. If they don't, DrawLight isn't what draws what we're looking at.
-            if (SkipDrawLight)
-                return false;
 
             if (!Enabled)
                 return true;

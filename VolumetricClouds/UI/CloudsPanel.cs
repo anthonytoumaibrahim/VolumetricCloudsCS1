@@ -19,8 +19,11 @@ namespace VolumetricClouds.UI
         private const float TabHeight = 28f;
         private const float Margin = 14f;
 
+        private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
+
         private readonly List<UIButton> _tabs = new List<UIButton>();
         private readonly List<UIPanel> _pages = new List<UIPanel>();
+        private readonly List<float> _contentHeights = new List<float>();
 
         public override void Start()
         {
@@ -34,11 +37,11 @@ namespace VolumetricClouds.UI
 
             BuildTitleBar();
 
-            BuildCloudsPage(AddPage("Clouds"));
-            BuildLightPage(AddPage("Light"));
-            BuildRenderingPage(AddPage("Rendering"));
-            BuildHalosPage(AddPage("Halos"));
-            BuildGeneralPage(AddPage("General"));
+            _contentHeights.Add(BuildCloudsPage(AddPage("Clouds")));
+            _contentHeights.Add(BuildLightPage(AddPage("Light")));
+            _contentHeights.Add(BuildRenderingPage(AddPage("Rendering")));
+            _contentHeights.Add(BuildHalosPage(AddPage("Halos")));
+            _contentHeights.Add(BuildGeneralPage(AddPage("General")));
 
             LayoutTabs();
             SelectPage(0);
@@ -76,8 +79,7 @@ namespace VolumetricClouds.UI
             _tabs.Add(tab);
 
             UIPanel page = AddUIComponent<UIPanel>();
-            page.size = new Vector2(PanelWidth - 2f * Margin,
-                                    PanelHeight - TitleBarHeight - TabHeight - 2f * Margin);
+            page.size = new Vector2(PanelWidth - 2f * Margin, MinContentHeight);
             page.relativePosition = new Vector3(Margin, TitleBarHeight + TabHeight + Margin);
             _pages.Add(page);
 
@@ -102,9 +104,15 @@ namespace VolumetricClouds.UI
                 _pages[i].isVisible = i == index;
                 UIBuilder.SetTabSelected(_tabs[i], i == index);
             }
+
+            // The panel is as tall as the selected page needs, and never shorter than it
+            // started: most pages fit, the Halos one has half as many rows again.
+            float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
+            _pages[index].height = content;
+            height = TitleBarHeight + TabHeight + 2f * Margin + content;
         }
 
-        private static void BuildCloudsPage(UIPanel page)
+        private static float BuildCloudsPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
@@ -116,9 +124,10 @@ namespace VolumetricClouds.UI
             rows.Percent("Break-up (solid to ragged)", Settings.CloudBreakup, 0f, 100f, 5f);
             rows.Value("Break-up detail (big to fine)", Settings.CloudBreakupScale, 1.5f, 10f, 0.25f, v => v.ToString("F2") + "x");
             rows.Value("Weather pattern size", Settings.WeatherTileSize, 3000f, 20000f, 500f, Kilometres);
+            return rows.Height;
         }
 
-        private static void BuildLightPage(UIPanel page)
+        private static float BuildLightPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
@@ -128,9 +137,10 @@ namespace VolumetricClouds.UI
             rows.Percent("Cloud brightness", Settings.CloudBrightness, 20f, 300f, 5f);
             rows.Percent("Clouds dim at full overcast to", Settings.MinIllumination, 30f, 100f, 1f);
             rows.Percent("Cloud density", Settings.CloudDensity, 20f, 300f, 5f);
+            return rows.Height;
         }
 
-        private static void BuildRenderingPage(UIPanel page)
+        private static float BuildRenderingPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
@@ -139,36 +149,49 @@ namespace VolumetricClouds.UI
             rows.Toggle("Buildings and terrain hide clouds behind them", Settings.CloudDepthOcclusion);
             rows.Value("Billboards: puff count", Settings.CloudPuffCount, 0f, 600f, 25f, v => v.ToString("F0"));
             rows.Value("Billboards: puff size", Settings.CloudPuffSize, 200f, 2500f, 50f, Metres);
+            return rows.Height;
         }
 
-        private static void BuildHalosPage(UIPanel page)
+        private static float BuildHalosPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
-            // Distant (batched) street and building lights. With everything at its default the
-            // replacement shader reproduces a clear vanilla night, so each slider can be judged
-            // against a known starting point. Fog stops at -0.49 because the GAME's shader,
-            // still used when the replacement is off, turns anything lower into a solid box.
-            rows.Toggle("Customise distant light halos", Settings.HaloEnabled);
+            // Street and building lights, at every distance (they are never dynamic). With
+            // everything at its default the replacement shader reproduces a clear vanilla
+            // night, so each slider can be judged against a known starting point. Fog stops at
+            // -0.49 because the GAME's shader, still used when the replacement is off, turns
+            // anything lower into a solid box.
+            rows.Toggle("Customise street and building light halos", Settings.HaloEnabled);
             rows.Toggle("Use the replacement halo shader", Settings.HaloReplaceShader);
             rows.Value("Tightness (higher = smaller)", Settings.HaloTightness, 0.5f, 6f, 0.05f, v => v.ToString("F2") + "x");
             rows.Percent("Brightness", Settings.HaloBrightness, 0f, 300f, 5f);
             rows.Percent("Size (world radius)", Settings.HaloRadius, 10f, 150f, 5f);
             rows.Value("Fog amount (0 = clear night)", Settings.HaloFogAmount, HaloOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
 
+            // The same lamps when close to the camera: percentages OF the three sliders above,
+            // in full inside the distance and fading out to nothing at twice it. Replacement
+            // shader only.
+            rows.Value("Near lights: closer than", Settings.HaloNearLightDistance, 0f, 1000f, 10f,
+                v => v <= 0f ? "off" : Metres(v));
+            rows.Percent("Near lights: tightness", Settings.HaloNearLightTightness, 50f, 300f, 5f);
+            rows.Percent("Near lights: brightness", Settings.HaloNearLightBrightness, 0f, 200f, 1f);
+            rows.Percent("Near lights: size", Settings.HaloNearLightRadius, 10f, 200f, 5f);
+
             // Vehicles and other dynamic lights: the only ones LightSystem.DrawLight handles.
             rows.Toggle("Adjust dynamic lights (vehicles)", Settings.HaloAdjustEnabled);
             rows.Percent("Dynamic light size", Settings.HaloRangeScale, 10f, 200f, 5f);
-            rows.Value("Hide dynamic halos within", Settings.HaloNearDistance, 0f, 500f, 10f, Metres);
+            rows.Value("Hide dynamic halos within", Settings.DynamicHaloCutoff, 0f, 500f, 10f, Metres);
+            return rows.Height;
         }
 
-        private static void BuildGeneralPage(UIPanel page)
+        private static float BuildGeneralPage(UIPanel page)
         {
             Rows rows = new Rows(page);
 
             rows.KeyBinding("Open this panel", Settings.ToggleKey);
             rows.Toggle("Show icon in Unified UI", Settings.ShowInUnifiedUI, ModController.RefreshButton);
             rows.Toggle("Debug: project a checkerboard instead of shadows", Settings.DebugChecker);
+            return rows.Height;
         }
 
         private static string Metres(float value)
@@ -198,6 +221,12 @@ namespace VolumetricClouds.UI
             public Rows(UIPanel page)
             {
                 _page = page;
+            }
+
+            /// <summary>The height of everything added so far.</summary>
+            public float Height
+            {
+                get { return _y; }
             }
 
             /// <summary>A setting stored as 0..1 (or a multiplier) but shown as a percentage.</summary>
