@@ -116,10 +116,10 @@ namespace VolumetricClouds.Sky
                 UpdateMaterial(streaks);
             }
 
-            if (Time.time >= _nextLogTime)
+            if (Log.Detailed && Time.time >= _nextLogTime)
             {
                 _nextLogTime = Time.time + LogInterval;
-                Log.Msg("rain: active=" + CloudRain.Active + (CloudRain.IsSnow ? " (winter map: the game keeps its snow)" : "") +
+                Log.Detail("rain: active=" + CloudRain.Active + (CloudRain.IsSnow ? " (winter map: the game keeps its snow)" : "") +
                         " amount=" + CloudRain.Amount.ToString("F2") +
                         " rainsUnder=" + (CloudRain.RainCoverage * 100f).ToString("F0") + "% of sky" +
                         " atCamera=" + CloudRain.LocalRain(_camera.transform.position).ToString("F2") +

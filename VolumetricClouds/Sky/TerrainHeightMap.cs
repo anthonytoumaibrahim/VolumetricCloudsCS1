@@ -54,21 +54,28 @@ namespace VolumetricClouds.Sky
             {
                 _failed = true;
                 Log.Warn("terrain map: this GPU has no single-channel float textures; volumetric fog is unavailable.");
-                return;
             }
 
-            Texture = new Texture2D(Resolution, Resolution, TextureFormat.RFloat, false, true)
-            {
-                name = "VolumetricCloudsTerrainHeight",
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear,
-                anisoLevel = 0,
-            };
+            // The texture is NOT created here. This map exists only to carry the fog, and the
+            // fog is off by default: "off" has to mean nothing runs, not "runs into a texture
+            // nobody samples".
         }
 
         private void Update()
         {
-            if (_failed || Texture == null || !Singleton<TerrainManager>.exists)
+            if (_failed || !Singleton<TerrainManager>.exists)
+                return;
+
+            if (!CloudFog.Enabled)
+            {
+                Release();
+                return;
+            }
+
+            if (Texture == null)
+                Create();
+
+            if (Texture == null)
                 return;
 
             if (_row >= Resolution)
@@ -88,6 +95,39 @@ namespace VolumetricClouds.Sky
                 _failed = true;
                 Log.Error("Sampling the terrain for the fog threw; volumetric fog is unavailable.", e);
             }
+        }
+
+        /// <summary>
+        /// Builds the map from cold. Called the first frame the fog is wanted, which may be an
+        /// hour into a session: the first full pass then takes 16 frames.
+        /// </summary>
+        private void Create()
+        {
+            Texture = new Texture2D(Resolution, Resolution, TextureFormat.RFloat, false, true)
+            {
+                name = "VolumetricCloudsTerrainHeight",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                anisoLevel = 0,
+            };
+
+            _row = 0;
+            _nextPass = 0f;
+            Ready = false;
+            Log.Msg("terrain map: building (volumetric fog is on)");
+        }
+
+        /// <summary>Drops the map when the fog is switched off. Costing nothing is the point of it.</summary>
+        private void Release()
+        {
+            if (Texture == null)
+                return;
+
+            Destroy(Texture);
+            Texture = null;
+            Ready = false;
+            _row = 0;
+            Log.Msg("terrain map: released (volumetric fog is off)");
         }
 
         private void SampleRows()
@@ -128,7 +168,9 @@ namespace VolumetricClouds.Sky
 
             if (!Ready)
             {
-                Log.Msg("terrain map: " + Resolution + "x" + Resolution + " heights " + Lowest.ToString("F0") + ".." +
+                // Always logged, not a detail line: this is the frame the fog becomes possible,
+                // and after a mid-game switch-on it is the answer to "why is there no fog yet".
+                Log.Msg("terrain map: ready. " + Resolution + "x" + Resolution + " heights " + Lowest.ToString("F0") + ".." +
                         Highest.ToString("F0") + " m, median " + _sorted[_sorted.Length / 2].ToString("F0") +
                         " m; fog pools below " + PoolLevel.ToString("F0") + " m");
             }

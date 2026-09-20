@@ -26,6 +26,11 @@ namespace VolumetricClouds.UI
             get { return UIView.GetAView().defaultAtlas; }
         }
 
+        /// <summary>The panel's colours: a heading, an ordinary value line, and a warning.</summary>
+        public static readonly Color32 HeadingColour = new Color32(255, 255, 255, 255);
+        public static readonly Color32 StatusColour = new Color32(185, 221, 254, 255);
+        public static readonly Color32 WarningColour = new Color32(255, 190, 120, 255);
+
         public static UILabel AddLabel(UIComponent parent, string text, Vector3 position, float scale)
         {
             UILabel label = parent.AddUIComponent<UILabel>();
@@ -35,12 +40,38 @@ namespace VolumetricClouds.UI
             return label;
         }
 
+        /// <summary>
+        /// A wrapped paragraph under a row: the place for a warning, which a label is read once
+        /// and a tooltip never.
+        /// </summary>
+        public static UILabel AddNote(UIComponent parent, string text, float y, float height, Color32 colour)
+        {
+            UILabel note = AddLabel(parent, text, new Vector3(24f, y), 0.7f);
+            note.autoSize = false;
+            note.wordWrap = true;
+            note.size = new Vector2(parent.width - 28f, height);
+            note.textColor = colour;
+            return note;
+        }
+
+        /// <summary>A group heading inside a page.</summary>
+        public static UILabel AddHeading(UIComponent parent, string text, float y)
+        {
+            UILabel heading = AddLabel(parent, text, new Vector3(0f, y), 0.85f);
+            heading.autoSize = false;
+            heading.size = new Vector2(parent.width, 20f);
+            heading.textColor = HeadingColour;
+            return heading;
+        }
+
         /// <summary>A row: name on the left, slider in the middle, live value on the right.</summary>
         public static UISlider AddSlider(UIComponent parent, float y, string label, float min, float max,
             float step, float value, Func<float, string> format, Action<float> onChanged)
         {
-            const float labelWidth = 168f;
-            const float valueWidth = 62f;
+            // Wide enough for the longest of each: "Clouds dim at full overcast to" on the left,
+            // "400% (every 0.8 s)" on the right. Both used to run into the slider.
+            const float labelWidth = 196f;
+            const float valueWidth = 118f;
             float sliderWidth = parent.width - labelWidth - valueWidth - 12f;
 
             UILabel name = AddLabel(parent, label, new Vector3(0f, y + 8f), 0.8f);
@@ -160,7 +191,7 @@ namespace VolumetricClouds.UI
         /// A rebind row: click the button, press a combination, it is stored. Escape cancels,
         /// Backspace unbinds. Modelled on the game's own OptionsKeymappingPanel.
         /// </summary>
-        public static void AddKeyBinding(UIComponent parent, float y, string label, SavedInputKey key)
+        public static UIButton AddKeyBinding(UIComponent parent, float y, string label, SavedInputKey key)
         {
             UILabel name = AddLabel(parent, label, new Vector3(0f, y + 8f), 0.8f);
             name.autoSize = false;
@@ -206,6 +237,8 @@ namespace VolumetricClouds.UI
                 button.text = key.ToLocalizedString("KEYNAME");
                 GameSettings.SaveAll();
             };
+
+            return button;
         }
 
         private static bool IsModifier(KeyCode code)

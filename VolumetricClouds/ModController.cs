@@ -29,6 +29,17 @@ namespace VolumetricClouds
                 Instance.BuildButton();
         }
 
+        /// <summary>
+        /// Rebuilds the in-game panel after "Show advanced options" changes: which tabs it has
+        /// is decided when it is built. Safe with no city loaded -- the switch lives on the
+        /// options page, which is reachable from the main menu.
+        /// </summary>
+        public static void RebuildPanel()
+        {
+            if (Instance != null)
+                Instance.CreatePanel();
+        }
+
         private void Awake()
         {
             Instance = this;
@@ -37,10 +48,11 @@ namespace VolumetricClouds
         private void Start()
         {
             Settings.Init();
+            Log.ReportLevel();
+            SystemReport.Write();
+            SettingsCatalog.LogLayout();
 
-            _panel = UIView.GetAView().AddUIComponent(typeof(CloudsPanel)) as CloudsPanel;
-            _panel.Hide();
-            _panel.eventVisibilityChanged += OnPanelVisibilityChanged;
+            CreatePanel();
 
             // One field feeds both the shadow cookie and the visible clouds.
             _field = new CloudDensityField(UnityEngine.Random.Range(1, 100000));
@@ -64,6 +76,48 @@ namespace VolumetricClouds
             gameObject.AddComponent<HaloOverride>();
 
             BuildButton();
+        }
+
+        /// <summary>
+        /// Creates the panel, replacing the one that exists. The replacement opens where the old
+        /// one stood and stays open if it was: from the player's side the tabs change, nothing
+        /// else.
+        /// </summary>
+        private void CreatePanel()
+        {
+            bool wasVisible = false;
+            Vector3? position = null;
+
+            if (_panel != null)
+            {
+                wasVisible = _panel.isVisible;
+                position = _panel.relativePosition;
+                _panel.eventVisibilityChanged -= OnPanelVisibilityChanged;
+                Destroy(_panel.gameObject);
+            }
+
+            _panel = UIView.GetAView().AddUIComponent(typeof(CloudsPanel)) as CloudsPanel;
+            if (_panel == null)
+                return;
+
+            _panel.InitialPosition = position;
+
+            // Stays open if it was open -- unless a modal is up, which means the switch was
+            // flipped from the game's options screen with the panel left open BEHIND it. A new
+            // component is born on top of everything, so showing it there made it jump out
+            // over the options (first in-game test: "should not open the modal"). From the
+            // options screen the change is saved and the panel waits for its key.
+            bool show = wasVisible && !UIView.HasModalInput();
+
+            if (show)
+                _panel.Show();
+            else
+                _panel.Hide();
+
+            _panel.eventVisibilityChanged += OnPanelVisibilityChanged;
+
+            // The old panel was unhooked before it went, so Unified UI heard nothing; tell it.
+            UUIIntegration.SetPressed(show);
         }
 
         private void Update()

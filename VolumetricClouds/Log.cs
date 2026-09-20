@@ -61,6 +61,43 @@ namespace VolumetricClouds
             Write("INFO ", message);
         }
 
+        /// <summary>
+        /// True while the player has asked for the repeating diagnostic lines. Test it before
+        /// BUILDING a detail string, or the concatenation is paid for whatever the switch says.
+        /// </summary>
+        public static bool Detailed
+        {
+            get { return Settings.DetailedLogging != null && Settings.DetailedLogging.value; }
+        }
+
+        /// <summary>
+        /// A line that repeats: the per-second and per-five-second diagnostics this mod is
+        /// developed against. Silent unless "Detailed logging" is on, and never goes to the
+        /// Unity log, which follows every entry with a stack trace.
+        /// </summary>
+        /// <remarks>
+        /// What is NOT allowed in here: anything that only happens once, any warning or error,
+        /// and the state of anything that can suppress or replace rendering. A quiet log must
+        /// still explain a black screen -- see the DebugSkipDrawLight story in CLAUDE.md.
+        /// </remarks>
+        public static void Detail(string message)
+        {
+            if (!Detailed)
+                return;
+
+            Write("DEBUG", message);
+        }
+
+        /// <summary>
+        /// Says whether the repeating lines are on, so a pasted log explains its own silence.
+        /// Called once the settings exist, which is after <see cref="Start"/>.
+        /// </summary>
+        public static void ReportLevel()
+        {
+            Msg("detailed logging is " + (Detailed ? "ON" : "off") +
+                (Detailed ? "" : " -- tick it in Options -> General before reporting a problem"));
+        }
+
         public static void Warn(string message)
         {
             Debug.LogWarning("[VolumetricClouds] " + message);

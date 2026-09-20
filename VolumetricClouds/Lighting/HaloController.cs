@@ -46,12 +46,20 @@ namespace VolumetricClouds.Lighting
 
             _nextLogTime = Time.time + LogInterval;
 
+            if (!Log.Detailed)
+            {
+                // The counters are still reset, so the next detailed line covers five seconds
+                // rather than however long the switch was off.
+                HaloAdjuster.ResetCounters();
+                return;
+            }
+
             string ranges = HaloAdjuster.LongCalls == 0
                 ? "none"
                 : HaloAdjuster.ObservedMinRange.ToString("F1") + ".." + HaloAdjuster.ObservedMaxRange.ToString("F1") +
                   " maxIntensity=" + HaloAdjuster.ObservedMaxIntensity.ToString("F2");
 
-            Log.Msg("dynamic lights: adjust=" + HaloAdjuster.Enabled +
+            Log.Detail("dynamic lights: adjust=" + HaloAdjuster.Enabled +
                     " patched=" + Patcher.IsPatched +
                     " rangeScale=" + HaloAdjuster.RangeScale.ToString("F2") +
                     " nearDist=" + near.ToString("F0") +

@@ -1,90 +1,279 @@
-using System;
 using System.Collections.Generic;
-using ColossalFramework;
 using ColossalFramework.UI;
 using UnityEngine;
-using VolumetricClouds.Lighting;
-using VolumetricClouds.Sky;
 
 namespace VolumetricClouds.UI
 {
     /// <summary>
-    /// The mod's settings, in-game. Everything lives here rather than in the Options menu so
-    /// a change can be judged against the sky while it is being made.
+    /// The in-game panel: what you set while looking at the sky.
     /// </summary>
+    /// <remarks>
+    /// By default it has three tabs, and the split from the options page is by KIND rather
+    /// than by subject.
+    ///   Now    -- every override in the mod, plus the two status lines. Photo mode.
+    ///   Clouds -- the shape of the sky.
+    ///   Fog    -- the fog, which is a cloud layer lying on the ground.
+    /// Everything that is set once and forgotten -- the weather mapping, the light, the
+    /// rendering, the halos, the mod itself -- lives in the game's own options page
+    /// (<see cref="OptionsUI"/>), which is what a subscriber who installs and forgets expects.
+    ///
+    /// "Show advanced options in the in-game panel" (Options -> General) adds the options
+    /// page's five tabs HERE as well, for the player who tunes the mod against the sky the way
+    /// it was built. Nothing moves: the options page always has everything, and a row that is
+    /// already on one of the three basic tabs is not repeated on an advanced one.
+    ///
+    /// Both UIs are drawn from <see cref="SettingsCatalog"/>, so where a row lives is a
+    /// one-word edit rather than a second copy of the row.
+    /// </remarks>
     public class CloudsPanel : UIPanel
     {
-        private const float PanelWidth = 600f;   // seven tabs; "Rendering" is the widest label
+        private const float BasicWidth = 600f;
+        private const float AdvancedWidth = 680f;   // eight tabs; "Rendering" is the widest label
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float TabHeight = 28f;
         private const float Margin = 14f;
 
+        private const float HeadingHeight = 24f;
+        private const float NoteHeight = 32f;
+
         private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
+
+        private static readonly PanelPage[] BasicTabs = { PanelPage.Now, PanelPage.Clouds, PanelPage.Fog };
+
+        private static readonly OptionsPage[] AdvancedTabs =
+        {
+            OptionsPage.Weather, OptionsPage.Light, OptionsPage.Rendering,
+            OptionsPage.Halos, OptionsPage.General,
+        };
+
+        /// <summary>One tab: a basic page of the panel's own, or one borrowed from the options page.</summary>
+        private struct Tab
+        {
+            public string Name;
+            public PanelPage Panel;
+            public OptionsPage Options;
+
+            public bool Shows(Row row)
+            {
+                if (Panel != PanelPage.None)
+                    return row.Panel == Panel;
+
+                // A row that already has a home on a basic tab (the fog switch) stays there.
+                return row.Options == Options && row.Panel == PanelPage.None;
+            }
+        }
+
+        /// <summary>Where to open, when replacing a panel that was already on screen. Null = centred.</summary>
+        public Vector3? InitialPosition;
 
         private readonly List<UIButton> _tabs = new List<UIButton>();
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
+        private readonly List<Control> _controls = new List<Control>();
 
-        private const float StatusInterval = 0.25f;
-        private UILabel _weatherStatus;
-        private UILabel _fogStatus;
-        private float _nextStatusTime;
+        private const float RefreshInterval = 0.25f;
+        private float _nextRefreshTime;
+        private float _width = BasicWidth;
 
         /// <summary>
-        /// Keeps the "what is the weather doing to the clouds right now" line current. The
-        /// cover is no longer a number the player typed, so the panel has to show it.
+        /// Guards the refresh against its own callbacks: writing a UISlider's value fires
+        /// eventValueChanged, which would write the setting straight back -- quantised to the
+        /// slider's step, and with every AfterChange fired for a change nobody made.
         /// </summary>
-        public override void Update()
+        private bool _refreshing;
+
+        private static CloudsPanel _instance;
+
+        /// <summary>Re-reads every control, if the panel exists. Safe to call from anywhere.</summary>
+        public static void RefreshOpenPanel()
         {
-            base.Update();
+            if (_instance != null)
+                _instance.RefreshValues();
+        }
 
-            if (!isVisible || Time.time < _nextStatusTime)
-                return;
-
-            _nextStatusTime = Time.time + StatusInterval;
-
-            if (_weatherStatus != null)
-                _weatherStatus.text = CloudWeather.Describe();
-            if (_fogStatus != null)
-                _fogStatus.text = CloudFog.Describe();
+        /// <summary>One built row: whatever components it made, so they can be refreshed and greyed.</summary>
+        private class Control
+        {
+            public Row Source;
+            public UISlider Slider;
+            public UICheckBox Check;
+            public UILabel Readout;
+            public UILabel Status;
+            public readonly List<UIComponent> Parts = new List<UIComponent>();
+            public bool Enabled = true;
         }
 
         public override void Start()
         {
             base.Start();
 
+            _instance = this;
+
+            bool advanced = Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
+            _width = advanced ? AdvancedWidth : BasicWidth;
+
             atlas = UIBuilder.Atlas;
             backgroundSprite = "MenuPanel2";
-            size = new Vector2(PanelWidth, PanelHeight);
+            size = new Vector2(_width, PanelHeight);
             canFocus = true;
             isInteractive = true;
 
             BuildTitleBar();
 
-            _contentHeights.Add(BuildCloudsPage(AddPage("Clouds")));
-            _contentHeights.Add(BuildWeatherPage(AddPage("Weather")));
-            _contentHeights.Add(BuildFogPage(AddPage("Fog")));
-            _contentHeights.Add(BuildLightPage(AddPage("Light")));
-            _contentHeights.Add(BuildRenderingPage(AddPage("Rendering")));
-            _contentHeights.Add(BuildHalosPage(AddPage("Halos")));
-            _contentHeights.Add(BuildGeneralPage(AddPage("General")));
+            foreach (Tab tab in Tabs(advanced))
+                _contentHeights.Add(BuildPage(AddPage(tab.Name), tab));
 
             LayoutTabs();
             SelectPage(0);
-            CenterOnScreen();
+
+            if (InitialPosition.HasValue)
+                relativePosition = InitialPosition.Value;
+            else
+                CenterOnScreen();
+
+            eventVisibilityChanged += (component, visible) =>
+            {
+                if (visible)
+                    RefreshValues();
+            };
+
+            Log.Msg("panel built: " + _controls.Count + " controls over " + _pages.Count + " tabs (" +
+                    (advanced ? "advanced" : "basic") + ")");
+        }
+
+        private static List<Tab> Tabs(bool advanced)
+        {
+            List<Tab> tabs = new List<Tab>();
+
+            foreach (PanelPage page in BasicTabs)
+                tabs.Add(new Tab { Name = page.ToString(), Panel = page });
+
+            if (advanced)
+            {
+                foreach (OptionsPage page in AdvancedTabs)
+                    tabs.Add(new Tab { Name = page.ToString(), Options = page });
+            }
+
+            return tabs;
+        }
+
+        /// <summary>
+        /// Keeps the status lines, the greyed-out rows and the values current. All three depend
+        /// on things the panel does not own: the weather, checkboxes on another tab, and the
+        /// options page, which can change any of these settings while this panel stays open
+        /// behind it (so no visibility event ever says to look again).
+        /// </summary>
+        public override void Update()
+        {
+            base.Update();
+
+            if (!isVisible || Time.time < _nextRefreshTime)
+                return;
+
+            _nextRefreshTime = Time.time + RefreshInterval;
+
+            foreach (Control control in _controls)
+            {
+                if (control.Status != null && control.Source.StatusText != null)
+                    control.Status.text = control.Source.StatusText();
+            }
+
+            RefreshValues();
+        }
+
+        /// <summary>
+        /// Re-reads every control from its setting. Cheap enough to run four times a second:
+        /// a comparison per control, and a write only where something really changed.
+        /// </summary>
+        public void RefreshValues()
+        {
+            _refreshing = true;
+            int touched = 0;
+
+            try
+            {
+                foreach (Control control in _controls)
+                {
+                    Row row = control.Source;
+
+                    if (control.Slider != null)
+                    {
+                        float display = row.Kind == RowKind.Choice
+                            ? row.ChoiceIndex
+                            : Mathf.Clamp(row.Display, row.Min, row.Max);
+
+                        if (!Mathf.Approximately(control.Slider.value, display))
+                        {
+                            control.Slider.value = display;
+                            touched++;
+
+                            if (control.Readout != null)
+                                control.Readout.text = ReadoutText(row, display);
+                        }
+                    }
+
+                    // Not while its confirmation is open: the value is still the old one, and
+                    // this would untick the box the player has just ticked.
+                    if (control.Check != null && row.Bool != null && !row.Pending
+                        && control.Check.isChecked != row.Bool.value)
+                    {
+                        control.Check.isChecked = row.Bool.value;
+                        touched++;
+                    }
+                }
+            }
+            finally
+            {
+                _refreshing = false;
+            }
+
+            RefreshEnabled();
+
+            if (touched > 0 && Log.Detailed)
+                Log.Detail("panel: refreshed " + _controls.Count + " controls, " + touched + " had changed");
+        }
+
+        private static string ReadoutText(Row row, float display)
+        {
+            if (row.Kind != RowKind.Choice)
+                return row.FormatDisplay(display);
+
+            int index = Mathf.RoundToInt(display);
+            return row.Choices != null && index >= 0 && index < row.Choices.Length
+                ? row.Choices[index]
+                : string.Empty;
+        }
+
+        /// <summary>Greys the rows whose switch is off, e.g. every fog row while fog is off.</summary>
+        private void RefreshEnabled()
+        {
+            foreach (Control control in _controls)
+            {
+                bool wanted = control.Source.IsEnabled;
+                if (wanted == control.Enabled)
+                    continue;
+
+                control.Enabled = wanted;
+
+                foreach (UIComponent part in control.Parts)
+                {
+                    part.isEnabled = wanted;
+                    part.opacity = wanted ? 1f : 0.45f;
+                }
+            }
         }
 
         private void BuildTitleBar()
         {
             UILabel title = UIBuilder.AddLabel(this, "Volumetric Clouds", new Vector3(Margin, Margin), 1.1f);
             title.autoSize = false;
-            title.size = new Vector2(PanelWidth - TitleBarHeight, TitleBarHeight);
+            title.size = new Vector2(_width - TitleBarHeight, TitleBarHeight);
 
             UIButton close = AddUIComponent<UIButton>();
             close.atlas = atlas;
             close.size = new Vector2(32f, 32f);
-            close.relativePosition = new Vector3(PanelWidth - 36f, 4f);
+            close.relativePosition = new Vector3(_width - 36f, 4f);
             close.normalBgSprite = "buttonclose";
             close.hoveredBgSprite = "buttonclosehover";
             close.pressedBgSprite = "buttonclosepressed";
@@ -93,7 +282,7 @@ namespace VolumetricClouds.UI
             // Dragging the title bar moves the whole panel.
             UIDragHandle drag = AddUIComponent<UIDragHandle>();
             drag.target = this;
-            drag.size = new Vector2(PanelWidth - 40f, TitleBarHeight);
+            drag.size = new Vector2(_width - 40f, TitleBarHeight);
             drag.relativePosition = Vector3.zero;
         }
 
@@ -106,7 +295,7 @@ namespace VolumetricClouds.UI
             _tabs.Add(tab);
 
             UIPanel page = AddUIComponent<UIPanel>();
-            page.size = new Vector2(PanelWidth - 2f * Margin, MinContentHeight);
+            page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
             page.relativePosition = new Vector3(Margin, TitleBarHeight + TabHeight + Margin);
             _pages.Add(page);
 
@@ -115,7 +304,7 @@ namespace VolumetricClouds.UI
 
         private void LayoutTabs()
         {
-            float width = (PanelWidth - 2f * Margin) / _tabs.Count;
+            float width = (_width - 2f * Margin) / _tabs.Count;
 
             for (int i = 0; i < _tabs.Count; i++)
             {
@@ -139,242 +328,211 @@ namespace VolumetricClouds.UI
             height = TitleBarHeight + TabHeight + 2f * Margin + content;
         }
 
-        private float BuildCloudsPage(UIPanel page)
+        /// <summary>Draws every catalog row that belongs on this tab, in catalog order.</summary>
+        private float BuildPage(UIPanel page, Tab tab)
         {
-            Rows rows = new Rows(page);
+            float y = 0f;
 
-            // Intensity follows the game's weather between these two values; the override
-            // below is for skies the game cannot give on demand -- cloudy with no rain.
-            _weatherStatus = rows.Status(CloudWeather.Describe());
-            rows.Percent("Intensity: clear weather", Settings.WeatherFairCoverage, 0f, 100f, 1f);
-            rows.Percent("Intensity: rain", Settings.WeatherOvercastCoverage, 0f, 100f, 1f);
-            rows.Toggle("Override the weather with a fixed intensity", Settings.CoverageOverride);
-            rows.Percent("Fixed intensity", Settings.Coverage, 0f, 100f, 1f);
-            rows.Value("Movement speed", Settings.WindSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
-            rows.Toggle("Show clouds in the sky", Settings.CloudsVisible);
-            rows.Value("Cloud altitude", Settings.CloudAltitude, 200f, 3000f, 50f, Metres);
-            rows.Value("Layer thickness", Settings.CloudThickness, 150f, 2000f, 50f, Metres);
-            rows.Percent("Break-up (solid to ragged)", Settings.CloudBreakup, 0f, 100f, 5f);
-            rows.Value("Break-up detail (big to fine)", Settings.CloudBreakupScale, 1.5f, 10f, 0.25f, v => v.ToString("F2") + "x");
-            rows.Value("Weather pattern size", Settings.WeatherTileSize, 3000f, 20000f, 500f, Kilometres);
-            return rows.Height;
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                if (!tab.Shows(row))
+                    continue;
+
+                if (row.Group != null)
+                {
+                    UIBuilder.AddHeading(page, row.Group, y + 4f);
+                    y += HeadingHeight;
+                }
+
+                Control control = Build(page, row, y);
+                _controls.Add(control);
+                y += UIBuilder.RowHeight;
+
+                if (row.Note != null)
+                {
+                    UILabel note = UIBuilder.AddNote(page, row.Note, y - 4f, NoteHeight, UIBuilder.WarningColour);
+                    control.Parts.Add(note);
+                    y += NoteHeight;
+                }
+            }
+
+            return y;
         }
 
-        private static float BuildWeatherPage(UIPanel page)
+        private Control Build(UIPanel page, Row row, float y)
         {
-            Rows rows = new Rows(page);
+            Control control = new Control { Source = row };
 
-            // How MUCH it rains is the game's (random weather, Play It, a thunderstorm). This
-            // is only how it looks and where it falls: under the thickest cloud, never from a
-            // clear patch of sky.
-            rows.Toggle("Replace the game's rain", Settings.RainEnabled);
-            rows.Percent("Rain curtains under clouds", Settings.RainCurtains, 0f, 300f, 5f);
-            rows.Percent("Rain streaks near camera", Settings.RainStreaks, 0f, 300f, 5f);
-            rows.Value("Streaks fade out above", Settings.RainStreakHeight, 100f, 1500f, 50f, Metres);
-            rows.Toggle("Rain sound and wet roads follow the clouds", Settings.RainLocalised);
+            switch (row.Kind)
+            {
+                case RowKind.Status:
+                    control.Status = UIBuilder.AddLabel(page,
+                        row.StatusText != null ? row.StatusText() : string.Empty, new Vector3(0f, y + 8f), 0.8f);
+                    control.Status.autoSize = false;
+                    control.Status.size = new Vector2(page.width, 20f);
+                    control.Status.textColor = UIBuilder.StatusColour;
+                    break;
 
-            // The game's own strikes (heavy rain, the thunderstorm disaster) always light the
-            // clouds. "Activity" is EXTRA lightning that is only ever visual: it starts no
-            // fires, follows the rain unless overridden, and needs cloud to happen in.
-            rows.Toggle("Lightning lights the clouds and rain", Settings.LightningEnabled);
-            rows.Toggle("Replace the game's lightning bolt", Settings.LightningReplaceBolt);
-            rows.Percent("Lightning brightness", Settings.LightningBrightness, 0f, 300f, 5f);
-            rows.Toggle("Set lightning activity myself (default: from rain)", Settings.LightningOverride);
-            rows.Percent("Lightning activity", Settings.LightningActivity, 0f, 100f, 1f);
-            rows.Button("Test lightning (visual only, in front of the camera)", CloudLightning.RequestTest);
-            return rows.Height;
+                case RowKind.Button:
+                {
+                    UIButton button = UIBuilder.AddButton(page, row.Label, new Vector2(page.width, 26f),
+                        new Vector3(0f, y + 4f));
+                    button.tooltip = row.Tooltip;
+                    Row captured = row;
+                    button.eventClick += (component, e) =>
+                    {
+                        if (captured.OnClick == null)
+                            return;
+
+                        captured.OnClick();
+                        SettingsCatalog.RefreshAllUIs();
+                    };
+                    control.Parts.Add(button);
+                    break;
+                }
+
+                case RowKind.Toggle:
+                {
+                    Row captured = row;
+                    UICheckBox box = UIBuilder.AddCheckbox(page, y, row.Label,
+                        row.Bool != null && row.Bool.value, isChecked =>
+                        {
+                            if (_refreshing)
+                                return;
+
+                            SettingsCatalog.ApplyToggle(captured, isChecked);
+                        });
+                    box.tooltip = row.Tooltip;
+                    control.Check = box;
+                    control.Parts.Add(box);
+                    break;
+                }
+
+                case RowKind.Key:
+                {
+                    UIButton button = UIBuilder.AddKeyBinding(page, y, row.Label, row.Key);
+                    button.tooltip = row.Tooltip;
+                    control.Parts.Add(button);
+                    break;
+                }
+
+                case RowKind.Choice:
+                {
+                    // A slider over the choices, with the choice's name as the readout. A
+                    // dropdown would need sprite names nobody has read out of the atlas; this
+                    // needs none, and three or four positions drag perfectly well.
+                    Row captured = row;
+                    int count = row.Choices != null ? row.Choices.Length : 1;
+
+                    UISlider slider = UIBuilder.AddSlider(page, y, row.Label, 0f, Mathf.Max(1, count - 1), 1f,
+                        row.ChoiceIndex,
+                        v => ReadoutText(captured, v),
+                        v =>
+                        {
+                            if (_refreshing || captured.Int == null || captured.ChoiceValues == null)
+                                return;
+
+                            int index = Mathf.Clamp(Mathf.RoundToInt(v), 0, captured.ChoiceValues.Length - 1);
+                            captured.Int.value = captured.ChoiceValues[index];
+                            Changed(captured);
+                        });
+                    slider.tooltip = row.Tooltip;
+                    control.Slider = slider;
+                    control.Parts.Add(slider);
+                    AddSiblings(page, control, slider);
+                    break;
+                }
+
+                default:
+                {
+                    Row captured = row;
+                    UISlider slider = UIBuilder.AddSlider(page, y, row.Label, row.Min, row.Max, row.Step,
+                        Mathf.Clamp(row.Display, row.Min, row.Max),
+                        row.FormatDisplay,
+                        v =>
+                        {
+                            if (_refreshing)
+                                return;
+
+                            captured.Store(v);
+                            Changed(captured);
+                        });
+                    slider.tooltip = row.Tooltip;
+                    control.Slider = slider;
+                    control.Parts.Add(slider);
+
+                    // The label and the readout are siblings of the slider, not children of it.
+                    AddSiblings(page, control, slider);
+                    break;
+                }
+            }
+
+            return control;
         }
 
-        private float BuildFogPage(UIPanel page)
+        /// <summary>
+        /// After a slider stored its value. A row with a live-apply hook may have changed OTHER
+        /// rows (the quality preset writes three of them; moving one of those three flips the
+        /// preset to Custom), so both UIs look again. Rows without one change nothing but
+        /// themselves, and are left alone -- this runs on every tick of a drag.
+        /// </summary>
+        private static void Changed(Row row)
         {
-            Rows rows = new Rows(page);
+            if (row.AfterChange == null)
+                return;
 
-            // Laid out and worded like the Clouds tab, on purpose: the fog is a cloud layer on
-            // the ground, and every slider is the fog's version of one over there. Each does
-            // one thing, in the direction its name says -- more is more.
-            _fogStatus = rows.Status(CloudFog.Describe());
-            rows.Toggle("Volumetric fog", Settings.FogEnabled);
-            rows.Toggle("Override the weather with a fixed fog amount", Settings.FogOverride);
-            rows.Percent("Fog amount", Settings.FogAmount, 0f, 100f, 1f);
-            rows.Percent("Fog density", Settings.FogDensity, 10f, 500f, 5f);
-            rows.Value("Fog height", Settings.FogHeight, 20f, 1000f, 10f, Metres);
-            rows.Percent("Fog break-up (solid to wispy)", Settings.FogBreakup, 0f, 100f, 5f);
-            rows.Value("Fog speed", Settings.FogSpeed, 0f, 5f, 0.1f, v => v.ToString("F1") + "x");
-            rows.Percent("Fog brightness", Settings.FogBrightness, 20f, 300f, 5f);
-            rows.Value("Fog colour (cool to warm)", Settings.FogTint, -1f, 1f, 0.05f, FogTintName);
-            return rows.Height;
+            row.AfterChange();
+            SettingsCatalog.RefreshAllUIs();
         }
 
-        private static float BuildLightPage(UIPanel page)
+        /// <summary>
+        /// Picks the name label and the value readout out of the page so the whole row greys
+        /// out together. AddSlider makes exactly three components, in that order.
+        /// </summary>
+        private static void AddSiblings(UIPanel page, Control control, UISlider slider)
         {
-            Rows rows = new Rows(page);
+            int index = -1;
+            for (int i = 0; i < page.components.Count; i++)
+            {
+                if (page.components[i] == slider)
+                {
+                    index = i;
+                    break;
+                }
+            }
 
-            rows.Toggle("Clouds cast shadows on the ground", Settings.CloudShadows);
-            rows.Percent("Shadow darkness", Settings.CloudShadowDarkness, 0f, 95f, 5f);
-            rows.Value("Shadow fullness", Settings.CloudShadowFullness, 0.5f, 8f, 0.25f, v => v.ToString("F2") + "x");
-            rows.Percent("Cloud brightness", Settings.CloudBrightness, 20f, 300f, 5f);
-            rows.Percent("Clouds dim at full overcast to", Settings.MinIllumination, 30f, 100f, 1f);
-            rows.Percent("Cloud density", Settings.CloudDensity, 20f, 300f, 5f);
+            if (index <= 0)
+                return;
 
-            // Night only; neither does anything by day.
-            rows.Percent("Clouds hide the stars at night", Settings.CloudNightOpacity, 0f, 100f, 5f);
-            rows.Percent("Glow under the clouds at night", Settings.NightGlow, 0f, 300f, 5f);
-            return rows.Height;
-        }
+            UILabel name = page.components[index - 1] as UILabel;
+            if (name != null)
+                control.Parts.Add(name);
 
-        private static float BuildRenderingPage(UIPanel page)
-        {
-            Rows rows = new Rows(page);
-
-            rows.Toggle("Raymarched volumetric clouds (off = billboards)", Settings.UseVolumetric);
-            rows.Value("Quality (raymarch steps)", Settings.CloudQuality, 16f, 96f, 8f, v => v.ToString("F0"));
-            rows.Toggle("Buildings and terrain hide clouds behind them", Settings.CloudDepthOcclusion);
-            rows.Value("Billboards: puff count", Settings.CloudPuffCount, 0f, 600f, 25f, v => v.ToString("F0"));
-            rows.Value("Billboards: puff size", Settings.CloudPuffSize, 200f, 2500f, 50f, Metres);
-            return rows.Height;
-        }
-
-        private static float BuildHalosPage(UIPanel page)
-        {
-            Rows rows = new Rows(page);
-
-            // Street and building lights, at every distance (they are never dynamic). With
-            // everything at its default the replacement shader reproduces a clear vanilla
-            // night, so each slider can be judged against a known starting point. Fog stops at
-            // -0.49 because the GAME's shader, still used when the replacement is off, turns
-            // anything lower into a solid box.
-            rows.Toggle("Customise street and building light halos", Settings.HaloEnabled);
-            rows.Toggle("Use the replacement halo shader", Settings.HaloReplaceShader);
-            rows.Value("Tightness (higher = smaller)", Settings.HaloTightness, 0.5f, 6f, 0.05f, v => v.ToString("F2") + "x");
-            rows.Percent("Brightness", Settings.HaloBrightness, 0f, 300f, 5f);
-            rows.Percent("Size (world radius)", Settings.HaloRadius, 10f, 150f, 5f);
-            rows.Value("Fog amount (0 = clear night)", Settings.HaloFogAmount, HaloOverride.MinSafeFog, 2f, 0.01f, v => v.ToString("F2"));
-
-            // The same lamps when close to the camera: percentages OF the three sliders above,
-            // in full inside the distance and fading out to nothing at twice it. Replacement
-            // shader only.
-            rows.Value("Near lights: closer than", Settings.HaloNearLightDistance, 0f, 1000f, 10f,
-                v => v <= 0f ? "off" : Metres(v));
-            rows.Percent("Near lights: tightness", Settings.HaloNearLightTightness, 50f, 300f, 5f);
-            rows.Percent("Near lights: brightness", Settings.HaloNearLightBrightness, 0f, 200f, 1f);
-            rows.Percent("Near lights: size", Settings.HaloNearLightRadius, 10f, 200f, 5f);
-
-            // Dynamic lights use a port of the game's other halo shader. Lamps drawn that way
-            // (Intersection Marking Tool's props) take every setting above; vehicles and the
-            // like take this brightness in place of "Brightness", and share the rest.
-            rows.Percent("Vehicle light halos", Settings.HaloVehicleBrightness, 0f, 300f, 5f);
-
-            // Older, cruder controls over the same dynamic lights: their range and a cutoff.
-            rows.Toggle("Adjust dynamic lights (vehicles)", Settings.HaloAdjustEnabled);
-            rows.Percent("Dynamic light size", Settings.HaloRangeScale, 10f, 200f, 5f);
-            rows.Value("Hide dynamic halos within", Settings.DynamicHaloCutoff, 0f, 500f, 10f, Metres);
-            return rows.Height;
-        }
-
-        private static float BuildGeneralPage(UIPanel page)
-        {
-            Rows rows = new Rows(page);
-
-            rows.KeyBinding("Open this panel", Settings.ToggleKey);
-            rows.Toggle("Show icon in Unified UI", Settings.ShowInUnifiedUI, ModController.RefreshButton);
-            rows.Toggle("Debug: project a checkerboard instead of shadows", Settings.DebugChecker);
-            return rows.Height;
-        }
-
-        private static string FogTintName(float value)
-        {
-            if (Mathf.Abs(value) < 0.025f)
-                return "neutral";
-
-            return (value < 0f ? "cool " : "warm ") + Mathf.RoundToInt(Mathf.Abs(value) * 100f) + "%";
-        }
-
-        private static string Metres(float value)
-        {
-            return value.ToString("F0") + " m";
-        }
-
-        private static string Kilometres(float value)
-        {
-            return (value / 1000f).ToString("F1") + " km";
+            if (index + 1 < page.components.Count)
+            {
+                UILabel readout = page.components[index + 1] as UILabel;
+                if (readout != null)
+                {
+                    control.Readout = readout;
+                    control.Parts.Add(readout);
+                }
+            }
         }
 
         private void CenterOnScreen()
         {
             UIView view = GetUIView();
             relativePosition = new Vector3(
-                Mathf.Floor((view.fixedWidth - PanelWidth) / 2f),
+                Mathf.Floor((view.fixedWidth - _width) / 2f),
                 Mathf.Floor((view.fixedHeight - PanelHeight) / 2f));
         }
 
-        /// <summary>Stacks controls down a page, binding each straight to its saved setting.</summary>
-        private class Rows
+        public override void OnDestroy()
         {
-            private readonly UIPanel _page;
-            private float _y;
+            if (_instance == this)
+                _instance = null;
 
-            public Rows(UIPanel page)
-            {
-                _page = page;
-            }
-
-            /// <summary>The height of everything added so far.</summary>
-            public float Height
-            {
-                get { return _y; }
-            }
-
-            public void Button(string label, Action onClick)
-            {
-                UIButton button = UIBuilder.AddButton(_page, label, new Vector2(_page.width, 26f), new Vector3(0f, _y + 4f));
-                button.eventClick += (component, e) => onClick();
-                _y += UIBuilder.RowHeight;
-            }
-
-            /// <summary>A full-width line of text the panel keeps up to date itself.</summary>
-            public UILabel Status(string text)
-            {
-                UILabel label = UIBuilder.AddLabel(_page, text, new Vector3(0f, _y + 8f), 0.8f);
-                label.autoSize = false;
-                label.size = new Vector2(_page.width, 20f);
-                label.textColor = new Color32(185, 221, 254, 255);
-                _y += UIBuilder.RowHeight;
-                return label;
-            }
-
-            /// <summary>A setting stored as 0..1 (or a multiplier) but shown as a percentage.</summary>
-            public void Percent(string label, SavedFloat setting, float min, float max, float step)
-            {
-                UIBuilder.AddSlider(_page, _y, label, min, max, step, setting.value * 100f,
-                    v => v.ToString("F0") + "%",
-                    v => setting.value = v / 100f);
-                _y += UIBuilder.RowHeight;
-            }
-
-            public void Value(string label, SavedFloat setting, float min, float max, float step,
-                Func<float, string> format)
-            {
-                UIBuilder.AddSlider(_page, _y, label, min, max, step, setting.value, format,
-                    v => setting.value = v);
-                _y += UIBuilder.RowHeight;
-            }
-
-            public void Toggle(string label, SavedBool setting, Action afterChange = null)
-            {
-                UIBuilder.AddCheckbox(_page, _y, label, setting.value, isChecked =>
-                {
-                    setting.value = isChecked;
-                    if (afterChange != null)
-                        afterChange();
-                });
-                _y += UIBuilder.RowHeight;
-            }
-
-            public void KeyBinding(string label, SavedInputKey key)
-            {
-                UIBuilder.AddKeyBinding(_page, _y, label, key);
-                _y += UIBuilder.RowHeight;
-            }
+            base.OnDestroy();
         }
     }
 }

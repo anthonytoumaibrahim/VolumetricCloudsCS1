@@ -24,9 +24,33 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public const float CookieSize = 26000f;
 
-        private const int Resolution = 2048;
-        private const float UpdateInterval = 1f / 20f;
         private const float Steps = 20f;
+
+        /// <summary>
+        /// The map's size and how often it is re-marched, both from the settings: it is a fixed
+        /// GPU cost that does not scale with the screen, so on a weak card it is the first
+        /// thing to turn down. Changing either rebuilds the texture.
+        /// </summary>
+        private static int WantedResolution
+        {
+            get
+            {
+                return Settings.ShadowMapResolution != null
+                    ? Mathf.Clamp(Mathf.ClosestPowerOfTwo(Settings.ShadowMapResolution.value), 256, 4096)
+                    : Settings.Defaults.ShadowMapResolution;
+            }
+        }
+
+        private static float UpdateInterval
+        {
+            get
+            {
+                int rate = Settings.ShadowMapRate != null
+                    ? Mathf.Clamp(Settings.ShadowMapRate.value, 1, 60)
+                    : Settings.Defaults.ShadowMapRate;
+                return 1f / rate;
+            }
+        }
 
         private static readonly int IdLightPos = Shader.PropertyToID("_LightPos");
         private static readonly int IdLightRight = Shader.PropertyToID("_LightRight");
@@ -47,6 +71,7 @@ namespace VolumetricClouds.Sky
         private Texture2D _probeTexture;
         private float _nextUpdate;
         private float _nextProbe;
+        private int _resolution;
 
         public RenderTexture Texture
         {
@@ -69,8 +94,10 @@ namespace VolumetricClouds.Sky
 
             CloudShadowMap map = new CloudShadowMap(shader);
             Current = map;
-            Log.Msg("cloud shadow map created: " + Resolution + "x" + Resolution + " over " +
-                    CookieSize + " m (" + (CookieSize / Resolution).ToString("F1") + " m/texel)");
+            int resolution = WantedResolution;
+            Log.Msg("cloud shadow map created: " + resolution + "x" + resolution + " over " +
+                    CookieSize + " m (" + (CookieSize / resolution).ToString("F1") + " m/texel) at " +
+                    (1f / UpdateInterval).ToString("F0") + " Hz");
             return map;
         }
 
@@ -141,7 +168,9 @@ namespace VolumetricClouds.Sky
 
             IsReady = true;
 
-            if (Time.time >= _nextProbe)
+            // The readback is a diagnostic AND it costs a GPU sync, so it runs only while the
+            // player has asked for detailed logging. Nothing on screen depends on it.
+            if (Log.Detailed && Time.time >= _nextProbe)
             {
                 _nextProbe = Time.time + ProbeInterval;
                 Probe();
@@ -192,7 +221,7 @@ namespace VolumetricClouds.Sky
                 float coverage = CloudShaderParams.Coverage;
                 float expected = 1f - coverage * ShadowDepth(coverage);
 
-                Log.Msg("shadow map readback: light min=" + (min / 255f).ToString("F2") +
+                Log.Detail("shadow map readback: light min=" + (min / 255f).ToString("F2") +
                         " max=" + (max / 255f).ToString("F2") +
                         " mean=" + (sum / 255f / pixels.Length).ToString("F2") +
                         " (expected mean ~" + expected.ToString("F2") + ")" +
@@ -208,12 +237,24 @@ namespace VolumetricClouds.Sky
         /// <summary>Render textures are lost on a device reset (alt-tab, resolution change).</summary>
         private bool EnsureTexture()
         {
+            int resolution = WantedResolution;
+
+            // The player moved the resolution row: throw the old map away and start again.
+            if (_texture != null && _resolution != resolution)
+            {
+                Log.Msg("cloud shadow map: resolution " + _resolution + " -> " + resolution);
+                _texture.Release();
+                Object.Destroy(_texture);
+                _texture = null;
+            }
+
             if (_texture != null && _texture.IsCreated())
                 return true;
 
             if (_texture == null)
             {
-                _texture = new RenderTexture(Resolution, Resolution, 0,
+                _resolution = resolution;
+                _texture = new RenderTexture(resolution, resolution, 0,
                     RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
                 {
                     name = "VolumetricCloudsShadowMap",

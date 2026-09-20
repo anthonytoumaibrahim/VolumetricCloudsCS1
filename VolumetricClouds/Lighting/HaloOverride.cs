@@ -134,7 +134,7 @@ namespace VolumetricClouds.Lighting
             SwapLayers(render, lights, ported);
             UpdateMaterials();
 
-            if (Time.time >= _nextLogTime)
+            if (Log.Detailed && Time.time >= _nextLogTime)
             {
                 _nextLogTime = Time.time + LogInterval;
                 WriteLog();
@@ -453,7 +453,7 @@ namespace VolumetricClouds.Lighting
                     ported++;
             }
 
-            Log.Msg("halo: layers=" + _layers +
+            Log.Detail("halo: layers=" + _layers +
                     " materials=" + _byOriginal.Count + " (ported=" + ported + ")" +
                     " swapsSinceLastLog=" + _swaps +
                     " | fog=" + (Settings.HaloFogAmount != null ? Settings.HaloFogAmount.value : 0f).ToString("F2") +

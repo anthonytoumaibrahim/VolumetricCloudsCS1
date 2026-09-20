@@ -168,26 +168,26 @@ namespace VolumetricClouds.Sky
             // moment after load, and the game is free to move the sun's transform.
             ApplyCookie();
 
-            if (Time.time >= _nextLogTime)
+            if (Log.Detailed && Time.time >= _nextLogTime)
             {
                 _nextLogTime = Time.time + LogInterval;
 
                 float coverage = CloudShaderParams.Coverage;
                 Vector3 wind = CloudWeather.WindDirection;
-                Log.Msg("weather: " + (CloudWeather.Manual ? "OVERRIDDEN" : "followed") +
+                Log.Detail("weather: " + (CloudWeather.Manual ? "OVERRIDDEN" : "followed") +
                         " rain=" + CloudWeather.Rain.ToString("F2") +
                         " gameCloud=" + CloudWeather.GameCloud.ToString("F2") +
                         " overcast=" + CloudWeather.Overcast.ToString("F2") +
                         " target=" + CloudWeather.Target().ToString("F2") +
                         " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ")" +
                         " x" + CloudWeather.WindSpeedFactor.ToString("F2"));
-                Log.Msg("fog: " + (!CloudFog.Active ? "off (the game's)" : CloudFog.Overridden ? "OVERRIDDEN" : "followed") +
+                Log.Detail("fog: " + (!CloudFog.Active ? "off (the game's)" : CloudFog.Overridden ? "OVERRIDDEN" : "followed") +
                         " gameFog=" + CloudFog.GameFog.ToString("F2") +
                         " amount=" + CloudFog.Amount.ToString("F2") +
                         " drift=(" + CloudFog.Offset.x.ToString("F0") + "," + CloudFog.Offset.z.ToString("F0") + ")m" +
                         " swirl=" + CloudFog.Boil.ToString("F2") +
-                        " terrainMap=" + (TerrainHeightMap.Ready ? "ready" : "pending"));
-                Log.Msg("coverage=" + coverage.ToString("F2") +
+                        " terrainMap=" + (TerrainHeightMap.Ready ? "ready" : CloudFog.Enabled ? "pending" : "not built (fog is off)"));
+                Log.Detail("coverage=" + coverage.ToString("F2") +
                         " shadows=" + _mode +
                         " shadowDepth=" + CloudShadowMap.ShadowDepth(coverage).ToString("F2") +
                         " sunIntensity=" + _sun.intensity.ToString("F2") +

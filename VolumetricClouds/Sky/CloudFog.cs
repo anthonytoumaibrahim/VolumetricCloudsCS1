@@ -85,21 +85,44 @@ namespace VolumetricClouds.Sky
         /// <summary>Phase of the swirl, 0..1, wrapping. The shader scrolls its noise by whole multiples of it.</summary>
         public static float Boil { get; private set; }
 
+        /// <summary>
+        /// The player has asked for volumetric fog. Off by default -- it is the heaviest thing
+        /// the mod draws -- and when it is off nothing here runs at all, including the terrain
+        /// height map that exists only to carry it.
+        /// </summary>
+        public static bool Enabled
+        {
+            get
+            {
+                return (Settings.FogEnabled != null && Settings.FogEnabled.value)
+                    && (Settings.CloudsVisible == null || Settings.CloudsVisible.value);
+            }
+        }
+
         public static void Advance(float deltaTime, bool cloudPassRunning, Vector3 windDirection, float simulationRate)
         {
-            // Frozen while paused, like the clouds; faster with the simulation, but capped --
-            // fog racing across the map at 3x reads as smoke.
-            float speed = Settings.FogSpeed != null ? Mathf.Max(0f, Settings.FogSpeed.value) : 1f;
-            float moved = deltaTime * Mathf.Min(simulationRate, 2f) * speed;
-            Offset += windDirection * (DriftSpeed * moved);
-            Boil = Mathf.Repeat(Boil + moved / BoilPeriod, 1f);
-
-            bool wanted = (Settings.FogEnabled == null || Settings.FogEnabled.value)
-                       && (Settings.CloudsVisible == null || Settings.CloudsVisible.value);
+            bool wanted = Enabled;
 
             // The fog is drawn by the volumetric cloud pass and lies on the terrain map;
             // without either, the game keeps its own.
             Active = wanted && cloudPassRunning && TerrainHeightMap.Ready;
+
+            if (!wanted)
+            {
+                // Everything below this line is work the fog does not need done while it is
+                // switched off -- but Active and the amount are set FIRST and always: GameFog
+                // keys on Active, so returning above it would leave the game's own
+                // foggy-weather reaction switched off for ever with nothing of ours in its place.
+                _amount = 0f;
+                return;
+            }
+
+            // Frozen while paused, like the clouds; faster with the simulation, but capped --
+            // fog racing across the map at 3x reads as smoke.
+            float speed = Settings.FogSpeed != null ? Mathf.Max(0f, Settings.FogSpeed.value) : Settings.Defaults.FogSpeed;
+            float moved = deltaTime * Mathf.Min(simulationRate, 2f) * speed;
+            Offset += windDirection * (DriftSpeed * moved);
+            Boil = Mathf.Repeat(Boil + moved / BoilPeriod, 1f);
 
             float target = 0f;
             if (Active)
@@ -123,11 +146,22 @@ namespace VolumetricClouds.Sky
         /// <summary>One line for the panel and the log.</summary>
         public static string Describe()
         {
-            if (!Active)
-                return TerrainHeightMap.Ready ? "Volumetric fog is off" : "Volumetric fog: measuring the terrain...";
+            // The setting first: with the fog switched off the terrain map is never built, so
+            // asking the map first would tell every fog-off player it was "measuring the
+            // terrain" for ever.
+            if (!Enabled)
+                return "Volumetric fog is off";
 
-            return (Overridden ? "Override on (game fog " : "Game fog ") + (GameFog * 100f).ToString("F0") + "%" +
-                   (Overridden ? ")" : "") + "  ->  fog over " + (_amount * 100f).ToString("F0") + "% of the map";
+            if (!Active)
+                return TerrainHeightMap.Ready
+                    ? "Volumetric fog: waiting for the clouds"
+                    : "Volumetric fog: measuring the terrain...";
+
+            string share = "fog over " + (_amount * 100f).ToString("F0") + "% of the map";
+
+            return Overridden
+                ? "OVERRIDDEN: " + share + "  (the game says " + (GameFog * 100f).ToString("F0") + "%)"
+                : "Following the game: fog " + (GameFog * 100f).ToString("F0") + "%  ->  " + share;
         }
     }
 }

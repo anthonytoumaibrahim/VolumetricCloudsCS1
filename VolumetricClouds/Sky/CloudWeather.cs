@@ -133,18 +133,24 @@ namespace VolumetricClouds.Sky
                 return Value(Settings.Coverage, Settings.Defaults.Coverage);
 
             float fair = Value(Settings.WeatherFairCoverage, Settings.Defaults.FairCoverage);
-            float overcast = Value(Settings.WeatherOvercastCoverage, Settings.Defaults.Coverage);
+            float overcast = Value(Settings.WeatherOvercastCoverage, Settings.Defaults.OvercastCoverage);
             return Mathf.Lerp(fair, overcast, Overcast);
         }
 
-        /// <summary>One line for the panel and the log.</summary>
+        /// <summary>
+        /// One line for the panel and the log, and it says which of the three levels is in
+        /// charge. An override is a SavedBool, so it survives the session: someone who forgot
+        /// it is on will report the mod as broken, and a loud status line is the cheap fix.
+        /// </summary>
         public static string Describe()
         {
             string weather = "rain " + (Rain * 100f).ToString("F0") + "%, clouds " +
                              (GameCloud * 100f).ToString("F0") + "%";
+            string intensity = (Coverage * 100f).ToString("F0") + "%";
 
-            return (Manual ? "Override on (game: " + weather + ")" : "Game weather: " + weather) +
-                   "  ->  intensity " + (Coverage * 100f).ToString("F0") + "%";
+            return Manual
+                ? "OVERRIDDEN: intensity " + intensity + "  (the game says " + weather + ")"
+                : "Following the game: " + weather + "  ->  intensity " + intensity;
         }
 
         private static float Value(SavedFloat setting, float fallback)
