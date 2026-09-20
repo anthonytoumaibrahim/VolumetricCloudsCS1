@@ -8,7 +8,10 @@ param(
     # Defaults to the game's Assembly-CSharp.dll; point it at a mod's DLL to read that instead.
     [string]$Assembly = '',
     # With -Dump: also print a readable instruction trace of each matched method.
-    [switch]$Listing
+    [switch]$Listing,
+    # With -Listing: print EVERY instruction. The default trace leaves out operand-less
+    # opcodes, which hides exactly the and/not/shl that bit-mask logic is made of.
+    [switch]$Full
 )
 
 # "Find usages" for the game's assemblies: walks the IL of every method and reports those
@@ -50,7 +53,7 @@ public static class ILScan
     const BindingFlags All = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
                              BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-    public static string Scan(Assembly asm, string[] fieldNeedles, string[] methodNeedles, string callFilter, string dump, bool listing)
+    public static string Scan(Assembly asm, string[] fieldNeedles, string[] methodNeedles, string callFilter, string dump, bool listing, bool full)
     {
         var fieldSet = new HashSet<string>(fieldNeedles);
         var methodSet = new HashSet<string>(methodNeedles);
@@ -152,9 +155,17 @@ public static class ILScan
                             int target = size == 1 ? i + 1 + (sbyte)il[i] : (size == 4 ? i + 4 + BitConverter.ToInt32(il, i) : -1);
                             trace.AppendLine(string.Format("      {0:X4}  {1} -> {2:X4}", opOffset, oc.Name, target));
                         }
-                        else if (oc.OperandType == OperandType.InlineNone && (oc.Name.StartsWith("ldarg") || oc.Name.StartsWith("ldnull") || oc.Name == "ret" || oc.Name == "ceq"))
+                        else if (oc.OperandType == OperandType.InlineNone && (full || oc.Name.StartsWith("ldarg") || oc.Name.StartsWith("ldnull") || oc.Name == "ret" || oc.Name == "ceq"))
                         {
                             trace.AppendLine(string.Format("      {0:X4}  {1}", opOffset, oc.Name));
+                        }
+                        else if (full && size == 1)
+                        {
+                            trace.AppendLine(string.Format("      {0:X4}  {1} {2}", opOffset, oc.Name, (sbyte)il[i]));
+                        }
+                        else if (full && oc.OperandType == OperandType.InlineI)
+                        {
+                            trace.AppendLine(string.Format("      {0:X4}  {1} {2}", opOffset, oc.Name, BitConverter.ToInt32(il, i)));
                         }
                     }
 
@@ -227,4 +238,4 @@ $onResolve = [System.ResolveEventHandler]{
 [System.AppDomain]::CurrentDomain.add_ReflectionOnlyAssemblyResolve($onResolve)
 
 $asm = [System.Reflection.Assembly]::ReflectionOnlyLoadFrom($Assembly)
-[ILScan]::Scan($asm, $Fields, $Methods, $CallFilter, $Dump, [bool]$Listing)
+[ILScan]::Scan($asm, $Fields, $Methods, $CallFilter, $Dump, [bool]$Listing, [bool]$Full)
