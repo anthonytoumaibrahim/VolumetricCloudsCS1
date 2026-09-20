@@ -48,9 +48,7 @@ namespace VolumetricClouds.Sky
         private static readonly int IdRainSun = Shader.PropertyToID("_RainSun");
         private static readonly int IdNightOpacity = Shader.PropertyToID("_NightOpacity");
         private static readonly int IdCloudExtent = Shader.PropertyToID("_CloudExtent");
-        private static readonly int IdCityLightTex = Shader.PropertyToID("_CityLightTex");
-        private static readonly int IdCityGlow = Shader.PropertyToID("_CityGlow");
-        private static readonly int IdCityMapSize = Shader.PropertyToID("_CityMapSize");
+        private static readonly int IdNightGlow = Shader.PropertyToID("_NightGlow");
         private static readonly int IdFogAmount = Shader.PropertyToID("_FogAmount");
         private static readonly int IdFogDensity = Shader.PropertyToID("_FogDensity");
         private static readonly int IdFogThreshold = Shader.PropertyToID("_FogThreshold");
@@ -82,6 +80,9 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private const float RainExtinction = 0.0006f;
         private const float RainMaxDistance = 14000f;
+
+        /// <summary>Radiance the night glow adds to the very base of a cloud, at 100%.</summary>
+        private const float NightGlowStrength = 0.03f;
 
         public void Initialise(CloudDensityField field)
         {
@@ -342,7 +343,7 @@ namespace VolumetricClouds.Sky
             return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2f, -8f, elevation));
         }
 
-        /// <summary>Clouds that hide the stars, and the city's glow on whatever hangs over it.</summary>
+        /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
         private void ApplyNight(Light sun)
         {
             float night = NightFactor(sun);
@@ -351,17 +352,14 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdNightOpacity, night * opacity);
             _material.SetFloat(IdCloudExtent, _holder.transform.localScale.x);
 
-            // Sodium-lamp warm. The strength is judged against a night cloud, which is nearly
-            // black: enough to read as a glow over downtown, nowhere near daylight.
-            float glow = Settings.CityGlow != null ? Mathf.Max(0f, Settings.CityGlow.value) : 1f;
-            Texture cityMap = CityLights.Texture;
-            Vector4 glowColour = cityMap == null
-                ? Vector4.zero
-                : new Vector4(1f, 0.6f, 0.3f, 0f) * (0.22f * glow * night);
-
-            _material.SetTexture(IdCityLightTex, cityMap != null ? cityMap : Texture2D.blackTexture);
-            _material.SetVector(IdCityGlow, glowColour);
-            _material.SetFloat(IdCityMapSize, CityLights.MapSize);
+            // A small, even, pale luminance under the clouds. A night cloud is nearly black
+            // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
+            // underside is lifted by about as much again -- visible as form, not as a light.
+            // Pale and slightly cool, not orange, and the same everywhere: the first version
+            // projected a map of the city's buildings up in sodium orange, and an orange slab
+            // shaped like the street plan looked "very weird" over a real city.
+            float glow = Settings.NightGlow != null ? Mathf.Max(0f, Settings.NightGlow.value) : 1f;
+            _material.SetVector(IdNightGlow, new Vector4(0.8f, 0.86f, 0.96f, 0f) * (NightGlowStrength * glow * night));
         }
 
         /// <summary>

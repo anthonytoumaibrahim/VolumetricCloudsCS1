@@ -56,6 +56,10 @@ namespace VolumetricClouds.Lighting
                     " rangeScale=" + HaloAdjuster.RangeScale.ToString("F2") +
                     " nearDist=" + near.ToString("F0") +
                     " | calls=" + HaloAdjuster.LongCalls +
+                    // Reported HERE, by the component that resets the counters just below:
+                    // HaloOverride logs in the same frame, after this one, and used to print
+                    // this count freshly zeroed -- a tripwire that could never fire.
+                    " lampsTagged=" + HaloAdjuster.LampsTagged + (HaloAdjuster.TagLamps ? "" : " (tagging off)") +
                     " volumeTrue=" + HaloAdjuster.VolumeTrue +
                     " volumeSuppressed=" + HaloAdjuster.VolumeSuppressed +
                     " | observedRange=" + ranges);

@@ -62,6 +62,7 @@ namespace VolumetricClouds.Lighting
         private static readonly int IdHaloNearBrightness = Shader.PropertyToID("_HaloNearBrightness");
         private static readonly int IdHaloNearTightness = Shader.PropertyToID("_HaloNearTightness");
         private static readonly int IdHaloNearRadius = Shader.PropertyToID("_HaloNearRadius");
+        private static readonly int IdHaloOtherBrightness = Shader.PropertyToID("_HaloOtherBrightness");
 
         private class Replacement
         {
@@ -76,8 +77,12 @@ namespace VolumetricClouds.Lighting
         private Shader _portedShader;
         private bool _shaderResolved;
         private Material _dynamicVolume;
-        private bool _dynamicResolved;
         private bool _dynamicTouched;
+
+        private Shader _dynamicShader;
+        private bool _dynamicShaderResolved;
+        private Material _dynamicOriginal;
+        private Material _dynamicReplacement;
 
         private bool _wasEnabled;
         private bool _wasPorted;
@@ -115,7 +120,13 @@ namespace VolumetricClouds.Lighting
             if (lights == null)
                 return;
 
-            SyncDynamicVolume(lights, enabled);
+            // Dynamic lights: the ported shader when it can be had, otherwise the game's own with
+            // its fog pinned. Decided before the early-out so switching the feature off puts
+            // the game's material back.
+            bool dynamicPorted = SwapDynamic(lights, enabled && ported);
+            HaloAdjuster.TagLamps = dynamicPorted;
+            if (!dynamicPorted)
+                SyncDynamicVolume(lights, enabled);
 
             if (!enabled)
                 return;
@@ -237,26 +248,99 @@ namespace VolumetricClouds.Lighting
             foreach (Replacement replacement in _byOriginal.Values)
             {
                 if (replacement.Ported)
-                {
-                    replacement.Material.SetFloat(IdHaloFog, fog);
-                    replacement.Material.SetFloat(IdHaloBrightness, Mathf.Max(0f, brightness));
-                    replacement.Material.SetFloat(IdHaloTightness, Mathf.Max(0.05f, tightness));
-                    replacement.Material.SetFloat(IdHaloRadius, Mathf.Clamp(radius, 0.05f, 4f));
-                    replacement.Material.SetFloat(IdHaloNearDistance, nearDistance);
-                    replacement.Material.SetFloat(IdHaloNearBrightness, nearBrightness);
-                    replacement.Material.SetFloat(IdHaloNearTightness, nearTightness);
-                    replacement.Material.SetFloat(IdHaloNearRadius, nearRadius);
-                }
+                    SetHaloControls(replacement.Material, fog, brightness, tightness, radius,
+                                    nearDistance, nearBrightness, nearTightness, nearRadius);
                 else
-                {
                     replacement.Material.SetVector(IdWeatherParams, weather);
-                }
             }
+
+            // The dynamic material takes the SAME values, from the same place, so a lamp drawn
+            // dynamically (tagged; see HaloAdjuster) cannot drift from the batched lamps beside
+            // it. Untagged lights -- vehicles, non-batched effects -- get their own brightness.
+            if (_dynamicReplacement != null)
+            {
+                SetHaloControls(_dynamicReplacement, fog, brightness, tightness, radius,
+                                nearDistance, nearBrightness, nearTightness, nearRadius);
+                _dynamicReplacement.SetFloat(IdHaloOtherBrightness, Mathf.Max(0f, Value(Settings.HaloVehicleBrightness, 1f)));
+            }
+        }
+
+        private static void SetHaloControls(Material material, float fog, float brightness, float tightness, float radius,
+            float nearDistance, float nearBrightness, float nearTightness, float nearRadius)
+        {
+            material.SetFloat(IdHaloFog, fog);
+            material.SetFloat(IdHaloBrightness, Mathf.Max(0f, brightness));
+            material.SetFloat(IdHaloTightness, Mathf.Max(0.05f, tightness));
+            material.SetFloat(IdHaloRadius, Mathf.Clamp(radius, 0.05f, 4f));
+            material.SetFloat(IdHaloNearDistance, nearDistance);
+            material.SetFloat(IdHaloNearBrightness, nearBrightness);
+            material.SetFloat(IdHaloNearTightness, nearTightness);
+            material.SetFloat(IdHaloNearRadius, nearRadius);
         }
 
         private static float Value(SavedFloat setting, float fallback)
         {
             return setting != null ? setting.value : fallback;
+        }
+
+        /// <summary>
+        /// Puts the ported dynamic halo material into LightSystem.m_lightMaterialVolume, or the
+        /// game's back. Both DrawLight and EndRendering read that (public) field at draw time,
+        /// so the swap is all it takes, and restoring is exact. Returns true while ours is in.
+        /// </summary>
+        private bool SwapDynamic(LightSystem lights, bool wanted)
+        {
+            if (wanted && _dynamicShader == null && !_dynamicShaderResolved)
+            {
+                _dynamicShaderResolved = true;
+                _dynamicShader = ShaderBundle.Get(ShaderBundle.LightHaloDynamic);
+            }
+
+            if (!wanted || _dynamicShader == null)
+            {
+                if (_dynamicReplacement != null)
+                {
+                    if (lights.m_lightMaterialVolume == _dynamicReplacement)
+                        lights.m_lightMaterialVolume = _dynamicOriginal;
+
+                    Destroy(_dynamicReplacement);
+                    _dynamicReplacement = null;
+                    _dynamicOriginal = null;
+                    Log.Msg("halo: dynamic lights are back on the game's halo material");
+                }
+
+                return false;
+            }
+
+            Material current = lights.m_lightMaterialVolume;
+            if (current == null)
+                return false;
+
+            if (_dynamicReplacement == null)
+            {
+                _dynamicOriginal = current;
+                _dynamicReplacement = new Material(current)
+                {
+                    name = current.name + " (VolumetricClouds dynamic)",
+                    shader = _dynamicShader,
+                };
+
+                Log.Msg("halo: dynamic lights (vehicles, and lamps drawn without an instance id such as " +
+                        "Intersection Marking Tool's) now use the ported shader; was '" +
+                        (current.shader == null ? "null" : current.shader.name) + "', renderQueue " +
+                        current.renderQueue + " -> " + _dynamicReplacement.renderQueue);
+            }
+
+            // Checked every frame: cheap, and it holds if the game recreates its material.
+            if (current != _dynamicReplacement)
+            {
+                if (current != _dynamicOriginal)
+                    _dynamicOriginal = current;
+
+                lights.m_lightMaterialVolume = _dynamicReplacement;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -297,14 +381,16 @@ namespace VolumetricClouds.Lighting
             return _portedShader;
         }
 
+        /// <summary>
+        /// The GAME's dynamic halo material, for the fallback that only pins its fog. Never our
+        /// replacement: that one is destroyed when the feature goes off, and SwapDynamic has
+        /// already put the game's back by the time this is asked.
+        /// </summary>
         private Material ResolveDynamicVolume(LightSystem lights)
         {
-            if (!_dynamicResolved)
-            {
-                _dynamicResolved = true;
-                FieldInfo field = typeof(LightSystem).GetField("m_lightMaterialVolume", AnyInstance);
-                _dynamicVolume = field == null ? null : field.GetValue(lights) as Material;
-            }
+            Material current = lights.m_lightMaterialVolume;
+            if (current != null && current != _dynamicReplacement)
+                _dynamicVolume = current;
 
             return _dynamicVolume;
         }
@@ -379,8 +465,11 @@ namespace VolumetricClouds.Lighting
                     " tightness=" + Value(Settings.HaloNearLightTightness, 1f).ToString("F2") +
                     " radius=" + Value(Settings.HaloNearLightRadius, 1f).ToString("F2") +
                     " | worldFog=" + Singleton<WeatherManager>.instance.m_currentFog.ToString("F2") +
-                    " dynamicFog=" + (_dynamicTouched && _dynamicVolume != null
-                        ? _dynamicVolume.GetVector(IdWeatherParams).z.ToString("F2") : "untouched"));
+                    " | dynamic=" + (_dynamicReplacement != null
+                        ? "PORTED otherBrightness=" + Value(Settings.HaloVehicleBrightness, 1f).ToString("F2") +
+                          " (lamps tagged: see the 'dynamic lights' line)"
+                        : "game shader, fog " + (_dynamicTouched && _dynamicVolume != null
+                            ? _dynamicVolume.GetVector(IdWeatherParams).z.ToString("F2") : "untouched")));
 
             _swaps = 0;
         }
@@ -389,7 +478,12 @@ namespace VolumetricClouds.Lighting
         {
             RestoreAll();
 
-            // Last chance to leave the dynamic material on the world's own value.
+            // The tag must stop before the game's own shader is back in the slot.
+            HaloAdjuster.TagLamps = false;
+            if (Singleton<RenderManager>.exists && Singleton<RenderManager>.instance.lightSystem != null)
+                SwapDynamic(Singleton<RenderManager>.instance.lightSystem, false);
+
+            // Last chance to leave the game's dynamic material on the world's own value.
             if (_dynamicTouched && _dynamicVolume != null)
                 _dynamicVolume.SetVector(IdWeatherParams, Shader.GetGlobalVector(IdWeatherParams));
         }

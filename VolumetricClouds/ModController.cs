@@ -60,7 +60,6 @@ namespace VolumetricClouds
             gameObject.AddComponent<TerrainHeightMap>();
             gameObject.AddComponent<GameFog>();
             gameObject.AddComponent<GameStars>();
-            gameObject.AddComponent<CityLights>();
             gameObject.AddComponent<HaloController>();
             gameObject.AddComponent<HaloOverride>();
 

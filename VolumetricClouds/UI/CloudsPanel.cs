@@ -218,7 +218,7 @@ namespace VolumetricClouds.UI
 
             // Night only; neither does anything by day.
             rows.Percent("Clouds hide the stars at night", Settings.CloudNightOpacity, 0f, 100f, 5f);
-            rows.Percent("City glow on clouds at night", Settings.CityGlow, 0f, 300f, 5f);
+            rows.Percent("Glow under the clouds at night", Settings.NightGlow, 0f, 300f, 5f);
             return rows.Height;
         }
 
@@ -259,7 +259,12 @@ namespace VolumetricClouds.UI
             rows.Percent("Near lights: brightness", Settings.HaloNearLightBrightness, 0f, 200f, 1f);
             rows.Percent("Near lights: size", Settings.HaloNearLightRadius, 10f, 200f, 5f);
 
-            // Vehicles and other dynamic lights: the only ones LightSystem.DrawLight handles.
+            // Dynamic lights use a port of the game's other halo shader. Lamps drawn that way
+            // (Intersection Marking Tool's props) take every setting above; vehicles and the
+            // like take this brightness in place of "Brightness", and share the rest.
+            rows.Percent("Vehicle light halos", Settings.HaloVehicleBrightness, 0f, 300f, 5f);
+
+            // Older, cruder controls over the same dynamic lights: their range and a cutoff.
             rows.Toggle("Adjust dynamic lights (vehicles)", Settings.HaloAdjustEnabled);
             rows.Percent("Dynamic light size", Settings.HaloRangeScale, 10f, 200f, 5f);
             rows.Value("Hide dynamic halos within", Settings.DynamicHaloCutoff, 0f, 500f, 10f, Metres);

@@ -68,12 +68,12 @@ Shader "VolumetricClouds/CloudRaymarch"
             float _NightOpacity;
             float _CloudExtent;
 
-            // City glow: a small map of where the city's lights are (CityLights.cs), blurred
-            // to the spread ground light has by the time it reaches the cloud base. Not
-            // simulated light transport -- a tint on whatever hangs over the city at night.
-            sampler2D _CityLightTex;
-            float3 _CityGlow;          // colour * strength * how much it is night; 0 by day
-            float _CityMapSize;        // metres the map spans, centred on the world origin
+            // Night glow: a small, even, pale luminance on the underside of the clouds, which
+            // is how clouds over settled land look at night -- lit faintly from below by
+            // diffuse skyglow, not black. Deliberately NOT derived from where the city is: a
+            // first version projected a map of the buildings onto the cloud base in sodium
+            // orange, and an orange slab following the street plan looked "very weird".
+            float3 _NightGlow;         // colour * strength * how much it is night; 0 by day
 
             // Fog: a CLOUD LAYER LYING ON THE GROUND, not a haze. Two earlier versions -- a
             // height-limited blanket, then soft kilometre-wide banks with an exponential
@@ -181,13 +181,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return sum;
             }
 
-            // How much city light there is under p, 0..1.
-            float CityLight(float3 p)
-            {
-                float2 uv = p.xz / _CityMapSize + 0.5;
-                return tex2Dlod(_CityLightTex, float4(uv, 0, 0)).r;
-            }
-
             // Direct sun reaching p through the clouds, 0..1, from the same map that shadows
             // the ground: CloudShadowMap marches one sun ray per texel, and every point on a
             // sun ray shares its texel, so this is exact for anything below the clouds. The
@@ -244,9 +237,8 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (_FlashCount > 0.5)
                             radiance += Lightning(p);
 
-                        // City light comes from below: strongest on the base, gone by the top.
-                        if (_CityGlow.r + _CityGlow.g + _CityGlow.b > 0.0)
-                            radiance += _CityGlow * (CityLight(p) * (1.0 - h) * (1.0 - h));
+                        // It comes from below: strongest on the base, gone by the top.
+                        radiance += _NightGlow * ((1.0 - h) * (1.0 - h));
 
                         float stepT = exp(-d * stepLen * _Absorption);
                         // Energy-conserving integration across the step.
@@ -321,8 +313,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                         float3 lit = radiance;
                         if (_FlashCount > 0.5)
                             lit += Lightning(p) * 0.6;
-                        if (_CityGlow.r + _CityGlow.g + _CityGlow.b > 0.0)
-                            lit += _CityGlow * (CityLight(p) * 0.5);
 
                         float stepT = exp(-sigma * segment);
                         light += transmittance * lit * (1.0 - stepT);
@@ -489,8 +479,6 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                         if (_FlashCount > 0.5)
                             lit += Lightning(p) * 0.5;
-                        if (_CityGlow.r + _CityGlow.g + _CityGlow.b > 0.0)
-                            lit += _CityGlow * (CityLight(p) * 0.8);
 
                         float stepT = exp(-sigma * segment);
                         light += transmittance * lit * (1.0 - stepT);

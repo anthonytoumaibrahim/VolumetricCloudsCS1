@@ -224,7 +224,10 @@ public static class ILScan
 Add-Type -TypeDefinition $src -Language CSharp
 
 if (-not $Assembly) { $Assembly = "$managed\Assembly-CSharp.dll" }
-$searchDirs = @($managed, (Split-Path -Parent $Assembly))
+
+# Where to look for what the scanned assembly references: the game, its own folder, and this
+# repo's libs (other mods reference CitiesHarmony.Harmony, which lives in neither of the first two).
+$searchDirs = @($managed, (Split-Path -Parent $Assembly), (Join-Path (Split-Path -Parent $PSScriptRoot) "libs"))
 
 $onResolve = [System.ResolveEventHandler]{
     param($s, $e)

@@ -112,8 +112,8 @@ namespace VolumetricClouds
         /// </summary>
         public static SavedFloat CloudNightOpacity { get; private set; }
 
-        /// <summary>Multiplier on the city's glow on clouds, rain and fog at night. 0 = off.</summary>
-        public static SavedFloat CityGlow { get; private set; }
+        /// <summary>Multiplier on the faint pale glow under the clouds at night. 0 = off.</summary>
+        public static SavedFloat NightGlow { get; private set; }
 
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
         public static SavedFloat WindSpeed { get; private set; }
@@ -223,6 +223,14 @@ namespace VolumetricClouds
         /// <summary>Near lamps: multiplier on top of <see cref="HaloRadius"/>.</summary>
         public static SavedFloat HaloNearLightRadius { get; private set; }
 
+        /// <summary>
+        /// Halo brightness of dynamic lights that are NOT lamps: vehicles and non-batched
+        /// effect lights. In place of <see cref="HaloBrightness"/>, which is tuned for lamps
+        /// (Anthony runs it at 300%); tightness, size and the near multipliers are shared.
+        /// Lamps drawn dynamically -- Intersection Marking Tool's -- take the lamp settings.
+        /// </summary>
+        public static SavedFloat HaloVehicleBrightness { get; private set; }
+
         /// <summary>Master switch for the dynamic-light (vehicle) adjustments.</summary>
         public static SavedBool HaloAdjustEnabled { get; private set; }
 
@@ -328,7 +336,9 @@ namespace VolumetricClouds
                 FogSpeed = new SavedFloat("FogSpeed", FileName, 1f, true);
 
                 CloudNightOpacity = new SavedFloat("CloudNightOpacity", FileName, 1f, true);
-                CityGlow = new SavedFloat("CityGlow", FileName, 1f, true);
+                // Not "CityGlow": that scaled an orange projection of the city's buildings. This
+                // is an even pale luminance, and a much smaller one.
+                NightGlow = new SavedFloat("NightCloudGlow", FileName, 1f, true);
                 WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
                 // New key rather than reusing CookieTileSize: the old 2000 m default was saved
                 // into existing settings files and is far too small for cloud-sized features.
@@ -370,6 +380,8 @@ namespace VolumetricClouds
                 HaloNearLightBrightness = new SavedFloat("HaloNearLightBrightness", FileName, 1f, true);
                 HaloNearLightTightness = new SavedFloat("HaloNearLightTightness", FileName, 1f, true);
                 HaloNearLightRadius = new SavedFloat("HaloNearLightRadius", FileName, 1f, true);
+
+                HaloVehicleBrightness = new SavedFloat("HaloVehicleBrightness", FileName, 1f, true);
 
                 HaloAdjustEnabled = new SavedBool("HaloAdjustEnabled", FileName, false, true);
                 HaloRangeScale = new SavedFloat("HaloRangeScale", FileName, 1f, true);
