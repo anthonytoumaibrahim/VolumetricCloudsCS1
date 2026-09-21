@@ -175,13 +175,14 @@ What that means in practice:
 The source is distributed under the [MIT License](LICENSE), copyright © 2026 Anthony Ibrahim.
 
 Two files are excluded: `LightHalo.shader` and `LightHaloDynamic.shader` are hand-written ports
-of the game's own halo shader, reconstructed for interoperability. Those, the shipped
-third-party DLLs, and the published cloud-rendering technique this mod builds on are all
-credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+of the game's own halo shader, reconstructed for interoperability. So are the few lines of
+`FogLamps.shader` copied from the first of them (its blink table and lamp switch-on). Those,
+the shipped third-party DLLs, and the published cloud-rendering technique this mod builds on
+are all credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Cities: Skylines is © Colossal Order Ltd., published by Paradox Interactive AB. Unity is a
 trademark of Unity Technologies. This is an unofficial fan-made mod, not affiliated with or
-endorsed by any of them. Apart from the two ported shaders, this repository contains no game
+endorsed by any of them. Apart from the ported shader code, this repository contains no game
 code and no game assets; the game's DLLs are referenced from your own installation and never
 copied.
 

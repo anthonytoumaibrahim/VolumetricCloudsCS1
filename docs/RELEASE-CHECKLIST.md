@@ -27,8 +27,14 @@ repository, and the one image that does is not in the mod folder.
 | Visibility | Steam page only — the panel has no control for it | Assume the item is live the moment the upload finishes |
 
 Because the title and description exist only inside Steam, keep the source text in the repo and
-treat the Workshop box as a copy: draft it as `docs/workshop-description.txt` (not written yet)
-so the next update is an edit, not a rewrite from memory.
+treat the Workshop box as a copy, so the next update is an edit, not a rewrite from memory. The
+masters live in `Workshop/` at the repo root (tracked, never deployed):
+
+| File | What it is |
+| --- | --- |
+| `Workshop/PreviewImage.png` | The cover image, dropped into the staging folder at upload |
+| `Workshop/Screenshots/` | The gallery, uploaded on the Steam page by hand |
+| `Workshop/Description.bbcode.txt` | The description, pasted into the panel. One line per paragraph: Steam keeps every line break. Steam caps it at **8000 characters** |
 
 ## Specifications
 
@@ -144,21 +150,28 @@ exactly as it stands, so this is the release artifact.
 
 Full dimensions, formats and limits are in *Specifications* above.
 
-- [ ] `PreviewImage.png` made: 512 × 512, PNG, under 1 MB, legible as a ~270 px thumbnail.
-- [ ] 5–8 screenshots captured at 1920 × 1080 or larger, 16:9, each under 1 MB.
+- [x] `Workshop/PreviewImage.png` made: 512 × 512, PNG, 404 KB. Still to judge: legible as a
+      ~270 px thumbnail.
+- [ ] 5–8 screenshots in `Workshop/Screenshots/`, 1920 × 1080 or larger, 16:9, each under 1 MB.
+      One so far (`1.jpg`, 1920 × 1080, 586 KB).
 - [ ] The first screenshot chosen deliberately — it is the one shown beside the description.
-- [ ] Masters kept outside the mod folder. Anything left in that folder is uploaded to every
-      subscriber.
+- [x] Masters kept outside the mod folder, in `Workshop/`. Anything left in the mod folder is
+      uploaded to every subscriber.
 
 ## 5. Text, written before the panel is opened
 
-- [ ] Workshop description in BBCode: what it does · requirements (Harmony, with the link, and
-      Windows/D3D11 only) · how to open the panel (F4 or the Unified UI button) · fog and halos
-      are opt-in · the honest performance paragraph · compatibility (Render It!, Theme Mixer,
-      Play It!, cloud replacers, IMT, Persistent Fog Adjuster no longer needed) · known
-      limitations including no scenarios and no moon shadows · how to report a bug (tick
-      *Detailed logging*, reproduce, attach `VolumetricClouds.log`) · the AI disclosure · a link
-      to the GitHub repository and the MIT licence.
+- [ ] Workshop description in BBCode, drafted in `Workshop/Description.bbcode.txt` (2026-09-21,
+      modelled on Node Controller Renewal's page), to be read through before it is pasted:
+      compatibility banner (game 1.21.1) · pre-release, tested on one PC · what it does ·
+      requirements (Harmony, with the link, and Windows/D3D11 only) · how to use (F4 or the
+      button, the three tabs, Options → Mod Settings, Reset) · fog and halos are opt-in · the
+      honest performance paragraph · compatibility (Render It!, Theme Mixer, Play It!, cloud
+      replacers, IMT, Persistent Fog Adjuster no longer needed) · coming soon (profiles, more
+      languages, Discord) · GitHub link and the MIT licence · how to report a bug
+      (`output_log.txt` + `VolumetricClouds.log` with *Detailed logging*, hosted, linked in the
+      comments) · the AI disclosure. Not in it: no moon shadows.
+- [ ] If the game has updated since, the banner at the top of the description still names the
+      version it was tested on.
 - [ ] Change note for this upload.
 
 ## 6. Publish
@@ -183,8 +196,16 @@ The flow, as the game actually implements it:
 - [ ] Upload the screenshots.
 - [ ] *Add/Remove Required Items* → **Harmony**, `2040656402`.
 - [ ] Check the description renders (BBCode tags, working links).
+- [ ] The Race Day banner at the top of the description is hosted on YOUR account. It is
+      Paradox's artwork, hot-linked from someone else's imgur upload
+      (`i.imgur.com/1EqyarL.png`): they can delete it or swap in another picture, and it
+      would show on this page. The GitHub button (`DczUXYq.png`) likewise.
+- [ ] The preview image's lightning bolt and title font are yours to use. The bolt is not the
+      mod's own (it is not in `Screenshots/1.jpg`); if it came from a stock photo or a brush
+      pack, its licence has to allow this use.
 - [ ] Tags beyond the automatic `Mod`.
-- [ ] Link the GitHub repository and state the licence.
+- [ ] The GitHub repository is **public**. The description links
+      `github.com/anthonytoumaibrahim/VolumetricCloudsCS1`, which answered 404 on 2026-09-21.
 - [ ] Set visibility to **Public**.
 
 ## 8. After publishing

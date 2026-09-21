@@ -26,8 +26,13 @@ Exception, not covered by the licence above:
 
   UnityProject/Assets/VolumetricClouds/LightHalo.shader
   UnityProject/Assets/VolumetricClouds/LightHaloDynamic.shader
+  UnityProject/Assets/VolumetricClouds/FogLamps.shader, only the blink table (kBlink)
+    and the blink and switch-on lines of its first pass's vertex shader
 
-These two files are hand-written ports of Cities: Skylines' own light halo shader
+The first two files are hand-written ports of Cities: Skylines' own light halo shader
 (Custom/Lights/GroupVolume, both its batched and instanced variants), reconstructed for
-interoperability with the game. The original shader is the work of Colossal Order Ltd.,
-who hold whatever rights attach to it. See THIRD-PARTY-NOTICES.md.
+interoperability with the game. The lines of FogLamps.shader named above are copied from
+LightHalo.shader; the rest of that file is covered by the licence above. The same applies
+to the compiled form of all three in VolumetricClouds/Resources/volumetricclouds.bundle,
+and so in the built VolumetricClouds.dll, which embeds it. The original shader is the work
+of Colossal Order Ltd., who hold whatever rights attach to it. See THIRD-PARTY-NOTICES.md.

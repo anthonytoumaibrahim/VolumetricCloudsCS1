@@ -3,8 +3,8 @@
 Volumetric Clouds is an unofficial mod for Cities: Skylines 1. This file records what in the
 repository is not original work, and what is credited rather than incorporated.
 
-Apart from the two shader ports described below, this repository contains no game code and no
-game assets. The game's DLLs are referenced from your own installation at build time and are
+Apart from the two shader ports described below, and a few lines of a third shader copied from
+one of them, this repository contains no game code and no game assets. The game's DLLs are referenced from your own installation at build time and are
 never copied into the repository or the distribution.
 
 ## Shipped with the mod
@@ -40,6 +40,12 @@ replacing the material is the only way to change how halos are drawn. The origin
 the work of **Colossal Order Ltd.**, who hold whatever rights attach to it. These two files
 are excluded from the MIT licence that covers the rest of this repository (see `LICENSE`), and
 no ownership of the original's design is claimed.
+
+`FogLamps.shader` draws the same batched light meshes into the fog's light map, so it has to
+switch each lamp on and off exactly as the halo does. Its blink table (`kBlink`) and the blink
+and switch-on lines of its first pass's vertex shader are copied from `LightHalo.shader`, and
+are excluded from the MIT licence in the same way. The rest of that file is original and
+MIT-licensed.
 
 The disassembly itself is never committed. `tools/shaderdump.ps1` regenerates it from your own
 installed copy of the game, and is the only way to verify a port.
