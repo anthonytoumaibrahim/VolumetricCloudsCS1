@@ -155,7 +155,7 @@ namespace VolumetricClouds.UI
 
             for (int i = 0; i < Tabs.Length; i++)
             {
-                UIButton tab = strip.AddTab(Tabs[i].ToString());
+                UIButton tab = strip.AddTab(SettingsCatalog.TabName(Tabs[i]));
                 StyleTab(tab, tabWidth);
 
                 // AddTab creates the page inside the container; it is the i-th child of it.
@@ -319,7 +319,7 @@ namespace VolumetricClouds.UI
 
             foreach (OptionsPage page in Tabs)
             {
-                UIHelperBase group = helper.AddGroup(page.ToString());
+                UIHelperBase group = helper.AddGroup(SettingsCatalog.TabName(page));
                 BuildRows(group, page);
             }
 
@@ -349,7 +349,7 @@ namespace VolumetricClouds.UI
 
                 if (row.Group != null)
                 {
-                    current = page.AddGroup(row.Group);
+                    current = page.AddGroup(row.GroupTitle);
                     currentPanel = PanelOf(current);
                 }
 
@@ -549,7 +549,7 @@ namespace VolumetricClouds.UI
             if (!_loggedSliderChildren)
             {
                 _loggedSliderChildren = true;
-                Log.Msg("options page: slider '" + row.Label + "' parent=" + parent.name +
+                Log.Msg("options page: slider '" + row.Name + "' parent=" + parent.name +
                         " (" + parent.GetType().Name + ") children=[" + names + "] label=" +
                         (found == null ? "NOT FOUND" : found.name));
             }
@@ -587,7 +587,7 @@ namespace VolumetricClouds.UI
                 e.Use();
                 editing = true;
                 button.buttonsMask = UIMouseButton.Left | UIMouseButton.Right | UIMouseButton.Middle;
-                button.text = row.Label + ":  press a key";
+                button.text = row.Label + ":  " + Localization.Get("Key.Press");
                 button.Focus();
                 UIView.PushModal(button);
             };

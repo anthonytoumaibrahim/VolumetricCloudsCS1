@@ -94,7 +94,7 @@ There is no automated test suite. The loop is:
 | `tools/ilscan.ps1` | IL "find usages" over Assembly-CSharp or any mod DLL: `-Fields`, `-Methods`, `-Dump … -Listing -Full` for a readable instruction trace |
 | `tools/shaderdump.ps1` | Decompresses a compiled D3D11 shader out of the game's assets, or out of our own bundle, and disassembles it |
 | `tools/read-settings.ps1` | Decodes the old binary `VolumetricClouds.cgs` (or any `.cgs`, such as the game's own `gameSettings`) without launching the game. The mod's settings are now plain XML |
-| `tools/test-*.ps1` | Offline tests of the pure maths, and of the settings file's format (`test-settings.ps1`) |
+| `tools/test-*.ps1` | Offline tests of the pure maths, of the settings file's format (`test-settings.ps1`), and of the language files against the code (`test-localization.ps1`) |
 
 Disassembly output is never committed — it is the game's code. The tools regenerate it from
 your own installed copy.

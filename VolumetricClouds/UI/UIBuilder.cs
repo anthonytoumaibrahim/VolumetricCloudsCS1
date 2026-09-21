@@ -210,7 +210,7 @@ namespace VolumetricClouds.UI
                 e.Use();
                 editing = true;
                 button.buttonsMask = UIMouseButton.Left | UIMouseButton.Right | UIMouseButton.Middle;
-                button.text = "Press a key";
+                button.text = Localization.Get("Key.Press");
                 button.Focus();
                 // Modal, so the key being captured doesn't also fire as a game hotkey --
                 // including this mod's own toggle.

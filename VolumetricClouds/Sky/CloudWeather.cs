@@ -170,15 +170,17 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static string Describe()
         {
-            string weather = "rain " + (Rain * 100f).ToString("F0") + "%, clouds " +
-                             (GameCloud * 100f).ToString("F0") + "%";
-            string intensity = (Coverage * 100f).ToString("F0") + "%";
+            string weather = Localization.Get("Status.Weather.Game", Percent(Rain), Percent(GameCloud));
+            string intensity = Percent(Coverage);
 
             return Manual
-                ? "OVERRIDDEN: intensity " + intensity + "  (the game says " + weather + ")"
-                : "Following the game: " + weather + "  ->  intensity " + intensity +
-                  "  (clear " + (FairEnd * 100f).ToString("F0") + "% to rain " +
-                  (RainEnd * 100f).ToString("F0") + "%)";
+                ? Localization.Get("Status.Weather.Manual", intensity, weather)
+                : Localization.Get("Status.Weather.Following", weather, intensity, Percent(FairEnd), Percent(RainEnd));
+        }
+
+        private static string Percent(float fraction)
+        {
+            return Localization.Get("Unit.Percent", (fraction * 100f).ToString("F0"));
         }
 
         private static float Value(FloatSetting setting, float fallback)

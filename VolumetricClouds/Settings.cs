@@ -60,6 +60,12 @@ namespace VolumetricClouds
         public static BoolSetting DetailedLogging { get; private set; }
 
         /// <summary>
+        /// 0: the game's own language. Otherwise one of <see cref="Localization.LanguageCodes"/>,
+        /// counted from 1 -- an append-only table, so a saved choice survives new languages.
+        /// </summary>
+        public static IntSetting Language { get; private set; }
+
+        /// <summary>
         /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
         /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
         /// </summary>
@@ -390,6 +396,9 @@ namespace VolumetricClouds
             public const bool DetailedLogging = false;
             public const bool DebugChecker = false;
 
+            /// <summary>The game's own language.</summary>
+            public const int Language = 0;
+
             // ---- the weather and the cover ----
 
             /// <summary>What the override asks for when it is first switched on.</summary>
@@ -562,6 +571,7 @@ namespace VolumetricClouds
                 ToggleKey = new SavedInputKey("ToggleKey", InMemory, DefaultToggleKey, false);
                 ShowAdvancedInPanel = new BoolSetting("ShowAdvancedInPanel", Defaults.ShowAdvancedInPanel);
                 DetailedLogging = new BoolSetting("DetailedLogging", Defaults.DetailedLogging);
+                Language = new IntSetting("Language", Defaults.Language);
 
                 Coverage = new FloatSetting("Coverage", Defaults.Coverage);
                 CoverageOverride = new BoolSetting("CoverageOverride", Defaults.CoverageOverride);

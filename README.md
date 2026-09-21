@@ -138,6 +138,14 @@ is in [`CLAUDE.md`](CLAUDE.md); what has to happen before a release is in
 [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
 Read the *Invariants* section before changing anything under `Sky/`.
 
+## Translations
+
+The mod is English only for now, but every text it shows is in one file,
+[`VolumetricClouds/Localization/en.xml`](VolumetricClouds/Localization/en.xml). To translate it,
+copy that file under the game's code for your language (`de.xml`, `fr.xml`, …) and translate
+the text between the tags; the comment at the top of the file explains the rest. A language
+with gaps still works: anything not yet translated shows in English.
+
 ## Build and test
 
 See [BUILDING.md](BUILDING.md). In short: `dotnet build VolumetricClouds/VolumetricClouds.csproj`

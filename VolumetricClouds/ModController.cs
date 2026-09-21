@@ -1,4 +1,5 @@
 using ColossalFramework;
+using ColossalFramework.Globalization;
 using ColossalFramework.UI;
 using UnityEngine;
 using VolumetricClouds.Lighting;
@@ -53,6 +54,10 @@ namespace VolumetricClouds
             SettingsCatalog.LogLayout();
 
             CreatePanel();
+
+            // The panel's words are fixed when it is built; when the game's language changes and
+            // ours follows it, build it again. (A static event: removed in OnDestroy.)
+            LocaleManager.eventLocaleChanged += OnLocaleChanged;
 
             // One field feeds both the shadow cookie and the visible clouds.
             _field = new CloudDensityField(UnityEngine.Random.Range(1, 100000));
@@ -243,8 +248,18 @@ namespace VolumetricClouds
             }
         }
 
+        private void OnLocaleChanged()
+        {
+            if (Settings.Language != null && Settings.Language.value != 0)
+                return; // a language chosen on Options -> General does not follow the game's
+
+            Log.Msg("localization: the game's language changed to '" + Localization.CurrentCode + "'; rebuilding the panel");
+            CreatePanel();
+        }
+
         private void OnDestroy()
         {
+            LocaleManager.eventLocaleChanged -= OnLocaleChanged;
             UUIIntegration.Unregister();
             DestroyHudButton();
 

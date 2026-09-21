@@ -6,7 +6,7 @@ namespace VolumetricClouds
     public class Mod : IUserMod
     {
         public string Name => "Volumetric Clouds";
-        public string Description => "Adds volumetric clouds to the game.";
+        public string Description => Localization.Get("Mod.Description");
 
         /// <summary>Called by the game via reflection when the mod is enabled.</summary>
         public void OnEnabled()

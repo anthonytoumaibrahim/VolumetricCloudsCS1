@@ -82,6 +82,9 @@ earlier public versions, so nothing below is a change from something a player ha
   the game running: changes are picked up within a second. Out-of-range values are pulled
   back into range and bad lines are ignored, each noted in the log; a file that cannot be read
   at all is left untouched rather than overwritten.
+- Tooltips in plain words: what each setting does and what raising or lowering it does.
+- Ready for translation: every text is in a language file, and *Options → General* has a
+  *Language* choice (following the game's language by default). English only for now.
 
 ### Known at release
 

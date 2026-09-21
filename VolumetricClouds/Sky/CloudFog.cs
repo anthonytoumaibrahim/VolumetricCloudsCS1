@@ -224,18 +224,21 @@ namespace VolumetricClouds.Sky
             // asking the map first would tell every fog-off player it was "measuring the
             // terrain" for ever.
             if (!Enabled)
-                return "Volumetric fog is off";
+                return Localization.Get("Status.Fog.Off");
 
             if (!Active)
-                return TerrainHeightMap.Ready
-                    ? "Volumetric fog: waiting for the clouds"
-                    : "Volumetric fog: measuring the terrain...";
+                return Localization.Get(TerrainHeightMap.Ready ? "Status.Fog.Waiting" : "Status.Fog.Measuring");
 
-            string share = "fog over " + (_amount * 100f).ToString("F0") + "% of the map";
+            string share = Localization.Get("Status.Fog.Share", Percent(_amount));
 
             return Overridden
-                ? "OVERRIDDEN: " + share + "  (the game says " + (GameFog * 100f).ToString("F0") + "%)"
-                : "Following the game: fog " + (GameFog * 100f).ToString("F0") + "%  ->  " + share;
+                ? Localization.Get("Status.Fog.Manual", share, Percent(GameFog))
+                : Localization.Get("Status.Fog.Following", Percent(GameFog), share);
+        }
+
+        private static string Percent(float fraction)
+        {
+            return Localization.Get("Unit.Percent", (fraction * 100f).ToString("F0"));
         }
     }
 }

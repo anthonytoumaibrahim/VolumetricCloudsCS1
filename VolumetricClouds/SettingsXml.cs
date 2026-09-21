@@ -58,22 +58,6 @@ namespace VolumetricClouds
         private const float SaveDelay = 1f;
         private const float FileCheckInterval = 1f;
 
-        private const string Header =
-            "Volumetric Clouds settings.\n" +
-            "\n" +
-            "You can edit this file while the game is running: the mod reads it again within a\n" +
-            "second of it being saved, and the panels follow.\n" +
-            "\n" +
-            "- Numbers use a dot for decimals: 0.5, never 0,5.\n" +
-            "- A percentage is written the way its slider shows it: 47 means 47%.\n" +
-            "- A value outside its range is pulled back into it. A value that cannot be read, and\n" +
-            "  a name the mod does not know, are ignored. VolumetricClouds.log says which.\n" +
-            "- A setting whose line is missing keeps the value it has (at startup, its default).\n" +
-            "- If the file cannot be read at all, the mod leaves it alone and says so in the log.\n" +
-            "- The mod rewrites this file, these comments included, whenever a setting changes in\n" +
-            "  the game: notes of your own will not survive.\n" +
-            "- Delete the file with the game closed to start again from every default.";
-
         private static string _path;
 
         // Set from the setters, which only ever run on the main thread; volatile anyway, since
@@ -452,14 +436,15 @@ namespace VolumetricClouds
                 entries.Add(new SettingsXmlFormat.Entry
                 {
                     Section = SectionOf(row),
-                    Group = row.Group,
+                    Group = row.GroupTitle,
                     Name = row.Name,
                     Value = ValueText(row),
                     Comment = CommentFor(row),
                 });
             }
 
-            return SettingsXmlFormat.Write(entries, Header);
+            // The comments are in the player's language (Localization); the names are not.
+            return SettingsXmlFormat.Write(entries, Localization.Get("File.Header"));
         }
 
         // ---- applying values ------------------------------------------------------------------
@@ -842,68 +827,70 @@ namespace VolumetricClouds
         private static string SectionOf(Row row)
         {
             if (row.Panel != PanelPage.None)
-                return "In-game panel: " + row.Panel + " tab";
+                return Localization.Get("File.Section.Panel", SettingsCatalog.TabName(row.Panel));
             if (row.Options != OptionsPage.None)
-                return "Options page: " + row.Options + " tab";
+                return Localization.Get("File.Section.Options", SettingsCatalog.TabName(row.Options));
 
-            return "Not shown on either page";
+            return Localization.Get("File.Section.None");
         }
 
         /// <summary>"Cloud altitude. 200 to 3000 (slider: 200 m to 3000 m), default 750."</summary>
         private static string CommentFor(Row row)
         {
-            string label = string.IsNullOrEmpty(row.Label) ? row.Name : row.Label;
+            string label = row.Label;
             string text;
 
             if (row.Float != null)
             {
-                float fallback = row.Kind == RowKind.Percent ? row.DefaultFloat * 100f : row.DefaultFloat;
-                string range = row.Max > row.Min
-                    ? SettingsXmlFormat.FormatNumber(row.Min) + " to " + SettingsXmlFormat.FormatNumber(row.Max)
-                    : "any number";
+                string fallback = SettingsXmlFormat.FormatNumber(row.Kind == RowKind.Percent ? row.DefaultFloat * 100f : row.DefaultFloat);
+                string min = SettingsXmlFormat.FormatNumber(row.Min);
+                string max = SettingsXmlFormat.FormatNumber(row.Max);
 
-                text = row.Kind == RowKind.Percent
-                    ? label + ", in %. " + range + ", default " + SettingsXmlFormat.FormatNumber(fallback) + "."
-                    : label + ". " + range + Readout(row) + ", default " + SettingsXmlFormat.FormatNumber(fallback) + ".";
+                if (!(row.Max > row.Min))
+                    text = Localization.Get("File.AnyNumber", label, fallback);
+                else if (row.Kind == RowKind.Percent)
+                    text = Localization.Get("File.Percent", label, min, max, fallback);
+                else
+                    text = Localization.Get("File.Number", label, min, max, Readout(row), fallback);
             }
             else if (row.Bool != null)
             {
-                text = label + ". true or false, default " + SettingsXmlFormat.FormatBool(row.DefaultBool) + ".";
+                text = Localization.Get("File.Toggle", label, SettingsXmlFormat.FormatBool(row.DefaultBool));
             }
             else if (row.Int != null)
             {
+                string fallback = row.DefaultInt.ToString(CultureInfo.InvariantCulture);
                 text = row.ChoiceValues != null
-                    ? label + ". One of " + ChoiceList(row) + "; default " + row.DefaultInt.ToString(CultureInfo.InvariantCulture) + "."
-                    : label + ". Default " + row.DefaultInt.ToString(CultureInfo.InvariantCulture) + ".";
+                    ? Localization.Get("File.Choice", label, ChoiceList(row), fallback)
+                    : Localization.Get("File.AnyNumber", label, fallback);
             }
             else
             {
-                text = label + ". A key such as F4 or Ctrl+Shift+C, or None; default " +
-                       SettingsXmlFormat.FormatKey(row.DefaultKey) + ".";
+                text = Localization.Get("File.Key", label, SettingsXmlFormat.FormatKey(row.DefaultKey));
             }
 
-            if (row.ConfirmOn != null)
-                text += " Switching it on here skips the question the game asks first.";
+            if (row.Confirm)
+                text += " " + Localization.Get("File.Confirm");
 
-            if (!string.IsNullOrEmpty(row.Note))
+            if (row.HasNote)
                 text += " " + row.Note;
 
             return text;
         }
 
-        /// <summary>What the slider shows at its ends, where that is not just the number.</summary>
+        /// <summary>
+        /// What the slider shows at its ends, where that is not just the number, with the space
+        /// in front of it (a language file cannot hold a leading space: its texts are trimmed).
+        /// </summary>
         private static string Readout(Row row)
         {
-            if (!(row.Max > row.Min))
-                return string.Empty;
-
             string low = row.FormatDisplay(row.Min);
             string high = row.FormatDisplay(row.Max);
 
             if (low == SettingsXmlFormat.FormatNumber(row.Min) && high == SettingsXmlFormat.FormatNumber(row.Max))
                 return string.Empty;
 
-            return " (slider: " + low + " to " + high + ")";
+            return " " + Localization.Get("File.Readout", low, high);
         }
 
         private static string ChoiceList(Row row)

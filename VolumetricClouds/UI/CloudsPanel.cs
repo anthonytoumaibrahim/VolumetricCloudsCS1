@@ -147,12 +147,12 @@ namespace VolumetricClouds.UI
             List<Tab> tabs = new List<Tab>();
 
             foreach (PanelPage page in BasicTabs)
-                tabs.Add(new Tab { Name = page.ToString(), Panel = page });
+                tabs.Add(new Tab { Name = SettingsCatalog.TabName(page), Panel = page });
 
             if (advanced)
             {
                 foreach (OptionsPage page in AdvancedTabs)
-                    tabs.Add(new Tab { Name = page.ToString(), Options = page });
+                    tabs.Add(new Tab { Name = SettingsCatalog.TabName(page), Options = page });
             }
 
             return tabs;
@@ -340,7 +340,7 @@ namespace VolumetricClouds.UI
 
                 if (row.Group != null)
                 {
-                    UIBuilder.AddHeading(page, row.Group, y + 4f);
+                    UIBuilder.AddHeading(page, row.GroupTitle, y + 4f);
                     y += HeadingHeight;
                 }
 
