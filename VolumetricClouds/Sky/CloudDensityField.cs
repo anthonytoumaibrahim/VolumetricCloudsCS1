@@ -17,17 +17,54 @@ namespace VolumetricClouds.Sky
         private const int HistogramBins = 256;
         private const int ThresholdSteps = 32;
 
-        private readonly float[] _density = new float[Resolution * Resolution];
+        // Not readonly: "Reset cloud pattern" swaps in a field generated on a worker thread
+        // (Adopt). The simulation thread reads the density and the table (SampleCloud), so they
+        // are replaced by reference, never filled in place.
+        private float[] _density = new float[Resolution * Resolution];
         private readonly Color32[] _pixels = new Color32[Resolution * Resolution];
-        private readonly int[] _histogram = new int[HistogramBins];
-        private readonly float[] _thresholdTable = new float[ThresholdSteps + 1];
+        private int[] _histogram = new int[HistogramBins];
+        private float[] _thresholdTable = new float[ThresholdSteps + 1];
 
         private Texture2D _texture;
         private Texture2D _densityTexture;
 
+        /// <summary>
+        /// Builds the field for a seed. Pure managed maths and arrays, no Unity objects (the
+        /// textures are made on first use), so it may run on a worker thread. A seed gives the
+        /// same field every time, which is how a save brings its sky back: changing anything in
+        /// <see cref="Generate"/> or <see cref="Resolution"/> changes every saved sky.
+        /// </summary>
         public CloudDensityField(int seed)
         {
             Generate(seed);
+        }
+
+        /// <summary>
+        /// Goes up by one each time the pattern is replaced, so what was built from the old one
+        /// (the fallback cookie, the billboards) knows to rebuild.
+        /// </summary>
+        public int Version { get; private set; }
+
+        /// <summary>
+        /// Takes over another field's pattern ("Reset cloud pattern"). Main thread. Everything
+        /// holding a reference to THIS field -- the materials, the rain snapshot, lightning --
+        /// sees the new pattern without being told; the density texture is rewritten in place.
+        /// </summary>
+        public void Adopt(CloudDensityField other)
+        {
+            _density = other._density;
+            _histogram = other._histogram;
+            _thresholdTable = other._thresholdTable;
+
+            // The drawn table is solved from the density: rebuild it on next use (both, or the
+            // lazy allocation in GetThresholdAsDrawn would find one without the other).
+            _drawnTable = null;
+            _drawnHistogram = null;
+
+            if (_densityTexture != null)
+                UploadDensity();
+
+            Version++;
         }
 
         /// <summary>The cookie texture. Alpha carries the value a directional light samples.</summary>
@@ -73,19 +110,24 @@ namespace VolumetricClouds.Sky
                         anisoLevel = 0,
                     };
 
-                    Color32[] pixels = new Color32[_density.Length];
-                    for (int i = 0; i < _density.Length; i++)
-                    {
-                        byte v = (byte)(Mathf.Clamp01(_density[i]) * 255f);
-                        pixels[i] = new Color32(v, v, v, v);
-                    }
-
-                    _densityTexture.SetPixels32(pixels);
-                    _densityTexture.Apply(false);
+                    UploadDensity();
                 }
 
                 return _densityTexture;
             }
+        }
+
+        private void UploadDensity()
+        {
+            Color32[] pixels = new Color32[_density.Length];
+            for (int i = 0; i < _density.Length; i++)
+            {
+                byte v = (byte)(Mathf.Clamp01(_density[i]) * 255f);
+                pixels[i] = new Color32(v, v, v, v);
+            }
+
+            _densityTexture.SetPixels32(pixels);
+            _densityTexture.Apply(false);
         }
 
         /// <summary>The density threshold that yields the requested sky coverage.</summary>

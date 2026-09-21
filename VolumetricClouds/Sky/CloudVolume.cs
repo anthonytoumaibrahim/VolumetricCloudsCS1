@@ -13,7 +13,8 @@ namespace VolumetricClouds.Sky
     /// </summary>
     public class CloudVolume : MonoBehaviour
     {
-        private const int NoiseSize = 64;
+        /// <summary>Edge of the 3D noise volume. Part of what a pattern's seed reproduces: changing it changes every saved sky.</summary>
+        public const int NoiseSize = 64;
         private const float MaxDistance = 30000f;
 
         /// <summary>True while the volumetric layer is actually drawing, so billboards stand down.</summary>
@@ -54,7 +55,14 @@ namespace VolumetricClouds.Sky
         private static readonly int IdFogDensity = Shader.PropertyToID("_FogDensity");
         private static readonly int IdFogThreshold = Shader.PropertyToID("_FogThreshold");
         private static readonly int IdFogTile = Shader.PropertyToID("_FogTile");
-        private static readonly int IdFogOffset = Shader.PropertyToID("_FogOffset");
+        private static readonly int IdFogPhase = Shader.PropertyToID("_FogPhase");
+        private static readonly int IdFogBillowTile = Shader.PropertyToID("_FogBillowTile");
+        private static readonly int IdFogBillowPhase = Shader.PropertyToID("_FogBillowPhase");
+        private static readonly int IdFogLead = Shader.PropertyToID("_FogLead");
+        private static readonly int IdFogSwirlTile = Shader.PropertyToID("_FogSwirlTile");
+        private static readonly int IdFogSwirlPhase = Shader.PropertyToID("_FogSwirlPhase");
+        private static readonly int IdFogWispTile = Shader.PropertyToID("_FogWispTile");
+        private static readonly int IdFogWispPhase = Shader.PropertyToID("_FogWispPhase");
         private static readonly int IdFogBoil = Shader.PropertyToID("_FogBoil");
         private static readonly int IdFogPool = Shader.PropertyToID("_FogPool");
         private static readonly int IdFogFloor = Shader.PropertyToID("_FogFloor");
@@ -144,7 +152,8 @@ namespace VolumetricClouds.Sky
 
             // The noise volume is tens of millions of hash evaluations: generate it off
             // the main thread and upload when it lands. Clouds appear a moment after load.
-            int seed = UnityEngine.Random.Range(1, 100000);
+            // The seed is this city's (SkyPattern): the save's, or a new one for a new city.
+            int seed = SkyPattern.NoiseSeed;
             _noiseThread = new Thread(() =>
             {
                 try
@@ -239,6 +248,22 @@ namespace VolumetricClouds.Sky
                 return false;
             }
 
+            _noise = new Texture3D(NoiseSize, NoiseSize, NoiseSize, TextureFormat.ARGB32, false)
+            {
+                name = "VolumetricCloudsNoise3D",
+                wrapMode = TextureWrapMode.Repeat,
+                filterMode = FilterMode.Trilinear,
+            };
+            _noise.SetPixels32(ToColors(bytes));
+            _noise.Apply(false);
+            _noiseBytes = null;
+
+            Log.Msg("3D noise uploaded; volumetric clouds live.");
+            return true;
+        }
+
+        private static Color32[] ToColors(byte[] bytes)
+        {
             Color32[] colors = new Color32[bytes.Length / 4];
             for (int i = 0; i < colors.Length; i++)
             {
@@ -246,18 +271,29 @@ namespace VolumetricClouds.Sky
                 colors[i] = new Color32(bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]);
             }
 
-            _noise = new Texture3D(NoiseSize, NoiseSize, NoiseSize, TextureFormat.ARGB32, false)
-            {
-                name = "VolumetricCloudsNoise3D",
-                wrapMode = TextureWrapMode.Repeat,
-                filterMode = FilterMode.Trilinear,
-            };
-            _noise.SetPixels32(colors);
-            _noise.Apply(false);
-            _noiseBytes = null;
+            return colors;
+        }
 
-            Log.Msg("3D noise uploaded; volumetric clouds live.");
-            return true;
+        /// <summary>
+        /// False while the city's first noise is still being generated: a new pattern waits for
+        /// it, or that late upload would put the old seed's noise back over the new one.
+        /// </summary>
+        public bool CanReplaceNoise
+        {
+            get { return _failed || !enabled || _noise != null; }
+        }
+
+        /// <summary>
+        /// "Reset cloud pattern": the new seed's noise, generated on a worker thread, into the
+        /// SAME texture -- the shadow map and every material keep their reference. Main thread.
+        /// </summary>
+        public void ReplaceNoise(byte[] bytes)
+        {
+            if (_noise == null || bytes == null || bytes.Length != NoiseSize * NoiseSize * NoiseSize * 4)
+                return;
+
+            _noise.SetPixels32(ToColors(bytes));
+            _noise.Apply(false);
         }
 
         private void UpdateMaterial()
@@ -525,8 +561,17 @@ namespace VolumetricClouds.Sky
             // which drove the slider to 100%, where fog is everywhere.
             _material.SetFloat(IdFogThreshold, _field.GetThresholdAsDrawn(CloudFog.Amount, CloudFog.CoverSoftness));
             _material.SetFloat(IdFogTile, CloudFog.Tile);
-            _material.SetVector(IdFogOffset, CloudFog.Offset);
             _material.SetFloat(IdFogBoil, CloudFog.Boil);
+
+            // The drift, as each lookup sees it (Drift.Phase): exact for the life of the city.
+            _material.SetVector(IdFogPhase, CloudFog.Phase(1f, CloudFog.Tile));
+            _material.SetVector(IdFogBillowTile, new Vector4(CloudFog.BillowTile, CloudFog.BillowTileVertical, CloudFog.BillowTile, 0f));
+            _material.SetVector(IdFogBillowPhase, CloudFog.Phase(1f, CloudFog.BillowTile));
+            _material.SetVector(IdFogLead, CloudFog.Lead);
+            _material.SetFloat(IdFogSwirlTile, CloudFog.SwirlTile);
+            _material.SetVector(IdFogSwirlPhase, CloudFog.Phase(CloudFog.SwirlDrift, CloudFog.SwirlTile));
+            _material.SetFloat(IdFogWispTile, CloudFog.WispTile);
+            _material.SetVector(IdFogWispPhase, CloudFog.Phase(CloudFog.WispDrift, CloudFog.WispTile));
 
             // Pooling is a ground-following fog's lean towards low ground. A level fog needs
             // none -- low ground is where it is deepest by construction -- and its reference is

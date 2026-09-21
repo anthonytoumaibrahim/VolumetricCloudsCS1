@@ -88,8 +88,20 @@ Shader "VolumetricClouds/CloudRaymarch"
             float _FogDensity;         // extinction per metre inside the fog
             float _FogThreshold;       // weather-field threshold: how much of the map has fog
             float _FogTile;            // metres one tile of the weather field spans, for fog
-            float3 _FogOffset;         // how far the fog has drifted
             float _FogBoil;            // phase of the swirl, 0..1
+
+            // How far the fog has drifted, as each of its lookups sees it: the share of ONE
+            // repeat of that lookup, 0..1 per axis (CloudFog / Drift.Phase, in doubles on the
+            // CPU) -- never the drift itself, which grows for the life of the city. The
+            // tiles come from the same C# constants the phases are worked out against.
+            float2 _FogPhase;          // placement, over _FogTile
+            float3 _FogBillowTile;     // metres per repeat of the billow noise (x, y, z)
+            float2 _FogBillowPhase;
+            float2 _FogLead;           // metres the top of the layer is carried beyond its base (Drift.FogLead)
+            float _FogSwirlTile;
+            float2 _FogSwirlPhase;     // the swirl drifts at 0.55x
+            float _FogWispTile;
+            float2 _FogWispPhase;      // the wisps at 1.8x
             float _FogPool;            // fog gathers on ground below this level
             float _FogFollowGround;    // 1: heights are above the ground. 0: above _FogLevel
             float _FogLevel;           // the map's sea level: what a LEVEL fog is measured from
@@ -390,7 +402,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Where there is fog: the clouds' weather field, read at another scale and
                 // another place so a fog patch is not a cloud's footprint. It gathers on low
                 // ground: a little extra wherever the ground is below the pooling level.
-                float2 uv = (p.xz - _FogOffset.xz) / _FogTile + float2(0.37, 0.61);
+                float2 uv = p.xz / _FogTile - _FogPhase + float2(0.37, 0.61);
                 float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
                 float pooling = saturate((_FogPool - (p.y - above)) / 150.0) * 0.1;
                 float cover = saturate((weather + pooling - _FogThreshold) / 0.1);
@@ -405,12 +417,18 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // its own and turns over with _FogBoil, so billows shear, curl and merge; and
                 // the upper part of the layer is carried further than the ground layer, which
                 // drags. A pattern that only translated would slide past like a texture.
-                float3 carried = p - _FogOffset * (1.0 + 0.35 * h);
-                float3 s = (p - _FogOffset * 0.55) / 1300.0;   // slower than what it displaces
+                //
+                // "Further" is _FogLead, which swings between 400 m ahead and 400 m behind.
+                // It used to be 0.35 x the whole drift, which never stopped growing: minutes
+                // into a session the top was kilometres ahead of a base a few hundred metres
+                // below it, and the billows had been sheared into sheets, then stripes.
+                float3 s = p / _FogSwirlTile;   // slower than what it displaces
+                s.xz -= _FogSwirlPhase;
                 s.y += _FogBoil;
                 float2 swirl = tex3Dlod(_NoiseTex, float4(s, 0)).rg - 0.5;
 
-                float3 q = carried / float3(360.0, 210.0, 360.0);
+                float3 q = p / _FogBillowTile;
+                q.xz -= _FogBillowPhase + h * _FogLead / _FogBillowTile.xz;
                 q.xz += swirl * 0.75;
                 q.y -= _FogBoil * 2.0;
                 float base = tex3Dlod(_NoiseTex, float4(q, 0)).r;
@@ -422,7 +440,8 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Wisps: fine noise eats into it, moving faster than the billows and rising.
                 if (detailed && d > 0.0 && _FogBreakup > 0.0)
                 {
-                    float3 w = (p - _FogOffset * 1.8) / 85.0;
+                    float3 w = p / _FogWispTile;
+                    w.xz -= _FogWispPhase;
                     w.y -= _FogBoil * 9.0;
                     float wisp = tex3Dlod(_NoiseTex, float4(w, 0)).g;
                     d = saturate(Remap(d, wisp * _FogBreakup, 1.0, 0.0, 1.0));

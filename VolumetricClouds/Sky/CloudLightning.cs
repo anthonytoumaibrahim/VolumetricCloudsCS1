@@ -509,8 +509,9 @@ namespace VolumetricClouds.Sky
         private float CloudAt(Vector3 position)
         {
             float tile = Mathf.Max(500f, Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize);
-            return _field.SampleCloud((position.x - CloudWind.Offset.x) / tile,
-                                      (position.z - CloudWind.Offset.z) / tile,
+            Vector2 phase = CloudWind.WeatherPhase(tile);
+            return _field.SampleCloud(position.x / tile - phase.x,
+                                      position.z / tile - phase.y,
                                       CloudWeather.Coverage);
         }
 

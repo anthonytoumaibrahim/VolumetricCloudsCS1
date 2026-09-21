@@ -47,6 +47,7 @@ namespace VolumetricClouds.Sky
 
         private float _builtCoverage = -1f;
         private int _builtCount = -1;
+        private int _builtVersion = -1;
         private bool _failed;
 
         public void Initialise(CloudDensityField field)
@@ -130,11 +131,12 @@ namespace VolumetricClouds.Sky
                 ? Mathf.Clamp(Mathf.RoundToInt(Settings.CloudPuffCount.value), 0, MaxPuffs)
                 : Mathf.Min((int)Settings.Defaults.PuffCount, MaxPuffs);
 
-            if (!Mathf.Approximately(coverage, _builtCoverage) || requested != _builtCount)
+            if (!Mathf.Approximately(coverage, _builtCoverage) || requested != _builtCount || _field.Version != _builtVersion)
             {
                 Place(coverage, requested);
                 _builtCoverage = coverage;
                 _builtCount = requested;
+                _builtVersion = _field.Version;
             }
 
             BuildMesh();

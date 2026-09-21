@@ -22,7 +22,15 @@ float _DensityScale;
 float _Absorption;
 float _DetailStrength;   // how hard the fine noise eats into the cloud: 0 = solid blocks, ~0.3 default, higher = ragged and wispy
 float _DetailScale;      // frequency of that fine noise relative to the base shape
-float3 _WindOffset;
+
+// The wind, as each lookup sees it: how far through ONE REPEAT of that lookup the drift has
+// gone, 0..1 per axis (CloudWind / Drift.Phase, worked out in doubles on the CPU). A lookup is
+// p / tile - phase; the true drift differs by whole repeats, which read the same texel. The
+// drift itself is never sent: a city keeps its sky in its save, so it grows without limit,
+// and a float at 8000 km moves in whole-metre steps.
+float2 _WeatherPhase;    // over the weather map (_WeatherTile)
+float3 _NoisePhase;      // over the 3D noise, which drifts 1.25x as fast (CloudWind.NoiseDrift)
+float3 _DetailPhase;     // the same, for the erosion lookup at _DetailScale x the frequency
 
 float Remap(float v, float a, float b, float c, float d)
 {
@@ -41,7 +49,7 @@ float SampleDensity(float3 p, bool detailed)
     if (h <= 0.0 || h >= 1.0)
         return 0.0;
 
-    float2 uvWeather = (p.xz - _WindOffset.xz) / _WeatherTile;
+    float2 uvWeather = p.xz / _WeatherTile - _WeatherPhase;
     float weather = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
     float coverage = saturate((weather - _Threshold) / _Softness);
     if (coverage <= 0.0)
@@ -50,8 +58,8 @@ float SampleDensity(float3 p, bool detailed)
     float shaped = coverage * HeightShape(h);
 
     // The volume drifts slightly faster than the weather so clouds churn instead of
-    // sliding as a rigid sheet.
-    float3 uvNoise = (p - _WindOffset * 1.25) / _NoiseTile;
+    // sliding as a rigid sheet (the 1.25 is in _NoisePhase).
+    float3 uvNoise = p / _NoiseTile - _NoisePhase;
     float base = tex3Dlod(_NoiseTex, float4(uvNoise, 0)).r;
 
     float d = saturate(Remap(base, 1.0 - shaped, 1.0, 0.0, 1.0)) * shaped;
@@ -61,7 +69,10 @@ float SampleDensity(float3 p, bool detailed)
     // cloud vanish first, so raising the strength also opens gaps through it.
     if (detailed && d > 0.0 && _DetailStrength > 0.0)
     {
-        float detail = tex3Dlod(_NoiseTex, float4(uvNoise * _DetailScale, 0)).g;
+        // Its own phase: _DetailScale is not a whole number, so uvNoise * _DetailScale would
+        // jump every time _NoisePhase wraps.
+        float3 uvDetail = p / _NoiseTile * _DetailScale - _DetailPhase;
+        float detail = tex3Dlod(_NoiseTex, float4(uvDetail, 0)).g;
         d = saturate(Remap(d, detail * _DetailStrength, 1.0, 0.0, 1.0));
     }
 
@@ -92,7 +103,7 @@ float SampleRain(float3 p)
     // A drop at this height left the cloud base upwind of where it is now, so the curtains
     // lean with the wind exactly as the streaks fall.
     float2 xz = p.xz - _RainSlant.xz * below;
-    float2 uv = (xz - _WindOffset.xz) / _WeatherTile;
+    float2 uv = xz / _WeatherTile - _WeatherPhase;
     float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
     return _RainAmount * saturate((weather - _RainThreshold) / _Softness);
 }

@@ -29,6 +29,7 @@ namespace VolumetricClouds.Sky
 
         private float _appliedCoverage = -1f;
         private float _appliedDepth = -1f;
+        private int _appliedVersion = -1;
         private bool _appliedChecker;
         private float _nextLogTime;
         private string _mode = "none";
@@ -51,7 +52,7 @@ namespace VolumetricClouds.Sky
             }
 
             if (_field == null)
-                _field = new CloudDensityField(Random.Range(1, 100000));
+                _field = new CloudDensityField(SkyPattern.FieldSeed);
 
             _originalCookie = _sun.cookie;
             _originalCookieSize = _sun.cookieSize;
@@ -61,6 +62,10 @@ namespace VolumetricClouds.Sky
             // Statics outlive a city; start this one on its own weather, not the last one's.
             CloudWeather.Reset();
             CloudFog.Reset();
+
+            // ...and on its own drift: where its save left the clouds and the fog, or at 0.
+            // After the resets, which would otherwise throw a restored fog amount away.
+            SkySaveData.RestoreDrifts();
 
             Log.Msg("Sun '" + _sun.name + "' type=" + _sun.type +
                     " intensity=" + _sun.intensity +
@@ -139,7 +144,8 @@ namespace VolumetricClouds.Sky
 
             if (checker == _appliedChecker
                 && Mathf.Approximately(coverage, _appliedCoverage)
-                && Mathf.Approximately(depth, _appliedDepth))
+                && Mathf.Approximately(depth, _appliedDepth)
+                && _field.Version == _appliedVersion)
             {
                 return;
             }
@@ -152,6 +158,7 @@ namespace VolumetricClouds.Sky
             _appliedChecker = checker;
             _appliedCoverage = coverage;
             _appliedDepth = depth;
+            _appliedVersion = _field.Version;
         }
 
         private void LateUpdate()
@@ -175,6 +182,10 @@ namespace VolumetricClouds.Sky
 
             // The fog is drawn by the volumetric cloud pass, so it needs that pass running.
             CloudFog.Advance(Time.deltaTime, CloudVolume.IsActive, CloudWeather.WindDirection, simulationRate);
+
+            // What a save made now would record. Saving runs on the simulation thread, which
+            // must not read these statics while they move, so it gets this copy.
+            SkySaveData.Publish();
 
             // Every frame, not just on a settings change: the shadow map becomes ready a
             // moment after load, and the game is free to move the sun's transform.
@@ -242,6 +253,10 @@ namespace VolumetricClouds.Sky
         {
             // The sound-and-wet-roads patch outlives the city; hand the game its rain back.
             CloudRain.Clear();
+
+            // No city, no sky to save: an editor saving a map after this must not write the
+            // city's sky into it.
+            SkySaveData.Forget();
 
             if (!_captured || _sun == null)
                 return;

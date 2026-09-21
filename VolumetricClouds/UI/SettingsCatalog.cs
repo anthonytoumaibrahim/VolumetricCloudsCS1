@@ -1669,6 +1669,19 @@ namespace VolumetricClouds.UI
                 OnClick = ConfirmReset,
                 Profiled = false,
             });
+
+            // Not a setting: the pattern lives in the city's save, so "Reset all settings"
+            // leaves it alone and this touches no setting. Grey at the main menu, where there is
+            // no sky, and while a new pattern is being generated.
+            Add(new Row
+            {
+                Kind = RowKind.Button,
+                Options = OptionsPage.General,
+                Id = "ResetPattern",
+                OnClick = ConfirmResetPattern,
+                Enabled = () => SkyPattern.CanReset,
+                Profiled = false,
+            });
         }
 
         /// <summary>
@@ -1707,6 +1720,36 @@ namespace VolumetricClouds.UI
             {
                 // Nothing is reset without an answer: this one throws a tuned sky away.
                 Log.Error("Could not ask about resetting the settings, so nothing was changed.", e);
+            }
+        }
+
+        /// <summary>
+        /// Asks first: once the game saves, the old pattern is gone. Until then, reloading the
+        /// last save brings it back, which is what the question says.
+        /// </summary>
+        private static void ConfirmResetPattern()
+        {
+            if (!SkyPattern.CanReset)
+                return;
+
+            try
+            {
+                ConfirmPanel.ShowModal("Volumetric Clouds", Localization.Get("ResetPattern.Confirm"),
+                    (component, result) =>
+                    {
+                        if (result != 1)
+                        {
+                            Log.Msg("sky: new cloud pattern cancelled");
+                            return;
+                        }
+
+                        SkyPattern.RequestReset();
+                        RefreshAllUIs();
+                    });
+            }
+            catch (Exception e)
+            {
+                Log.Error("Could not ask about a new cloud pattern, so the sky was left as it is.", e);
             }
         }
     }

@@ -47,8 +47,8 @@ namespace VolumetricClouds.Sky
         {
             public CloudDensityField Field;
             public float Tile;
-            public float OffsetX;
-            public float OffsetZ;
+            public float PhaseX;   // CloudWind.WeatherPhase(Tile): the shaders' _WeatherPhase
+            public float PhaseZ;
             public float SlantX;
             public float SlantZ;
             public float CloudBottom;
@@ -119,12 +119,15 @@ namespace VolumetricClouds.Sky
             bool localised = Active && Amount > 0f
                           && (Settings.RainLocalised == null || Settings.RainLocalised.value);
 
+            float tile = Mathf.Max(500f, Value(Settings.WeatherTileSize, Settings.Defaults.WeatherTileSize));
+            Vector2 phase = CloudWind.WeatherPhase(tile);
+
             _snapshot = !localised ? null : new Snapshot
             {
                 Field = field,
-                Tile = Mathf.Max(500f, Value(Settings.WeatherTileSize, Settings.Defaults.WeatherTileSize)),
-                OffsetX = CloudWind.Offset.x,
-                OffsetZ = CloudWind.Offset.z,
+                Tile = tile,
+                PhaseX = phase.x,
+                PhaseZ = phase.y,
                 SlantX = Slant.x,
                 SlantZ = Slant.z,
                 CloudBottom = Value(Settings.CloudAltitude, Settings.Defaults.Altitude),
@@ -144,10 +147,10 @@ namespace VolumetricClouds.Sky
                 return 1f;
 
             float below = Mathf.Max(0f, s.CloudBottom - position.y);
-            float x = position.x - s.SlantX * below - s.OffsetX;
-            float z = position.z - s.SlantZ * below - s.OffsetZ;
+            float x = position.x - s.SlantX * below;
+            float z = position.z - s.SlantZ * below;
 
-            return s.Field.SampleCloud(x / s.Tile, z / s.Tile, s.RainCoverage);
+            return s.Field.SampleCloud(x / s.Tile - s.PhaseX, z / s.Tile - s.PhaseZ, s.RainCoverage);
         }
 
         /// <summary>
@@ -170,6 +173,14 @@ namespace VolumetricClouds.Sky
                     (curtains * 100f).ToString("F0") + "% -- in heavy rain they haze the distance like a fog" +
                     " | our volumetric fog: " + (!CloudFog.Enabled ? "switched off" : (CloudFog.Amount * 100f).ToString("F0") + "% of the map") +
                     ", the game's fog value: " + (CloudFog.GameFog * 100f).ToString("F0") + "%");
+        }
+
+        /// <summary>How far the rain had fallen when the city was saved (SkySaveData), or 0.</summary>
+        public static void RestoreFall(Vector3 fallen)
+        {
+            FallOffset = new Vector3(Mathf.Repeat(fallen.x, WrapDistance),
+                                     -Mathf.Repeat(-fallen.y, WrapDistance),
+                                     Mathf.Repeat(fallen.z, WrapDistance));
         }
 
         /// <summary>On unload: the game's rain is everywhere again.</summary>

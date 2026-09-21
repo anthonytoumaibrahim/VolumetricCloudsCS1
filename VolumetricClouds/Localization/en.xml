@@ -550,6 +550,19 @@
     options in the in-game panel'.
   </String>
 
+  <String key="ResetPattern.Label">Reset cloud pattern</String>
+  <String key="ResetPattern.Tooltip">
+    Gives this city a new arrangement of clouds and fog. A city keeps its sky in its save, so
+    this is how you get a different one. None of your settings change. Only works with a city
+    loaded.
+  </String>
+  <String key="ResetPattern.Confirm">
+    Give this city a new pattern of clouds and fog?\n\n
+    Your last save keeps the old one until you, or the autosave, save again: loading it before
+    then brings the old sky back.\n\n
+    None of your settings change.
+  </String>
+
   <!-- ==================== No row in either UI ==================== -->
 
   <String key="HaloIntensityScale.Label">Dynamic light brightness</String>

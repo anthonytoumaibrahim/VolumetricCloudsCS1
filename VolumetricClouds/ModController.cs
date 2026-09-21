@@ -59,8 +59,11 @@ namespace VolumetricClouds
             // ours follows it, build it again. (A static event: removed in OnDestroy.)
             LocaleManager.eventLocaleChanged += OnLocaleChanged;
 
+            // This city's pattern: its save's, or a new one. Before anything is generated.
+            SkySaveData.BeginCity();
+
             // One field feeds both the shadow cookie and the visible clouds.
-            _field = new CloudDensityField(UnityEngine.Random.Range(1, 100000));
+            _field = new CloudDensityField(SkyPattern.FieldSeed);
 
             _lighting = gameObject.AddComponent<CloudLighting>();
             _lighting.Initialise(_field);
@@ -128,6 +131,8 @@ namespace VolumetricClouds
 
         private void Update()
         {
+            ApplyNewPattern();
+
             // When the button is registered, Unified UI owns the hotkey (we hand it
             // over as UUIHotKeys.ActivationKey). Polling it here as well would toggle
             // the panel twice per press, which looks like the key doing nothing.
@@ -147,6 +152,30 @@ namespace VolumetricClouds
                 SetPanelVisible(_panel != null && !_panel.isVisible);
 
             _hotkeyWasDown = down;
+        }
+
+        /// <summary>
+        /// "Reset cloud pattern": a pattern finished on its worker thread goes to everything
+        /// drawn from the old one in the same frame -- the field (clouds, shadows, rain, fog,
+        /// lightning) and the 3D noise -- so nothing is ever half old, half new.
+        /// </summary>
+        private void ApplyNewPattern()
+        {
+            bool wasWorking = SkyPattern.Working;
+
+            CloudDensityField field;
+            byte[] noise;
+            if (SkyPattern.TryTake(_volume == null || _volume.CanReplaceNoise, out field, out noise))
+            {
+                if (_field != null)
+                    _field.Adopt(field);
+                if (_volume != null)
+                    _volume.ReplaceNoise(noise);
+            }
+
+            // The button greys out while a pattern is on its way; give it back.
+            if (wasWorking && !SkyPattern.Working)
+                SettingsCatalog.RefreshAllUIs();
         }
 
         private static bool IsHotkeyDown()

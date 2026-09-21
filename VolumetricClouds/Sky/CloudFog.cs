@@ -57,7 +57,21 @@ namespace VolumetricClouds.Sky
         /// <summary>Seconds for the swirl to turn over once, at 1x.</summary>
         private const float BoilPeriod = 240f;
 
+        // The fog's noise lookups: metres per repeat, and how fast each drifts against the fog
+        // itself. The shader reads the tiles from here (uniforms), so the phases worked out
+        // against them can never disagree with the divisors it uses -- a mismatch would be a
+        // jump every repeat, easy to miss in a short test.
+        public const float BillowTile = 360f;
+        public const float BillowTileVertical = 210f;
+        public const float SwirlTile = 1300f;
+        public const float SwirlDrift = 0.55f;
+        public const float WispTile = 85f;
+        public const float WispDrift = 1.8f;
+
         private static float _amount;
+        private static bool _holdAmount;
+        private static double _offsetX;
+        private static double _offsetZ;
         private static readonly AmountReporter Reporter = new AmountReporter();
 
         /// <summary>True while our fog replaces the game's foggy-weather look.</summary>
@@ -125,8 +139,47 @@ namespace VolumetricClouds.Sky
                    (sea + Base).ToString("F0") + ".." + (sea + Base + Height).ToString("F0") + " m)";
         }
 
-        /// <summary>How far the fog has drifted. Its own offset: fog moves at its own pace, not the clouds'.</summary>
-        public static Vector3 Offset { get; private set; }
+        /// <summary>
+        /// How far the fog has drifted along x, in metres. Its own offset: fog moves at its own
+        /// pace, not the clouds'. Exact, saved with the city, and can be very large.
+        /// </summary>
+        public static double OffsetX
+        {
+            get { return _offsetX; }
+        }
+
+        /// <summary>How far the fog has drifted along z, in metres.</summary>
+        public static double OffsetZ
+        {
+            get { return _offsetZ; }
+        }
+
+        /// <summary>The same as a vector, for the log only: it loses precision far out.</summary>
+        public static Vector3 Offset
+        {
+            get { return new Vector3((float)_offsetX, 0f, (float)_offsetZ); }
+        }
+
+        /// <summary>
+        /// A lookup's share of the drift (see <see cref="Drift.Phase"/>): x and z of how far
+        /// through one repeat of <paramref name="tile"/> a lookup drifting at
+        /// <paramref name="rate"/> times the fog has gone.
+        /// </summary>
+        public static Vector4 Phase(float rate, float tile)
+        {
+            return new Vector4(Drift.Phase(_offsetX * rate, tile), Drift.Phase(_offsetZ * rate, tile), 0f, 0f);
+        }
+
+        /// <summary>Metres the top of the layer is carried beyond its base (x, z): <see cref="Drift.FogLead"/>.</summary>
+        public static Vector4 Lead
+        {
+            get
+            {
+                float x, z;
+                Drift.FogLead(_offsetX, _offsetZ, out x, out z);
+                return new Vector4(x, z, 0f, 0f);
+            }
+        }
 
         /// <summary>Phase of the swirl, 0..1, wrapping. The shader scrolls its noise by whole multiples of it.</summary>
         public static float Boil { get; private set; }
@@ -160,6 +213,7 @@ namespace VolumetricClouds.Sky
                 // keys on Active, so returning above it would leave the game's own
                 // foggy-weather reaction switched off for ever with nothing of ours in its place.
                 _amount = 0f;
+                _holdAmount = false;
                 Report();
                 return;
             }
@@ -168,8 +222,21 @@ namespace VolumetricClouds.Sky
             // fog racing across the map at 3x reads as smoke.
             float speed = Settings.FogSpeed != null ? Mathf.Max(0f, Settings.FogSpeed.value) : Settings.Defaults.FogSpeed;
             float moved = deltaTime * Mathf.Min(simulationRate, 2f) * speed;
-            Offset += windDirection * (DriftSpeed * moved);
+            _offsetX += (double)windDirection.x * (DriftSpeed * moved);
+            _offsetZ += (double)windDirection.z * (DriftSpeed * moved);
             Boil = Mathf.Repeat(Boil + moved / BoilPeriod, 1f);
+
+            // An amount put back from a save waits for the fog to be drawn: until the terrain
+            // map is measured and the cloud pass runs there is no fog on screen, and easing
+            // towards nothing in the meantime would undo what the save restored -- a foggy city
+            // would open by growing its fog in again.
+            if (_holdAmount)
+            {
+                if (!Active)
+                    return;
+
+                _holdAmount = false;
+            }
 
             float target = 0f;
             if (Active)
@@ -213,8 +280,23 @@ namespace VolumetricClouds.Sky
         public static void Reset()
         {
             _amount = 0f;
+            _holdAmount = false;
             Active = false;
             Reporter.Reset();
+        }
+
+        /// <summary>
+        /// Puts the fog where a save left it: its drift, its swirl, and how much of it there
+        /// was (held until the fog is drawn again, see <see cref="Advance"/>). A city without a
+        /// saved sky gets zeros: a fresh drift, and the fog growing in as it always has.
+        /// </summary>
+        public static void Restore(double offsetX, double offsetZ, float boil, float amount)
+        {
+            _offsetX = offsetX;
+            _offsetZ = offsetZ;
+            Boil = float.IsNaN(boil) ? 0f : Mathf.Repeat(boil, 1f);
+            _amount = float.IsNaN(amount) ? 0f : Mathf.Clamp01(amount);
+            _holdAmount = _amount > 0f;
         }
 
         /// <summary>One line for the panel and the log.</summary>
