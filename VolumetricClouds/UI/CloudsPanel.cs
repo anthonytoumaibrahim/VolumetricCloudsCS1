@@ -266,7 +266,7 @@ namespace VolumetricClouds.UI
 
         private void BuildTitleBar()
         {
-            UILabel title = UIBuilder.AddLabel(this, "Volumetric Clouds", new Vector3(Margin, Margin), 1.1f);
+            UILabel title = UIBuilder.AddLabel(this, Mod.DisplayName,new Vector3(Margin, Margin), 1.1f);
             title.autoSize = false;
             title.size = new Vector2(_width - TitleBarHeight, TitleBarHeight);
 

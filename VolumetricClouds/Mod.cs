@@ -5,7 +5,14 @@ namespace VolumetricClouds
 {
     public class Mod : IUserMod
     {
-        public string Name => "Volumetric Clouds";
+        /// <summary>
+        /// The mod's name wherever a player reads it: the mods list, the options page, the
+        /// panel's title, button tooltips, dialog titles, the log's first line. Files, the
+        /// assembly, the namespace and the button IDs stay "VolumetricClouds".
+        /// </summary>
+        public const string DisplayName = "Volumetric Weather";
+
+        public string Name => DisplayName;
         public string Description => Localization.Get("Mod.Description");
 
         /// <summary>Called by the game via reflection when the mod is enabled.</summary>

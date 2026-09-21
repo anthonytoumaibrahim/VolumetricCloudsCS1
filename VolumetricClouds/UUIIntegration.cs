@@ -32,7 +32,7 @@ namespace VolumetricClouds
                 _button = UUIHelpers.RegisterCustomButton(
                     name: "VolumetricClouds",
                     groupName: null,
-                    tooltip: "Volumetric Clouds",
+                    tooltip: Mod.DisplayName,
                     icon: icon,
                     onToggle: onToggle,
                     onToolChanged: null,

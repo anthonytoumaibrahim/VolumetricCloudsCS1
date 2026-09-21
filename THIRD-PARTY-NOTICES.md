@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Volumetric Clouds is an unofficial mod for Cities: Skylines 1. This file records what in the
+Volumetric Weather is an unofficial mod for Cities: Skylines 1. This file records what in the
 repository is not original work, and what is credited rather than incorporated.
 
 Apart from the two shader ports described below, and a few lines of a third shader copied from

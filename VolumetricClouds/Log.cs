@@ -44,7 +44,7 @@ namespace VolumetricClouds
                 try
                 {
                     File.WriteAllText(Path,
-                        "Volumetric Clouds log - session started " +
+                        Mod.DisplayName + " log - session started " +
                         DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine);
                 }
                 catch (Exception e)

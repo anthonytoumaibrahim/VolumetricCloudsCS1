@@ -23,7 +23,7 @@ namespace VolumetricClouds.UI
 
             name = "VolumetricCloudsButton";
             size = new Vector2(ButtonSize, ButtonSize);
-            tooltip = "Volumetric Clouds";
+            tooltip = Mod.DisplayName;
             relativePosition = DefaultPosition;
 
             Texture2D icon = IconLoader.Load();

@@ -493,7 +493,7 @@ namespace VolumetricClouds.UI
                 // player just ticked unticks itself behind the dialog.
                 row.Pending = true;
 
-                ConfirmPanel.ShowModal("Volumetric Clouds", row.ConfirmOn,
+                ConfirmPanel.ShowModal(Mod.DisplayName,row.ConfirmOn,
                     (component, result) =>
                     {
                         row.Pending = false;
@@ -1710,7 +1710,7 @@ namespace VolumetricClouds.UI
         {
             try
             {
-                ConfirmPanel.ShowModal("Volumetric Clouds", Localization.Get("ResetAll.Confirm"),
+                ConfirmPanel.ShowModal(Mod.DisplayName,Localization.Get("ResetAll.Confirm"),
                     (component, result) =>
                     {
                         if (result != 1)
@@ -1741,7 +1741,7 @@ namespace VolumetricClouds.UI
 
             try
             {
-                ConfirmPanel.ShowModal("Volumetric Clouds", Localization.Get("ResetPattern.Confirm"),
+                ConfirmPanel.ShowModal(Mod.DisplayName,Localization.Get("ResetPattern.Confirm"),
                     (component, result) =>
                     {
                         if (result != 1)

@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Volumetric Clouds")]
+[assembly: AssemblyTitle("Volumetric Weather")]
 [assembly: AssemblyDescription("Adds volumetric clouds to the game.")]
 [assembly: AssemblyProduct("VolumetricClouds")]
 [assembly: ComVisible(false)]

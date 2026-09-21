@@ -1,6 +1,6 @@
 # Changelog
 
-Notable changes to Volumetric Clouds. The format follows
+Notable changes to Volumetric Weather. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses an
 `AssemblyVersion` of `1.0.*`, so the build number moves on every compile and only the entries
 below mark a release.

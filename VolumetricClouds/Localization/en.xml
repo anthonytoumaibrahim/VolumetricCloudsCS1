@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Volumetric Clouds: every text a player reads, in English. The source for every translation.
+  Volumetric Weather: every text a player reads, in English. The source for every translation.
 
   To translate: copy this file, name it with the game's code for your language (de.xml, es.xml,
   fr.xml, ko.xml, pl.xml, pt.xml, ru.xml, zh.xml), set code and name below, and translate the
@@ -587,7 +587,7 @@
 
   <!-- One line of the file per \n: a bullet wrapped here stays one line there. -->
   <String key="File.Header">
-    Volumetric Clouds settings.\n
+    Volumetric Weather settings.\n
     \n
     You can edit this file while the game is running: the mod reads it again within a
     second of it being saved, and the panels follow.\n
