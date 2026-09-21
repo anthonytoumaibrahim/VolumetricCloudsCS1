@@ -122,6 +122,12 @@ namespace VolumetricClouds.UI
         public bool Sticky;
 
         /// <summary>
+        /// Never borrowed by the F4 panel's advanced tabs: one-time set-up that belongs on the
+        /// game's options page alone (the language).
+        /// </summary>
+        public bool OptionsOnly;
+
+        /// <summary>
         /// True while this row's confirmation dialog is open. The stored value is still the old
         /// one at that point, so a refresh would untick the box the player just ticked.
         /// </summary>
@@ -1596,6 +1602,7 @@ namespace VolumetricClouds.UI
                 ChoiceValues = Localization.LanguageChoices(),
                 ChoiceText = Localization.LanguageName,
                 Profiled = false,
+                OptionsOnly = true,
                 AfterChange = () =>
                 {
                     Log.Msg("setting: language = " + Localization.CurrentCode +

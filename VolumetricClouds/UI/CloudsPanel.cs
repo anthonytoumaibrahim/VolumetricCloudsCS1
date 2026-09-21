@@ -60,7 +60,7 @@ namespace VolumetricClouds.UI
                     return row.Panel == Panel;
 
                 // A row that already has a home on a basic tab (the fog switch) stays there.
-                return row.Options == Options && row.Panel == PanelPage.None;
+                return row.Options == Options && row.Panel == PanelPage.None && !row.OptionsOnly;
             }
         }
 
