@@ -386,3 +386,10 @@ UnityProject/Bundles/
 # The Visual Studio template above ignores *.meta, but Unity asset metadata
 # (stable GUIDs) belongs in source control.
 !UnityProject/Assets/**/*.meta
+
+# ---------------------------------------------------------------------------
+# Plans are local working documents: they live in docs/ on the author's machine
+# and are not needed once implemented. Only the release checklist is shared.
+# ---------------------------------------------------------------------------
+/docs/*
+!/docs/RELEASE-CHECKLIST.md

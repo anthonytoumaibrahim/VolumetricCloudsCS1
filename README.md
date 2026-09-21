@@ -134,7 +134,8 @@ rarely identifies the cause.
    dynamic-light slot each frame. The game's own materials are never modified.
 
 The full technical record — invariants, facts read out of the game's IL, and every dead end —
-is in [`CLAUDE.md`](CLAUDE.md); the release plan is in [`POLISH-PLAN.md`](POLISH-PLAN.md).
+is in [`CLAUDE.md`](CLAUDE.md); what has to happen before a release is in
+[`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
 Read the *Invariants* section before changing anything under `Sky/`.
 
 ## Build and test
