@@ -62,7 +62,7 @@ Other mods were read to understand the game's behaviour and to stay compatible w
 Unified UI, CitiesHarmony, Render It!, Theme Mixer, Intersection Marking Tool, Persistent Fog
 Adjuster and Play It! among them. That study informed integration and compatibility decisions;
 no source code from them is incorporated into this project. Where such a mod's behaviour
-mattered, it was read from its IL and the finding recorded in `CLAUDE.md`.
+mattered, it was read from its IL.
 
 ## Trademarks
 

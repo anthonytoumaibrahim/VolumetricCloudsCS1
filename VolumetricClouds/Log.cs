@@ -78,7 +78,8 @@ namespace VolumetricClouds
         /// <remarks>
         /// What is NOT allowed in here: anything that only happens once, any warning or error,
         /// and the state of anything that can suppress or replace rendering. A quiet log must
-        /// still explain a black screen -- see the DebugSkipDrawLight story in CLAUDE.md.
+        /// still explain a black screen: a debug switch once left saved as on silently removed
+        /// every vehicle light, session after session, until a log line gave it away.
         /// </remarks>
         public static void Detail(string message)
         {

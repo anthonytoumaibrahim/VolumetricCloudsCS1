@@ -752,8 +752,8 @@ namespace VolumetricClouds
 
         /// <summary>
         /// The curve itself: pure, so it can be exercised offline. Straight in slider
-        /// coverage, which is not linear in sky covered (the weather texture is gamma-decoded,
-        /// see CLAUDE.md) -- if the middle ever looks too dim for how little cloud there is,
+        /// coverage, which is not linear in sky covered (the GPU gamma-decodes the weather
+        /// texture) -- if the middle ever looks too dim for how little cloud there is,
         /// bend this rather than pulling the endpoints apart.
         /// </summary>
         public static float BrightnessCurve(float clear, float overcast, float coverage)

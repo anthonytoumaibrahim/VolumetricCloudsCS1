@@ -12,7 +12,7 @@ namespace VolumetricClouds.Sky
     /// street light on a foggy night IS. The halos are not touched.
     /// </summary>
     /// <remarks>
-    /// Where the lights come from (measured by a probe on 2026-09-21, see CLAUDE.md):
+    /// Where the lights come from (measured by a probe on 2026-09-21):
     ///
     /// Street and building lamps are baked by the game into the light layers of
     /// RenderManager.m_groups (45 x 45 cells of 384 m; MeshLayer.m_mesh is a chain of

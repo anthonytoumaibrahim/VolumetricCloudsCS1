@@ -133,10 +133,8 @@ rarely identifies the cause.
 7. **Halos are a shader replacement**, swapped into the batched light layers and the
    dynamic-light slot each frame. The game's own materials are never modified.
 
-The full technical record — invariants, facts read out of the game's IL, and every dead end —
-is in [`CLAUDE.md`](CLAUDE.md); what has to happen before a release is in
+What has to happen before a release is in
 [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
-Read the *Invariants* section before changing anything under `Sky/`.
 
 ## Translations
 
@@ -166,8 +164,8 @@ What that means in practice:
 - The code was not taken on trust. Game APIs were checked by reflection and by reading the
   game's IL, the shader ports were checked by diffing disassembly, and pure maths is tested
   offline. But there is no automated test suite, and the mod has been seen on one machine.
-- AI-written code can be confidently wrong. `CLAUDE.md` records several theories that were
-  wrong and how each was caught. Read the code before you depend on it.
+- AI-written code can be confidently wrong. Several theories during development were, and
+  were only caught in the game or in its IL. Read the code before you depend on it.
 - The mod is provided as-is, with no warranty of any kind. Use it at your own risk.
 
 ## Credits and licence

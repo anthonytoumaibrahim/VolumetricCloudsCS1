@@ -3,7 +3,7 @@
 #   dotnet build VolumetricClouds/VolumetricClouds.csproj
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\test-fogcoverage.ps1
 #
-# Background (measured in-game, see CLAUDE.md): the GPU gamma-decodes the weather texture, so a
+# Background (measured in-game): the GPU gamma-decodes the weather texture, so a
 # shader testing "saturate((weather - threshold) / softness)" sees smaller numbers than the
 # stored densities the clouds' threshold table was solved against. GetThresholdAsDrawn solves
 # against the decoded values instead. This script generates a real field, and for several

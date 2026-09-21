@@ -108,9 +108,6 @@ your own installed copy.
 | `libs/` | Third-party DLLs referenced at build time (see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)) |
 | `tools/` | The PowerShell tools above |
 
-`CLAUDE.md` is the full technical record: the invariants, the facts read out of the game's IL,
-and every dead end. Read its *Invariants* section before changing anything under `Sky/`.
-
 ## Publishing
 
 [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) is the Workshop release checklist: what

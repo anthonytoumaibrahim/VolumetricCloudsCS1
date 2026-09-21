@@ -393,3 +393,6 @@ UnityProject/Bundles/
 # ---------------------------------------------------------------------------
 /docs/*
 !/docs/RELEASE-CHECKLIST.md
+
+# CLAUDE.md holds the author's local notes for Claude Code and is not shared.
+/CLAUDE.md
