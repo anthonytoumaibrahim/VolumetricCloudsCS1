@@ -185,8 +185,9 @@ Full dimensions, formats and limits are in *Specifications* above.
       *Detailed logging*, hosted, linked in the comments) · the AI disclosure. Not in it: no
       moon shadows. Only Steam's tags, and no list inside a list: a Steam-aware previewer
       splits a list on every `[*]`, so a nested list's own tags showed as text. Keep it under
-      8000 characters, counting each line break twice in case the browser sends CRLF (7888 +
-      95 lines = 7983 on 2026-09-21: almost full, so anything added needs a cut).
+      8000 characters as STEAM counts them: each line break twice (CRLF) and each apostrophe as
+      `&#39;` (5). 7888 characters read 8071 that way and Steam refused to save the page on
+      2026-09-21; cut to 6993 (worst case 7155). Measure that way before adding anything.
 - [ ] Workshop title: **Volumetric Weather**. The Share panel pre-fills it from the folder
       name, `VolumetricClouds`, which stays as it is (files and assembly keep the old name).
 - [ ] If the game has updated since, the banner at the top of the description still names the

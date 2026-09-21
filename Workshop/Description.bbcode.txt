@@ -1,26 +1,26 @@
 [h1]This is a pre-release[/h1]
-[b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti). It runs well there, but other hardware is untested. Some bugs and rough edges are to be expected, so please report anything unusual (see [b]Reporting a bug[/b] below). Your feedback is what will turn this into a full release.
+[b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti), so expect some bugs and rough edges, and please report anything unusual (see [b]Reporting a bug[/b] below).
 [b]As a precaution, please do not use it on a save you value[/b] until enough players have confirmed that it works well: try it on a copy or a test city instead.
 
 [hr][/hr]
 [h1]Overview[/h1]
 Volumetric Weather adds real 3D clouds to Cities: Skylines. They drift over your city with the wind, cast real shadows on the ground and follow the game's weather: a clear day brings a few scattered clouds, a rainy day brings heavy grey ones, with rain falling from them and lightning flashing inside.
 
-No setup is needed: subscribe, load your city, and the sky follows the game's weather on its own.
+No setup is needed: subscribe, load a city, done.
 
-[b]Everything can be overridden.[/b] Every feature can be switched off or adjusted to taste. The amount of cloud, fog and lightning can each be set by hand, whatever the game's weather is doing, and wherever the mod replaces something of the game's (its rain, its lightning bolt), a switch brings the original back.
+[b]Everything can be overridden.[/b] Every feature can be switched off or adjusted, cloud, fog and lightning can each be set by hand whatever the weather, and where the mod replaces part of the game (its rain, its lightning bolt), a switch brings the original back.
 
 [hr][/hr]
 [h1]Features[/h1]
 [list]
 [*][b]Volumetric clouds[/b] you can fly through, not a flat picture of a sky.
 [*][b]Real cloud shadows[/b] moving across your buildings and terrain.
-[*][b]Follows the game's weather[/b], wherever it comes from: random weather, disasters or Play It!'s weather sliders.
-[*][b]Rain that comes from the clouds[/b]: rain curtains hang under the clouds that are actually raining, and the rain sound and wet roads follow them.
+[*][b]Follows the game's weather[/b]: random weather, disasters and Play It!'s weather sliders.
+[*][b]Rain that comes from the clouds[/b]: it falls only under raining clouds, and the rain sound and wet roads follow it.
 [*][b]Lightning[/b] that lights up the clouds from inside, followed a moment later by thunder. The extra storm lightning is purely visual and never starts fires.
 [*][b]Volumetric fog[/b] (optional, off by default): fog that rolls over the city like low cloud, with sunbeams through the gaps and a glow around the city's lights at night.
 [*][b]Better nights[/b]: clouds hide the stars behind them and have a soft glow on their undersides.
-[*][b]Smaller light halos[/b] (optional, off by default): reduces the game's oversized glow around street lamps, building lights and vehicles, including lamps placed with Intersection Marking Tool. Persistent Fog Adjuster is no longer needed for this.
+[*][b]Smaller light halos[/b] (optional, off by default): shrinks the oversized glow around street lamps, building lights and vehicles (Intersection Marking Tool lamps included), with no need for Persistent Fog Adjuster.
 [*][b]Your city keeps its sky[/b]: the cloud pattern and the wind are saved with your city, so it looks the same when you return.
 [/list]
 
@@ -37,23 +37,23 @@ No setup is needed: subscribe, load your city, and the sky follows the game's we
 Only the first two steps are required.
 [olist]
 [*][b]Subscribe[/b] to this mod and to Harmony, then make sure both are enabled in [i]Content Manager → Mods[/i].
-[*][b]Load a city[/b] (new or saved). The clouds appear on their own and follow the game's weather. The mod does not run in the map or asset editors, or in scenarios.
+[*][b]Load a city[/b] (new or saved) and the clouds appear. The mod does not run in the editors or in scenarios.
 [*][b]Press F4[/b] (or click the mod's button) to open the in-game panel.
-[*][b]All other settings[/b] (rain, lightning, shadows, quality, light halos, the F4 key) are in the game's [i]Options[/i] menu: select [i]Volumetric Weather[/i] under [i]Mod Settings[/i] on the left.
+[*][b]All other settings[/b] (rain, lightning, shadows, quality, halos, the F4 key) are on the mod's page in [i]Options → Mod Settings[/i].
 [*][b]To start over[/b], use [i]Options → Volumetric Weather → General → Reset all settings to defaults[/i].
 [/olist]
 The tabs of the in-game panel:
 [list]
-[*][b]Now[/b]: the current weather, and the overrides that set cloud, fog and lightning by hand. [i]Follow the game's weather[/i] clears them all at once; [i]Test lightning[/i] shows a strike in front of the camera.
+[*][b]Now[/b]: the current weather and the overrides for cloud, fog and lightning. [i]Follow the game's weather[/i] clears them all; [i]Test lightning[/i] shows a strike.
 [*][b]Clouds[/b]: the height, thickness and break-up of the clouds.
-[*][b]Fog[/b]: the volumetric fog switch and its appearance. Please read [b]Performance[/b] below before turning it on.
+[*][b]Fog[/b]: the volumetric fog switch and its look (read [b]Performance[/b] first).
 [/list]
 
 [hr][/hr]
 [h1]Performance[/h1]
-The clouds are drawn in 3D every frame, so they cost more than the game's flat sky. How much depends on your graphics card, and a powerful one like mine hides a great deal.
+The clouds are drawn in 3D every frame, so they cost more than the game's flat sky; how much depends on your graphics card.
 [list]
-[*][b]Volumetric fog is very heavy on performance.[/b] It is by far the most expensive part of the mod, which is why it is off by default. If your frame rate drops after turning it on, turn it back off.
+[*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
 [*]If the clouds alone are too demanding, lower the [i]Quality preset[/i] (Options → Volumetric Weather → Rendering) to Medium or Low.
 [*]The Medium and Low presets are estimates for now, not yet measured on slower hardware. Reports of how they run are welcome.
 [/list]
@@ -75,8 +75,7 @@ For reference: the mod takes the place of the game's rain and rain-cloud layer (
 
 [hr][/hr]
 [h1]Source code[/h1]
-The mod is open source under the MIT license, except for the light halo shaders, which are adapted from the game's own (see the LICENSE file).
-It includes two small MIT-licensed libraries by other modders: [url=https://github.com/kianzarrin/UnifiedUI]UnifiedUILib[/url] by kianzarrin and [url=https://github.com/boformer/CitiesHarmony]CitiesHarmony.API[/url] by boformer. Many thanks to both.
+The mod is open source under the MIT license, except for the light halo shaders, which are adapted from the game's own (see the LICENSE file). It includes two small MIT-licensed libraries: UnifiedUILib by kianzarrin and CitiesHarmony.API by boformer. Many thanks to both.
 [h3][url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1]Get it on GitHub[/url][/h3]
 
 [hr][/hr]
@@ -84,11 +83,11 @@ It includes two small MIT-licensed libraries by other modders: [url=https://gith
 Please include the following:
 [olist]
 [*][b]The game's log[/b], [i]output_log.txt[/i]. In Steam, right-click Cities: Skylines → [i]Manage → Browse local files[/i], then open the [i]Cities_Data[/i] folder.
-[*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. For the most useful log, tick [i]Detailed logging[/i] (Options → Volumetric Weather → General) first, then make the problem happen again. It is in this folder (paste it into File Explorer's address bar):
+[*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. Tick [i]Detailed logging[/i] (Options → Volumetric Weather → General) first, then make the problem happen again. To find it, paste this into File Explorer's address bar:
 [code]%LOCALAPPDATA%\Colossal Order\Cities_Skylines[/code]
-[*][b]A description of the problem[/b]: what you did, what you expected and what happened instead, along with screenshots, your graphics card and the other mods you use.
+[*][b]What happened[/b]: what you did and expected, screenshots, your graphics card and your other mods.
 [/olist]
-Both logs start fresh every time the game launches, so please copy them before restarting. Upload them to a file-sharing service (Google Drive, Dropbox, Pastebin...) and post the link in the comments.
+Both logs start fresh at every launch, so copy them before restarting, upload them (Google Drive, Pastebin...) and post the link in the comments.
 
 [hr][/hr]
 [h1]AI disclosure[/h1]
