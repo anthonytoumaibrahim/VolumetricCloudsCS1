@@ -18,7 +18,7 @@
 
   <!-- ==================== The mod ==================== -->
 
-  <String key="Mod.Description">Adds volumetric clouds to the game.</String>
+  <String key="Mod.Description">3D clouds that follow the game's weather, with real shadows, rain, lightning, fog and light halo controls. Requires Harmony.</String>
 
   <String key="Tab.Now">Now</String>
   <String key="Tab.Clouds">Clouds</String>

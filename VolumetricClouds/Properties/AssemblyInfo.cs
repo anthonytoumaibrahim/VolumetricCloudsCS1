@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("Volumetric Weather")]
-[assembly: AssemblyDescription("Adds volumetric clouds to the game.")]
+[assembly: AssemblyDescription("3D clouds that follow the game's weather, with real shadows, rain, lightning, fog and light halo controls. Requires Harmony.")]
 [assembly: AssemblyProduct("VolumetricClouds")]
 [assembly: ComVisible(false)]
 

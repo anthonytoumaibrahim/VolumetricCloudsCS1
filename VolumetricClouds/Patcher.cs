@@ -57,10 +57,6 @@ namespace VolumetricClouds
                 harmony.PatchAll(typeof(Patcher).Assembly);
                 _patched = true;
                 Log.Msg("Harmony patches applied (" + HarmonyId + "). Harmony installed=" + HarmonyHelper.IsHarmonyInstalled);
-
-                // TEMPORARY: applied on its own, never through PatchAll, so that if it cannot be
-                // applied it takes nothing else down with it.
-                Diagnostics.TerrainManagerProbe.Apply(harmony);
             }
             catch (Exception e)
             {

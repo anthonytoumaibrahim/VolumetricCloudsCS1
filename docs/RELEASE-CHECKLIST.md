@@ -94,11 +94,13 @@ panel open against the sky · the options page.
 
 ## 1. Code and content
 
-- [ ] `Mod.Description` rewritten — it is what the Content Manager shows, and it still reads
-      *"Adds volumetric clouds to the game."* Mention rain, lightning, fog, halos, and that
-      Harmony is required.
-- [ ] Button icon replaced — `Resources/CloudIcon.png`, to the spec above. The current file is a
-      448-byte placeholder.
+- [x] `Mod.Description` rewritten (2026-09-21, one line, in `en.xml` and `AssemblyDescription`):
+      *"3D clouds that follow the game's weather, with real shadows, rain, lightning, fog and
+      light halo controls. Requires Harmony."*
+- [x] Button icon replaced — `Resources/CloudIcon.png` (2026-09-21): a colour cloud-and-sun from
+      Openclipart's *Weather Symbols* (public domain, recorded in THIRD-PARTY-NOTICES.md), 64 px
+      art centred 1:1 on an 80×80 transparent canvas for a margin. Still to see: how it reads on
+      the Unified UI bar and the HUD fallback.
 - [ ] `Settings.Defaults` re-snapshotted from the live `VolumetricClouds.xml`, read with a
       human eye — the file also holds experiments that must not be copied back. Mind the
       units: percentages are written as the slider shows them (47), the constants are
@@ -113,7 +115,10 @@ panel open against the sky · the options page.
       currently off in the settings file). Options tabs, the F4 panel with the advanced switch
       both ways, greying, the confirmation dialogs, Reset, fog on and off, halos, lightning
       placement, rain, night. Read the log afterwards, not just the screen.
-- [ ] **A true first run**: move `VolumetricClouds.xml` AND the old `VolumetricClouds.cgs`
+- [x] (2026-09-21: the author deleted the `.cgs`, `.xml` and `.log` and loaded a city; it
+      worked. Repeat it after the defaults are re-snapshotted, since that changes what a first
+      run looks like.)
+      **A true first run**: move `VolumetricClouds.xml` AND the old `VolumetricClouds.cgs`
       aside, load a city, change nothing. (Normally the import marks the `.cgs` so it is not
       read again, but on the dev machine it ran before that worked, and an unmarked `.cgs`
       would be imported again instead of giving a first run.)

@@ -17,6 +17,12 @@ in this ecosystem.
 | [`UnifiedUILib.dll`](https://github.com/kianzarrin/UnifiedUI) | kianzarrin | MIT | Registers the mod's button with Unified UI, and hosts the button panel itself when the Unified UI mod is not enabled |
 | [`CitiesHarmony.API.dll`](https://github.com/boformer/CitiesHarmony) | boformer | MIT | Bootstrap shim: waits for the Harmony mod and prompts the player to install it if it is missing |
 
+## Artwork
+
+| Asset | Source | Licence | Use |
+| --- | --- | --- | --- |
+| `VolumetricClouds/Resources/CloudIcon.png` | One symbol from [*Weather Symbols*](https://openclipart.org/detail/173430/weather-symbols) by opk on Openclipart, cut out of the sheet and centred on a transparent 80×80 canvas | Public domain | The mod's button icon, embedded in the DLL. No attribution is required; this entry only records where it came from |
+
 ## Build-time only
 
 | Component | Author | Licence | Use |
