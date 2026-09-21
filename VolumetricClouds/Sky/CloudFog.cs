@@ -58,6 +58,7 @@ namespace VolumetricClouds.Sky
         private const float BoilPeriod = 240f;
 
         private static float _amount;
+        private static readonly AmountReporter Reporter = new AmountReporter();
 
         /// <summary>True while our fog replaces the game's foggy-weather look.</summary>
         public static bool Active { get; private set; }
@@ -114,6 +115,7 @@ namespace VolumetricClouds.Sky
                 // keys on Active, so returning above it would leave the game's own
                 // foggy-weather reaction switched off for ever with nothing of ours in its place.
                 _amount = 0f;
+                Report();
                 return;
             }
 
@@ -135,12 +137,38 @@ namespace VolumetricClouds.Sky
             _amount = Mathf.Lerp(_amount, target, 1f - Mathf.Exp(-Mathf.Max(0f, deltaTime) / FollowSeconds));
             if (Mathf.Abs(target - _amount) < 0.0005f)
                 _amount = target;
+
+            Report();
+        }
+
+        /// <summary>
+        /// Always on, a line per quarter the fog travels: whether OUR fog is on screen has to be
+        /// in a quiet log. The game's fog never reacts to rain and ours follows only the game's
+        /// FOG value, so "is that fog ours?" is answered by whether these lines are there.
+        /// </summary>
+        private static void Report()
+        {
+            if (!Reporter.Moved(_amount))
+                return;
+
+            if (_amount <= 0f)
+            {
+                Log.Msg("fog: OUR volumetric fog has gone" + (Enabled ? "" : " (it is switched off)"));
+                return;
+            }
+
+            Log.Msg("fog: OUR volumetric fog is on screen, over " + (_amount * 100f).ToString("F0") + "% of the map -- " +
+                    (Overridden
+                        ? "the fog override asks for " + ((Settings.FogAmount != null ? Mathf.Clamp01(Settings.FogAmount.value) : 0f) * 100f).ToString("F0") + "%"
+                        : "following the game's fog, which is at " + (GameFog * 100f).ToString("F0") + "%") +
+                    " | the game's rain is at " + (CloudWeather.Rain * 100f).ToString("F0") + "%");
         }
 
         public static void Reset()
         {
             _amount = 0f;
             Active = false;
+            Reporter.Reset();
         }
 
         /// <summary>One line for the panel and the log.</summary>

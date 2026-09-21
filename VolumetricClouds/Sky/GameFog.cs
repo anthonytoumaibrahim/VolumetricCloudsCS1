@@ -28,6 +28,7 @@ namespace VolumetricClouds.Sky
         private float _foggyStart;
         private float _foggyNoise;
         private bool _neutralised;
+        private bool _alreadyFlat;
         private float _nextSearch;
 
         private void LateUpdate()
@@ -65,8 +66,18 @@ namespace VolumetricClouds.Sky
                 _foggyDensity = _fog.m_FoggyFogDensity;
                 _foggyStart = _fog.m_FoggyFogStart;
                 _foggyNoise = _fog.m_FoggyNoiseContribution;
+
+                // Render It! writes ONE profile value into each clear/foggy pair (read from its
+                // IL: ModManager.UpdateEnvironment), and only when its profile changes. Under
+                // it the twins are already flat, and what has to come back on restore is
+                // "flat", not the numbers of whichever profile was live when we looked.
+                _alreadyFlat = Mathf.Approximately(_foggyDensity, _fog.m_FogDensity)
+                            && Mathf.Approximately(_foggyStart, _fog.m_FogStart)
+                            && Mathf.Approximately(_foggyNoise, _fog.m_NoiseContribution);
+
                 _neutralised = true;
-                Log.Msg("game fog: its foggy-weather reaction is off; distance haze, edge fog and pollution tint untouched");
+                Log.Msg("game fog: its foggy-weather reaction is off; distance haze, edge fog and pollution tint untouched" +
+                        (_alreadyFlat ? " (another mod, such as Render It!, had already flattened it; it will be handed back flat)" : ""));
             }
 
             // Every frame: the clear values can be changed by theme and look mods at any time.
@@ -84,10 +95,12 @@ namespace VolumetricClouds.Sky
             if (_fog == null)
                 return;
 
-            _fog.m_FoggyFogDensity = _foggyDensity;
-            _fog.m_FoggyFogStart = _foggyStart;
-            _fog.m_FoggyNoiseContribution = _foggyNoise;
-            Log.Msg("game fog: foggy-weather reaction restored");
+            // Flat when we found it: leave the twins on the CURRENT clear values, which is what
+            // that mod wants whatever its sliders have been moved to since.
+            _fog.m_FoggyFogDensity = _alreadyFlat ? _fog.m_FogDensity : _foggyDensity;
+            _fog.m_FoggyFogStart = _alreadyFlat ? _fog.m_FogStart : _foggyStart;
+            _fog.m_FoggyNoiseContribution = _alreadyFlat ? _fog.m_NoiseContribution : _foggyNoise;
+            Log.Msg("game fog: foggy-weather reaction restored" + (_alreadyFlat ? " (flat, as it was found)" : ""));
         }
 
         private void OnDestroy()

@@ -277,14 +277,19 @@ namespace VolumetricClouds.UI
         public static void ResetAll()
         {
             int kept = 0;
+            string keptNames = "";
 
             foreach (Row row in Rows)
             {
                 // The per-machine opt-ins are not part of "the settings" a reset is about:
-                // they say what this player agreed to run, not how the sky looks.
+                // they say what this player agreed to run, not how the sky looks. They are NAMED
+                // in the log with their state: "I reset, so the fog is off" was a fair thing to
+                // assume, and wrong on any machine where it had been switched on.
                 if (row.Sticky)
                 {
                     kept++;
+                    keptNames += (keptNames.Length > 0 ? ", " : "") + "'" + row.Label + "' = " +
+                                 (row.Bool != null && row.Bool.value ? "ON" : "off");
                     continue;
                 }
 
@@ -299,7 +304,7 @@ namespace VolumetricClouds.UI
 
             GameSettings.SaveAll();
             Log.Msg("settings: RESET to defaults (" + (Rows.Count - kept) + " rows; " + kept +
-                    " per-machine opt-ins left as they were)");
+                    " per-machine opt-ins left as they were: " + keptNames + ")");
         }
 
         /// <summary>
@@ -824,7 +829,8 @@ namespace VolumetricClouds.UI
                        "Only recommended for users with powerful hardware.",
                 Tooltip = "Real fog lying on the terrain, marched in the cloud pass: it has a top, it shades " +
                           "itself and the sun breaks through it. It is also by far the heaviest thing this " +
-                          "mod draws. Off, the game's own fog carries on as normal.",
+                          "mod draws. On, it replaces the game's foggy-weather look (the game's distance " +
+                          "haze and map-edge fog stay). Off, the game's own fog carries on as normal.",
                 ConfirmOn = "Volumetric fog is by far the heaviest thing this mod draws and can cost a large " +
                             "part of your frame rate, most of all with the camera down in it.\n\n" +
                             "The game's own fog keeps working if you leave this off.\n\nTurn it on?",
@@ -1654,7 +1660,9 @@ namespace VolumetricClouds.UI
             {
                 ConfirmPanel.ShowModal("Volumetric Clouds",
                     "Put every setting back to the way the mod ships?\n\n" +
-                    "This throws away a tuned sky, including anything you have changed in the in-game panel.",
+                    "This throws away a tuned sky, including anything you have changed in the in-game panel.\n\n" +
+                    "Two switches stay exactly as they are, on or off: 'Volumetric fog' and 'Show advanced " +
+                    "options in the in-game panel'.",
                     (component, result) =>
                     {
                         if (result != 1)

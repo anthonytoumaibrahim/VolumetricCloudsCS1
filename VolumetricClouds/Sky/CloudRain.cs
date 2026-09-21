@@ -56,6 +56,7 @@ namespace VolumetricClouds.Sky
         }
 
         private static volatile Snapshot _snapshot;
+        private static readonly AmountReporter Reporter = new AmountReporter();
 
         /// <summary>True while our rain replaces the game's.</summary>
         public static bool Active { get; private set; }
@@ -100,6 +101,9 @@ namespace VolumetricClouds.Sky
 
             float spread = Mathf.Pow(Mathf.Clamp01(Amount / RainForFullSpread), 0.75f);
             RainCoverage = CloudWeather.Coverage * spread;
+
+            if (Reporter.Moved(Amount))
+                Report();
 
             // Rain leans with the wind, and leans harder in a downpour.
             Slant = CloudWeather.WindDirection * (0.2f + 0.25f * Amount);
@@ -146,12 +150,35 @@ namespace VolumetricClouds.Sky
             return s.Field.SampleCloud(x / s.Tile, z / s.Tile, s.RainCoverage);
         }
 
+        /// <summary>
+        /// Always on, a line per quarter the rain travels. It names the curtains and the fog on
+        /// purpose: heavy rain under a near-total cover is a grey medium that takes half the view
+        /// per kilometre, which from the ground reads as fog, and it was once reported as one.
+        /// </summary>
+        private static void Report()
+        {
+            if (Amount <= 0f)
+            {
+                Log.Msg("rain: OUR rain has stopped");
+                return;
+            }
+
+            float curtains = Mathf.Max(0f, Value(Settings.RainCurtains, Settings.Defaults.RainCurtains));
+
+            Log.Msg("rain: OUR rain is on screen at " + (Amount * 100f).ToString("F0") + "% (the game's rain), under " +
+                    (RainCoverage * 100f).ToString("F0") + "% of the sky on the slider scale; curtains at " +
+                    (curtains * 100f).ToString("F0") + "% -- in heavy rain they haze the distance like a fog" +
+                    " | our volumetric fog: " + (!CloudFog.Enabled ? "switched off" : (CloudFog.Amount * 100f).ToString("F0") + "% of the map") +
+                    ", the game's fog value: " + (CloudFog.GameFog * 100f).ToString("F0") + "%");
+        }
+
         /// <summary>On unload: the game's rain is everywhere again.</summary>
         public static void Clear()
         {
             _snapshot = null;
             Active = false;
             Amount = 0f;
+            Reporter.Reset();
         }
 
         private static float Value(SavedFloat setting, float fallback)
