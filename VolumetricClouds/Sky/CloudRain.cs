@@ -181,7 +181,7 @@ namespace VolumetricClouds.Sky
             Reporter.Reset();
         }
 
-        private static float Value(SavedFloat setting, float fallback)
+        private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? setting.value : fallback;
         }

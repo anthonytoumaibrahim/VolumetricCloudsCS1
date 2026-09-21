@@ -77,6 +77,11 @@ earlier public versions, so nothing below is a change from something a player ha
 - Optionally mirror the five options tabs into the in-game panel.
 - A quality preset that moves raymarch steps and shadow-map cost together, and *Detailed
   logging* for bug reports.
+- Settings are kept in `VolumetricClouds.xml` next to the game's other mod settings, one
+  commented line per setting with its range and default. It can be edited by hand, even with
+  the game running: changes are picked up within a second. Out-of-range values are pulled
+  back into range and bad lines are ignored, each noted in the log; a file that cannot be read
+  at all is left untouched rather than overwritten.
 
 ### Known at release
 

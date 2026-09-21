@@ -5,28 +5,43 @@ using UnityEngine;
 namespace VolumetricClouds
 {
     /// <summary>
-    /// Persisted options. Backed by the game's own settings file so values survive
-    /// restarts and show up alongside vanilla settings.
+    /// Persisted options, kept in VolumetricClouds.xml next to the log (see
+    /// <see cref="SettingsXml"/>), where a player can read and edit them.
     /// </summary>
     /// <remarks>
     /// Every default is a named constant in <see cref="Defaults"/> and nowhere else: the
     /// constructors below read them, the fallbacks inside the renderers read them, and
     /// <see cref="UI.SettingsCatalog"/> carries the same constant on every row, which is what
-    /// lets "Reset all settings to defaults" exist at all. A Saved* does NOT remember its
-    /// default -- SavedFloat has one field, the constructor's default is only its initial
-    /// content, and Delete() removes the key from the file without changing what is in
-    /// memory. So the catalog is the only thing that can put a default back.
+    /// lets "Reset all settings to defaults" exist at all. A setting does NOT remember its
+    /// default -- the constructor's value is only what it holds until the file is read -- so
+    /// the catalog is the only thing that can put a default back.
     ///
     /// Editing a default does not change a machine that already has
-    /// %LOCALAPPDATA%\Colossal Order\Cities_Skylines\VolumetricClouds.cgs: the value is only
-    /// consulted when the key is absent. Use the Reset button (or delete that file) to see a
-    /// first run.
+    /// %LOCALAPPDATA%\Colossal Order\Cities_Skylines\VolumetricClouds.xml: the default is only
+    /// used when the setting's line is absent. Use the Reset button (or delete that file with
+    /// the game closed) to see a first run.
+    ///
+    /// The first argument of each constructor is the setting's NAME in the file. When what a
+    /// setting means changes, give it a new name: a saved value of a slider that meant
+    /// something else is garbage, and the file drops a name nothing reads on its next save.
+    /// The third argument, where there is one, is the key it had in the retired
+    /// VolumetricClouds.cgs, read once by the import.
     /// </remarks>
     public static class Settings
     {
-        public const string FileName = "VolumetricClouds";
+        /// <summary>
+        /// The hotkey's home in the game's settings system: registered with dontSave, so it is
+        /// never written (SettingsFile.Save returns at once when it is set; read from its IL)
+        /// and there is no file to load. The key stays a SavedInputKey because Unified UI
+        /// takes one; VolumetricClouds.xml is where it is kept.
+        /// NO DOT in this name: the game's PathUtils.AddExtension CHANGES an extension that is
+        /// already there, and the name is read back from the path without one. The first
+        /// version was "VolumetricClouds.InMemory", which became VolumetricClouds.cgs -- the
+        /// real settings file, loaded under the name "VolumetricClouds" and marked dontSave.
+        /// </summary>
+        private const string InMemory = "VolumetricCloudsHotkey";
 
-        public static SavedBool ShowInUnifiedUI { get; private set; }
+        public static BoolSetting ShowInUnifiedUI { get; private set; }
         public static SavedInputKey ToggleKey { get; private set; }
 
         /// <summary>
@@ -35,90 +50,90 @@ namespace VolumetricClouds
         /// tuned against the sky the way it was built. The options page always has everything;
         /// this only decides how much of it is ALSO one keypress away.
         /// </summary>
-        public static SavedBool ShowAdvancedInPanel { get; private set; }
+        public static BoolSetting ShowAdvancedInPanel { get; private set; }
 
         /// <summary>
         /// Writes every periodic line to the log. Off for subscribers: each Log call is an
         /// open-write-close plus a Unity stack trace, which is fine for a ten-minute test
         /// session and wrong for a four-hour one.
         /// </summary>
-        public static SavedBool DetailedLogging { get; private set; }
+        public static BoolSetting DetailedLogging { get; private set; }
 
         /// <summary>
         /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
         /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
         /// </summary>
-        public static SavedFloat Coverage { get; private set; }
+        public static FloatSetting Coverage { get; private set; }
 
         /// <summary>
         /// Off (the default): the cover follows the game's weather. On: <see cref="Coverage"/>
         /// fixes it, for skies the game cannot express -- cloudy with no rain, on demand.
         /// </summary>
-        public static SavedBool CoverageOverride { get; private set; }
+        public static BoolSetting CoverageOverride { get; private set; }
 
         /// <summary>Following the weather: the cover on a clear day, 0..1.</summary>
-        public static SavedFloat WeatherFairCoverage { get; private set; }
+        public static FloatSetting WeatherFairCoverage { get; private set; }
 
         /// <summary>Following the weather: the cover in rain or a full cloudy spell, 0..1.</summary>
-        public static SavedFloat WeatherOvercastCoverage { get; private set; }
+        public static FloatSetting WeatherOvercastCoverage { get; private set; }
 
         /// <summary>
         /// Replace the game's camera-locked rain with ours: curtains under the clouds and
         /// world-anchored streaks near the camera, both only where it is raining.
         /// </summary>
-        public static SavedBool RainEnabled { get; private set; }
+        public static BoolSetting RainEnabled { get; private set; }
 
         /// <summary>Multiplier on how dense the rain curtains under the clouds are. 0 = none.</summary>
-        public static SavedFloat RainCurtains { get; private set; }
+        public static FloatSetting RainCurtains { get; private set; }
 
         /// <summary>Multiplier on how many streaks show near the camera. 0 = none.</summary>
-        public static SavedFloat RainStreaks { get; private set; }
+        public static FloatSetting RainStreaks { get; private set; }
 
         /// <summary>Camera height above the ground, in metres, at which the streaks are gone.</summary>
-        public static SavedFloat RainStreakHeight { get; private set; }
+        public static FloatSetting RainStreakHeight { get; private set; }
 
         /// <summary>
         /// The rain sound and wet roads follow the clouds too. The one setting that changes
         /// what the simulation sees (see SampleRainIntensityPatch).
         /// </summary>
-        public static SavedBool RainLocalised { get; private set; }
+        public static BoolSetting RainLocalised { get; private set; }
 
         /// <summary>Lightning lights the clouds and the rain from inside, and thunder gets our storm flashes.</summary>
-        public static SavedBool LightningEnabled { get; private set; }
+        public static BoolSetting LightningEnabled { get; private set; }
 
         /// <summary>Draw our own bolt, from our cloud base, instead of the game's fixed model.</summary>
-        public static SavedBool LightningReplaceBolt { get; private set; }
+        public static BoolSetting LightningReplaceBolt { get; private set; }
 
         /// <summary>Multiplier on the flash in the clouds and on the bolt.</summary>
-        public static SavedFloat LightningBrightness { get; private set; }
+        public static FloatSetting LightningBrightness { get; private set; }
 
         /// <summary>
         /// Off (the default): how often our visual-only lightning flashes follows the rain.
         /// On: <see cref="LightningActivity"/> sets it, e.g. for a dry thunderstorm. Either
         /// way it only ever happens inside cloud, and never starts a fire.
         /// </summary>
-        public static SavedBool LightningOverride { get; private set; }
+        public static BoolSetting LightningOverride { get; private set; }
 
         /// <summary>
         /// 0..4: from a flash every half minute at 100% to one every 0.75 s at 400%. The key
         /// is unchanged from when it stopped at 100%: below that nothing about its meaning
         /// moved, it has only been given more room.
         /// </summary>
-        public static SavedFloat LightningActivity { get; private set; }
+        public static FloatSetting LightningActivity { get; private set; }
 
         /// <summary>
         /// 0..4: multiplier on the activity a natural downpour produces. The Level 1 "reshape"
         /// answer to "a real storm gives too few strikes", so the override does not have to be
         /// left on for ever.
         /// </summary>
-        public static SavedFloat LightningStormScale { get; private set; }
+        public static FloatSetting LightningStormScale { get; private set; }
 
         /// <summary>
         /// Volumetric fog in the cloud pass, in place of the game's even grey-out. The game's
         /// distance haze, edge fog and pollution tint stay. OFF by default: it is the most
         /// expensive thing this mod draws.
         /// </summary>
-        public static SavedBool FogEnabled { get; private set; }
+        public static BoolSetting FogEnabled { get; private set; }
 
         /// <summary>
         /// Off (the default): the fog follows the game's weather. On: <see cref="FogAmount"/>
@@ -126,13 +141,13 @@ namespace VolumetricClouds
         /// our fog follows while this is off -- and which also greys the game's own screen fog
         /// and reaches the savegame. This one is visual, and ours alone.)
         /// </summary>
-        public static SavedBool FogOverride { get; private set; }
+        public static BoolSetting FogOverride { get; private set; }
 
         /// <summary>0..1: the share of the map that has fog on it. 1 = everywhere.</summary>
-        public static SavedFloat FogAmount { get; private set; }
+        public static FloatSetting FogAmount { get; private set; }
 
         /// <summary>Multiplier on how thick the fog is inside (how far you can see in it).</summary>
-        public static SavedFloat FogDensity { get; private set; }
+        public static FloatSetting FogDensity { get; private set; }
 
         /// <summary>
         /// Off (the default): the fog is LEVEL, measured up from the map's sea level like the
@@ -140,134 +155,134 @@ namespace VolumetricClouds
         /// ground under it, so the layer drapes over hills. (Until 2026-09-21 that was the only
         /// behaviour; it is liked, and it is the opt-in because level is what fog does.)
         /// </summary>
-        public static SavedBool FogFollowsGround { get; private set; }
+        public static BoolSetting FogFollowsGround { get; private set; }
 
         /// <summary>
         /// Metres from the reference (sea level, or the ground) to the UNDERSIDE of the fog.
         /// 0 = it starts at the reference; 200 = fog only from 200 m up.
         /// </summary>
-        public static SavedFloat FogBase { get; private set; }
+        public static FloatSetting FogBase { get; private set; }
 
         /// <summary>Metres from the underside of the fog to its top: the layer's thickness.</summary>
-        public static SavedFloat FogHeight { get; private set; }
+        public static FloatSetting FogHeight { get; private set; }
 
         /// <summary>0 = solid, 1 = wispy: how hard fine noise eats into it. The fog's "Break-up".</summary>
-        public static SavedFloat FogBreakup { get; private set; }
+        public static FloatSetting FogBreakup { get; private set; }
 
         /// <summary>Multiplier on how fast the fog drifts and churns. 0 = still.</summary>
-        public static SavedFloat FogSpeed { get; private set; }
+        public static FloatSetting FogSpeed { get; private set; }
 
         /// <summary>
         /// Multiplier on the fog's own light. Since the brightness decoupling it really is the
         /// fog's brightness: the clouds' brightness no longer reaches it.
         /// </summary>
-        public static SavedFloat FogBrightness { get; private set; }
+        public static FloatSetting FogBrightness { get; private set; }
 
         /// <summary>-1 cool blue-grey .. 0 neutral .. +1 warm. The fog's colour, on top of the light it is in.</summary>
-        public static SavedFloat FogTint { get; private set; }
+        public static FloatSetting FogTint { get; private set; }
 
         /// <summary>
         /// The city's lights (lamps, buildings, vehicles) light our fog round them. On by
         /// default -- it only ever runs while the volumetric fog does, at night. Off: nothing
         /// of it runs (FogLampMap is not even created).
         /// </summary>
-        public static SavedBool FogLampsEnabled { get; private set; }
+        public static BoolSetting FogLampsEnabled { get; private set; }
 
         /// <summary>
         /// How strongly the city's lights light the fog round them, in their own colours. The
         /// halos are a separate thing and are not touched.
         /// </summary>
-        public static SavedFloat FogLampLight { get; private set; }
+        public static FloatSetting FogLampLight { get; private set; }
 
         /// <summary>Metres from a lamp at which its light in the fog is down to 5%.</summary>
-        public static SavedFloat FogLampRadius { get; private set; }
+        public static FloatSetting FogLampRadius { get; private set; }
 
         /// <summary>
         /// How much of the clouds' distance transparency is taken away at night, 0..1. At 1
         /// the stars cannot be seen through a cloud; by day this has no effect at all.
         /// </summary>
-        public static SavedFloat CloudNightOpacity { get; private set; }
+        public static FloatSetting CloudNightOpacity { get; private set; }
 
         /// <summary>Multiplier on the faint pale glow under the clouds at night. 0 = off.</summary>
-        public static SavedFloat NightGlow { get; private set; }
+        public static FloatSetting NightGlow { get; private set; }
 
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
-        public static SavedFloat WindSpeed { get; private set; }
+        public static FloatSetting WindSpeed { get; private set; }
 
         /// <summary>
         /// World-space size of one weather tile, in metres. Shared by the shadow cookie and
         /// the raymarched clouds so both repeat at the same scale.
         /// </summary>
-        public static SavedFloat WeatherTileSize { get; private set; }
+        public static FloatSetting WeatherTileSize { get; private set; }
 
         /// <summary>Clouds cast shadows on the ground.</summary>
-        public static SavedBool CloudShadows { get; private set; }
+        public static BoolSetting CloudShadows { get; private set; }
 
         /// <summary>How much direct sunlight thick cloud removes from the ground below it, 0..1.</summary>
-        public static SavedFloat CloudShadowDarkness { get; private set; }
+        public static FloatSetting CloudShadowDarkness { get; private set; }
 
         /// <summary>
         /// Multiplier on cloud optical depth for shadows only. Above 1, thin cloud and cloud
         /// edges cast a fuller shadow, so more of the ground reads as shaded.
         /// </summary>
-        public static SavedFloat CloudShadowFullness { get; private set; }
+        public static FloatSetting CloudShadowFullness { get; private set; }
 
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
-        public static SavedInt ShadowMapResolution { get; private set; }
+        public static IntSetting ShadowMapResolution { get; private set; }
 
         /// <summary>How many times a second the shadow map is re-marched.</summary>
-        public static SavedInt ShadowMapRate { get; private set; }
+        public static IntSetting ShadowMapRate { get; private set; }
 
         /// <summary>
         /// 0 Low, 1 Medium, 2 High, 3 Custom. Writes the three rows above plus the step count;
         /// touching any of them by hand moves it to Custom. Describes the MACHINE, so it is
         /// never part of a shared preset.
         /// </summary>
-        public static SavedInt QualityPreset { get; private set; }
+        public static IntSetting QualityPreset { get; private set; }
 
         /// <summary>Raymarched clouds (needs the embedded shader bundle); off means billboards.</summary>
-        public static SavedBool UseVolumetric { get; private set; }
+        public static BoolSetting UseVolumetric { get; private set; }
 
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
-        public static SavedFloat CloudThickness { get; private set; }
+        public static FloatSetting CloudThickness { get; private set; }
 
         /// <summary>
         /// How hard fine noise erodes the clouds: 0 leaves smooth solid masses, the 0.3
         /// default gives soft cumulus, higher tears them into ragged tufts and opens gaps.
         /// </summary>
-        public static SavedFloat CloudBreakup { get; private set; }
+        public static FloatSetting CloudBreakup { get; private set; }
 
         /// <summary>Frequency of that erosion noise: low tears off big chunks, high makes fine wisps.</summary>
-        public static SavedFloat CloudBreakupScale { get; private set; }
+        public static FloatSetting CloudBreakupScale { get; private set; }
 
         /// <summary>Multiplier on cloud optical density.</summary>
-        public static SavedFloat CloudDensity { get; private set; }
+        public static FloatSetting CloudDensity { get; private set; }
 
         /// <summary>
         /// Multiplier on how brightly clouds are lit, when <see cref="CloudBrightnessAuto"/>
         /// is off. Its saved value is untouched by the curve, so switching Auto off reproduces
         /// exactly what the mod did before the curve existed.
         /// </summary>
-        public static SavedFloat CloudBrightness { get; private set; }
+        public static FloatSetting CloudBrightness { get; private set; }
 
         /// <summary>
         /// Cloud brightness follows the cloud intensity instead of sitting on one number: a
         /// scattered fair-weather sky wants far more light than a full overcast, and one
         /// value cannot be right for both.
         /// </summary>
-        public static SavedBool CloudBrightnessAuto { get; private set; }
+        public static BoolSetting CloudBrightnessAuto { get; private set; }
 
         /// <summary>Auto: the brightness at 0% intensity.</summary>
-        public static SavedFloat CloudBrightnessClear { get; private set; }
+        public static FloatSetting CloudBrightnessClear { get; private set; }
 
         /// <summary>Auto: the brightness at 100% intensity.</summary>
-        public static SavedFloat CloudBrightnessOvercast { get; private set; }
+        public static FloatSetting CloudBrightnessOvercast { get; private set; }
 
         /// <summary>Raymarch steps per pixel. Cost scales linearly.</summary>
-        public static SavedFloat CloudQuality { get; private set; }
+        public static FloatSetting CloudQuality { get; private set; }
 
         /// <summary>Let scene geometry hide clouds behind it. Diagnostic escape hatch.</summary>
-        public static SavedBool CloudDepthOcclusion { get; private set; }
+        public static BoolSetting CloudDepthOcclusion { get; private set; }
 
         /// <summary>
         /// World illumination at 100% coverage, 0..1. Overcast, not night. Bypassed entirely
@@ -275,47 +290,47 @@ namespace VolumetricClouds
         /// coverage-to-brightness relationship the CLOUD has (the light everything else
         /// stands in still carries it).
         /// </summary>
-        public static SavedFloat MinIllumination { get; private set; }
+        public static FloatSetting MinIllumination { get; private set; }
 
         /// <summary>Draw the visible cloud billboards.</summary>
-        public static SavedBool CloudsVisible { get; private set; }
+        public static BoolSetting CloudsVisible { get; private set; }
 
         /// <summary>Cloud layer height above sea level, in metres.</summary>
-        public static SavedFloat CloudAltitude { get; private set; }
+        public static FloatSetting CloudAltitude { get; private set; }
 
         /// <summary>How many billboard puffs to place at full coverage.</summary>
-        public static SavedFloat CloudPuffCount { get; private set; }
+        public static FloatSetting CloudPuffCount { get; private set; }
 
         /// <summary>Base width of a single puff, in metres.</summary>
-        public static SavedFloat CloudPuffSize { get; private set; }
+        public static FloatSetting CloudPuffSize { get; private set; }
 
         /// <summary>Take over the glow pass of batched (distant) lights. Off = untouched game.</summary>
-        public static SavedBool HaloEnabled { get; private set; }
+        public static BoolSetting HaloEnabled { get; private set; }
 
         /// <summary>
         /// Use the ported replacement shader, which adds brightness/tightness/size and cannot
         /// produce the NaN "box". Off = a copy of the game's shader with only fog overridden.
         /// </summary>
-        public static SavedBool HaloReplaceShader { get; private set; }
+        public static BoolSetting HaloReplaceShader { get; private set; }
 
         /// <summary>
         /// The fog amount the halos see, on the game's own scale (what PersistentFogAdjuster
         /// edits): 0 is a clear night, 1 is foggy, -0.5 is no glow at all. Independent of the
         /// world's fog.
         /// </summary>
-        public static SavedFloat HaloFogAmount { get; private set; }
+        public static FloatSetting HaloFogAmount { get; private set; }
 
         /// <summary>Multiplier on glow amplitude. Replacement shader only.</summary>
-        public static SavedFloat HaloBrightness { get; private set; }
+        public static FloatSetting HaloBrightness { get; private set; }
 
         /// <summary>
         /// Multiplier on the falloff exponent: above 1 keeps the bright core and sheds the wide
         /// haze, which is what makes a halo read as small. Replacement shader only.
         /// </summary>
-        public static SavedFloat HaloTightness { get; private set; }
+        public static FloatSetting HaloTightness { get; private set; }
 
         /// <summary>Multiplier on the glow's world radius. Replacement shader only.</summary>
-        public static SavedFloat HaloRadius { get; private set; }
+        public static FloatSetting HaloRadius { get; private set; }
 
         /// <summary>
         /// Lamps closer to the camera than this (metres) get the three "near" multipliers below
@@ -323,16 +338,16 @@ namespace VolumetricClouds
         /// what makes a distant lamp a crisp dot makes one 100 m away a blob. 0 = off.
         /// Replacement shader only.
         /// </summary>
-        public static SavedFloat HaloNearLightDistance { get; private set; }
+        public static FloatSetting HaloNearLightDistance { get; private set; }
 
         /// <summary>Near lamps: multiplier on top of <see cref="HaloBrightness"/>.</summary>
-        public static SavedFloat HaloNearLightBrightness { get; private set; }
+        public static FloatSetting HaloNearLightBrightness { get; private set; }
 
         /// <summary>Near lamps: multiplier on top of <see cref="HaloTightness"/>.</summary>
-        public static SavedFloat HaloNearLightTightness { get; private set; }
+        public static FloatSetting HaloNearLightTightness { get; private set; }
 
         /// <summary>Near lamps: multiplier on top of <see cref="HaloRadius"/>.</summary>
-        public static SavedFloat HaloNearLightRadius { get; private set; }
+        public static FloatSetting HaloNearLightRadius { get; private set; }
 
         /// <summary>
         /// Halo brightness of dynamic lights that are NOT lamps: vehicles and non-batched
@@ -340,25 +355,25 @@ namespace VolumetricClouds
         /// tightness, size and the near multipliers are shared. Lamps drawn dynamically --
         /// Intersection Marking Tool's -- take the lamp settings.
         /// </summary>
-        public static SavedFloat HaloVehicleBrightness { get; private set; }
+        public static FloatSetting HaloVehicleBrightness { get; private set; }
 
         /// <summary>Master switch for the dynamic-light (vehicle) adjustments.</summary>
-        public static SavedBool HaloAdjustEnabled { get; private set; }
+        public static BoolSetting HaloAdjustEnabled { get; private set; }
 
         /// <summary>Multiplier on a dynamic light's range. 1 leaves the game untouched.</summary>
-        public static SavedFloat HaloRangeScale { get; private set; }
+        public static FloatSetting HaloRangeScale { get; private set; }
 
         /// <summary>Multiplier on a dynamic light's brightness. 1 leaves the game untouched.</summary>
-        public static SavedFloat HaloIntensityScale { get; private set; }
+        public static FloatSetting HaloIntensityScale { get; private set; }
 
         /// <summary>
         /// Dynamic lights closer than this skip the volume pass. 0 disables the cutoff. Nothing
         /// to do with <see cref="HaloNearLightDistance"/>: street lamps are never dynamic.
         /// </summary>
-        public static SavedFloat DynamicHaloCutoff { get; private set; }
+        public static FloatSetting DynamicHaloCutoff { get; private set; }
 
         /// <summary>Spike aid: projects a checkerboard instead of clouds.</summary>
-        public static SavedBool DebugChecker { get; private set; }
+        public static BoolSetting DebugChecker { get; private set; }
 
         /// <summary>
         /// Every default, in one place. Read off the author's own settings file on 2026-09-20
@@ -519,6 +534,17 @@ namespace VolumetricClouds
 
         private static bool _initialised;
 
+        /// <summary>True once every setting exists (the file is read straight after).</summary>
+        public static bool IsInitialised
+        {
+            get { return _initialised; }
+        }
+
+        /// <summary>
+        /// Constructs every setting with its default, then reads VolumetricClouds.xml over
+        /// them. Called from Mod.OnEnabled, and defensively from everything that needs a
+        /// setting before that could have run.
+        /// </summary>
         public static void Init()
         {
             if (_initialised)
@@ -526,143 +552,149 @@ namespace VolumetricClouds
 
             try
             {
-                if (GameSettings.FindSettingsFileByName(FileName) == null)
-                    GameSettings.AddSettingsFile(new SettingsFile { fileName = FileName });
+                // Looked up first because a reloaded mod finds it already there, and adding a
+                // name twice throws. (Not finding it writes one warning to output_log.txt, as
+                // the old .cgs registration did every session.)
+                if (GameSettings.FindSettingsFileByName(InMemory) == null)
+                    GameSettings.AddSettingsFile(new SettingsFile { fileName = InMemory, dontSave = true });
 
-                ShowInUnifiedUI = new SavedBool("ShowInUnifiedUI", FileName, Defaults.ShowInUnifiedUI, true);
-                ToggleKey = new SavedInputKey("ToggleKey", FileName, DefaultToggleKey, true);
-                ShowAdvancedInPanel = new SavedBool("ShowAdvancedInPanel", FileName, Defaults.ShowAdvancedInPanel, true);
-                DetailedLogging = new SavedBool("DetailedLogging", FileName, Defaults.DetailedLogging, true);
+                ShowInUnifiedUI = new BoolSetting("ShowInUnifiedUI", Defaults.ShowInUnifiedUI);
+                ToggleKey = new SavedInputKey("ToggleKey", InMemory, DefaultToggleKey, false);
+                ShowAdvancedInPanel = new BoolSetting("ShowAdvancedInPanel", Defaults.ShowAdvancedInPanel);
+                DetailedLogging = new BoolSetting("DetailedLogging", Defaults.DetailedLogging);
 
-                Coverage = new SavedFloat("Coverage", FileName, Defaults.Coverage, true);
-                CoverageOverride = new SavedBool("CoverageOverride", FileName, Defaults.CoverageOverride, true);
-                WeatherFairCoverage = new SavedFloat("WeatherFairCoverage", FileName, Defaults.FairCoverage, true);
-                // A new key rather than "WeatherOvercastCoverage": that one is saved as 0 on the
-                // one machine that has it. It was dragged to nothing while the row still lived on
-                // the F4 panel, and the polish pass then moved the row to Options -> Weather,
-                // where nobody looked at it again. A rain end BELOW the clear end inverts the
-                // whole mapping -- the wetter the game's weather, the emptier our sky -- so
-                // "Follow the game's weather" handed back a clear day in a downpour. Saved values
-                // of a slider that quietly stopped being visible are garbage.
-                WeatherOvercastCoverage = new SavedFloat("WeatherRainCoverage", FileName, Defaults.OvercastCoverage, true);
+                Coverage = new FloatSetting("Coverage", Defaults.Coverage);
+                CoverageOverride = new BoolSetting("CoverageOverride", Defaults.CoverageOverride);
+                WeatherFairCoverage = new FloatSetting("WeatherFairCoverage", Defaults.FairCoverage);
+                // Was "WeatherRainCoverage" in the .cgs, a new key at the time rather than
+                // "WeatherOvercastCoverage": that one is saved as 0 on the one machine that has
+                // it. It was dragged to nothing while the row still lived on the F4 panel, and the
+                // polish pass then moved the row to Options -> Weather, where nobody looked at it
+                // again. A rain end BELOW the clear end inverts the whole mapping -- the wetter
+                // the game's weather, the emptier our sky. The XML name is new, so no old value
+                // can reach it but the imported one.
+                WeatherOvercastCoverage = new FloatSetting("WeatherOvercastCoverage", Defaults.OvercastCoverage, "WeatherRainCoverage");
 
-                RainEnabled = new SavedBool("RainEnabled", FileName, Defaults.RainEnabled, true);
-                RainCurtains = new SavedFloat("RainCurtains", FileName, Defaults.RainCurtains, true);
-                RainStreaks = new SavedFloat("RainStreaks", FileName, Defaults.RainStreaks, true);
-                RainStreakHeight = new SavedFloat("RainStreakHeight", FileName, Defaults.RainStreakHeight, true);
-                RainLocalised = new SavedBool("RainLocalised", FileName, Defaults.RainLocalised, true);
+                RainEnabled = new BoolSetting("RainEnabled", Defaults.RainEnabled);
+                RainCurtains = new FloatSetting("RainCurtains", Defaults.RainCurtains);
+                RainStreaks = new FloatSetting("RainStreaks", Defaults.RainStreaks);
+                RainStreakHeight = new FloatSetting("RainStreakHeight", Defaults.RainStreakHeight);
+                RainLocalised = new BoolSetting("RainLocalised", Defaults.RainLocalised);
 
-                LightningEnabled = new SavedBool("LightningEnabled", FileName, Defaults.LightningEnabled, true);
-                LightningReplaceBolt = new SavedBool("LightningReplaceBolt", FileName, Defaults.LightningReplaceBolt, true);
-                LightningBrightness = new SavedFloat("LightningBrightness", FileName, Defaults.LightningBrightness, true);
-                LightningOverride = new SavedBool("LightningOverride", FileName, Defaults.LightningOverride, true);
-                // Keeps its key although the slider now reaches 400%: below 100% every value
+                LightningEnabled = new BoolSetting("LightningEnabled", Defaults.LightningEnabled);
+                LightningReplaceBolt = new BoolSetting("LightningReplaceBolt", Defaults.LightningReplaceBolt);
+                LightningBrightness = new FloatSetting("LightningBrightness", Defaults.LightningBrightness);
+                LightningOverride = new BoolSetting("LightningOverride", Defaults.LightningOverride);
+                // Keeps its name although the slider now reaches 400%: below 100% every value
                 // means exactly what it meant, so a saved one is still the sky it described.
-                LightningActivity = new SavedFloat("LightningActivity", FileName, Defaults.LightningActivity, true);
-                LightningStormScale = new SavedFloat("LightningStormScale", FileName, Defaults.LightningStormScale, true);
+                LightningActivity = new FloatSetting("LightningActivity", Defaults.LightningActivity);
+                LightningStormScale = new FloatSetting("LightningStormScale", Defaults.LightningStormScale);
 
-                // A new key rather than "FogEnabled": that one is saved as true on the one
-                // machine that has it, and the default is now false because the feature costs
-                // frames. Reusing it would have left the old answer standing.
-                FogEnabled = new SavedBool("VolumetricFogEnabled", FileName, Defaults.FogEnabled, true);
-                FogOverride = new SavedBool("FogOverride", FileName, Defaults.FogOverride, true);
-                FogAmount = new SavedFloat("FogAmount", FileName, Defaults.FogAmount, true);
-                // New keys throughout, because the third fog means different things by them:
-                // density multiplies an extinction nearly four times higher than "FogThickness"
-                // did, and height is now the TOP of the layer above the ground where "FogHeight"
-                // was an e-folding scale above a fixed level. "FogPatchiness" and "FogBanks"
-                // (a blanket/banks blend nobody understood) are gone.
-                // "FogDensityScale", not "FogDensity": 100% used to be an extinction of 0.028 /m,
-                // which was judged to "just look like the clouds but at the terrain level".
-                // 100% is now a third of that, so a value saved under the old scale is wrong.
-                FogDensity = new SavedFloat("FogDensityScale", FileName, Defaults.FogDensity, true);
-                // "FogTopHeight" keeps its key although it is now the layer's THICKNESS: with the
-                // base at 0 (the default, and what every saved file has) the two are the same
-                // number. Thickness rather than "top" so that no pair of sliders can ask for a
-                // top below the base, which would be a fog row that does nothing.
-                FogFollowsGround = new SavedBool("FogFollowsGround", FileName, Defaults.FogFollowsGround, true);
-                FogBase = new SavedFloat("FogBaseHeight", FileName, Defaults.FogBase, true);
-                FogHeight = new SavedFloat("FogTopHeight", FileName, Defaults.FogHeight, true);
-                // Keeps its key: what it means has not changed, it has only stopped ALSO
+                // "VolumetricFogEnabled" in the .cgs, not the older "FogEnabled" key: that one is
+                // saved as true on the one machine that has it, from before the switch became an
+                // opt-in that costs frames. Only the newer key is imported.
+                FogEnabled = new BoolSetting("FogEnabled", Defaults.FogEnabled, "VolumetricFogEnabled");
+                FogOverride = new BoolSetting("FogOverride", Defaults.FogOverride);
+                FogAmount = new FloatSetting("FogAmount", Defaults.FogAmount);
+                // The third fog means different things by its numbers than the first two did:
+                // density multiplies an extinction nearly four times higher than the old
+                // "FogThickness", and the old "FogHeight" key was an e-folding scale. Their .cgs
+                // keys were new for that reason. "FogDensityScale", not "FogDensity", because 100%
+                // used to be an extinction of 0.028 /m ("just looks like the clouds but at the
+                // terrain level"); 100% is now a third of that.
+                FogDensity = new FloatSetting("FogDensity", Defaults.FogDensity, "FogDensityScale");
+                FogFollowsGround = new BoolSetting("FogFollowsGround", Defaults.FogFollowsGround);
+                FogBase = new FloatSetting("FogBase", Defaults.FogBase, "FogBaseHeight");
+                // The layer's THICKNESS. Its .cgs key "FogTopHeight" was kept when that changed,
+                // because with the base at 0 (every saved file) the two are the same number.
+                FogHeight = new FloatSetting("FogHeight", Defaults.FogHeight, "FogTopHeight");
+                // Keeps its name: what it means has not changed, it has only stopped ALSO
                 // carrying the clouds' brightness. See CloudVolume.FogLightScale.
-                FogBrightness = new SavedFloat("FogBrightness", FileName, Defaults.FogBrightness, true);
-                FogTint = new SavedFloat("FogTint", FileName, Defaults.FogTint, true);
-                FogBreakup = new SavedFloat("FogBreakup", FileName, Defaults.FogBreakup, true);
-                FogSpeed = new SavedFloat("FogSpeed", FileName, Defaults.FogSpeed, true);
-                FogLampsEnabled = new SavedBool("FogLampsEnabled", FileName, Defaults.FogLampsEnabled, true);
-                FogLampLight = new SavedFloat("FogLampLight", FileName, Defaults.FogLampLight, true);
-                FogLampRadius = new SavedFloat("FogLampRadius", FileName, Defaults.FogLampRadius, true);
+                FogBrightness = new FloatSetting("FogBrightness", Defaults.FogBrightness);
+                FogTint = new FloatSetting("FogTint", Defaults.FogTint);
+                FogBreakup = new FloatSetting("FogBreakup", Defaults.FogBreakup);
+                FogSpeed = new FloatSetting("FogSpeed", Defaults.FogSpeed);
+                FogLampsEnabled = new BoolSetting("FogLampsEnabled", Defaults.FogLampsEnabled);
+                FogLampLight = new FloatSetting("FogLampLight", Defaults.FogLampLight);
+                FogLampRadius = new FloatSetting("FogLampRadius", Defaults.FogLampRadius);
 
-                CloudNightOpacity = new SavedFloat("CloudNightOpacity", FileName, Defaults.NightOpacity, true);
-                // Not "CityGlow": that scaled an orange projection of the city's buildings. This
-                // is an even pale luminance, and a much smaller one.
-                NightGlow = new SavedFloat("NightCloudGlow", FileName, Defaults.NightGlow, true);
-                WindSpeed = new SavedFloat("WindSpeed", FileName, Defaults.WindSpeed, true);
-                // New key rather than reusing CookieTileSize: the old 2000 m default was saved
-                // into existing settings files and is far too small for cloud-sized features.
-                WeatherTileSize = new SavedFloat("WeatherTileSize", FileName, Defaults.WeatherTileSize, true);
-                CloudShadows = new SavedBool("CloudShadows", FileName, Defaults.CloudShadows, true);
-                // New keys rather than reusing CloudShadowStrength: that slider had almost no
-                // effect at high coverage, so saved values of it are not meaningful.
-                CloudShadowDarkness = new SavedFloat("CloudShadowDarkness", FileName, Defaults.ShadowDarkness, true);
-                CloudShadowFullness = new SavedFloat("CloudShadowFullness", FileName, Defaults.ShadowFullness, true);
-                ShadowMapResolution = new SavedInt("ShadowMapResolution", FileName, Defaults.ShadowMapResolution, true);
-                ShadowMapRate = new SavedInt("ShadowMapRate", FileName, Defaults.ShadowMapRate, true);
-                QualityPreset = new SavedInt("QualityPreset", FileName, Defaults.Preset, true);
-                UseVolumetric = new SavedBool("UseVolumetric", FileName, Defaults.UseVolumetric, true);
-                CloudThickness = new SavedFloat("CloudThickness", FileName, Defaults.Thickness, true);
-                CloudDensity = new SavedFloat("CloudDensity", FileName, Defaults.Density, true);
-                CloudBreakup = new SavedFloat("CloudBreakup", FileName, Defaults.Breakup, true);
-                CloudBreakupScale = new SavedFloat("CloudBreakupScale", FileName, Defaults.BreakupScale, true);
-                CloudBrightness = new SavedFloat("CloudBrightness", FileName, Defaults.Brightness, true);
-                CloudBrightnessAuto = new SavedBool("CloudBrightnessAuto", FileName, Defaults.BrightnessAuto, true);
-                CloudBrightnessClear = new SavedFloat("CloudBrightnessClear", FileName, Defaults.BrightnessClear, true);
-                CloudBrightnessOvercast = new SavedFloat("CloudBrightnessOvercast", FileName, Defaults.BrightnessOvercast, true);
-                CloudQuality = new SavedFloat("CloudQuality", FileName, Defaults.Quality, true);
-                CloudDepthOcclusion = new SavedBool("CloudDepthOcclusion", FileName, Defaults.DepthOcclusion, true);
-                MinIllumination = new SavedFloat("MinIllumination", FileName, Defaults.MinIllumination, true);
+                CloudNightOpacity = new FloatSetting("CloudNightOpacity", Defaults.NightOpacity);
+                // "NightCloudGlow" in the .cgs, not "CityGlow": that scaled an orange projection of
+                // the city's buildings. This is an even pale luminance, and a much smaller one.
+                NightGlow = new FloatSetting("NightGlow", Defaults.NightGlow, "NightCloudGlow");
+                WindSpeed = new FloatSetting("WindSpeed", Defaults.WindSpeed);
+                // Not the old "CookieTileSize": its 2000 m default was saved into existing
+                // settings files and is far too small for cloud-sized features.
+                WeatherTileSize = new FloatSetting("WeatherTileSize", Defaults.WeatherTileSize);
+                CloudShadows = new BoolSetting("CloudShadows", Defaults.CloudShadows);
+                // Not the old "CloudShadowStrength": that slider had almost no effect at high
+                // coverage, so saved values of it are not meaningful.
+                CloudShadowDarkness = new FloatSetting("CloudShadowDarkness", Defaults.ShadowDarkness);
+                CloudShadowFullness = new FloatSetting("CloudShadowFullness", Defaults.ShadowFullness);
+                ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
+                ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
+                QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
+                UseVolumetric = new BoolSetting("UseVolumetric", Defaults.UseVolumetric);
+                CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
+                CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
+                CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
+                CloudBreakupScale = new FloatSetting("CloudBreakupScale", Defaults.BreakupScale);
+                CloudBrightness = new FloatSetting("CloudBrightness", Defaults.Brightness);
+                CloudBrightnessAuto = new BoolSetting("CloudBrightnessAuto", Defaults.BrightnessAuto);
+                CloudBrightnessClear = new FloatSetting("CloudBrightnessClear", Defaults.BrightnessClear);
+                CloudBrightnessOvercast = new FloatSetting("CloudBrightnessOvercast", Defaults.BrightnessOvercast);
+                CloudQuality = new FloatSetting("CloudQuality", Defaults.Quality);
+                CloudDepthOcclusion = new BoolSetting("CloudDepthOcclusion", Defaults.DepthOcclusion);
+                MinIllumination = new FloatSetting("MinIllumination", Defaults.MinIllumination);
 
-                CloudsVisible = new SavedBool("CloudsVisible", FileName, Defaults.CloudsVisible, true);
-                CloudAltitude = new SavedFloat("CloudAltitude", FileName, Defaults.Altitude, true);
-                CloudPuffCount = new SavedFloat("CloudPuffCount", FileName, Defaults.PuffCount, true);
-                CloudPuffSize = new SavedFloat("CloudPuffSize", FileName, Defaults.PuffSize, true);
+                CloudsVisible = new BoolSetting("CloudsVisible", Defaults.CloudsVisible);
+                CloudAltitude = new FloatSetting("CloudAltitude", Defaults.Altitude);
+                CloudPuffCount = new FloatSetting("CloudPuffCount", Defaults.PuffCount);
+                CloudPuffSize = new FloatSetting("CloudPuffSize", Defaults.PuffSize);
 
-                // All new keys. The old HaloFogEnabled/HaloFogValue belonged to an experiment where
+                // Not the old HaloFogEnabled/HaloFogValue, which belonged to an experiment where
                 // values like -5 were normal; here -5 would simply mean "no glow", and an old
                 // "enabled" must not switch on a replacement shader nobody has opted into.
-                HaloEnabled = new SavedBool("HaloEnabled", FileName, Defaults.HaloEnabled, true);
-                HaloReplaceShader = new SavedBool("HaloReplaceShader", FileName, Defaults.HaloReplaceShader, true);
-                HaloFogAmount = new SavedFloat("HaloFogAmount", FileName, Defaults.HaloFogAmount, true);
-                HaloBrightness = new SavedFloat("HaloBrightness", FileName, Defaults.HaloBrightness, true);
-                HaloTightness = new SavedFloat("HaloTightness", FileName, Defaults.HaloTightness, true);
-                HaloRadius = new SavedFloat("HaloRadius", FileName, Defaults.HaloRadius, true);
+                HaloEnabled = new BoolSetting("HaloEnabled", Defaults.HaloEnabled);
+                HaloReplaceShader = new BoolSetting("HaloReplaceShader", Defaults.HaloReplaceShader);
+                HaloFogAmount = new FloatSetting("HaloFogAmount", Defaults.HaloFogAmount);
+                HaloBrightness = new FloatSetting("HaloBrightness", Defaults.HaloBrightness);
+                HaloTightness = new FloatSetting("HaloTightness", Defaults.HaloTightness);
+                HaloRadius = new FloatSetting("HaloRadius", Defaults.HaloRadius);
 
-                HaloNearLightDistance = new SavedFloat("HaloNearLightDistance", FileName, Defaults.HaloNearDistance, true);
-                HaloNearLightBrightness = new SavedFloat("HaloNearLightBrightness", FileName, Defaults.HaloNearBrightness, true);
-                HaloNearLightTightness = new SavedFloat("HaloNearLightTightness", FileName, Defaults.HaloNearTightness, true);
-                HaloNearLightRadius = new SavedFloat("HaloNearLightRadius", FileName, Defaults.HaloNearRadius, true);
+                HaloNearLightDistance = new FloatSetting("HaloNearLightDistance", Defaults.HaloNearDistance);
+                HaloNearLightBrightness = new FloatSetting("HaloNearLightBrightness", Defaults.HaloNearBrightness);
+                HaloNearLightTightness = new FloatSetting("HaloNearLightTightness", Defaults.HaloNearTightness);
+                HaloNearLightRadius = new FloatSetting("HaloNearLightRadius", Defaults.HaloNearRadius);
 
-                HaloVehicleBrightness = new SavedFloat("HaloVehicleBrightness", FileName, Defaults.HaloVehicleBrightness, true);
+                HaloVehicleBrightness = new FloatSetting("HaloVehicleBrightness", Defaults.HaloVehicleBrightness);
 
-                HaloAdjustEnabled = new SavedBool("HaloAdjustEnabled", FileName, Defaults.HaloAdjustEnabled, true);
-                HaloRangeScale = new SavedFloat("HaloRangeScale", FileName, Defaults.HaloRangeScale, true);
-                HaloIntensityScale = new SavedFloat("HaloIntensityScale", FileName, Defaults.HaloIntensityScale, true);
-                DynamicHaloCutoff = new SavedFloat("HaloNearDistance", FileName, Defaults.DynamicHaloCutoff, true);
+                HaloAdjustEnabled = new BoolSetting("HaloAdjustEnabled", Defaults.HaloAdjustEnabled);
+                HaloRangeScale = new FloatSetting("HaloRangeScale", Defaults.HaloRangeScale);
+                HaloIntensityScale = new FloatSetting("HaloIntensityScale", Defaults.HaloIntensityScale);
+                // "HaloNearDistance" in the .cgs, a name one word away from HaloNearLightDistance,
+                // which has nothing to do with it (street lamps are never dynamic).
+                DynamicHaloCutoff = new FloatSetting("DynamicHaloCutoff", Defaults.DynamicHaloCutoff, "HaloNearDistance");
 
                 // There is deliberately no DebugSkipDrawLight any more. It suppressed every
                 // dynamic light, was saved as true during one experiment, and then lost its
                 // checkbox when the settings moved into the panel -- so it stayed on, unseen,
                 // hiding vehicle lights for every session after. A debug switch that can
                 // change the picture must never outlive its UI.
-                DebugChecker = new SavedBool("DebugChecker", FileName, Defaults.DebugChecker, true);
+                DebugChecker = new BoolSetting("DebugChecker", Defaults.DebugChecker);
 
+                // Before the file is read: reading it walks the catalog, and building the
+                // catalog calls Init.
                 _initialised = true;
             }
             catch (Exception e)
             {
                 Debug.LogError("[VolumetricClouds] Could not initialise settings.");
                 Debug.LogException(e);
+                return;
             }
+
+            SettingsXml.Load();
         }
 
         /// <summary>F4. A property because SavedInputKey.Encode is a method, so it cannot be a const.</summary>

@@ -93,9 +93,10 @@ panel open against the sky · the options page.
       Harmony is required.
 - [ ] Button icon replaced — `Resources/CloudIcon.png`, to the spec above. The current file is a
       448-byte placeholder.
-- [ ] `Settings.Defaults` re-snapshotted from the live `.cgs` with `tools/read-settings.ps1`,
-      read with a human eye — the file also holds experiments and dead keys
-      (`DebugSkipDrawLight`, the old `WeatherOvercastCoverage`) that must not be copied back.
+- [ ] `Settings.Defaults` re-snapshotted from the live `VolumetricClouds.xml`, read with a
+      human eye — the file also holds experiments that must not be copied back. Mind the
+      units: percentages are written as the slider shows them (47), the constants are
+      fractions (0.47f).
 - [ ] `CHANGELOG.md`: 1.0.0 dated, entries checked against what actually ships.
 - [ ] `git grep -i -E "anthony|ibrahim" -- . ":(exclude)README.md" ":(exclude)LICENSE"` comes
       back empty.
@@ -106,7 +107,10 @@ panel open against the sky · the options page.
       currently off in the settings file). Options tabs, the F4 panel with the advanced switch
       both ways, greying, the confirmation dialogs, Reset, fog on and off, halos, lightning
       placement, rain, night. Read the log afterwards, not just the screen.
-- [ ] **A true first run**: move `VolumetricClouds.cgs` aside, load a city, change nothing.
+- [ ] **A true first run**: move `VolumetricClouds.xml` AND the old `VolumetricClouds.cgs`
+      aside, load a city, change nothing. (Normally the import marks the `.cgs` so it is not
+      read again, but on the dev machine it ran before that worked, and an unmarked `.cgs`
+      would be imported again instead of giving a first run.)
       Clouds and rain on, fog and halos off, and the sky looks right untouched. This has never
       been done on this machine, and it is the whole plug-and-play promise.
       Watch for `CoverageOverride` being left on with `Coverage` at 0 — that is a clear sky and

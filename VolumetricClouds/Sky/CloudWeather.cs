@@ -161,7 +161,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// One line for the panel and the log, and it says which of the three levels is in
-        /// charge. An override is a SavedBool, so it survives the session: someone who forgot
+        /// charge. An override is a saved setting, so it survives the session: someone who forgot
         /// it is on will report the mod as broken, and a loud status line is the cheap fix.
         /// While FOLLOWING it also prints the two ends of the mapping, because those live on
         /// the options page and nothing else on screen says what the weather is being mapped
@@ -181,7 +181,7 @@ namespace VolumetricClouds.Sky
                   (RainEnd * 100f).ToString("F0") + "%)";
         }
 
-        private static float Value(SavedFloat setting, float fallback)
+        private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? Mathf.Clamp01(setting.value) : fallback;
         }

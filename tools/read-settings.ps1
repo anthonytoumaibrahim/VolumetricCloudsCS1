@@ -6,8 +6,11 @@ param(
 )
 
 # Prints every value saved in a ColossalFramework settings file (.cgs), without the game.
-# "What is actually being run right now?" is the question behind every shipping default, and
-# Settings.Defaults drifts away from the answer within a day of tuning.
+#
+# Since 2026-09-21 the mod keeps its settings in VolumetricClouds.xml, plain text in the same
+# folder: open that instead. VolumetricClouds.cgs is only read ONCE, by the import on the first
+# run without an XML file, which then sets MovedToVolumetricCloudsXml in it. This script stays
+# for that old file and for the game's own (-Path ...\gameSettings.cgs).
 #
 #   .\read-settings.ps1
 #   .\read-settings.ps1 -Filter '^Halo'

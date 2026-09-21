@@ -10,8 +10,8 @@ namespace VolumetricClouds.Lighting
     /// street or building lamp never gets here at any distance; what does is lights that are
     /// not batched (vehicles, for one) and batched ones rendered without an instance id.
     /// That is still hundreds of calls a frame at night, so everything here is a plain static
-    /// field refreshed once per frame by <see cref="HaloController"/>. Reading
-    /// SavedFloat.value per call would put the settings system on the hot path.
+    /// field refreshed once per frame by <see cref="HaloController"/>, rather than the settings
+    /// and the switches that gate them being worked through again on every call.
     /// </remarks>
     public static class HaloAdjuster
     {

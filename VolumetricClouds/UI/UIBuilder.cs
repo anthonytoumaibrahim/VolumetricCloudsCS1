@@ -235,7 +235,7 @@ namespace VolumetricClouds.UI
                 UIView.PopModal();
                 button.buttonsMask = UIMouseButton.Left;
                 button.text = key.ToLocalizedString("KEYNAME");
-                GameSettings.SaveAll();
+                SettingsXml.SaveNow();
             };
 
             return button;

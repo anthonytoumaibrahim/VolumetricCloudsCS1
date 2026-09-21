@@ -56,12 +56,12 @@ namespace VolumetricClouds.UI
         /// <summary>Toggles: ask this question before switching ON. Never asked when switching off.</summary>
         public string ConfirmOn;
 
-        public SavedFloat Float;
-        public SavedBool Bool;
-        public SavedInt Int;
+        public FloatSetting Float;
+        public BoolSetting Bool;
+        public IntSetting Int;
         public SavedInputKey Key;
 
-        // The SAME constants Settings.Init() constructs from. A Saved* does not remember its
+        // The SAME constants Settings.Init() constructs from. A setting does not remember its
         // own default, so this is the only thing that can put one back.
         public float DefaultFloat;
         public bool DefaultBool;
@@ -108,7 +108,7 @@ namespace VolumetricClouds.UI
         /// </summary>
         public bool Pending;
 
-        /// <summary>The key this row is stored under, for the log and (later) profiles.</summary>
+        /// <summary>The name this row is stored under in VolumetricClouds.xml, the log and (later) profiles.</summary>
         public string Name
         {
             get
@@ -168,8 +168,8 @@ namespace VolumetricClouds.UI
                         return i;
                 }
 
-                // An unknown value (a hand-edited file, or a preset that has been retired)
-                // reads as the last entry, which is "Custom" wherever there is one.
+                // An unknown value (a preset that has been retired; the settings file refuses
+                // one typed by hand) reads as the last entry, which is "Custom" wherever there is one.
                 return ChoiceValues.Length - 1;
             }
         }
@@ -191,7 +191,8 @@ namespace VolumetricClouds.UI
     /// Built because the same ~60 rows are needed by two different UIs with two different
     /// widget vocabularies (the F4 panel's hand-built controls and the options page's
     /// UIHelper factories), and keeping two imperative lists in step is how they drift.
-    /// Reset-to-defaults walks this list, and so will profiles in 1.1.
+    /// Reset-to-defaults walks this list, so does VolumetricClouds.xml (a setting with no row
+    /// is never saved), and so will profiles in 1.1.
     ///
     /// The split between the two UIs is by KIND, not by tab: overrides and the things you
     /// judge against the sky are in the panel; configuration and one-time set-up are in the
@@ -302,7 +303,7 @@ namespace VolumetricClouds.UI
                     row.AfterChange();
             }
 
-            GameSettings.SaveAll();
+            SettingsXml.SaveNow();
             Log.Msg("settings: RESET to defaults (" + (Rows.Count - kept) + " rows; " + kept +
                     " per-machine opt-ins left as they were: " + keptNames + ")");
         }
@@ -351,11 +352,10 @@ namespace VolumetricClouds.UI
         {
             row.Bool.value = value;
 
-            // Written to disk NOW rather than whenever the framework's background saver next
-            // comes round. A switch is a decision, and "I ticked it and it was off again next
-            // time" is the one report a settings page must never earn -- whatever happens to
-            // the game in the next second.
-            GameSettings.SaveAll();
+            // Written to disk NOW rather than with the slider changes a second later. A switch
+            // is a decision, and "I ticked it and it was off again next time" is the one report
+            // a settings page must never earn -- whatever happens to the game in the next second.
+            SettingsXml.SaveNow();
 
             if (row.AfterChange != null)
                 row.AfterChange();
@@ -437,7 +437,7 @@ namespace VolumetricClouds.UI
             return () => Log.Msg("setting: " + what + " = " + value());
         }
 
-        private static Func<string> OnOff(SavedBool setting)
+        private static Func<string> OnOff(BoolSetting setting)
         {
             return () => setting != null && setting.value ? "ON" : "off";
         }
@@ -566,7 +566,7 @@ namespace VolumetricClouds.UI
             if (Settings.FogOverride != null) Settings.FogOverride.value = false;
             if (Settings.LightningOverride != null) Settings.LightningOverride.value = false;
 
-            GameSettings.SaveAll();
+            SettingsXml.SaveNow();
             Log.Msg("setting: every override cleared; the weather, the fog and the lightning all follow the game again");
         }
 
@@ -587,6 +587,12 @@ namespace VolumetricClouds.UI
         private static void Build()
         {
             Settings.Init();
+
+            // A first Init reads VolumetricClouds.xml, which is written from this list, so it
+            // may have built it already.
+            if (_rows != null)
+                return;
+
             _rows = new List<Row>();
 
             BuildNow();
@@ -830,7 +836,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Fog,
                 Options = OptionsPage.Rendering,
                 Label = "Volumetric fog (VERY heavy on performance)",
-                Note = "WARNING: This setting will significantly impact performance." +
+                Note = "WARNING: This setting will significantly impact performance. " +
                        "Only recommended for users with powerful hardware.",
                 Tooltip = "Real fog lying on the terrain, marched in the cloud pass: it has a top, it shades " +
                           "itself and the sun breaks through it. It is also by far the heaviest thing this " +

@@ -101,17 +101,17 @@ namespace VolumetricClouds
             }
         }
 
-        private static string On(SavedBool setting, bool fallback)
+        private static string On(BoolSetting setting, bool fallback)
         {
             return (setting != null ? setting.value : fallback) ? "on" : "off";
         }
 
-        private static float Value(SavedFloat setting, float fallback)
+        private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? setting.value : fallback;
         }
 
-        private static int Int(SavedInt setting, int fallback)
+        private static int Int(IntSetting setting, int fallback)
         {
             return setting != null ? setting.value : fallback;
         }

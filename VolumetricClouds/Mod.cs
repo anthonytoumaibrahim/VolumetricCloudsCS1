@@ -13,6 +13,12 @@ namespace VolumetricClouds
         {
             Log.Start();
             Log.Msg("Mod enabled. Log file: " + Log.Path);
+
+            // Reads VolumetricClouds.xml (or imports the old .cgs, once) and starts the saver
+            // that writes changes back and picks up edits made to the file by hand.
+            Settings.Init();
+            SettingsXml.StartSaver(); // again after a disable/enable, when Init has nothing left to do
+
             Patcher.EnsureHarmony();
             Patcher.PatchOnReady();
         }
@@ -21,6 +27,7 @@ namespace VolumetricClouds
         public void OnDisabled()
         {
             Patcher.Unpatch();
+            SettingsXml.Shutdown();
         }
 
         /// <summary>

@@ -1,0 +1,985 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using ColossalFramework;
+using ColossalFramework.IO;
+using UnityEngine;
+using VolumetricClouds.UI;
+
+namespace VolumetricClouds
+{
+    /// <summary>
+    /// VolumetricClouds.xml, next to the log: every setting, in a file a player can open and
+    /// edit -- with the game running, too.
+    /// </summary>
+    /// <remarks>
+    /// Until 2026-09-21 the settings lived in VolumetricClouds.cgs, the game's binary format
+    /// (reading it took tools/read-settings.ps1). The first run without an XML file imports
+    /// whatever that file holds, once; see <see cref="ImportFromCgs"/>.
+    ///
+    /// The catalog is the list: one element per row that holds a value, in catalog order,
+    /// under a heading for the tab it is on. Numbers are written the way the slider shows
+    /// them, so a percentage is 47, not 0.47 -- the number someone reads off the screen is
+    /// the number they look for in the file.
+    ///
+    /// When it is read:
+    /// - at startup;
+    /// - within a second of it changing on disk (<see cref="Tick"/>), applied exactly as if
+    ///   each changed row had been moved in the UI (AfterChange runs, both UIs refresh).
+    /// When it is written:
+    /// - a switch, a key, a reset or "Follow the game": at once (<see cref="SaveNow"/>). A
+    ///   switch is a decision; "I ticked it and it was off next time" must never happen;
+    /// - a slider: a second after the last change, so a drag is one write, not sixty;
+    /// - on quitting, and when the mod is disabled.
+    /// It is written to a temporary file that then replaces it, so a crash never leaves half
+    /// a file, and not at all when the text would be the same.
+    ///
+    /// A value that is out of range is pulled into it, one that cannot be read is ignored,
+    /// an unknown name is ignored, a missing one keeps its current value -- each said once
+    /// in the log. A file that cannot be read AT ALL is never saved over: it may hold an
+    /// afternoon of tuning with one bracket missing, and writing the defaults over it would
+    /// also switch off the fog, which only the player's own click may do (invariant 12).
+    /// </remarks>
+    public static class SettingsXml
+    {
+        public const string FileName = "VolumetricClouds.xml";
+
+        /// <summary>The retired binary settings file: the game's SettingsFile name, no extension.</summary>
+        private const string CgsName = "VolumetricClouds";
+
+        /// <summary>
+        /// Set in the .cgs by the import, so that deleting the XML file resets to the defaults
+        /// instead of bringing the old values back. Older builds ignore an unknown key.
+        /// </summary>
+        private const string ImportedMarker = "MovedToVolumetricCloudsXml";
+
+        private const float SaveDelay = 1f;
+        private const float FileCheckInterval = 1f;
+
+        private const string Header =
+            "Volumetric Clouds settings.\n" +
+            "\n" +
+            "You can edit this file while the game is running: the mod reads it again within a\n" +
+            "second of it being saved, and the panels follow.\n" +
+            "\n" +
+            "- Numbers use a dot for decimals: 0.5, never 0,5.\n" +
+            "- A percentage is written the way its slider shows it: 47 means 47%.\n" +
+            "- A value outside its range is pulled back into it. A value that cannot be read, and\n" +
+            "  a name the mod does not know, are ignored. VolumetricClouds.log says which.\n" +
+            "- A setting whose line is missing keeps the value it has (at startup, its default).\n" +
+            "- If the file cannot be read at all, the mod leaves it alone and says so in the log.\n" +
+            "- The mod rewrites this file, these comments included, whenever a setting changes in\n" +
+            "  the game: notes of your own will not survive.\n" +
+            "- Delete the file with the game closed to start again from every default.";
+
+        private static string _path;
+
+        // Set from the setters, which only ever run on the main thread; volatile anyway, since
+        // nothing here is worth a torn read.
+        private static volatile bool _dirty;
+        private static volatile int _changeStamp;
+        private static int _seenStamp;
+        private static float _quietSince;
+        private static float _nextFileCheck;
+
+        /// <summary>True while values are being taken FROM the file: those are not changes to save.</summary>
+        private static bool _loading;
+
+        /// <summary>The file exists and cannot be read. Nothing is written until it can.</summary>
+        private static bool _broken;
+        private static bool _warnedBrokenSave;
+
+        /// <summary>What is on disk as far as this session knows; null when unknown.</summary>
+        private static string _diskText;
+        private static DateTime _seenTime;
+        private static long _seenLength = -1;
+
+        private static int _savedKey;
+        private static bool _replaceFailed;
+        private static string _lastSaveError;
+        private static GameObject _saver;
+
+        public static string Path
+        {
+            get
+            {
+                if (_path == null)
+                    _path = System.IO.Path.Combine(DataLocation.localApplicationData, FileName);
+
+                return _path;
+            }
+        }
+
+        private static string TempPath
+        {
+            get { return Path + ".tmp"; }
+        }
+
+        /// <summary>A value changed. Saved a second after the last one; see <see cref="Tick"/>.</summary>
+        public static void MarkDirty()
+        {
+            if (_loading)
+                return;
+
+            _dirty = true;
+            _changeStamp++;
+        }
+
+        // ---- startup --------------------------------------------------------------------------
+
+        /// <summary>Called once, at the end of Settings.Init, with every setting constructed.</summary>
+        public static void Load()
+        {
+            StartSaver();
+            WarnAboutRowlessSettings();
+
+            try
+            {
+                if (File.Exists(Path))
+                {
+                    LoadAtStartup(Path, "loaded");
+                }
+                else if (File.Exists(TempPath))
+                {
+                    // Only possible if the game died between writing the new file and moving it
+                    // into place -- and then the temporary file IS the latest save.
+                    Log.Warn("settings: " + FileName + " is missing but an unfinished save of it is there; using that");
+                    LoadAtStartup(TempPath, "recovered");
+                }
+                else if (!ImportFromCgs())
+                {
+                    SaveNow();
+                    Log.Msg("settings: no settings file yet; created " + Path + " with every default");
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error("settings: could not load " + Path + "; running on the defaults", e);
+            }
+
+            _savedKey = CurrentKey();
+        }
+
+        private static void LoadAtStartup(string file, string verb)
+        {
+            string text = File.ReadAllText(file);
+            if (file == Path)
+                Remember(text);
+
+            string error;
+            Result result = Apply(text, out error);
+            if (result == null)
+            {
+                _broken = true;
+                Log.Warn("settings: " + file + " cannot be read (" + error + "). Running on the defaults, " +
+                         "and NOT saving over it: fix it or delete it, and it is read again within a second.");
+                return;
+            }
+
+            Log.Msg("settings: " + verb + " " + result.Applied + " values from " + file + result.Describe());
+            result.LogProblems();
+
+            // Lists every setting, with its comment: a file from an older version gains the new
+            // ones, and a clamped value is written as it now is. Skipped when nothing differs.
+            SaveNow();
+        }
+
+        // ---- the running game -----------------------------------------------------------------
+
+        /// <summary>Every frame, from <see cref="SettingsSaver"/>, at the main menu and in a city.</summary>
+        public static void Tick()
+        {
+            if (!Settings.IsInitialised)
+                return;
+
+            float now = Time.realtimeSinceStartup;
+
+            if (_dirty)
+            {
+                int stamp = _changeStamp;
+                if (stamp != _seenStamp)
+                {
+                    _seenStamp = stamp;
+                    _quietSince = now;
+                }
+                else if (now - _quietSince >= SaveDelay)
+                {
+                    SaveNow();
+                }
+            }
+
+            if (now < _nextFileCheck)
+                return;
+
+            _nextFileCheck = now + FileCheckInterval;
+
+            // Unified UI holds our key too; anything that sets it bypasses every UI path.
+            if (CurrentKey() != _savedKey)
+                MarkDirty();
+
+            CheckFile();
+        }
+
+        /// <summary>Writes a pending change now: quitting, the mod being disabled.</summary>
+        public static void Flush()
+        {
+            if (_dirty)
+                SaveNow();
+        }
+
+        /// <summary>From Mod.OnDisabled.</summary>
+        public static void Shutdown()
+        {
+            Flush();
+
+            if (_saver != null)
+                UnityEngine.Object.Destroy(_saver);
+
+            _saver = null;
+        }
+
+        /// <summary>Starts <see cref="SettingsSaver"/> unless it is running. Safe to call again.</summary>
+        public static void StartSaver()
+        {
+            if (_saver != null)
+                return;
+
+            _saver = new GameObject("VolumetricCloudsSettings");
+            UnityEngine.Object.DontDestroyOnLoad(_saver);
+            _saver.AddComponent<SettingsSaver>();
+        }
+
+        private static void CheckFile()
+        {
+            FileInfo info;
+            try
+            {
+                info = new FileInfo(Path);
+                if (!info.Exists)
+                {
+                    if (_diskText != null || _broken)
+                    {
+                        Log.Msg("settings: " + FileName + " was deleted while the game runs; writing it again from " +
+                                "the settings in use (delete it with the game closed to go back to the defaults)");
+                    }
+
+                    _diskText = null;
+                    _broken = false;
+                    SaveNow();
+                    return;
+                }
+
+                if (info.LastWriteTimeUtc == _seenTime && info.Length == _seenLength)
+                    return;
+            }
+            catch (Exception e)
+            {
+                Log.Detail("settings: could not look at " + Path + ": " + e.Message);
+                return;
+            }
+
+            Reload();
+        }
+
+        /// <summary>The file changed on disk and it was not us: take what it says.</summary>
+        private static void Reload()
+        {
+            string text;
+            try
+            {
+                text = File.ReadAllText(Path);
+            }
+            catch (Exception)
+            {
+                return; // an editor is still writing it or holds it; look again in a second
+            }
+
+            // Saved again unchanged, or only its date moved: nothing to take.
+            bool same = text == _diskText;
+            Remember(text);
+            if (same)
+                return;
+
+            string error;
+            var changed = new List<Row>();
+            Result result = Apply(text, out error, changed);
+            if (result == null)
+            {
+                _broken = true;
+                _diskText = null;
+                Log.Warn("settings: " + FileName + " was edited and cannot be read (" + error + "). Nothing was " +
+                         "taken from it, and it will not be saved over until it can be read again.");
+                return;
+            }
+
+            bool wasBroken = _broken;
+            _broken = false;
+            _warnedBrokenSave = false;
+
+            Log.Msg("settings: " + FileName + " was edited" + (wasBroken ? " and can be read again" : "") + " -- " +
+                    (changed.Count == 0 ? "no value changed" : changed.Count + " changed: " + result.Changes()) +
+                    result.Describe());
+            result.LogProblems();
+
+            // As if each row had been moved in the UI, in catalog order -- which puts the quality
+            // preset before the three rows it writes.
+            foreach (Row row in changed)
+            {
+                if (row.AfterChange == null)
+                    continue;
+
+                try
+                {
+                    row.AfterChange();
+                }
+                catch (Exception e)
+                {
+                    Log.Error("settings: applying '" + row.Name + "' from the file failed", e);
+                }
+            }
+
+            _savedKey = CurrentKey();
+            SettingsCatalog.RefreshAllUIs();
+        }
+
+        // ---- saving ---------------------------------------------------------------------------
+
+        /// <summary>Writes the file now, if what it would hold differs from what is there.</summary>
+        public static void SaveNow()
+        {
+            _dirty = false;
+            _seenStamp = _changeStamp;
+
+            if (!Settings.IsInitialised)
+                return;
+
+            if (_broken)
+            {
+                if (!_warnedBrokenSave)
+                {
+                    _warnedBrokenSave = true;
+                    Log.Warn("settings: NOT saved -- " + FileName + " cannot be read, and saving would throw away " +
+                             "whatever is in it. Fix it or delete it; the mod reads it again within a second.");
+                }
+
+                return;
+            }
+
+            try
+            {
+                string text = Compose();
+                _savedKey = CurrentKey();
+
+                if (text == _diskText && File.Exists(Path))
+                    return;
+
+                WriteReplacing(text);
+                Remember(text);
+                _lastSaveError = null;
+
+                if (Log.Detailed)
+                    Log.Detail("settings: saved " + Path);
+            }
+            catch (Exception e)
+            {
+                // Once per distinct failure: this runs every second while the file is missing.
+                if (e.Message != _lastSaveError)
+                {
+                    _lastSaveError = e.Message;
+                    Log.Warn("settings: could not save " + Path + ": " + e.Message);
+                }
+            }
+        }
+
+        private static void WriteReplacing(string text)
+        {
+            File.WriteAllText(TempPath, text, new UTF8Encoding(false));
+
+            if (!File.Exists(Path))
+            {
+                File.Move(TempPath, Path);
+                return;
+            }
+
+            if (!_replaceFailed)
+            {
+                try
+                {
+                    File.Replace(TempPath, Path, null);
+                    return;
+                }
+                catch (Exception e)
+                {
+                    _replaceFailed = true;
+                    Log.Msg("settings: File.Replace failed (" + e.Message + "); copying over the file from now on");
+                }
+            }
+
+            File.Copy(TempPath, Path, true);
+            File.Delete(TempPath);
+        }
+
+        /// <summary>What is now on disk, so our own write is not mistaken for an edit.</summary>
+        private static void Remember(string text)
+        {
+            _diskText = text;
+
+            try
+            {
+                var info = new FileInfo(Path);
+                _seenTime = info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue;
+                _seenLength = info.Exists ? info.Length : -1;
+            }
+            catch (Exception)
+            {
+                _seenLength = -1;
+            }
+        }
+
+        private static string Compose()
+        {
+            var entries = new List<SettingsXmlFormat.Entry>();
+            var seen = new HashSet<object>();
+
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting == null || !seen.Add(setting))
+                    continue;
+
+                entries.Add(new SettingsXmlFormat.Entry
+                {
+                    Section = SectionOf(row),
+                    Group = row.Group,
+                    Name = row.Name,
+                    Value = ValueText(row),
+                    Comment = CommentFor(row),
+                });
+            }
+
+            return SettingsXmlFormat.Write(entries, Header);
+        }
+
+        // ---- applying values ------------------------------------------------------------------
+
+        /// <summary>What one read of the file did, for the log.</summary>
+        private sealed class Result
+        {
+            public int Applied;
+            public readonly List<string> Missing = new List<string>();
+            public readonly List<string> Unknown = new List<string>();
+            public readonly List<string> Problems = new List<string>();
+            public readonly List<string> ChangeList = new List<string>();
+            public List<string> Duplicates = new List<string>();
+            public int Version;
+
+            public string Describe()
+            {
+                string text = "";
+                if (Missing.Count > 0)
+                    text += "; " + Missing.Count + " not in it, left as they were: " + List(Missing);
+                if (Unknown.Count > 0)
+                    text += "; ignored names the mod does not know: " + List(Unknown);
+                if (Duplicates.Count > 0)
+                    text += "; written twice, the last one taken: " + List(Duplicates);
+                if (Version > SettingsXmlFormat.Version)
+                    text += "; the file is from a NEWER version of the mod (format " + Version + ")";
+
+                return text;
+            }
+
+            public string Changes()
+            {
+                return List(ChangeList);
+            }
+
+            public void LogProblems()
+            {
+                if (Problems.Count > 0)
+                    Log.Warn("settings: not taken as written -- " + string.Join("; ", Problems.ToArray()));
+            }
+
+            private static string List(List<string> items)
+            {
+                const int Shown = 12;
+                if (items.Count <= Shown)
+                    return string.Join(", ", items.ToArray());
+
+                return string.Join(", ", items.GetRange(0, Shown).ToArray()) + " and " + (items.Count - Shown) + " more";
+            }
+        }
+
+        /// <summary>Takes every value the text holds. Null (and why) if it is not a settings file.</summary>
+        private static Result Apply(string text, out string error, List<Row> changedRows = null)
+        {
+            error = null;
+            var result = new Result();
+
+            Dictionary<string, string> values;
+            try
+            {
+                values = SettingsXmlFormat.Parse(text, out result.Version, result.Duplicates);
+            }
+            catch (FormatException e)
+            {
+                error = e.Message;
+                return null;
+            }
+
+            var seen = new HashSet<object>();
+            _loading = true;
+            try
+            {
+                foreach (Row row in SettingsCatalog.Rows)
+                {
+                    object setting = SettingOf(row);
+                    if (setting == null || !seen.Add(setting))
+                        continue;
+
+                    string value;
+                    if (!values.TryGetValue(row.Name, out value))
+                    {
+                        result.Missing.Add(row.Name);
+                        continue;
+                    }
+
+                    values.Remove(row.Name);
+                    result.Applied++;
+
+                    string before = ValueText(row);
+                    string problem = ApplyText(row, value);
+                    if (problem != null)
+                        result.Problems.Add(row.Name + " '" + value + "' " + problem);
+
+                    string after = ValueText(row);
+                    if (after != before)
+                    {
+                        result.ChangeList.Add(row.Name + " " + before + " -> " + after);
+                        if (changedRows != null)
+                            changedRows.Add(row);
+                    }
+                }
+            }
+            finally
+            {
+                _loading = false;
+            }
+
+            result.Unknown.AddRange(values.Keys);
+            return result;
+        }
+
+        /// <summary>Stores one value written as text. Returns what went wrong, or null.</summary>
+        private static string ApplyText(Row row, string text)
+        {
+            if (row.Float != null)
+            {
+                double number;
+                if (!SettingsXmlFormat.TryParseNumber(text, out number))
+                    return "ignored: not a number (decimals take a dot: 0.5)";
+
+                return ApplyDisplay(row, number);
+            }
+
+            if (row.Bool != null)
+            {
+                bool flag;
+                if (!SettingsXmlFormat.TryParseBool(text, out flag))
+                    return "ignored: not true or false";
+
+                row.Bool.value = flag;
+                return null;
+            }
+
+            if (row.Int != null)
+                return ApplyInt(row, text);
+
+            if (row.Key != null)
+            {
+                int encoded;
+                if (!SettingsXmlFormat.TryParseKey(text, out encoded))
+                    return "ignored: not a key (F4, Ctrl+Shift+C, None)";
+
+                row.Key.value = encoded;
+                return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>A number in slider units, pulled into the slider's range.</summary>
+        private static string ApplyDisplay(Row row, double display)
+        {
+            string problem = null;
+
+            if (row.Max > row.Min && (display < row.Min || display > row.Max))
+            {
+                double clamped = Math.Max(row.Min, Math.Min(row.Max, display));
+                problem = "pulled into its range " + SettingsXmlFormat.FormatNumber(row.Min) + " to " +
+                          SettingsXmlFormat.FormatNumber(row.Max) + ": " + SettingsXmlFormat.FormatNumber(clamped);
+                display = clamped;
+            }
+
+            row.Store((float)display);
+            return problem;
+        }
+
+        private static string ApplyInt(Row row, string text)
+        {
+            string trimmed = text.Trim();
+
+            if (row.ChoiceValues != null)
+            {
+                int number;
+                bool isNumber = int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out number);
+
+                for (int i = 0; i < row.ChoiceValues.Length; i++)
+                {
+                    bool byName = row.Choices != null && i < row.Choices.Length &&
+                                  string.Equals(row.Choices[i], trimmed, StringComparison.OrdinalIgnoreCase);
+
+                    if (byName || (isNumber && row.ChoiceValues[i] == number))
+                    {
+                        row.Int.value = row.ChoiceValues[i];
+                        return null;
+                    }
+                }
+
+                return "ignored: not one of " + ChoiceList(row);
+            }
+
+            double value;
+            if (!SettingsXmlFormat.TryParseNumber(trimmed, out value))
+                return "ignored: not a number";
+
+            string problem = null;
+            if (row.Max > row.Min && (value < row.Min || value > row.Max))
+            {
+                value = Math.Max(row.Min, Math.Min(row.Max, value));
+                problem = "pulled into its range: " + SettingsXmlFormat.FormatNumber(value);
+            }
+
+            row.Int.value = (int)Math.Round(value);
+            return problem;
+        }
+
+        // ---- the one-time import --------------------------------------------------------------
+
+        /// <summary>
+        /// The first run without an XML file takes every value the old .cgs holds, under each
+        /// setting's <see cref="Setting.LegacyKey"/>, through the same range checks as the file.
+        /// The .cgs is left where it is, so an older build still finds its values, and is only
+        /// marked: deleting the XML file must mean the defaults, not the values of the day the
+        /// mod moved house.
+        /// </summary>
+        private static bool ImportFromCgs()
+        {
+            string cgsPath = System.IO.Path.Combine(DataLocation.localApplicationData, CgsName + ".cgs");
+            if (!File.Exists(cgsPath))
+                return false;
+
+            // Registering only reads it. The game's saver writes a settings file only when a
+            // value in it is SET (SettingsFile.SetValue marks it dirty; SaveAll skips the rest).
+            if (GameSettings.FindSettingsFileByName(CgsName) == null)
+                GameSettings.AddSettingsFile(new SettingsFile { fileName = CgsName });
+
+            var marker = new SavedBool(ImportedMarker, CgsName, false, false);
+            if (marker.value)
+            {
+                SaveNow();
+                Log.Msg("settings: " + CgsName + ".cgs was imported before, so it is not read again; created " +
+                        Path + " with every default");
+                return true;
+            }
+
+            int imported = 0;
+            var renamed = new List<string>();
+            var problems = new List<string>();
+            var seen = new HashSet<object>();
+
+            _loading = true;
+            try
+            {
+                foreach (Row row in SettingsCatalog.Rows)
+                {
+                    object setting = SettingOf(row);
+                    if (setting == null || !seen.Add(setting))
+                        continue;
+
+                    string key = LegacyKeyOf(row);
+                    string problem;
+                    if (!ImportOne(row, key, out problem))
+                        continue;
+
+                    imported++;
+                    if (key != row.Name)
+                        renamed.Add(key + " -> " + row.Name);
+                    if (problem != null)
+                        problems.Add(row.Name + " " + problem);
+                }
+            }
+            finally
+            {
+                _loading = false;
+            }
+
+            SaveNow();
+
+            // Marked only once the values are safely in the new file: a mark with no file would
+            // mean the defaults on the next start, and the old values never read again.
+            if (!File.Exists(Path))
+            {
+                Log.Warn("settings: took " + imported + " values from " + cgsPath + " but could not write " + Path +
+                         "; the .cgs is left unmarked and will be imported again next time");
+                return true;
+            }
+
+            marker.value = true;
+            GameSettings.SaveAll();
+
+            Log.Msg("settings: imported " + imported + " values from " + cgsPath + " into " + Path +
+                    (renamed.Count > 0 ? " (under new names: " + string.Join(", ", renamed.ToArray()) + ")" : "") +
+                    ". The .cgs stays for older versions of the mod, marked so it is never imported again.");
+
+            if (problems.Count > 0)
+                Log.Warn("settings: imported but not as saved -- " + string.Join("; ", problems.ToArray()));
+
+            return true;
+        }
+
+        private static bool ImportOne(Row row, string key, out string problem)
+        {
+            problem = null;
+
+            if (row.Float != null)
+            {
+                var saved = new SavedFloat(key, CgsName, 0f, false);
+                float value = saved.value;
+                if (!saved.exists)
+                    return false;
+
+                problem = ApplyDisplay(row, row.Kind == RowKind.Percent ? value * 100.0 : value);
+                return true;
+            }
+
+            if (row.Bool != null)
+            {
+                var saved = new SavedBool(key, CgsName, false, false);
+                bool value = saved.value;
+                if (!saved.exists)
+                    return false;
+
+                row.Bool.value = value;
+                return true;
+            }
+
+            if (row.Int != null)
+            {
+                var saved = new SavedInt(key, CgsName, 0, false);
+                int value = saved.value;
+                if (!saved.exists)
+                    return false;
+
+                problem = ApplyInt(row, value.ToString(CultureInfo.InvariantCulture));
+                return true;
+            }
+
+            if (row.Key != null)
+            {
+                var saved = new SavedInputKey(key, CgsName, 0, false);
+                int value = saved.value;
+                if (!saved.exists)
+                    return false;
+
+                row.Key.value = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        // ---- rows -----------------------------------------------------------------------------
+
+        private static object SettingOf(Row row)
+        {
+            if (row.Float != null) return row.Float;
+            if (row.Bool != null) return row.Bool;
+            if (row.Int != null) return row.Int;
+            if (row.Key != null) return row.Key;
+            return null;
+        }
+
+        private static string LegacyKeyOf(Row row)
+        {
+            if (row.Float != null) return row.Float.LegacyKey;
+            if (row.Bool != null) return row.Bool.LegacyKey;
+            if (row.Int != null) return row.Int.LegacyKey;
+            return row.Name;
+        }
+
+        private static int CurrentKey()
+        {
+            return Settings.ToggleKey != null ? (int)Settings.ToggleKey.value : 0;
+        }
+
+        /// <summary>The value exactly as the file holds it.</summary>
+        private static string ValueText(Row row)
+        {
+            if (row.Float != null)
+                return SettingsXmlFormat.FormatNumber(row.Display);
+            if (row.Bool != null)
+                return SettingsXmlFormat.FormatBool(row.Bool.value);
+            if (row.Int != null)
+                return row.Int.value.ToString(CultureInfo.InvariantCulture);
+            if (row.Key != null)
+                return SettingsXmlFormat.FormatKey(row.Key.value);
+
+            return string.Empty;
+        }
+
+        private static string SectionOf(Row row)
+        {
+            if (row.Panel != PanelPage.None)
+                return "In-game panel: " + row.Panel + " tab";
+            if (row.Options != OptionsPage.None)
+                return "Options page: " + row.Options + " tab";
+
+            return "Not shown on either page";
+        }
+
+        /// <summary>"Cloud altitude. 200 to 3000 (slider: 200 m to 3000 m), default 750."</summary>
+        private static string CommentFor(Row row)
+        {
+            string label = string.IsNullOrEmpty(row.Label) ? row.Name : row.Label;
+            string text;
+
+            if (row.Float != null)
+            {
+                float fallback = row.Kind == RowKind.Percent ? row.DefaultFloat * 100f : row.DefaultFloat;
+                string range = row.Max > row.Min
+                    ? SettingsXmlFormat.FormatNumber(row.Min) + " to " + SettingsXmlFormat.FormatNumber(row.Max)
+                    : "any number";
+
+                text = row.Kind == RowKind.Percent
+                    ? label + ", in %. " + range + ", default " + SettingsXmlFormat.FormatNumber(fallback) + "."
+                    : label + ". " + range + Readout(row) + ", default " + SettingsXmlFormat.FormatNumber(fallback) + ".";
+            }
+            else if (row.Bool != null)
+            {
+                text = label + ". true or false, default " + SettingsXmlFormat.FormatBool(row.DefaultBool) + ".";
+            }
+            else if (row.Int != null)
+            {
+                text = row.ChoiceValues != null
+                    ? label + ". One of " + ChoiceList(row) + "; default " + row.DefaultInt.ToString(CultureInfo.InvariantCulture) + "."
+                    : label + ". Default " + row.DefaultInt.ToString(CultureInfo.InvariantCulture) + ".";
+            }
+            else
+            {
+                text = label + ". A key such as F4 or Ctrl+Shift+C, or None; default " +
+                       SettingsXmlFormat.FormatKey(row.DefaultKey) + ".";
+            }
+
+            if (row.ConfirmOn != null)
+                text += " Switching it on here skips the question the game asks first.";
+
+            if (!string.IsNullOrEmpty(row.Note))
+                text += " " + row.Note;
+
+            return text;
+        }
+
+        /// <summary>What the slider shows at its ends, where that is not just the number.</summary>
+        private static string Readout(Row row)
+        {
+            if (!(row.Max > row.Min))
+                return string.Empty;
+
+            string low = row.FormatDisplay(row.Min);
+            string high = row.FormatDisplay(row.Max);
+
+            if (low == SettingsXmlFormat.FormatNumber(row.Min) && high == SettingsXmlFormat.FormatNumber(row.Max))
+                return string.Empty;
+
+            return " (slider: " + low + " to " + high + ")";
+        }
+
+        private static string ChoiceList(Row row)
+        {
+            var parts = new List<string>();
+            for (int i = 0; i < row.ChoiceValues.Length; i++)
+            {
+                string value = row.ChoiceValues[i].ToString(CultureInfo.InvariantCulture);
+                string name = row.Choices != null && i < row.Choices.Length ? row.Choices[i] : value;
+                parts.Add(name == value ? value : value + " (" + name + ")");
+            }
+
+            return string.Join(", ", parts.ToArray());
+        }
+
+        /// <summary>
+        /// A setting with no catalog row is never saved (invariant 7 now has teeth). Said once,
+        /// always, so it is found the first time anyone reads a log.
+        /// </summary>
+        private static void WarnAboutRowlessSettings()
+        {
+            var inCatalog = new HashSet<object>();
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting != null)
+                    inCatalog.Add(setting);
+            }
+
+            var missing = new List<string>();
+            foreach (Setting setting in Setting.All)
+            {
+                if (!inCatalog.Contains(setting))
+                    missing.Add(setting.name);
+            }
+
+            if (missing.Count > 0)
+            {
+                Log.Warn("settings: no row in SettingsCatalog, so NEVER saved: " +
+                         string.Join(", ", missing.ToArray()));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drives <see cref="SettingsXml.Tick"/>. Lives for the whole session, main menu included:
+    /// the options page changes settings there too.
+    /// </summary>
+    internal sealed class SettingsSaver : MonoBehaviour
+    {
+        private bool _failed;
+
+        private void Update()
+        {
+            try
+            {
+                SettingsXml.Tick();
+            }
+            catch (Exception e)
+            {
+                // Once: this runs every frame, and a repeating error would bury the log.
+                if (!_failed)
+                    Log.Error("settings: the saver failed; changes may not reach " + SettingsXml.FileName, e);
+
+                _failed = true;
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            SettingsXml.Flush();
+        }
+
+        private void OnDestroy()
+        {
+            SettingsXml.Flush();
+        }
+    }
+}
