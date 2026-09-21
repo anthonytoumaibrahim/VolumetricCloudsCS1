@@ -101,7 +101,11 @@ panel open against the sky · the options page.
       Openclipart's *Weather Symbols* (public domain, recorded in THIRD-PARTY-NOTICES.md), 64 px
       art centred 1:1 on an 80×80 transparent canvas for a margin. Still to see: how it reads on
       the Unified UI bar and the HUD fallback.
-- [ ] `Settings.Defaults` re-snapshotted from the live `VolumetricClouds.xml`, read with a
+- [x] (2026-09-21: nine look values taken -- fixed intensity 97%, speed 3.0x, thickness 400 m,
+      break-up 50%, detail 4.00x, density 150%, clear-sky brightness 300%, night glow 50%,
+      shadow fullness 3.00x. Kept as shipped: the weather override and halos OFF, the advanced
+      panel and detailed logging OFF, preset High.)
+      `Settings.Defaults` re-snapshotted from the live `VolumetricClouds.xml`, read with a
       human eye — the file also holds experiments that must not be copied back. Mind the
       units: percentages are written as the slider shows them (47), the constants are
       fractions (0.47f).

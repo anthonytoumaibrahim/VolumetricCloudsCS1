@@ -382,11 +382,12 @@ namespace VolumetricClouds
         public static BoolSetting DebugChecker { get; private set; }
 
         /// <summary>
-        /// Every default, in one place. Read off the author's own settings file on 2026-09-20
-        /// at 20:00 (tools\read-settings.ps1), leaving out the values that file holds as
-        /// experiments rather than as a look: the three overrides are all off here, the rain
-        /// endpoint is a full overcast rather than its 0, and lightning activity is 50%.
-        /// Re-snapshot before publishing, and read the result with a human eye.
+        /// Every default, in one place. Re-snapshotted for release from the author's
+        /// VolumetricClouds.xml on 2026-09-21, read by eye. Left out, because they are
+        /// per-machine or promises the Workshop page makes rather than a look: the file had
+        /// "Ignore the game's weather" ON (the clouds follow the weather out of the box), halos
+        /// ON (off until asked for), "Show advanced options" and "Detailed logging" ON (the
+        /// author's machine), and the preset at Custom with exactly the High preset's numbers.
         /// </summary>
         public static class Defaults
         {
@@ -402,7 +403,7 @@ namespace VolumetricClouds
             // ---- the weather and the cover ----
 
             /// <summary>What the override asks for when it is first switched on.</summary>
-            public const float Coverage = 0.91f;
+            public const float Coverage = 0.97f;
 
             public const bool CoverageOverride = false;
 
@@ -412,16 +413,16 @@ namespace VolumetricClouds
             /// <summary>Following the weather: rain, or a full cloudy spell.</summary>
             public const float OvercastCoverage = 0.98f;
 
-            public const float WindSpeed = 3.3f;
+            public const float WindSpeed = 3f;
             public const float WeatherTileSize = 13500f;
 
             // ---- the clouds ----
             public const bool CloudsVisible = true;
             public const float Altitude = 750f;
-            public const float Thickness = 650f;
-            public const float Breakup = 0.3f;
-            public const float BreakupScale = 6f;
-            public const float Density = 3f;
+            public const float Thickness = 400f;
+            public const float Breakup = 0.5f;
+            public const float BreakupScale = 4f;
+            public const float Density = 1.5f;
 
             /// <summary>The manual brightness, used when the curve below is switched off.</summary>
             public const float Brightness = 0.25f;
@@ -429,19 +430,19 @@ namespace VolumetricClouds
             public const bool BrightnessAuto = true;
 
             /// <summary>The curve's two ends, in the same units as <see cref="Brightness"/>.</summary>
-            public const float BrightnessClear = 2f;
+            public const float BrightnessClear = 3f;
             public const float BrightnessOvercast = 0.5f;
 
             /// <summary>1 = off. Only consulted when the brightness curve is off.</summary>
             public const float MinIllumination = 1f;
 
             public const float NightOpacity = 1f;
-            public const float NightGlow = 0.9f;
+            public const float NightGlow = 0.5f;
 
             // ---- shadows ----
             public const bool CloudShadows = true;
             public const float ShadowDarkness = 0.85f;
-            public const float ShadowFullness = 4f;
+            public const float ShadowFullness = 3f;
             public const int ShadowMapResolution = 2048;
             public const int ShadowMapRate = 20;
 
