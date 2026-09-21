@@ -74,6 +74,7 @@ namespace VolumetricClouds
             gameObject.AddComponent<GameStars>();
             gameObject.AddComponent<HaloController>();
             gameObject.AddComponent<HaloOverride>();
+            gameObject.AddComponent<FogLampMap>();
 
             BuildButton();
         }

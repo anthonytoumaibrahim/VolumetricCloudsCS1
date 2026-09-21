@@ -47,6 +47,9 @@ earlier public versions, so nothing below is a change from something a player ha
 - Fog amount is an exact share of the map, measured against what the GPU actually samples.
 - Level by default, measured from the map's sea level like the game's own fog, so valleys fill
   and hills stand out of it; *Fog follows the ground* drapes it over the terrain instead.
+- At night the fog is lit by the city's lights: it glows round street lamps, building lights and
+  headlights, in their own colours, only where there is fog. The light halos are not changed. On
+  by default with the fog; *Fog lit by the city's lights* switches it off.
 - *Fog starts at* raises the underside of the layer, for fog that only exists higher up: around
   the hilltops when level, or hanging over everything like low cloud when it follows the ground.
 - Off by default and confirmed before it turns on, because it is the most expensive feature.

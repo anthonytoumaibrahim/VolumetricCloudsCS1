@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using VolumetricClouds.Sky;
 
 namespace VolumetricClouds.Lighting
 {
@@ -15,8 +16,13 @@ namespace VolumetricClouds.Lighting
     })]
     public static class DrawLightParametersPatch
     {
-        public static bool Prefix(Vector3 pos, ref Vector3 vel, ref float intensity, ref float range, ref bool volume)
+        public static bool Prefix(LightType type, Vector3 pos, Vector3 dir, ref Vector3 vel, Color color, ref float intensity,
+            ref float range, float spotAngle, ref bool volume)
         {
+            // The fog is lit by what the GAME draws, before our halo adjustments touch it.
+            if (FogLampMap.Collecting)
+                FogLampMap.Record(type, pos, dir, color, intensity, range, spotAngle);
+
             return HaloAdjuster.Adjust(pos, ref vel, ref intensity, ref range, ref volume);
         }
     }

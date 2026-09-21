@@ -26,7 +26,8 @@ and bring their own rain, lightning, fog and night sky with them.
   a fire; the game's own strikes are left untouched.
 - **Volumetric fog** *(opt-in, expensive)* — fog as a cloud layer, with a top surface,
   self-shadowing and sun shafts. Level from sea level, or draped over the terrain; from the
-  bottom up, or only above a height you choose. Off by default.
+  bottom up, or only above a height you choose. At night it glows round street lamps, building
+  lights and headlights. Off by default.
 - **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes

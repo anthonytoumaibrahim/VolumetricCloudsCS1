@@ -167,6 +167,22 @@ namespace VolumetricClouds
         public static SavedFloat FogTint { get; private set; }
 
         /// <summary>
+        /// The city's lights (lamps, buildings, vehicles) light our fog round them. On by
+        /// default -- it only ever runs while the volumetric fog does, at night. Off: nothing
+        /// of it runs (FogLampMap is not even created).
+        /// </summary>
+        public static SavedBool FogLampsEnabled { get; private set; }
+
+        /// <summary>
+        /// How strongly the city's lights light the fog round them, in their own colours. The
+        /// halos are a separate thing and are not touched.
+        /// </summary>
+        public static SavedFloat FogLampLight { get; private set; }
+
+        /// <summary>Metres from a lamp at which its light in the fog is down to 5%.</summary>
+        public static SavedFloat FogLampRadius { get; private set; }
+
+        /// <summary>
         /// How much of the clouds' distance transparency is taken away at night, 0..1. At 1
         /// the stars cannot be seen through a cloud; by day this has no effect at all.
         /// </summary>
@@ -465,6 +481,9 @@ namespace VolumetricClouds
             public const float FogBrightness = 0.95f;
 
             public const float FogTint = -0.4f;
+            public const bool FogLampsEnabled = true;
+            public const float FogLampLight = 1f;
+            public const float FogLampRadius = 8f;
 
             // ---- light halos ----
 
@@ -570,6 +589,9 @@ namespace VolumetricClouds
                 FogTint = new SavedFloat("FogTint", FileName, Defaults.FogTint, true);
                 FogBreakup = new SavedFloat("FogBreakup", FileName, Defaults.FogBreakup, true);
                 FogSpeed = new SavedFloat("FogSpeed", FileName, Defaults.FogSpeed, true);
+                FogLampsEnabled = new SavedBool("FogLampsEnabled", FileName, Defaults.FogLampsEnabled, true);
+                FogLampLight = new SavedFloat("FogLampLight", FileName, Defaults.FogLampLight, true);
+                FogLampRadius = new SavedFloat("FogLampRadius", FileName, Defaults.FogLampRadius, true);
 
                 CloudNightOpacity = new SavedFloat("CloudNightOpacity", FileName, Defaults.NightOpacity, true);
                 // Not "CityGlow": that scaled an orange projection of the city's buildings. This

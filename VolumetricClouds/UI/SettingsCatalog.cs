@@ -499,6 +499,11 @@ namespace VolumetricClouds.UI
             return Settings.FogEnabled != null && Settings.FogEnabled.value;
         }
 
+        private static bool FogLampsOn()
+        {
+            return FogOn() && Settings.FogLampsEnabled != null && Settings.FogLampsEnabled.value;
+        }
+
         private static bool FogOverridden()
         {
             return FogOn() && Settings.FogOverride != null && Settings.FogOverride.value;
@@ -840,6 +845,21 @@ namespace VolumetricClouds.UI
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 
+            // Right under the fog switch, in both UIs: it is a part of the fog.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.Fog,
+                Options = OptionsPage.Rendering,
+                Label = "Fog lit by the city's lights",
+                Tooltip = "At night the fog round street lamps, building lights and headlights glows in their " +
+                          "colours. Only with volumetric fog on. The light halos are not changed by this.",
+                Bool = Settings.FogLampsEnabled,
+                DefaultBool = Settings.Defaults.FogLampsEnabled,
+                Enabled = FogOn,
+                AfterChange = State("fog lit by the city's lights", OnOff(Settings.FogLampsEnabled)),
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
@@ -948,6 +968,31 @@ namespace VolumetricClouds.UI
                 Min = -1f, Max = 1f, Step = 0.05f,
                 Format = FogTintName,
                 Enabled = FogOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Label = "Lit fog brightness",
+                Tooltip = "How brightly the city's lights light the fog round them.",
+                Float = Settings.FogLampLight,
+                DefaultFloat = Settings.Defaults.FogLampLight,
+                Min = 0f, Max = 400f, Step = 5f,
+                Enabled = FogLampsOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Fog,
+                Label = "Lit radius round a light",
+                Tooltip = "How far from a lamp the fog is lit: by this distance its light has faded to almost nothing.",
+                Float = Settings.FogLampRadius,
+                DefaultFloat = Settings.Defaults.FogLampRadius,
+                Min = 2f, Max = 40f, Step = 1f,
+                Format = Metres,
+                Enabled = FogLampsOn,
             });
         }
 

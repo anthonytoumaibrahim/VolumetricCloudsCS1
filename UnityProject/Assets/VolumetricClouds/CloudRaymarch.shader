@@ -105,6 +105,14 @@ Shader "VolumetricClouds/CloudRaymarch"
             float _TerrainMapSize;
             float _FogFloor;           // just under the lowest ground on the map
 
+            // The city's lights, as the fog sees them (FogLampMap + FogLamps.shader): a map,
+            // centred on the camera, of the light each lamp and vehicle sheds into the air
+            // round it. Globals, set in the same frame as the map is drawn, so the two can
+            // never disagree about where the map is.
+            sampler2D _VCLampMap;      // rgb = light, a = luminance x the altitude it comes from
+            float4 _VCLampMapRect;     // xy = minimum corner (world xz), z = 1 / size
+            float4 _VCLampParams;      // x = strength, y = 3 / R^2, z = 1 while on, w = how far out
+
             sampler2D _CloudShadowTex; // CloudShadowMap: light reaching the ground, 1 - darkness .. 1
             float _ShadowAvailable;
             float3 _ShadowOrigin;
@@ -423,6 +431,37 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return d;
             }
 
+            // The light the city's lamps shed into the fog at p. The map is flat; the height it
+            // loses comes back here, because its footprints are Gaussian and so separable: the
+            // altitude of what lights this spot is a / luminance, and the light falls off above
+            // and below it exactly as it does sideways. Fades out over the map's outer 5%.
+            float3 LampLightAt(float3 p)
+            {
+                float2 uv = (p.xz - _VCLampMapRect.xy) * _VCLampMapRect.z;
+                float2 inside = saturate(min(uv, 1.0 - uv) * 20.0);
+                float edge = inside.x * inside.y;
+
+                float4 m = tex2Dlod(_VCLampMap, float4(uv, 0, 0));
+                float lum = dot(m.rgb, float3(0.2126, 0.7152, 0.0722));
+                float dz = p.y - m.a / max(lum, 1e-6);
+                return m.rgb * (exp(-dz * dz * _VCLampParams.y) * edge);
+            }
+
+            // Lamp light over one step of the march, from `tStart` for `segment` metres: four
+            // looks spread along it rather than one, because a street lamp's glow is a few
+            // metres across and a step 200 m out is tens of metres long -- one sample would hit
+            // or miss it by chance and the glow would sparkle.
+            float3 LampLight(float3 origin, float3 dir, float tStart, float segment, float jitter)
+            {
+                float3 sum = 0;
+
+                [unroll]
+                for (int k = 0; k < 4; k++)
+                    sum += LampLightAt(origin + dir * (tStart + segment * (((float)k + jitter) * 0.25)));
+
+                return sum * (0.25 * _VCLampParams.x);
+            }
+
             // Fog lying on the ground, along the ray up to tEnd. Same return convention as the
             // other two.
             //
@@ -542,6 +581,11 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                         if (_FlashCount > 0.5)
                             lit += Lightning(p) * 0.5;
+
+                        // The city's lights, in the fog round them. Night only, and only
+                        // within the map round the camera (FogLampMap).
+                        if (_VCLampParams.z > 0.5 && t < _VCLampParams.w)
+                            lit += LampLight(origin, dir, tPrev, segment, jitter);
 
                         float stepT = exp(-sigma * segment);
                         light += transmittance * lit * (1.0 - stepT);
