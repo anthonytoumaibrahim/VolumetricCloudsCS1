@@ -26,7 +26,8 @@ earlier public versions, so nothing below is a change from something a player ha
   random weather, disasters and weather mods such as Play It! all drive the sky.
 - Per-channel overrides for photo work, and a *Follow the game's weather* button that clears
   all of them at once.
-- The weather is read, never written: solar plants and the savegame are unaffected.
+- The game's weather is read, never written, so solar plants and the weather stored in the
+  savegame are exactly as they would be without the mod.
 
 ### Rain and lightning
 
@@ -58,6 +59,21 @@ earlier public versions, so nothing below is a change from something a player ha
 
 - Clouds occlude the stars behind them instead of letting them leak through.
 - A small, even, pale glow on the cloud undersides at night.
+
+### Saved with the city
+
+- Each city keeps its own sky in its savegame: the cloud and fog pattern, how far the wind has
+  carried them, and the current fog amount. A loaded city looks as it did when it was saved; a
+  city with no saved sky gets a new pattern.
+- The record is 61 bytes under the mod's own key, and nothing of the game's data is written.
+  Removing the mod should not corrupt a save: the game loads it the same way and writes the
+  record back unread on the next save.
+- *Reset cloud pattern* (Options → General) gives the loaded city a new arrangement of clouds
+  and fog without changing any setting. *Reset all settings to defaults* leaves the pattern
+  alone.
+- Wind and fog drift are kept in double precision and handed to the shaders as wrapping
+  phases, so a sky that has drifted for the whole life of a city stays as sharp as a new one,
+  and the fog keeps its shape however long a session runs.
 
 ### Light halos *(opt-in)*
 

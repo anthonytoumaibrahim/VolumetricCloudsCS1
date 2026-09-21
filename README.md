@@ -51,7 +51,15 @@ Content Manager → Mods. Use only one installation: if you later subscribe on t
 remove or disable the local copy first.
 
 The mod runs in a loaded city — new game or load game — not in the editors, and not yet when
-starting a scenario. It stores nothing in your savegame and can be removed at any time.
+starting a scenario.
+
+It keeps a small record of each city's sky in the savegame (61 bytes under its own key: the
+cloud pattern and how far the wind has carried it), so a city looks the same when you come
+back. Nothing of the game's own data is written. Removing the mod should not corrupt a save:
+the game keeps mod data as opaque key/value pairs, loads the save the same way without the
+mod, and writes the record back unread on the next save. That said, the mod is provided as-is
+and I am not responsible for anything that goes wrong, lost or damaged saves included. Keep
+backups of the cities you care about.
 
 ## Quick start
 

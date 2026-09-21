@@ -1,7 +1,6 @@
-[img]https://i.imgur.com/1EqyarL.png[/img]
-[hr][/hr]
 [h1]This is a pre-release[/h1]
-[b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti). It runs well there, but how it performs on other hardware is not yet known. Some bugs and rough edges are to be expected, so please report anything unusual (the last sections of this page explain how). Your feedback is what will turn this into a full release.
+[b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti). It runs well there, but other hardware is untested. Some bugs and rough edges are to be expected, so please report anything unusual (see [b]Reporting a bug[/b] below). Your feedback is what will turn this into a full release.
+[b]As a precaution, please do not use it on a save you value[/b] until enough players have confirmed that it works well: try it on a copy or a test city instead.
 
 [hr][/hr]
 [h1]Overview[/h1]
@@ -29,7 +28,7 @@ No setup is needed: subscribe, load your city, and the sky follows the game's we
 [h1]Requirements[/h1]
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b]): please subscribe to it as well.
-[*][b]Windows only.[/b] The clouds are drawn with DirectX 11 shaders, so macOS and Linux are not supported.
+[*][b]Windows only.[/b] The shaders are DirectX 11 only, so macOS and Linux are not supported.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar.
 [/list]
 
@@ -39,7 +38,7 @@ Only the first two steps are required.
 [olist]
 [*][b]Subscribe[/b] to this mod and to Harmony, then make sure both are enabled in [i]Content Manager → Mods[/i].
 [*][b]Load a city[/b] (new or saved). The clouds appear on their own and follow the game's weather. The mod does not run in the map or asset editors, or in scenarios.
-[*][b]Press F4[/b] (or click the mod's button) to open the in-game panel (its tabs are described below).
+[*][b]Press F4[/b] (or click the mod's button) to open the in-game panel.
 [*][b]All other settings[/b] (rain, lightning, shadows, quality, light halos, the F4 key) are in the game's [i]Options[/i] menu: select [i]Volumetric Weather[/i] under [i]Mod Settings[/i] on the left.
 [*][b]To start over[/b], use [i]Options → Volumetric Weather → General → Reset all settings to defaults[/i].
 [/olist]
@@ -56,33 +55,33 @@ The clouds are drawn in 3D every frame, so they cost more than the game's flat s
 [list]
 [*][b]Volumetric fog is very heavy on performance.[/b] It is by far the most expensive part of the mod, which is why it is off by default. If your frame rate drops after turning it on, turn it back off.
 [*]If the clouds alone are too demanding, lower the [i]Quality preset[/i] (Options → Volumetric Weather → Rendering) to Medium or Low.
-[*]The Medium and Low presets are estimates for now, not yet measured on slower hardware. Reports of how they run for you are very welcome.
+[*]The Medium and Low presets are estimates for now, not yet measured on slower hardware. Reports of how they run are welcome.
 [/list]
 
 [hr][/hr]
 [h1]Compatibility[/h1]
 I develop and test this mod in my own game, which runs thousands of mods and assets, and no conflicts have been detected. Mods that change the sky, the lighting or the weather were checked specifically: Render It!, Theme Mixer, Play It! and cloud replacers all work alongside it.
-No setup can cover every combination, so if you do run into a conflict, please report it as described below.
+No setup covers every combination, so please report any conflict you find.
 For reference: the mod takes the place of the game's rain and rain-cloud layer (its lightning and thunder are kept) and, with volumetric fog on, of its foggy-weather effect. It reads the game's weather but never changes it. On winter maps the game's snow is left as it is.
+[b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread. That said, I cannot be held responsible for anything that goes wrong, lost or damaged saves included, so please keep backups.
 
 [hr][/hr]
 [h1]Coming soon[/h1]
 [list]
 [*][b]Profiles[/b]: save favourite skies and switch between them.
-[*][b]More languages[/b]: the mod is English only for now; translations are planned.
+[*][b]More languages[/b]: English only for now; translations are planned.
 [*][b]A Discord server[/b] for support and feedback.
 [/list]
 
 [hr][/hr]
 [h1]Source code[/h1]
 The mod is open source under the MIT license, except for the light halo shaders, which are adapted from the game's own (see the LICENSE file).
-It includes two small libraries by other modders, both also under the MIT license: [url=https://github.com/kianzarrin/UnifiedUI]UnifiedUILib[/url] by kianzarrin and [url=https://github.com/boformer/CitiesHarmony]CitiesHarmony.API[/url] by boformer. Many thanks to both.
-[h3]Get it on GitHub[/h3]
-[url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1][img]https://i.imgur.com/DczUXYq.png[/img][/url]
+It includes two small MIT-licensed libraries by other modders: [url=https://github.com/kianzarrin/UnifiedUI]UnifiedUILib[/url] by kianzarrin and [url=https://github.com/boformer/CitiesHarmony]CitiesHarmony.API[/url] by boformer. Many thanks to both.
+[h3][url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1]Get it on GitHub[/url][/h3]
 
 [hr][/hr]
 [h1]Reporting a bug[/h1]
-To help me find the cause, please include the following:
+Please include the following:
 [olist]
 [*][b]The game's log[/b], [i]output_log.txt[/i]. In Steam, right-click Cities: Skylines → [i]Manage → Browse local files[/i], then open the [i]Cities_Data[/i] folder.
 [*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. For the most useful log, tick [i]Detailed logging[/i] (Options → Volumetric Weather → General) first, then make the problem happen again. It is in this folder (paste it into File Explorer's address bar):
@@ -93,4 +92,4 @@ Both logs start fresh every time the game launches, so please copy them before r
 
 [hr][/hr]
 [h1]AI disclosure[/h1]
-This mod was made with substantial help from AI. Almost all of the code, the shaders and the documentation were written by Claude (an AI model by Anthropic) through Claude Code. I set the goals, made the design decisions, and did all of the in-game testing and tuning. Everything was checked against the game along the way, but AI can be confidently wrong, so if something looks off, please report it. As with any mod, use it at your own risk.
+This mod was made with substantial help from AI. Almost all of the code, the shaders and the documentation were written by Claude (an AI model by Anthropic) through Claude Code. I set the goals, made the design decisions, and did all of the in-game testing and tuning. Everything was checked against the game along the way, but AI can be confidently wrong, so if something looks off, please report it.

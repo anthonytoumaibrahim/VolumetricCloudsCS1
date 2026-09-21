@@ -162,18 +162,22 @@ Full dimensions, formats and limits are in *Specifications* above.
 
 - [ ] Workshop description in BBCode, drafted in `Workshop/Description.bbcode.txt` (2026-09-21,
       modelled on Node Controller Renewal's page), to be read through before it is pasted:
-      compatibility banner (game 1.21.1) · pre-release, tested on one PC · what it does, and
+      no images for now (the two imgur ones, a compatibility banner naming game 1.21.1 and a
+      GitHub button, were dropped for copyright on 2026-09-21; the author will make his own) ·
+      pre-release, tested on one PC · what it does, and
       that everything can be switched off or overridden · requirements (Harmony, with the link,
       and Windows/D3D11 only) · how to use (F4 or the button, the three tabs, Options → Mod
       Settings, Reset) · fog and halos are opt-in · the honest performance paragraph ·
       compatibility (the author's own game with thousands of mods and assets, no conflicts
       found; Render It!, Theme Mixer, Play It! and cloud replacers checked; what the mod takes
-      over from the game) · coming soon (profiles, more languages, Discord) · GitHub link and
+      over from the game; removing it should not corrupt a save, with a no-responsibility
+      disclaimer and "keep backups") · coming soon (profiles, more languages, Discord) · GitHub link and
       the MIT licence · how to report a bug (`output_log.txt` + `VolumetricClouds.log` with
       *Detailed logging*, hosted, linked in the comments) · the AI disclosure. Not in it: no
       moon shadows. Only Steam's tags, and no list inside a list: a Steam-aware previewer
       splits a list on every `[*]`, so a nested list's own tags showed as text. Keep it under
-      8000 characters (7801 on 2026-09-21).
+      8000 characters, counting each line break twice in case the browser sends CRLF (7888 +
+      95 lines = 7983 on 2026-09-21: almost full, so anything added needs a cut).
 - [ ] Workshop title: **Volumetric Weather**. The Share panel pre-fills it from the folder
       name, `VolumetricClouds`, which stays as it is (files and assembly keep the old name).
 - [ ] If the game has updated since, the banner at the top of the description still names the
