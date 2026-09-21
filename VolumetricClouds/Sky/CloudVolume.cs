@@ -62,6 +62,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdTerrainTex = Shader.PropertyToID("_TerrainTex");
         private static readonly int IdTerrainMapSize = Shader.PropertyToID("_TerrainMapSize");
         private static readonly int IdFogHeight = Shader.PropertyToID("_FogHeight");
+        private static readonly int IdFogBase = Shader.PropertyToID("_FogBase");
+        private static readonly int IdFogFollowGround = Shader.PropertyToID("_FogFollowGround");
+        private static readonly int IdFogLevel = Shader.PropertyToID("_FogLevel");
         private static readonly int IdFogSteps = Shader.PropertyToID("_FogSteps");
         private static readonly int IdFogMaxDistance = Shader.PropertyToID("_FogMaxDistance");
         private static readonly int IdFogAmbient = Shader.PropertyToID("_FogAmbient");
@@ -447,9 +450,8 @@ namespace VolumetricClouds.Sky
             if (!CloudFog.Active || _camera == null || !Singleton<TerrainManager>.exists)
                 return false;
 
-            float height = Settings.FogHeight != null ? Settings.FogHeight.value : Settings.Defaults.FogHeight;
             float ground = Singleton<TerrainManager>.instance.SampleRawHeightSmooth(_camera.transform.position);
-            return _camera.transform.position.y - ground < height;
+            return CloudFog.InLayer(_camera.transform.position.y - ground, _camera.transform.position.y);
         }
 
         /// <summary>
@@ -504,7 +506,8 @@ namespace VolumetricClouds.Sky
             }
 
             float density = Settings.FogDensity != null ? Mathf.Max(0f, Settings.FogDensity.value) : Settings.Defaults.FogDensity;
-            float height = Settings.FogHeight != null ? Mathf.Max(10f, Settings.FogHeight.value) : Settings.Defaults.FogHeight;
+            float height = CloudFog.Height;
+            bool followsGround = CloudFog.FollowsGround;
             float breakup = Settings.FogBreakup != null ? Mathf.Clamp01(Settings.FogBreakup.value) : Settings.Defaults.FogBreakup;
 
             // The fog lies on the terrain map; until that exists there is nothing to lie on.
@@ -524,8 +527,16 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdFogTile, CloudFog.Tile);
             _material.SetVector(IdFogOffset, CloudFog.Offset);
             _material.SetFloat(IdFogBoil, CloudFog.Boil);
-            _material.SetFloat(IdFogPool, TerrainHeightMap.PoolLevel);
+
+            // Pooling is a ground-following fog's lean towards low ground. A level fog needs
+            // none -- low ground is where it is deepest by construction -- and its reference is
+            // one number, so a pooling level no ground can be under switches the term off
+            // without the shader having to ask.
+            _material.SetFloat(IdFogPool, followsGround ? TerrainHeightMap.PoolLevel : -100000f);
             _material.SetFloat(IdFogFloor, TerrainHeightMap.Lowest - 10f);
+            _material.SetFloat(IdFogFollowGround, followsGround ? 1f : 0f);
+            _material.SetFloat(IdFogLevel, TerrainHeightMap.SeaLevel);
+            _material.SetFloat(IdFogBase, CloudFog.Base);
             _material.SetFloat(IdFogHeight, height);
             _material.SetFloat(IdFogBreakup, breakup * 0.8f);
 

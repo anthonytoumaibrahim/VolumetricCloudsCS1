@@ -24,8 +24,9 @@ and bring their own rain, lightning, fog and night sky with them.
 - **Lightning** — flashes light the clouds and rain from inside, the bolt is redrawn, and
   thunder arrives after a speed-of-sound delay. Storm lightning is visual-only and never starts
   a fire; the game's own strikes are left untouched.
-- **Volumetric fog** *(opt-in, expensive)* — fog that lies on the terrain as a cloud layer, with
-  a top surface, self-shadowing and sun shafts. Off by default.
+- **Volumetric fog** *(opt-in, expensive)* — fog as a cloud layer, with a top surface,
+  self-shadowing and sun shafts. Level from sea level, or draped over the terrain; from the
+  bottom up, or only above a height you choose. Off by default.
 - **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
@@ -125,8 +126,8 @@ rarely identifies the cause.
 5. **The weather is read, never written** — writing it would change solar plants and the
    savegame. The single change to the simulation is a Harmony postfix on
    `WeatherManager.SampleRainIntensity`, so rain sound and wet roads follow the clouds.
-6. **Rain, lightning and fog share the cloud pass** and composite front to back. Fog follows the
-   ground through a 256² height texture and is lit through the cloud shadow map — that is where
+6. **Rain, lightning and fog share the cloud pass** and composite front to back. Fog is a level
+   slab above the map's sea level, or follows the ground through a 256² height texture, and is lit through the cloud shadow map — that is where
    the sun shafts come from.
 7. **Halos are a shader replacement**, swapped into the batched light layers and the
    dynamic-light slot each frame. The game's own materials are never modified.

@@ -80,6 +80,51 @@ namespace VolumetricClouds.Sky
             get { return Settings.FogOverride != null && Settings.FogOverride.value; }
         }
 
+        /// <summary>
+        /// True: heights are measured from the ground under the fog, so it drapes over hills.
+        /// False (the default): from the map's sea level, so it is level, like the game's.
+        /// </summary>
+        public static bool FollowsGround
+        {
+            get { return Settings.FogFollowsGround != null ? Settings.FogFollowsGround.value : Settings.Defaults.FogFollowsGround; }
+        }
+
+        /// <summary>Metres from the reference to the underside of the layer. 0 = it starts at the reference.</summary>
+        public static float Base
+        {
+            get { return Settings.FogBase != null ? Mathf.Max(0f, Settings.FogBase.value) : Settings.Defaults.FogBase; }
+        }
+
+        /// <summary>Metres from the underside of the layer to its top.</summary>
+        public static float Height
+        {
+            get { return Settings.FogHeight != null ? Mathf.Max(10f, Settings.FogHeight.value) : Settings.Defaults.FogHeight; }
+        }
+
+        /// <summary>
+        /// Whether a point this far above the ground, at this altitude, is between the layer's
+        /// underside and its top. The height test only, not the noise field.
+        /// </summary>
+        public static bool InLayer(float aboveGround, float altitude)
+        {
+            float above = FollowsGround ? aboveGround : altitude - TerrainHeightMap.SeaLevel;
+            return above >= Base && above < Base + Height;
+        }
+
+        /// <summary>
+        /// Where the layer is, for the log. A level fog whose range is under the city is the
+        /// one way "the fog is on and I see none" can be nobody's bug, so it is spelled out.
+        /// </summary>
+        public static string DescribeLayer()
+        {
+            if (FollowsGround)
+                return "follows the ground, " + Base.ToString("F0") + ".." + (Base + Height).ToString("F0") + " m above it";
+
+            float sea = TerrainHeightMap.SeaLevel;
+            return "level, " + Base.ToString("F0") + ".." + (Base + Height).ToString("F0") + " m above sea level (altitude " +
+                   (sea + Base).ToString("F0") + ".." + (sea + Base + Height).ToString("F0") + " m)";
+        }
+
         /// <summary>How far the fog has drifted. Its own offset: fog moves at its own pace, not the clouds'.</summary>
         public static Vector3 Offset { get; private set; }
 
@@ -161,6 +206,7 @@ namespace VolumetricClouds.Sky
                     (Overridden
                         ? "the fog override asks for " + ((Settings.FogAmount != null ? Mathf.Clamp01(Settings.FogAmount.value) : 0f) * 100f).ToString("F0") + "%"
                         : "following the game's fog, which is at " + (GameFog * 100f).ToString("F0") + "%") +
+                    " | " + DescribeLayer() +
                     " | the game's rain is at " + (CloudWeather.Rain * 100f).ToString("F0") + "%");
         }
 

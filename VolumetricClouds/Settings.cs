@@ -134,7 +134,21 @@ namespace VolumetricClouds
         /// <summary>Multiplier on how thick the fog is inside (how far you can see in it).</summary>
         public static SavedFloat FogDensity { get; private set; }
 
-        /// <summary>Metres from the ground to the top of the fog.</summary>
+        /// <summary>
+        /// Off (the default): the fog is LEVEL, measured up from the map's sea level like the
+        /// game's own fog -- valleys fill, hills stand out of it. On: it is measured from the
+        /// ground under it, so the layer drapes over hills. (Until 2026-09-21 that was the only
+        /// behaviour; it is liked, and it is the opt-in because level is what fog does.)
+        /// </summary>
+        public static SavedBool FogFollowsGround { get; private set; }
+
+        /// <summary>
+        /// Metres from the reference (sea level, or the ground) to the UNDERSIDE of the fog.
+        /// 0 = it starts at the reference; 200 = fog only from 200 m up.
+        /// </summary>
+        public static SavedFloat FogBase { get; private set; }
+
+        /// <summary>Metres from the underside of the fog to its top: the layer's thickness.</summary>
         public static SavedFloat FogHeight { get; private set; }
 
         /// <summary>0 = solid, 1 = wispy: how hard fine noise eats into it. The fog's "Break-up".</summary>
@@ -436,6 +450,8 @@ namespace VolumetricClouds
             public const bool FogOverride = false;
             public const float FogAmount = 0.22f;
             public const float FogDensity = 0.35f;
+            public const bool FogFollowsGround = false;
+            public const float FogBase = 0f;
             public const float FogHeight = 370f;
             public const float FogBreakup = 0.7f;
             public const float FogSpeed = 3.6f;
@@ -541,6 +557,12 @@ namespace VolumetricClouds
                 // which was judged to "just look like the clouds but at the terrain level".
                 // 100% is now a third of that, so a value saved under the old scale is wrong.
                 FogDensity = new SavedFloat("FogDensityScale", FileName, Defaults.FogDensity, true);
+                // "FogTopHeight" keeps its key although it is now the layer's THICKNESS: with the
+                // base at 0 (the default, and what every saved file has) the two are the same
+                // number. Thickness rather than "top" so that no pair of sliders can ask for a
+                // top below the base, which would be a fog row that does nothing.
+                FogFollowsGround = new SavedBool("FogFollowsGround", FileName, Defaults.FogFollowsGround, true);
+                FogBase = new SavedFloat("FogBaseHeight", FileName, Defaults.FogBase, true);
                 FogHeight = new SavedFloat("FogTopHeight", FileName, Defaults.FogHeight, true);
                 // Keeps its key: what it means has not changed, it has only stopped ALSO
                 // carrying the clouds' brightness. See CloudVolume.FogLightScale.

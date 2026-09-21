@@ -45,6 +45,10 @@ earlier public versions, so nothing below is a change from something a player ha
   self-shadowing, flow, and lighting through the cloud shadow map, which is what produces sun
   shafts under a broken sky.
 - Fog amount is an exact share of the map, measured against what the GPU actually samples.
+- Level by default, measured from the map's sea level like the game's own fog, so valleys fill
+  and hills stand out of it; *Fog follows the ground* drapes it over the terrain instead.
+- *Fog starts at* raises the underside of the layer, for fog that only exists higher up: around
+  the hilltops when level, or hanging over everything like low cloud when it follows the ground.
 - Off by default and confirmed before it turns on, because it is the most expensive feature.
 
 ### Night

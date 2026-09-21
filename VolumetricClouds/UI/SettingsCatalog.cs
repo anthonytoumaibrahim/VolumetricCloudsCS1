@@ -855,11 +855,42 @@ namespace VolumetricClouds.UI
 
             Add(new Row
             {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.Fog,
+                Label = "Fog follows the ground",
+                Tooltip = "Off, the fog is level: its heights are measured from the map's sea level, like " +
+                          "the game's own fog, so valleys fill and hills stand out of it. On, they are " +
+                          "measured from the ground under the fog, so the layer drapes over hills and " +
+                          "mountains at the same depth everywhere.",
+                Bool = Settings.FogFollowsGround,
+                DefaultBool = Settings.Defaults.FogFollowsGround,
+                Enabled = FogOn,
+                AfterChange = State("fog follows the ground", OnOff(Settings.FogFollowsGround)),
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Fog,
+                Label = "Fog starts at",
+                Tooltip = "Metres up to the underside of the fog -- above sea level, or above the ground " +
+                          "when the fog follows it. 0 is fog from the bottom up. Raise it for fog that only " +
+                          "exists higher up: at 200 m a level fog wraps the hills and leaves the lowlands " +
+                          "clear, and a ground-following one hangs over everything like low cloud.",
+                Float = Settings.FogBase,
+                DefaultFloat = Settings.Defaults.FogBase,
+                Min = 0f, Max = 1000f, Step = 10f,
+                Format = Metres,
+                Enabled = FogOn,
+            });
+
+            Add(new Row
+            {
                 Kind = RowKind.Value,
                 Panel = PanelPage.Fog,
                 Label = "Fog height",
-                Tooltip = "Metres from the ground to the top of the fog. It is measured from the terrain, so " +
-                          "the layer follows hills instead of flooding the valleys.",
+                Tooltip = "How tall the layer is, in metres from where it starts to its top: starting at " +
+                          "200 m with a height of 150 m, there is fog from 200 m to 350 m.",
                 Float = Settings.FogHeight,
                 DefaultFloat = Settings.Defaults.FogHeight,
                 Min = 20f, Max = 1000f, Step = 10f,

@@ -79,7 +79,8 @@ Shader "VolumetricClouds/CloudRaymarch"
             // height-limited blanket, then soft kilometre-wide banks with an exponential
             // falloff -- both read as a coating, for the reasons a cloud does not: they were
             // translucent, had no boundary, and did not shade themselves. So this one is
-            // dense, measured from the GROUND up (_TerrainTex) to a defined, lumpy top, shaded
+            // dense, measured from a reference up -- the map's sea level, or with
+            // _FogFollowGround the GROUND (_TerrainTex) -- to a defined, lumpy top, shaded
             // by its own thickness towards the sun, and its billows are pushed around by a
             // drifting swirl so they shear, curl and merge instead of sliding past as one
             // rigid pattern.
@@ -90,7 +91,10 @@ Shader "VolumetricClouds/CloudRaymarch"
             float3 _FogOffset;         // how far the fog has drifted
             float _FogBoil;            // phase of the swirl, 0..1
             float _FogPool;            // fog gathers on ground below this level
-            float _FogHeight;          // metres from the ground to the top of the layer
+            float _FogFollowGround;    // 1: heights are above the ground. 0: above _FogLevel
+            float _FogLevel;           // the map's sea level: what a LEVEL fog is measured from
+            float _FogBase;            // metres from that reference to the layer's underside
+            float _FogHeight;          // metres from the underside to the top of the layer
             float _FogBreakup;         // 0 solid .. 1 wispy
             float _FogSteps;
             float _FogMaxDistance;
@@ -331,13 +335,48 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return tex2Dlod(_TerrainTex, float4(p.xz / _TerrainMapSize + 0.5, 0, 0)).r;
             }
 
+            // What the fog's heights are measured from under p: the ground, so the layer drapes
+            // over hills, or one level for the whole map (its sea level), so it lies flat and
+            // the hills stand out of it. A uniform branch: the level fog never reads the map.
+            float FogGround(float3 p)
+            {
+                // One return: this compiler calls two "potentially uninitialized".
+                float ground = _FogLevel;
+                if (_FogFollowGround > 0.5)
+                    ground = GroundAt(p);
+
+                return ground;
+            }
+
+            // Whether a point `above` its reference is inside the layer's height range. With the
+            // base at 0 there is no underside to be below: the terrain map is coarse (67 m a
+            // texel), so a camera on a slope can read as a little under the ground.
+            bool InFogLayer(float above)
+            {
+                return above < _FogBase + _FogHeight && (_FogBase <= 0.0 || above >= _FogBase);
+            }
+
             // Fog density at p, 0..1 before _FogDensity: the clouds' recipe, lying on the ground.
-            // `above` is p's height over the ground, which every caller already has.
+            // `above` is p's height over FogGround(p), which every caller already has.
             float FogAt(float3 p, float above, bool detailed)
             {
-                float h = above / _FogHeight;
+                float h = (above - _FogBase) / _FogHeight;
                 if (h >= 1.0 || h < -0.25)
                     return 0.0;
+
+                // A raised layer has an UNDERSIDE, rounded off like its top but over a shorter
+                // reach, and never over more than the gap beneath it -- so raising the base off
+                // zero grows an underside instead of popping one in. A layer that starts at its
+                // reference has none: "a little below the ground" is still ground (see above).
+                float under = 1.0;
+                if (_FogBase > 0.0)
+                {
+                    float u = saturate((above - _FogBase) / max(min(_FogBase, _FogHeight * 0.25), 1.0));
+                    under = u * u * (3.0 - 2.0 * u);
+                    if (under <= 0.0)
+                        return 0.0;
+                }
+
                 h = max(h, 0.0);
 
                 // Where there is fog: the clouds' weather field, read at another scale and
@@ -352,7 +391,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 // Solid from the ground up, rounding off into the top: a boundary, which an
                 // exponential falloff never has.
-                float shaped = cover * (1.0 - smoothstep(0.4, 1.0, h));
+                float shaped = cover * (1.0 - smoothstep(0.4, 1.0, h)) * under;
 
                 // FLOW. The noise lookup is displaced by a larger, slower swirl that drifts on
                 // its own and turns over with _FogBoil, so billows shear, curl and merge; and
@@ -387,20 +426,49 @@ Shader "VolumetricClouds/CloudRaymarch"
             // Fog lying on the ground, along the ray up to tEnd. Same return convention as the
             // other two.
             //
-            // The layer follows the terrain, so the part of the ray inside it cannot be found
-            // by intersecting a slab. Instead the ray is walked coarsely -- one height lookup a
-            // step -- until it first comes within the layer's height of the ground, and the
-            // real march starts from the step before. From above that puts every sample in the
-            // last stretch before the ground; from inside the fog it starts at the camera.
-            float4 MarchFog(float3 origin, float3 dir, float tEnd, float jitter, float cosTheta)
+            // A LEVEL fog is a slab, and the part of the ray inside it is an intersection.
+            //
+            // One that follows the terrain is not. There the ray is walked coarsely -- one
+            // height lookup a step -- until it first comes within the layer's top of the ground,
+            // and the real march starts from the step before. From above that puts every sample
+            // in the last stretch before the ground; from inside the fog it starts at the camera.
+            //
+            // `camAbove` is the camera's height over FogGround(origin), which frag already has.
+            float4 MarchFog(float3 origin, float3 dir, float tEnd, float camAbove, float jitter, float cosTheta)
             {
                 if (tEnd <= 0.0)
                     return float4(0, 0, 0, 1);
 
+                float top = _FogBase + _FogHeight;
+                bool fromInside = InFogLayer(camAbove);
                 float tStart = -1.0;
-                if (origin.y - GroundAt(origin) < _FogHeight)
+
+                if (_FogFollowGround < 0.5)
+                {
+                    float dy = abs(dir.y) < 1e-4 ? (dir.y < 0 ? -1e-4 : 1e-4) : dir.y;
+                    float tA = (_FogLevel + _FogBase - origin.y) / dy;
+                    float tB = (_FogLevel + top - origin.y) / dy;
+                    tStart = max(min(tA, tB), 0.0);
+                    tEnd = min(tEnd, max(tA, tB));
+                }
+                else if (camAbove < top)
                 {
                     tStart = 0.0;
+
+                    // Under a raised layer, looking up: there is nothing before the ray reaches
+                    // the underside. Where that is assumes level ground from here, so the start
+                    // is pulled well in for ground that falls away ahead.
+                    if (!fromInside && dir.y > 0.02)
+                        tStart = 0.6 * (_FogBase - camAbove) / dir.y;
+
+                    // A ray climbing out of the fog leaves it for good soon after: what is
+                    // left of the layer above where it starts, and half as much again plus
+                    // 60 m for ground that rises under it.
+                    if (dir.y > 0.02)
+                    {
+                        float startAbove = max(camAbove, 0.0) + tStart * dir.y;
+                        tEnd = min(tEnd, tStart + (top - startAbove + top * 0.5 + 60.0) / dir.y);
+                    }
                 }
                 else
                 {
@@ -414,7 +482,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                         float t = tEnd * f * f;
                         float3 p = origin + dir * t;
 
-                        if (p.y - GroundAt(p) < _FogHeight)
+                        if (p.y - GroundAt(p) < top)
                         {
                             tStart = tBefore;
                             break;
@@ -424,16 +492,11 @@ Shader "VolumetricClouds/CloudRaymarch"
                     }
                 }
 
-                if (tStart < 0.0)
+                if (tStart < 0.0 || tStart >= tEnd)
                     return float4(0, 0, 0, 1);
-
-                // A ray climbing out of the fog leaves it for good soon after.
-                if (dir.y > 0.02)
-                    tEnd = min(tEnd, tStart + (_FogHeight * 1.5 + 60.0) / dir.y);
 
                 float steps = clamp(_FogSteps, 6.0, 40.0);
                 float len = tEnd - tStart;
-                bool fromInside = tStart <= 0.0;
 
                 // Fog glows around the sun: a strong forward lobe over a flat base.
                 float phase = 0.35 + 0.65 * min(HenyeyGreenstein(cosTheta, 0.65), 6.0);
@@ -458,7 +521,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                     float t = tPrev + segment * jitter;
 
                     float3 p = origin + dir * t;
-                    float above = p.y - GroundAt(p);
+                    float above = p.y - FogGround(p);
                     float d = FogAt(p, above, true);
 
                     if (d > 0.001)
@@ -470,10 +533,10 @@ Shader "VolumetricClouds/CloudRaymarch"
                         // look a short way towards it. This is what gives the billows form --
                         // lit tops and flanks, dim hollows -- instead of an even glow.
                         float3 sunward = p + _SunDir * (_FogHeight * 0.4);
-                        float shade = FogAt(sunward, sunward.y - GroundAt(sunward), false);
+                        float shade = FogAt(sunward, sunward.y - FogGround(sunward), false);
                         float sun = exp(-shade * strength * _FogHeight * 0.9);
 
-                        float h = saturate(above / _FogHeight);
+                        float h = saturate((above - _FogBase) / _FogHeight);
                         float3 lit = _FogAmbient * (0.55 + 0.45 * h)
                                    + _FogSun * (SunShaft(p) * sun * phase);
 
@@ -545,18 +608,19 @@ Shader "VolumetricClouds/CloudRaymarch"
                     rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta);
                 }
 
-                // The fog follows the terrain, so MarchFog finds its own stretch of the ray; all
-                // it needs is where the ray ends.
+                // MarchFog finds its own stretch of the ray, level fog or draped; all it needs is
+                // where the ray ends.
                 float4 fog = float4(0, 0, 0, 1);
                 bool cameraInFog = false;
                 if (_FogAmount > 0.001 && _FogDensity > 0.0)
                 {
-                    cameraInFog = origin.y - GroundAt(origin) < _FogHeight;
+                    float camAbove = origin.y - FogGround(origin);
+                    cameraInFog = InFogLayer(camAbove);
 
                     // A ray that starts above the fog and never descends will not meet it
                     // (bar a fogged mountainside above the camera, which is not worth fourteen
-                    // lookups on every pixel of sky).
-                    if (cameraInFog || dir.y < 0.0)
+                    // lookups on every pixel of sky). One from UNDER a raised layer can.
+                    if (camAbove < _FogBase + _FogHeight || dir.y < 0.0)
                     {
                         float fEnd = min(sceneDist, _FogMaxDistance);
 
@@ -565,7 +629,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (dir.y < 0.0)
                             fEnd = min(fEnd, (_FogFloor - origin.y) / dy);
 
-                        fog = MarchFog(origin, dir, fEnd, jitter, cosTheta);
+                        fog = MarchFog(origin, dir, fEnd, camAbove, jitter, cosTheta);
                     }
                 }
 

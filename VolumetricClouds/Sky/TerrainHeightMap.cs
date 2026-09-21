@@ -39,6 +39,16 @@ namespace VolumetricClouds.Sky
         /// <summary>The level a third of the way up the distribution of heights: where fog pools.</summary>
         public static float PoolLevel { get; private set; }
 
+        /// <summary>
+        /// What a LEVEL fog is measured from: the height 2% of the way up the distribution.
+        /// Water is in the map, so wherever there is a sea this IS sea level (any sea is far
+        /// more than 2% of 17 km square); on a landlocked map it is the valley floor. Not world
+        /// y = 0 -- that is under the seabed (the sea is usually at 40 m and the land starts
+        /// above it), so the first stretch of every fog slider would do nothing -- and not
+        /// <see cref="Lowest"/>, which one quarry pit would move.
+        /// </summary>
+        public static float SeaLevel { get; private set; }
+
         private readonly float[] _heights = new float[Resolution * Resolution];
         private readonly byte[] _raw = new byte[Resolution * Resolution * 4];
         private float[] _sorted;
@@ -165,6 +175,7 @@ namespace VolumetricClouds.Sky
             Lowest = _sorted[0];
             Highest = _sorted[_sorted.Length - 1];
             PoolLevel = _sorted[_sorted.Length / 3];
+            SeaLevel = _sorted[_sorted.Length / 50];
 
             if (!Ready)
             {
@@ -172,7 +183,8 @@ namespace VolumetricClouds.Sky
                 // and after a mid-game switch-on it is the answer to "why is there no fog yet".
                 Log.Msg("terrain map: ready. " + Resolution + "x" + Resolution + " heights " + Lowest.ToString("F0") + ".." +
                         Highest.ToString("F0") + " m, median " + _sorted[_sorted.Length / 2].ToString("F0") +
-                        " m; fog pools below " + PoolLevel.ToString("F0") + " m");
+                        " m; a level fog is measured from " + SeaLevel.ToString("F0") +
+                        " m; a ground-following one pools below " + PoolLevel.ToString("F0") + " m");
             }
 
             Ready = true;
