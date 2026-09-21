@@ -649,6 +649,22 @@ namespace VolumetricClouds
         }
 
         /// <summary>
+        /// Whether shadows are being cast right now: the shadow switch AND "Show clouds". A
+        /// shadow with no cloud above it is a dark patch nothing explains, so hiding the clouds
+        /// takes their shadows with them, and showing them again brings the shadows back. The
+        /// saved shadow switch is never touched. Everything that casts, marches or reads the
+        /// shadows asks this, not <see cref="CloudShadows"/>.
+        /// </summary>
+        public static bool ShadowsCast
+        {
+            get
+            {
+                return (CloudShadows == null || CloudShadows.value)
+                    && (CloudsVisible == null || CloudsVisible.value);
+            }
+        }
+
+        /// <summary>
         /// The curve itself: pure, so it can be exercised offline. Straight in slider
         /// coverage, which is not linear in sky covered (the weather texture is gamma-decoded,
         /// see CLAUDE.md) -- if the middle ever looks too dim for how little cloud there is,

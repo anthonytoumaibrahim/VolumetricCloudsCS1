@@ -32,6 +32,7 @@ namespace VolumetricClouds.Sky
         private bool _appliedChecker;
         private float _nextLogTime;
         private string _mode = "none";
+        private string _loggedMode = "none";
 
         /// <summary>Shares the density field so shadows and visible clouds agree.</summary>
         public void Initialise(CloudDensityField field)
@@ -85,7 +86,8 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private void ApplyCookie()
         {
-            bool shadows = Settings.CloudShadows == null || Settings.CloudShadows.value;
+            // Hidden clouds cast nothing: the sun gets its own cookie back until they return.
+            bool shadows = Settings.ShadowsCast;
             bool checker = Settings.DebugChecker != null && Settings.DebugChecker.value;
             CloudShadowMap map = CloudShadowMap.Current;
 
@@ -116,6 +118,16 @@ namespace VolumetricClouds.Sky
                 _sun.cookie = _field.Texture;
                 _sun.cookieSize = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
                 t.position = _originalSunPosition + CloudWind.Offset;
+            }
+
+            // One line per change, always: the cookie is the only thing that darkens the world,
+            // so the log has to say when it went and why.
+            if (_mode != _loggedMode)
+            {
+                _loggedMode = _mode;
+                bool hidden = Settings.CloudsVisible != null && !Settings.CloudsVisible.value;
+                Log.Msg("shadows: sun cookie = " + _mode +
+                        (_mode != "off" ? "" : hidden ? " (the clouds are hidden)" : " (cloud shadows are switched off)"));
             }
         }
 

@@ -204,16 +204,16 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// Rendered whether or not the volumetric clouds are being drawn: the billboards
+        /// Rendered whether or not the VOLUMETRIC clouds are being drawn: the billboards
         /// are placed from the same weather field, so the shadows still belong to them.
+        /// With "Show clouds" off there is nothing to belong to, and the pass does not run.
         /// </summary>
         private void UpdateShadowMap()
         {
             if (_shadowMap == null)
                 return;
 
-            bool enabled = Settings.CloudShadows == null || Settings.CloudShadows.value;
-            if (!enabled)
+            if (!Settings.ShadowsCast)
                 return;
 
             DayNightProperties properties = DayNightProperties.instance;
@@ -434,7 +434,7 @@ namespace VolumetricClouds.Sky
                        Screen.width + "x" + Screen.height +
                        " | steps=" + (Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality).ToString("F0") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
-                       " shadows=" + (Settings.CloudShadows == null || Settings.CloudShadows.value) +
+                       " shadows=" + Settings.ShadowsCast +
                        " clouds=" + IsActive);
         }
 
@@ -560,7 +560,7 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdFogSun, new Vector4(fogSun.r * lean.r, fogSun.g * lean.g, fogSun.b * lean.b, 0f) * 0.7f);
 
             CloudShadowMap map = CloudShadowMap.Current;
-            bool shadows = Settings.CloudShadows == null || Settings.CloudShadows.value;
+            bool shadows = Settings.ShadowsCast;
             bool available = shadows && sun != null && map != null && map.IsReady && map.Texture != null;
 
             _material.SetFloat(IdShadowAvailable, available ? 1f : 0f);

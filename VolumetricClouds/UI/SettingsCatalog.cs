@@ -744,7 +744,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Clouds,
                 Label = "Show clouds",
                 Tooltip = "Draws the cloud layer. With it off the game keeps its own painted sky, and our " +
-                          "rain, fog and lightning stand down with it.",
+                          "cloud shadows, rain, fog and lightning stand down with it.",
                 Bool = Settings.CloudsVisible,
                 DefaultBool = Settings.Defaults.CloudsVisible,
                 AfterChange = State("show clouds", OnOff(Settings.CloudsVisible)),
