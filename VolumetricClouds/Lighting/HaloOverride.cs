@@ -25,6 +25,18 @@ namespace VolumetricClouds.Lighting
     /// This class swaps m_renderMaterial for a material of its own. The game's materials are
     /// never modified, so switching the feature off is exact: put the references back.
     ///
+    /// The swap is made at the SOURCE too: LightSystem.m_lightMaterialVolumeGroup and
+    /// m_lightFloatingMaterialVolumeGroup, the two fields RenderGroup.UpdateMesh (and the mega
+    /// variant) copy into a light layer whenever it rebuilds. A layer is rebuilt when anything
+    /// in its 384 m cell changes -- a building finished, upgraded, zoned -- and the rebuild runs
+    /// INSIDE the game's draw: RenderManager.LateUpdate -> RenderGroup.Render finds the layer
+    /// dirty, UpdateMesh writes the material, and RenderMesh draws with it in the same call. A
+    /// per-frame swap of the layers alone therefore always lost that frame: the cell's lamps
+    /// flashed the game's big soft halos for one frame per rebuild (reported by a player in
+    /// 1.0.0; `swapsSinceLastLog` counted 3-25 such layers per 5 s while the city grew). Nothing
+    /// else in the game reads those two fields (IL: InitializeProperties creates them,
+    /// DestroyProperties destroys them), and no installed mod names them.
+    ///
     /// Why a replacement shader rather than feeding the game's one: disassembled, its glow is
     /// 0.001 * (fog + 0.5) * (1/x - 1), raised to a power via exp(log()). Fog is therefore
     /// only a brightness knob, there is no control over falloff or size at all, and at
@@ -131,6 +143,7 @@ namespace VolumetricClouds.Lighting
             if (!enabled)
                 return;
 
+            SwapSources(lights, ported);
             SwapLayers(render, lights, ported);
             UpdateMaterials();
 
@@ -142,8 +155,35 @@ namespace VolumetricClouds.Lighting
         }
 
         /// <summary>
-        /// The game writes its own material back whenever it rebuilds a group's mesh, so
-        /// every light layer is re-checked each frame rather than swapped once.
+        /// Puts ours into the two fields a rebuilt light layer copies its halo material from
+        /// (see the remarks), so a rebuild picks up ours and never draws a frame with the
+        /// game's. Checked every frame, like the dynamic slot: it holds if the game ever
+        /// creates new materials there.
+        /// </summary>
+        private void SwapSources(LightSystem lights, bool ported)
+        {
+            lights.m_lightMaterialVolumeGroup =
+                SourceReplacementFor(lights.m_lightMaterialVolumeGroup, ported, "m_lightMaterialVolumeGroup");
+            lights.m_lightFloatingMaterialVolumeGroup =
+                SourceReplacementFor(lights.m_lightFloatingMaterialVolumeGroup, ported, "m_lightFloatingMaterialVolumeGroup");
+        }
+
+        private Material SourceReplacementFor(Material current, bool ported, string field)
+        {
+            if (current == null || _byReplacement.ContainsKey(current))
+                return current;
+
+            Material replacement = Obtain(current, ported).Material;
+            Log.Msg("halo: LightSystem." + field + " now holds ours too, so a light layer the game " +
+                    "rebuilds (a building built or changed) draws with it from its first frame");
+            return replacement;
+        }
+
+        /// <summary>
+        /// The layers built before the sources were swapped still hold the game's material, so
+        /// every light layer is re-checked each frame. With the sources swapped, nothing should
+        /// be found after the first frame: `swapsSinceLastLog` in the detail line staying at 0
+        /// while the city grows is what shows the flash is gone.
         /// </summary>
         private void SwapLayers(RenderManager render, LightSystem lights, bool ported)
         {
@@ -190,33 +230,39 @@ namespace VolumetricClouds.Lighting
             if (_byReplacement.ContainsKey(current))
                 return current;
 
+            _swaps++;
+            return Obtain(current, ported).Material;
+        }
+
+        /// <summary>The one replacement for a game material, made on first use.</summary>
+        private Replacement Obtain(Material original, bool ported)
+        {
             Replacement replacement;
-            if (!_byOriginal.TryGetValue(current, out replacement))
+            if (_byOriginal.TryGetValue(original, out replacement))
+                return replacement;
+
+            replacement = new Replacement
             {
-                replacement = new Replacement
-                {
-                    Original = current,
-                    Material = new Material(current) { name = current.name + " (VolumetricClouds)" },
-                };
+                Original = original,
+                Material = new Material(original) { name = original.name + " (VolumetricClouds)" },
+            };
 
-                Shader shader = ported ? PortedShader() : null;
-                if (shader != null && current.shader != null && current.shader.name == PortedShaderName)
-                {
-                    replacement.Material.shader = shader;
-                    replacement.Ported = true;
-                }
-
-                _byOriginal.Add(current, replacement);
-                _byReplacement.Add(replacement.Material, replacement);
-
-                Log.Msg("halo: replacing '" + current.name + "' (shader '" +
-                        (current.shader == null ? "null" : current.shader.name) + "') with " +
-                        (replacement.Ported ? "the ported shader" : "a fog-overridden copy of the game's") +
-                        ", renderQueue " + current.renderQueue + " -> " + replacement.Material.renderQueue);
+            Shader shader = ported ? PortedShader() : null;
+            if (shader != null && original.shader != null && original.shader.name == PortedShaderName)
+            {
+                replacement.Material.shader = shader;
+                replacement.Ported = true;
             }
 
-            _swaps++;
-            return replacement.Material;
+            _byOriginal.Add(original, replacement);
+            _byReplacement.Add(replacement.Material, replacement);
+
+            Log.Msg("halo: replacing '" + original.name + "' (shader '" +
+                    (original.shader == null ? "null" : original.shader.name) + "') with " +
+                    (replacement.Ported ? "the ported shader" : "a fog-overridden copy of the game's") +
+                    ", renderQueue " + original.renderQueue + " -> " + replacement.Material.renderQueue);
+
+            return replacement;
         }
 
         /// <summary>
@@ -405,6 +451,17 @@ namespace VolumetricClouds.Lighting
             {
                 RenderManager render = Singleton<RenderManager>.instance;
 
+                // The sources first. LightSystem.DestroyProperties destroys whatever these hold
+                // when the city's scene goes, so the game's own must be back by then; they are,
+                // because OnLevelUnloading (-> our OnDestroy, end of that frame) runs before the
+                // scene switch. A field the game already emptied stays empty.
+                LightSystem lights = render.lightSystem;
+                if (lights != null)
+                {
+                    lights.m_lightMaterialVolumeGroup = OriginalOf(lights.m_lightMaterialVolumeGroup);
+                    lights.m_lightFloatingMaterialVolumeGroup = OriginalOf(lights.m_lightFloatingMaterialVolumeGroup);
+                }
+
                 RenderGroup[] groups = render.m_groups;
                 for (int i = 0; groups != null && i < groups.Length; i++)
                 {
@@ -426,8 +483,13 @@ namespace VolumetricClouds.Lighting
                 }
             }
 
+            // Unity's null test: at quit the game may have destroyed one of ours already, if it
+            // was still in a source field when LightSystem.DestroyProperties ran.
             foreach (Replacement replacement in _byOriginal.Values)
-                Destroy(replacement.Material);
+            {
+                if (replacement.Material != null)
+                    Destroy(replacement.Material);
+            }
 
             _byOriginal.Clear();
             _byReplacement.Clear();
@@ -453,8 +515,21 @@ namespace VolumetricClouds.Lighting
                     ported++;
             }
 
+            // "sources" = how many of the two LightSystem fields hold ours (2 expected; see
+            // SwapSources). With 2, swapsSinceLastLog should read 0 after the first line.
+            int sources = 0;
+            LightSystem lights = Singleton<RenderManager>.instance.lightSystem;
+            if (lights != null)
+            {
+                if (lights.m_lightMaterialVolumeGroup != null && _byReplacement.ContainsKey(lights.m_lightMaterialVolumeGroup))
+                    sources++;
+                if (lights.m_lightFloatingMaterialVolumeGroup != null && _byReplacement.ContainsKey(lights.m_lightFloatingMaterialVolumeGroup))
+                    sources++;
+            }
+
             Log.Detail("halo: layers=" + _layers +
                     " materials=" + _byOriginal.Count + " (ported=" + ported + ")" +
+                    " sources=" + sources + "/2" +
                     " swapsSinceLastLog=" + _swaps +
                     " | fog=" + (Settings.HaloFogAmount != null ? Settings.HaloFogAmount.value : 0f).ToString("F2") +
                     " brightness=" + (Settings.HaloBrightness != null ? Settings.HaloBrightness.value : 1f).ToString("F2") +

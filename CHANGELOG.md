@@ -7,6 +7,12 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.0.1 — unreleased
 
+Nothing in `VolumetricClouds.xml` or in saved cities changes.
+
+- Fixed street and building light halos flashing for a frame, every few seconds, while
+  *Customise street and building light halos* is on and the city is growing. Whenever a
+  building was built or changed, the game rebuilt the lights of that part of the map with its
+  own halo material and drew them once before the mod could swap it back.
 - The mod's version is now shown after its name in the mods list and on the options page, and
   at the top of its log, so a bug report can say which release it came from.
 
