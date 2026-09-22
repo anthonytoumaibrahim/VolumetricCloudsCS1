@@ -1,6 +1,6 @@
 [h1]Pre-release Note[/h1]
 [b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti), so expect some bugs and rough edges, and please report anything unusual (see [b]Reporting a bug[/b] below).
-[b]!!Works only on Windows!![/b] On Mac and Linux, the shaders won't work, so it will fall back to another rendering method which doesn't look good.
+[b]!!Works only on Windows!![/b] On Mac and Linux, the shaders won't work, so the mod switches itself off when you load a city and shows a message saying so.
 (PS: The screenshots above are from my own game with my own RenderIt! profile, and my settings for this mod are different than the defaults, so don't expect the game to look the same for you)
 
 [hr][/hr]

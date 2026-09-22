@@ -13,6 +13,10 @@ Nothing in `VolumetricClouds.xml` or in saved cities changes.
   *Customise street and building light halos* is on and the city is growing. Whenever a
   building was built or changed, the game rebuilt the lights of that part of the map with its
   own halo material and drew them once before the mod could swap it back.
+- On a Mac, on Linux, or on Windows forced onto OpenGL, where the clouds cannot be drawn, the
+  mod now switches itself off when a city loads and says so in a message (once per launch),
+  instead of carrying on with flat stand-in clouds. Nothing of it runs in that city. On
+  Windows the message lists the usual causes and where the log is, for a report.
 - The mod's version is now shown after its name in the mods list and on the options page, and
   at the top of its log, so a bug report can say which release it came from.
 

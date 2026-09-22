@@ -99,8 +99,9 @@ tight.
 
 ## Known limitations
 
-- Windows / Direct3D 11 only. On macOS and Linux the shader bundle is unavailable, so at best
-  you get the simple billboard fallback; this is untested.
+- Windows / Direct3D 11 only. On macOS and Linux (or Windows forced onto OpenGL) the cloud
+  shaders cannot run, so the mod switches itself off when a city loads and says so once per
+  launch; nothing in the city is changed by it.
 - No moon shadows — cloud shadows are cast by the sun only.
 - 100% intensity is not a sealed overcast: the 3D noise erodes the layer, so sun patches
   remain. That is deliberate.

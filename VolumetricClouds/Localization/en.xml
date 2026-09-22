@@ -19,6 +19,23 @@
   <!-- ==================== The mod ==================== -->
 
   <String key="Mod.Description">3D clouds that follow the game's weather, with real shadows, rain, lightning, fog and light halo controls. Requires Harmony.</String>
+  <String key="Mod.Unsupported">
+    Volumetric Weather only works on Windows for now, so its clouds cannot be drawn on this
+    computer. Support for Mac and Linux may come as the mod grows.\n\n
+    Until then the mod has switched itself off: nothing in this city is changed by it. You can
+    keep it for later, or safely unsubscribe.
+  </String>
+  <String key="Mod.UnsupportedWindows">
+    Volumetric Weather could not draw its clouds on this PC, so it has switched itself off:
+    nothing in this city is changed by it.\n\n
+    The usual causes:\n
+    - the game is started with an option such as -force-glcore or -force-d3d9 (Steam: right-click
+    the game, Properties, Launch Options). Remove it, and restart the game.\n
+    - the graphics card is older than DirectX 10.\n\n
+    If neither applies, please report it in the comments on the mod's Workshop page, with this
+    file:\n
+    {0}
+  </String>
 
   <String key="Tab.Now">Now</String>
   <String key="Tab.Clouds">Clouds</String>
