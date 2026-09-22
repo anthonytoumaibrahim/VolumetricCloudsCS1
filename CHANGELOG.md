@@ -1,13 +1,18 @@
 # Changelog
 
 Notable changes to Volumetric Weather. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project uses an
-`AssemblyVersion` of `1.0.*`, so the build number moves on every compile and only the entries
-below mark a release.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each Workshop upload is one version
+below; the mods list shows it after the mod's name, and the first line of
+`VolumetricClouds.log` gives it with the exact build.
 
-## 1.0.0 — unreleased
+## 1.0.1 — unreleased
 
-First release line. Development history before this point is in the git log; there were no
+- The mod's version is now shown after its name in the mods list and on the options page, and
+  at the top of its log, so a bug report can say which release it came from.
+
+## 1.0.0 — 2026-09-21
+
+Published on the Steam Workshop as item 3805863507. First release line. Development history before this point is in the git log; there were no
 earlier public versions, so nothing below is a change from something a player has seen.
 
 ### Clouds and shadows

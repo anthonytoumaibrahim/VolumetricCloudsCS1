@@ -44,7 +44,8 @@ namespace VolumetricClouds
                 try
                 {
                     File.WriteAllText(Path,
-                        Mod.DisplayName + " log - session started " +
+                        Mod.DisplayName + " " + Mod.Version + " (build " +
+                        typeof(Mod).Assembly.GetName().Version + ") log - session started " +
                         DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine);
                 }
                 catch (Exception e)

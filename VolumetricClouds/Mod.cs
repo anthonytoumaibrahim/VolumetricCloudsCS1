@@ -12,7 +12,20 @@ namespace VolumetricClouds
         /// </summary>
         public const string DisplayName = "Volumetric Weather";
 
-        public string Name => DisplayName;
+        /// <summary>
+        /// The release a player has: raised once per Workshop upload (the third number for a
+        /// fix, the second for new features), with its own section in CHANGELOG.md. Also the
+        /// first three parts of the assembly version (Properties/AssemblyInfo.cs).
+        /// </summary>
+        public const string Version = "1.0.1";
+
+        /// <summary>
+        /// The mods list and the options page show the version after the name, so a bug report
+        /// can say which release it was. The game reads Name for display only (mods list,
+        /// options category, telemetry); whether a mod is enabled is keyed on its folder, so a
+        /// new number each release changes nothing a player has saved.
+        /// </summary>
+        public string Name => DisplayName + " " + Version;
         public string Description => Localization.Get("Mod.Description");
 
         /// <summary>Called by the game via reflection when the mod is enabled.</summary>
