@@ -9,7 +9,8 @@ namespace VolumetricClouds.Sky
     /// Raymarched volumetric clouds. Draws a box that follows the camera; the shader
     /// (compiled in Unity 5.6 and embedded as an AssetBundle) marches the cloud slab for
     /// every pixel. Also drives the <see cref="CloudShadowMap"/>, since both need the same
-    /// noise volume. Falls back to the billboards when the bundle is missing or fails.
+    /// noise volume. (Until 1.1.0 a switch could trade this for flat billboard clouds; the
+    /// raymarched clouds are the mod, so that went.)
     /// </summary>
     public class CloudVolume : MonoBehaviour
     {
@@ -17,7 +18,7 @@ namespace VolumetricClouds.Sky
         public const int NoiseSize = 64;
         private const float MaxDistance = 30000f;
 
-        /// <summary>True while the volumetric layer is actually drawing, so billboards stand down.</summary>
+        /// <summary>True while the volumetric layer is actually drawing (the fog needs the pass).</summary>
         public static bool IsActive { get; private set; }
 
         private CloudDensityField _field;
@@ -200,8 +201,7 @@ namespace VolumetricClouds.Sky
                         " colorSpace=" + QualitySettings.activeColorSpace);
             }
 
-            bool wanted = (Settings.CloudsVisible == null || Settings.CloudsVisible.value)
-                       && (Settings.UseVolumetric == null || Settings.UseVolumetric.value);
+            bool wanted = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
 
             _renderer.enabled = wanted;
             IsActive = wanted;
@@ -216,9 +216,7 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// Rendered whether or not the VOLUMETRIC clouds are being drawn: the billboards
-        /// are placed from the same weather field, so the shadows still belong to them.
-        /// With "Show clouds" off there is nothing to belong to, and the pass does not run.
+        /// With "Show clouds" off there is nothing to cast a shadow, and the pass does not run.
         /// </summary>
         private void UpdateShadowMap()
         {
@@ -624,6 +622,13 @@ namespace VolumetricClouds.Sky
                 ? Color.Lerp(Color.white, new Color(0.78f, 0.93f, 1.18f), -tint)
                 : Color.Lerp(Color.white, new Color(1.18f, 1f, 0.76f), tint);
             lean *= fogBrightness;
+
+            // The player's colour, as for the clouds (Sky.CloudTint): hue only, and white is
+            // exactly (1, 1, 1), so a fog nobody coloured gets bit for bit the numbers it always
+            // got. The lamps' glow inside the fog is added by the shader from its own map, in
+            // the lamps' own colours, and is not touched.
+            Color colour = CloudTint.Of(Settings.FogColor != null ? Settings.FogColor.value : Settings.Defaults.FogColor);
+            lean = new Color(lean.r * colour.r, lean.g * colour.g, lean.b * colour.b, lean.a);
 
             Color fogAmbient = WithFloor(lightAmbient * FogLightScale);
             Color fogSun = baseSun * FogLightScale;

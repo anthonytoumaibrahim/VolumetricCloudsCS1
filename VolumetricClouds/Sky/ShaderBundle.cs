@@ -60,7 +60,7 @@ namespace VolumetricClouds.Sky
                 byte[] data = ReadResource();
                 if (data == null)
                 {
-                    Log.Warn("Shader bundle is not embedded in this build; using billboard clouds. " +
+                    Log.Warn("Shader bundle is not embedded in this build; the mod cannot draw and stands down. " +
                              "Run build-bundle.ps1, then rebuild the mod.");
                     return result;
                 }

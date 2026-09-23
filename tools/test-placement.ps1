@@ -200,4 +200,20 @@ Check "it is monotone from one end to the other" ((Brightness 2.0 0.5 0.3) -gt (
 Check "equal ends are a flat line (auto then does nothing, as it should)" ([math]::Abs((Brightness 0.25 0.25 0.6) - 0.25) -lt 1e-6)
 
 ""
+"=== LightningPlacement.ThunderVolume: a clap fades with the strike's distance ==="
+$thunder = $asm.GetType("VolumetricClouds.Sky.LightningPlacement").GetMethod("ThunderVolume", $flags)
+function Clap([double]$metres) { return [single]$thunder.Invoke($null, [object[]]@([single]$metres)) }
+
+foreach ($d in 0, 500, 1000, 2000, 4000, 7000, 12000) {
+    "    strike {0,6} m away -> volume {1}" -f $d, (Clap $d).ToString("F3")
+}
+
+Check "a test strike (in front of the camera) is not faded" ((Clap 0) -eq 1.0)
+Check "full volume out to 1 km" (((Clap 1000) -eq 1.0) -and ((Clap 999) -eq 1.0))
+Check "half volume at 4 km (1 / sqrt)" ([math]::Abs((Clap 4000) - 0.5) -lt 1e-6)
+Check "still heard at the far edge of the band" ((Clap 7000) -gt 0.35)
+Check "never below the floor" ((Clap 12000) -eq [single]0.3 -and (Clap 1e9) -eq [single]0.3)
+Check "it only ever gets quieter with distance" ((Clap 1500) -gt (Clap 3000) -and (Clap 3000) -gt (Clap 6000))
+
+""
 if ($failed -eq 0) { "All checks passed." } else { "$failed check(s) FAILED."; exit 1 }

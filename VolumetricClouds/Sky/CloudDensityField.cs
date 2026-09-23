@@ -41,7 +41,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Goes up by one each time the pattern is replaced, so what was built from the old one
-        /// (the fallback cookie, the billboards) knows to rebuild.
+        /// (the fallback cookie) knows to rebuild.
         /// </summary>
         public int Version { get; private set; }
 
@@ -423,26 +423,6 @@ namespace VolumetricClouds.Sky
                 float cloud = Mathf.Clamp01((_density[i] - threshold) / Softness);
                 byte v = (byte)((1f - cloud * depth) * 255f);
                 _pixels[i] = new Color32(v, v, v, v);
-            }
-
-            Texture.SetPixels32(_pixels);
-            Texture.Apply(false);
-        }
-
-        /// <summary>Writes a checkerboard instead of cloud noise, for verifying the cookie lands at all.</summary>
-        public void ApplyChecker()
-        {
-            const int Cells = 4;
-            int cellSize = Resolution / Cells;
-
-            for (int y = 0; y < Resolution; y++)
-            {
-                for (int x = 0; x < Resolution; x++)
-                {
-                    bool dark = ((x / cellSize) + (y / cellSize)) % 2 == 0;
-                    byte v = dark ? (byte)40 : (byte)255;
-                    _pixels[y * Resolution + x] = new Color32(v, v, v, v);
-                }
             }
 
             Texture.SetPixels32(_pixels);

@@ -8,12 +8,13 @@ below; the mods list shows it after the mod's name, and the first line of
 ## 1.1.0 — 2026-09-23
 
 Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is, and the
-clouds look exactly as before until you pick a colour. The file gains four lines (the two
-cloud colours, and where the mod's own button sits), and the settings that were on the
-options page's Weather, Light, Rendering and Halos tabs are now in the in-game panel (see
-below).
+clouds look exactly as before until you pick a colour. The file gains five lines (the two
+cloud colours, the fog colour, and where the mod's own button sits) and loses six, for
+settings that no longer exist (see *Removed* below; the file's other values are untouched).
+The settings that were on the options page's Weather, Light, Rendering and Halos tabs are now
+in the in-game panel (see below).
 
-### New: cloud colours
+### New: cloud and fog colours
 
 - Two colours on the in-game panel's **Clouds** tab: the **sunlit side** (the tops and the
   sides facing the sun or the moon) and the **shaded side** (the undersides, lit by the sky,
@@ -26,10 +27,16 @@ below).
   `rgb(255, 192, 203)`, `255, 192, 203` or a name such as `pink` (Ctrl+C and Ctrl+V work in
   it), **Copy** and **Paste** buttons, and a **Default** button back to white.
   *Reset all settings to defaults* puts both back to white too.
-- Rain, lightning, the fog and the cloud shadows on the ground keep their own colours.
+- The volumetric fog has a colour of its own too, on the **Fog** tab under its cool/warm
+  tint (which stays as it was): the same picker, the same rules, white leaves it as it is. The
+  glow of the city's lights inside the fog keeps the lights' own colours.
+- Rain, lightning and the cloud shadows on the ground keep their own colours.
 
 ### Fixes and changes
 
+- Thunder is now quieter the further away the strike is: full volume within a kilometre,
+  half at four, with the delay it already had. Until now every clap was as loud as one
+  overhead. (The game's own strikes, in heavy rain, keep the game's flat volume.)
 - Fixed street and building light halos flashing for a frame, every few seconds, while
   *Customise street and building light halos* is on and the city is growing. Whenever a
   building was built or changed, the game rebuilt the lights of that part of the map with its
@@ -55,6 +62,18 @@ below).
   you leave it.
 - The log now also gives the computer's memory, and names any other mod that changes the same
   game code as this one, so a crash report can point at the cause.
+
+### Removed
+
+- The light halos have one switch, *Use the replacement halo shader*, instead of two: the
+  second one (the game's own glow with only its fog changed) is gone. Anyone who had the halos
+  on keeps them on. The *Fog amount* slider is gone too: the halos now grow in foggy weather
+  the way the game's own do, following the game's fog or Play It!'s fog slider (or this mod's
+  volumetric fog while it is on), instead of a fog value of their own.
+- The flat billboard clouds are gone, with the *Raymarched volumetric clouds* switch and the
+  two *Billboards* sliders. The 3D clouds are the mod; anyone who had switched to the flat
+  pictures gets the real clouds.
+- The *Debug: project a checkerboard instead of shadows* switch is gone from the options page.
 
 ## 1.0.0 — 2026-09-21
 

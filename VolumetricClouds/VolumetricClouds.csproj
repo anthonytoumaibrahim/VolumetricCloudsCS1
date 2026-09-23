@@ -26,7 +26,7 @@
     <!-- Every language file, as "Localization.<code>.xml": Localization.cs finds them by name. -->
     <EmbeddedResource Include="Localization\*.xml" LogicalName="Localization.%(Filename)%(Extension)" />
     <!-- Shader bundle from UnityProject (see build-bundle.ps1). Conditional so the mod still
-         builds without it; it then falls back to billboard clouds at runtime. -->
+         builds without it; without it the mod stands down in every city (Loader.cs). -->
     <EmbeddedResource Include="Resources\volumetricclouds.bundle"
                       Condition="Exists('Resources\volumetricclouds.bundle')" />
   </ItemGroup>

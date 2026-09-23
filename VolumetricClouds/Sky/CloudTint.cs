@@ -59,18 +59,5 @@ namespace VolumetricClouds.Sky
             double c = channel / 255.0;
             return (float)(c <= 0.04045 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4));
         }
-
-        /// <summary>
-        /// The tint for something that cannot go above 1 (a vertex or material colour on the
-        /// billboard fallback): scaled so its brightest channel is 1. White stays exactly white.
-        /// </summary>
-        public static Color Displayable(Color tint)
-        {
-            float brightest = Math.Max(tint.r, Math.Max(tint.g, tint.b));
-            if (brightest <= 1f)
-                return new Color(tint.r, tint.g, tint.b, 1f);
-
-            return new Color(tint.r / brightest, tint.g / brightest, tint.b / brightest, 1f);
-        }
     }
 }

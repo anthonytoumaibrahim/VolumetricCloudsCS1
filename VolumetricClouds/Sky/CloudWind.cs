@@ -42,8 +42,8 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The same as a vector, for what does not read a tiling texture (the billboards, the
-        /// flat-cookie fallback, the log). It loses precision far out: never hand it to a shader.
+        /// The same as a vector, for what does not read a tiling texture (the flat-cookie
+        /// fallback, the log). It loses precision far out: never hand it to a shader.
         /// </summary>
         public static Vector3 Offset
         {

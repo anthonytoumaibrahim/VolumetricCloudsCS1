@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Reflection;
 using ColossalFramework;
 using UnityEngine;
 using VolumetricClouds.Sky;
@@ -42,28 +41,25 @@ namespace VolumetricClouds.Lighting
     /// only a brightness knob, there is no control over falloff or size at all, and at
     /// fog &lt;= -0.5 the log() is NaN and Direct3D's min(NaN, 1) paints the light's whole quad
     /// at full colour -- the "box". LightHalo.shader is a port of that shader with the glow
-    /// clamped positive and brightness, tightness and radius exposed.
+    /// clamped positive and brightness, tightness and radius exposed; LightHaloDynamic.shader
+    /// is the same port of the instanced variant the dynamic lights (vehicles, and lamps drawn
+    /// without an instance id) use.
     ///
-    /// Only 'Custom/Lights/GroupVolume' has a port. The floating variant, and everything when
-    /// the replacement shader is switched off or missing, stays on the game's shader with just
-    /// the fog amount overridden (clamped to the range it survives).
-    ///
-    /// Dynamic lights (vehicles and the like, LightSystem.DrawLight) use an instanced variant
-    /// with no port. The sliders here are tuned against the ported shader and mean something
-    /// else to the game's, so that material just gets the smallest glow its shader can draw
-    /// (fog pinned to <see cref="MinSafeFog"/>) -- independent of the world's fog, so foggy
-    /// weather no longer has to be sacrificed to keep vehicle halos small.
+    /// ONE switch (1.1.0, the author's call: "just settle for one checkbox"): `HaloEnabled`
+    /// puts the ported shaders on every batched light layer and on the dynamic lights'
+    /// material; off leaves the game's materials exactly as they are. Until 1.1.0 a second
+    /// switch could keep the game's shader with only its fog overridden, and the dynamic
+    /// material was pinned to the smallest glow that shader survives (-0.49); both are gone,
+    /// and so is the "Fog amount" slider. The fog the halos see is the WORLD's: what the
+    /// game's own shader reads (see <see cref="HaloFog"/>), so foggy weather and Play It!'s
+    /// fog slider bloom the lamps as they do in vanilla ("let other mods like Play It or the
+    /// game control that"). Only 'Custom/Lights/GroupVolume' has a port; a light material on
+    /// any other shader is left as the game's.
     /// </remarks>
     public class HaloOverride : MonoBehaviour
     {
-        /// <summary>The lowest fog value the game's own glow shader survives; see the remarks.</summary>
-        public const float MinSafeFog = -0.49f;
-
         private const string PortedShaderName = "Custom/Lights/GroupVolume";
         private const float LogInterval = 5f;
-
-        private const BindingFlags AnyInstance =
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         private static readonly int IdWeatherParams = Shader.PropertyToID("_WeatherParams");
         private static readonly int IdHaloFog = Shader.PropertyToID("_HaloFog");
@@ -80,16 +76,17 @@ namespace VolumetricClouds.Lighting
         {
             public Material Original;
             public Material Material;
-            public bool Ported;
         }
 
         private readonly Dictionary<Material, Replacement> _byOriginal = new Dictionary<Material, Replacement>();
         private readonly Dictionary<Material, Replacement> _byReplacement = new Dictionary<Material, Replacement>();
 
+        /// <summary>Game materials on a shader we have no port for: left alone, said once.</summary>
+        private readonly HashSet<Material> _unported = new HashSet<Material>();
+
         private Shader _portedShader;
         private bool _shaderResolved;
-        private Material _dynamicVolume;
-        private bool _dynamicTouched;
+        private bool _missingShaderLogged;
 
         private Shader _dynamicShader;
         private bool _dynamicShaderResolved;
@@ -97,7 +94,6 @@ namespace VolumetricClouds.Lighting
         private Material _dynamicReplacement;
 
         private bool _wasEnabled;
-        private bool _wasPorted;
         private float _nextLogTime;
         private int _layers;
         private int _swaps;
@@ -107,44 +103,43 @@ namespace VolumetricClouds.Lighting
             get { return Settings.HaloEnabled != null && Settings.HaloEnabled.value; }
         }
 
-        private static bool WantPorted
-        {
-            get { return Settings.HaloReplaceShader == null || Settings.HaloReplaceShader.value; }
-        }
-
         private void LateUpdate()
         {
             if (!Singleton<RenderManager>.exists || !Singleton<WeatherManager>.exists)
                 return;
 
             bool enabled = Enabled;
-            bool ported = WantPorted;
 
-            // Anything that changes which shader the replacements use means rebuilding them.
-            if (_wasEnabled && (!enabled || ported != _wasPorted))
+            if (_wasEnabled && !enabled)
                 RestoreAll();
 
             _wasEnabled = enabled;
-            _wasPorted = ported;
 
             RenderManager render = Singleton<RenderManager>.instance;
             LightSystem lights = render.lightSystem;
             if (lights == null)
                 return;
 
-            // Dynamic lights: the ported shader when it can be had, otherwise the game's own with
-            // its fog pinned. Decided before the early-out so switching the feature off puts
-            // the game's material back.
-            bool dynamicPorted = SwapDynamic(lights, enabled && ported);
-            HaloAdjuster.TagLamps = dynamicPorted;
-            if (!dynamicPorted)
-                SyncDynamicVolume(lights, enabled);
+            // Decided before the early-out so switching the feature off puts the game's
+            // material back.
+            HaloAdjuster.TagLamps = SwapDynamic(lights, enabled);
 
             if (!enabled)
                 return;
 
-            SwapSources(lights, ported);
-            SwapLayers(render, lights, ported);
+            if (PortedShader() == null)
+            {
+                if (!_missingShaderLogged)
+                {
+                    _missingShaderLogged = true;
+                    Log.Warn("halo: the ported halo shader is not in the bundle; the game's halos are left as they are");
+                }
+
+                return;
+            }
+
+            SwapSources(lights);
+            SwapLayers(render, lights);
             UpdateMaterials();
 
             if (Log.Detailed && Time.time >= _nextLogTime)
@@ -160,23 +155,26 @@ namespace VolumetricClouds.Lighting
         /// game's. Checked every frame, like the dynamic slot: it holds if the game ever
         /// creates new materials there.
         /// </summary>
-        private void SwapSources(LightSystem lights, bool ported)
+        private void SwapSources(LightSystem lights)
         {
             lights.m_lightMaterialVolumeGroup =
-                SourceReplacementFor(lights.m_lightMaterialVolumeGroup, ported, "m_lightMaterialVolumeGroup");
+                SourceReplacementFor(lights.m_lightMaterialVolumeGroup, "m_lightMaterialVolumeGroup");
             lights.m_lightFloatingMaterialVolumeGroup =
-                SourceReplacementFor(lights.m_lightFloatingMaterialVolumeGroup, ported, "m_lightFloatingMaterialVolumeGroup");
+                SourceReplacementFor(lights.m_lightFloatingMaterialVolumeGroup, "m_lightFloatingMaterialVolumeGroup");
         }
 
-        private Material SourceReplacementFor(Material current, bool ported, string field)
+        private Material SourceReplacementFor(Material current, string field)
         {
             if (current == null || _byReplacement.ContainsKey(current))
                 return current;
 
-            Material replacement = Obtain(current, ported).Material;
+            Replacement replacement = Obtain(current);
+            if (replacement == null)
+                return current;
+
             Log.Msg("halo: LightSystem." + field + " now holds ours too, so a light layer the game " +
                     "rebuilds (a building built or changed) draws with it from its first frame");
-            return replacement;
+            return replacement.Material;
         }
 
         /// <summary>
@@ -185,7 +183,7 @@ namespace VolumetricClouds.Lighting
         /// be found after the first frame: `swapsSinceLastLog` in the detail line staying at 0
         /// while the city grows is what shows the flash is gone.
         /// </summary>
-        private void SwapLayers(RenderManager render, LightSystem lights, bool ported)
+        private void SwapLayers(RenderManager render, LightSystem lights)
         {
             int lightLayer = lights.m_lightLayer;
             int floatingLayer = lights.m_lightLayerFloating;
@@ -200,7 +198,7 @@ namespace VolumetricClouds.Lighting
                 for (RenderGroup.MeshLayer layer = groups[i].m_layers; layer != null; layer = layer.m_nextLayer)
                 {
                     if (layer.m_layer == lightLayer || layer.m_layer == floatingLayer)
-                        layer.m_renderMaterial = ReplacementFor(layer.m_renderMaterial, ported);
+                        layer.m_renderMaterial = ReplacementFor(layer.m_renderMaterial);
                 }
             }
 
@@ -214,12 +212,12 @@ namespace VolumetricClouds.Lighting
                 for (MegaRenderGroup.MeshLayer layer = megaGroups[i].m_layers; layer != null; layer = layer.m_nextLayer)
                 {
                     if (layer.m_layer == lightLayer || layer.m_layer == floatingLayer)
-                        layer.m_renderMaterial = ReplacementFor(layer.m_renderMaterial, ported);
+                        layer.m_renderMaterial = ReplacementFor(layer.m_renderMaterial);
                 }
             }
         }
 
-        private Material ReplacementFor(Material current, bool ported)
+        private Material ReplacementFor(Material current)
         {
             if (current == null)
                 return null;
@@ -230,50 +228,71 @@ namespace VolumetricClouds.Lighting
             if (_byReplacement.ContainsKey(current))
                 return current;
 
+            Replacement replacement = Obtain(current);
+            if (replacement == null)
+                return current;
+
             _swaps++;
-            return Obtain(current, ported).Material;
+            return replacement.Material;
         }
 
-        /// <summary>The one replacement for a game material, made on first use.</summary>
-        private Replacement Obtain(Material original, bool ported)
+        /// <summary>
+        /// The one replacement for a game material, made on first use; null for a material on
+        /// a shader we have no port for, which stays the game's.
+        /// </summary>
+        private Replacement Obtain(Material original)
         {
             Replacement replacement;
             if (_byOriginal.TryGetValue(original, out replacement))
                 return replacement;
 
+            if (_unported.Contains(original))
+                return null;
+
+            if (original.shader == null || original.shader.name != PortedShaderName)
+            {
+                _unported.Add(original);
+                Log.Msg("halo: '" + original.name + "' (shader '" +
+                        (original.shader == null ? "null" : original.shader.name) + "') is left as the game's: no port for that shader");
+                return null;
+            }
+
             replacement = new Replacement
             {
                 Original = original,
-                Material = new Material(original) { name = original.name + " (VolumetricClouds)" },
+                Material = new Material(original)
+                {
+                    name = original.name + " (VolumetricClouds)",
+                    shader = PortedShader(),
+                },
             };
-
-            Shader shader = ported ? PortedShader() : null;
-            if (shader != null && original.shader != null && original.shader.name == PortedShaderName)
-            {
-                replacement.Material.shader = shader;
-                replacement.Ported = true;
-            }
 
             _byOriginal.Add(original, replacement);
             _byReplacement.Add(replacement.Material, replacement);
 
-            Log.Msg("halo: replacing '" + original.name + "' (shader '" +
-                    (original.shader == null ? "null" : original.shader.name) + "') with " +
-                    (replacement.Ported ? "the ported shader" : "a fog-overridden copy of the game's") +
-                    ", renderQueue " + original.renderQueue + " -> " + replacement.Material.renderQueue);
+            Log.Msg("halo: replacing '" + original.name + "' with the ported shader, renderQueue " +
+                    original.renderQueue + " -> " + replacement.Material.renderQueue);
 
             return replacement;
         }
 
         /// <summary>
-        /// Lamps bloom in fog. The halo's fog input is ours now (it used to follow the world's
-        /// fog), so our fog has to feed it or a foggy night would have clear-night lamps.
+        /// The fog the halos see. The game's shader reads _WeatherParams.z -- WeatherManager's
+        /// fog, unclamped, so a mod that parks it below zero (Persistent Fog Adjuster) is
+        /// honoured too -- and ours reads the same, so the weather's fog and Play It!'s fog
+        /// slider bloom the lamps exactly as in vanilla. While OUR fog is on screen its amount
+        /// is the fog in the air (following the game it is the game's value smoothed; overridden
+        /// it is the slider) and stands in for it.
         /// </summary>
-        private const float HaloFogPerFog = 0.6f;
+        private static float HaloFog()
+        {
+            float world = Shader.GetGlobalVector(IdWeatherParams).z;
+            return CloudFog.Active ? CloudFog.Amount : world;
+        }
 
         private void UpdateMaterials()
         {
-            float fog = Value(Settings.HaloFogAmount, 0f) + CloudFog.Amount * HaloFogPerFog;
+            float fog = HaloFog();
             float brightness = Value(Settings.HaloBrightness, 1f);
             float tightness = Value(Settings.HaloTightness, 1f);
             float radius = Value(Settings.HaloRadius, 1f);
@@ -286,18 +305,10 @@ namespace VolumetricClouds.Lighting
             float nearTightness = near ? Mathf.Max(0.05f, Value(Settings.HaloNearLightTightness, 1f)) : 1f;
             float nearRadius = near ? Mathf.Clamp(Value(Settings.HaloNearLightRadius, 1f), 0.05f, 4f) : 1f;
 
-            // Temperature, rain and wetness pass straight through; only fog (z) is ours, and
-            // the game's shader must never be handed a value it turns into NaN.
-            Vector4 weather = Shader.GetGlobalVector(IdWeatherParams);
-            weather.z = Mathf.Max(MinSafeFog, fog);
-
             foreach (Replacement replacement in _byOriginal.Values)
             {
-                if (replacement.Ported)
-                    SetHaloControls(replacement.Material, fog, brightness, tightness, radius,
-                                    nearDistance, nearBrightness, nearTightness, nearRadius);
-                else
-                    replacement.Material.SetVector(IdWeatherParams, weather);
+                SetHaloControls(replacement.Material, fog, brightness, tightness, radius,
+                                nearDistance, nearBrightness, nearTightness, nearRadius);
             }
 
             // The dynamic material takes the SAME values, from the same place, so a lamp drawn
@@ -389,33 +400,6 @@ namespace VolumetricClouds.Lighting
             return true;
         }
 
-        /// <summary>
-        /// Dynamic lights share one instanced material, on the game's own shader. While the
-        /// feature is on its fog is pinned to the minimum. A value set on a material cannot be
-        /// un-set in Unity 5.6, so once touched it is kept in step with the world for good:
-        /// the world's own value while the feature is off, which is exactly what the shader
-        /// global would have given it.
-        /// </summary>
-        private void SyncDynamicVolume(LightSystem lights, bool enabled)
-        {
-            if (!enabled && !_dynamicTouched)
-                return;
-
-            Material dynamicVolume = ResolveDynamicVolume(lights);
-            if (dynamicVolume == null)
-                return;
-
-            // While the feature is on, vehicle halos are pinned to the smallest glow the game's
-            // shader can draw. That is what PersistentFogAdjuster's -0.5 world fog used to buy;
-            // pinning it here instead lets the WORLD's fog be real weather again.
-            Vector4 weather = Shader.GetGlobalVector(IdWeatherParams);
-            if (enabled)
-                weather.z = MinSafeFog + CloudFog.Amount * HaloFogPerFog;
-
-            dynamicVolume.SetVector(IdWeatherParams, weather);
-            _dynamicTouched = true;
-        }
-
         private Shader PortedShader()
         {
             if (!_shaderResolved)
@@ -425,20 +409,6 @@ namespace VolumetricClouds.Lighting
             }
 
             return _portedShader;
-        }
-
-        /// <summary>
-        /// The GAME's dynamic halo material, for the fallback that only pins its fog. Never our
-        /// replacement: that one is destroyed when the feature goes off, and SwapDynamic has
-        /// already put the game's back by the time this is asked.
-        /// </summary>
-        private Material ResolveDynamicVolume(LightSystem lights)
-        {
-            Material current = lights.m_lightMaterialVolume;
-            if (current != null && current != _dynamicReplacement)
-                _dynamicVolume = current;
-
-            return _dynamicVolume;
         }
 
         /// <summary>Puts the game's materials back on every layer still holding one of ours.</summary>
@@ -493,6 +463,7 @@ namespace VolumetricClouds.Lighting
 
             _byOriginal.Clear();
             _byReplacement.Clear();
+            _unported.Clear();
 
             Log.Msg("halo: restored the game's light materials");
         }
@@ -508,13 +479,6 @@ namespace VolumetricClouds.Lighting
 
         private void WriteLog()
         {
-            int ported = 0;
-            foreach (Replacement replacement in _byOriginal.Values)
-            {
-                if (replacement.Ported)
-                    ported++;
-            }
-
             // "sources" = how many of the two LightSystem fields hold ours (2 expected; see
             // SwapSources). With 2, swapsSinceLastLog should read 0 after the first line.
             int sources = 0;
@@ -528,23 +492,22 @@ namespace VolumetricClouds.Lighting
             }
 
             Log.Detail("halo: layers=" + _layers +
-                    " materials=" + _byOriginal.Count + " (ported=" + ported + ")" +
+                    " materials=" + _byOriginal.Count + " (left to the game: " + _unported.Count + ")" +
                     " sources=" + sources + "/2" +
                     " swapsSinceLastLog=" + _swaps +
-                    " | fog=" + (Settings.HaloFogAmount != null ? Settings.HaloFogAmount.value : 0f).ToString("F2") +
-                    " brightness=" + (Settings.HaloBrightness != null ? Settings.HaloBrightness.value : 1f).ToString("F2") +
-                    " tightness=" + (Settings.HaloTightness != null ? Settings.HaloTightness.value : 1f).ToString("F2") +
-                    " radius=" + (Settings.HaloRadius != null ? Settings.HaloRadius.value : 1f).ToString("F2") +
+                    " | fog=" + HaloFog().ToString("F2") + " (world " + Singleton<WeatherManager>.instance.m_currentFog.ToString("F2") +
+                    (CloudFog.Active ? ", ours " + CloudFog.Amount.ToString("F2") + " in use)" : ")") +
+                    " brightness=" + Value(Settings.HaloBrightness, 1f).ToString("F2") +
+                    " tightness=" + Value(Settings.HaloTightness, 1f).ToString("F2") +
+                    " radius=" + Value(Settings.HaloRadius, 1f).ToString("F2") +
                     " | near<" + Value(Settings.HaloNearLightDistance, 0f).ToString("F0") + "m" +
                     " x brightness=" + Value(Settings.HaloNearLightBrightness, 1f).ToString("F2") +
                     " tightness=" + Value(Settings.HaloNearLightTightness, 1f).ToString("F2") +
                     " radius=" + Value(Settings.HaloNearLightRadius, 1f).ToString("F2") +
-                    " | worldFog=" + Singleton<WeatherManager>.instance.m_currentFog.ToString("F2") +
                     " | dynamic=" + (_dynamicReplacement != null
                         ? "PORTED otherBrightness=" + Value(Settings.HaloVehicleBrightness, 1f).ToString("F2") +
                           " (lamps tagged: see the 'dynamic lights' line)"
-                        : "game shader, fog " + (_dynamicTouched && _dynamicVolume != null
-                            ? _dynamicVolume.GetVector(IdWeatherParams).z.ToString("F2") : "untouched")));
+                        : "the game's (shader missing)"));
 
             _swaps = 0;
         }
@@ -557,10 +520,6 @@ namespace VolumetricClouds.Lighting
             HaloAdjuster.TagLamps = false;
             if (Singleton<RenderManager>.exists && Singleton<RenderManager>.instance.lightSystem != null)
                 SwapDynamic(Singleton<RenderManager>.instance.lightSystem, false);
-
-            // Last chance to leave the game's dynamic material on the world's own value.
-            if (_dynamicTouched && _dynamicVolume != null)
-                _dynamicVolume.SetVector(IdWeatherParams, Shader.GetGlobalVector(IdWeatherParams));
         }
     }
 }

@@ -701,11 +701,6 @@ namespace VolumetricClouds.UI
             return Settings.HaloEnabled != null && Settings.HaloEnabled.value;
         }
 
-        private static bool PortedHalos()
-        {
-            return HalosOn() && (Settings.HaloReplaceShader == null || Settings.HaloReplaceShader.value);
-        }
-
         private static bool ManualBrightness()
         {
             return !Settings.BrightnessAuto;
@@ -719,11 +714,6 @@ namespace VolumetricClouds.UI
         private static bool ShadowsOn()
         {
             return Settings.CloudShadows == null || Settings.CloudShadows.value;
-        }
-
-        private static bool Billboards()
-        {
-            return Settings.UseVolumetric != null && !Settings.UseVolumetric.value;
         }
 
         /// <summary>Clears all three overrides at once: one button for "just follow the game".</summary>
@@ -1091,6 +1081,18 @@ namespace VolumetricClouds.UI
                 Enabled = FogOn,
             });
 
+            // The fog's own colour (1.1.0), like the clouds' two: hue only, white = as it was,
+            // on top of the cool/warm lean above (which stays: a slider in players' files).
+            // No AfterChange: the panel's colour row logs each pick itself.
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Panel = PanelPage.Fog,
+                Colour = Settings.FogColor,
+                DefaultColour = Settings.Defaults.FogColor,
+                Enabled = FogOn,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
@@ -1409,49 +1411,18 @@ namespace VolumetricClouds.UI
                 AfterChange = MarkCustomPreset,
             });
 
+            // The raymarched clouds are the mod: the switch that turned them into flat
+            // billboards, and the billboards' two sliders, went in 1.1.0 ("it defeats the
+            // purpose of the mod").
             Add(new Row
             {
                 Kind = RowKind.Toggle,
                 Options = OptionsPage.Rendering,
                 Group = "Drawing",
-                Bool = Settings.UseVolumetric,
-                DefaultBool = Settings.Defaults.UseVolumetric,
-                Profiled = false,
-                AfterChange = State("raymarched clouds", OnOff(Settings.UseVolumetric)),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Rendering,
                 Bool = Settings.CloudDepthOcclusion,
                 DefaultBool = Settings.Defaults.DepthOcclusion,
                 Profiled = false,
                 AfterChange = State("depth occlusion", OnOff(Settings.CloudDepthOcclusion)),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Rendering,
-                Float = Settings.CloudPuffCount,
-                DefaultFloat = Settings.Defaults.PuffCount,
-                Min = 0f, Max = 600f, Step = 25f,
-                Format = Steps,
-                Profiled = false,
-                Enabled = Billboards,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Rendering,
-                Float = Settings.CloudPuffSize,
-                DefaultFloat = Settings.Defaults.PuffSize,
-                Min = 200f, Max = 2500f, Step = 50f,
-                Format = Metres,
-                Profiled = false,
-                Enabled = Billboards,
             });
         }
 
@@ -1462,6 +1433,10 @@ namespace VolumetricClouds.UI
         /// </summary>
         private static void BuildHaloOptions()
         {
+            // The one switch (1.1.0: "just settle for one checkbox"). Its element name stays
+            // HaloEnabled, so a player who opted in keeps the halos on. The second switch
+            // (HaloReplaceShader: the game's shader with only its fog overridden) and the
+            // "Fog amount" slider (HaloFogAmount) are gone; the halos follow the world's fog.
             Add(new Row
             {
                 Kind = RowKind.Toggle,
@@ -1474,23 +1449,13 @@ namespace VolumetricClouds.UI
 
             Add(new Row
             {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Halos,
-                Bool = Settings.HaloReplaceShader,
-                DefaultBool = Settings.Defaults.HaloReplaceShader,
-                Enabled = HalosOn,
-                AfterChange = State("replacement halo shader", OnOff(Settings.HaloReplaceShader)),
-            });
-
-            Add(new Row
-            {
                 Kind = RowKind.Value,
                 Options = OptionsPage.Halos,
                 Float = Settings.HaloTightness,
                 DefaultFloat = Settings.Defaults.HaloTightness,
                 Min = 0.5f, Max = 6f, Step = 0.05f,
                 Format = Times2,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1500,7 +1465,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloBrightness,
                 DefaultFloat = Settings.Defaults.HaloBrightness,
                 Min = 0f, Max = 300f, Step = 5f,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1510,17 +1475,6 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloRadius,
                 DefaultFloat = Settings.Defaults.HaloRadius,
                 Min = 10f, Max = 150f, Step = 5f,
-                Enabled = PortedHalos,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Halos,
-                Float = Settings.HaloFogAmount,
-                DefaultFloat = Settings.Defaults.HaloFogAmount,
-                Min = HaloOverride.MinSafeFog, Max = 2f, Step = 0.01f,
-                Format = v => v.ToString("F2"),
                 Enabled = HalosOn,
             });
 
@@ -1533,7 +1487,7 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.HaloNearDistance,
                 Min = 0f, Max = 1000f, Step = 10f,
                 Format = NearDistance,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1543,7 +1497,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloNearLightTightness,
                 DefaultFloat = Settings.Defaults.HaloNearTightness,
                 Min = 50f, Max = 300f, Step = 5f,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1553,7 +1507,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloNearLightBrightness,
                 DefaultFloat = Settings.Defaults.HaloNearBrightness,
                 Min = 0f, Max = 200f, Step = 1f,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1563,7 +1517,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloNearLightRadius,
                 DefaultFloat = Settings.Defaults.HaloNearRadius,
                 Min = 10f, Max = 200f, Step = 5f,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1574,7 +1528,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloVehicleBrightness,
                 DefaultFloat = Settings.Defaults.HaloVehicleBrightness,
                 Min = 0f, Max = 300f, Step = 5f,
-                Enabled = PortedHalos,
+                Enabled = HalosOn,
             });
 
             Add(new Row
@@ -1677,16 +1631,6 @@ namespace VolumetricClouds.UI
                 DefaultBool = Settings.Defaults.DetailedLogging,
                 Profiled = false,
                 AfterChange = Log.ReportLevel,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.General,
-                Bool = Settings.DebugChecker,
-                DefaultBool = Settings.Defaults.DebugChecker,
-                Profiled = false,
-                AfterChange = State("debug checkerboard", OnOff(Settings.DebugChecker)),
             });
 
             Add(new Row

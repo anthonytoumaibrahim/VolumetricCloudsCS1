@@ -242,10 +242,17 @@
     How bright the fog looks. This is separate from the brightness of the clouds.
   </String>
 
-  <String key="FogTint.Label">Fog colour (cool to warm)</String>
+  <String key="FogTint.Label">Fog tint (cool to warm)</String>
   <String key="FogTint.Tooltip">
     Gives the fog a cold blue-grey or a warm, hazy tint. The time of day still colours it too:
     orange at sunset, blue at night.
+  </String>
+
+  <String key="FogColor.Label">Fog colour</String>
+  <String key="FogColor.Tooltip">
+    Any colour for the fog, on top of the tint above and the light it stands in. Only the
+    colour changes: how bright the fog is stays with 'Fog brightness'. White leaves it as it
+    is. The glow of the city's lights inside the fog keeps the lights' own colours.
   </String>
 
   <String key="FogLampLight.Label">Lit fog brightness</String>
@@ -430,39 +437,22 @@
 
   <String key="Group.Drawing">How the clouds are drawn</String>
 
-  <String key="UseVolumetric.Label">Raymarched volumetric clouds (off = billboards)</String>
-  <String key="UseVolumetric.Tooltip">
-    Draws full 3D clouds. When off, simple flat cloud pictures are used instead: much faster,
-    but much less realistic.
-  </String>
-
   <String key="CloudDepthOcclusion.Label">Buildings and terrain hide clouds behind them</String>
   <String key="CloudDepthOcclusion.Tooltip">
     Hills and buildings in front of a cloud hide it, as they should. Only turn this off if
     something looks wrong where the clouds meet the scenery.
   </String>
 
-  <String key="CloudPuffCount.Label">Billboards: puff count</String>
-  <String key="CloudPuffCount.Tooltip">How many flat cloud pictures are used when the 3D clouds are off.</String>
-
-  <String key="CloudPuffSize.Label">Billboards: puff size</String>
-  <String key="CloudPuffSize.Tooltip">How big each of those flat cloud pictures is.</String>
-
   <!-- ==================== Advanced: Halos ==================== -->
 
   <String key="Group.Halos">Street and building light halos</String>
 
-  <String key="HaloEnabled.Label">Customise street and building light halos</String>
+  <String key="HaloEnabled.Label">Use the replacement halo shader</String>
   <String key="HaloEnabled.Tooltip">
-    Lets you change the glow around street lamps and building lights with the settings below.
-    It also fixes the white squares the game sometimes draws around lights. Off leaves the
-    game's lights exactly as they are.
-  </String>
-
-  <String key="HaloReplaceShader.Label">Use the replacement halo shader</String>
-  <String key="HaloReplaceShader.Tooltip">
-    Uses this mod's improved glow, which the settings below control. When off, the game's own
-    glow is used, with only 'Fog amount' applied. Mainly for comparing the two.
+    Replaces the game's glow around street lamps, building lights and vehicle lights with this
+    mod's own, which the settings below control. Like the game's, it grows in foggy weather
+    (the game's fog, or Play It!'s fog slider). It also fixes the white squares the game
+    sometimes draws around lights. Off leaves the game's lights exactly as they are.
   </String>
 
   <String key="HaloTightness.Label">Tightness (higher = smaller)</String>
@@ -481,13 +471,6 @@
   <String key="HaloRadius.Tooltip">
     How far the glow spreads around each light. Lights close to the camera can be adjusted
     separately below.
-  </String>
-
-  <String key="HaloFogAmount.Label">Fog amount (0 = clear night)</String>
-  <String key="HaloFogAmount.Tooltip">
-    Makes the glow around lights look as if the air were foggy (higher) or very clear (lower).
-    It only changes the glow, not the weather. It stops at -0.49 because anything lower breaks
-    the game's lights.
   </String>
 
   <String key="Group.NearLights">The same lamps, close to the camera</String>
@@ -579,12 +562,6 @@
   <String key="DetailedLogging.Tooltip">
     Writes much more detail to VolumetricClouds.log. Leave it off normally. To report a problem:
     turn it on, make the problem happen, then send the log.
-  </String>
-
-  <String key="DebugChecker.Label">Debug: project a checkerboard instead of shadows</String>
-  <String key="DebugChecker.Tooltip">
-    Shows a checkerboard on the ground instead of the cloud shadows, to check whether the
-    shadows reach the ground at all.
   </String>
 
   <String key="Group.StartingOver">Starting over</String>

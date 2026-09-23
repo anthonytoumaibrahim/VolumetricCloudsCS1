@@ -173,7 +173,7 @@ namespace VolumetricClouds.UI
 
                 string hex = ColorText.Format(current);
                 _copy.tooltip = Localization.Get("Colour.Copy.Tooltip", hex);
-                _reset.isEnabled = !_row.IsDefaultColour;
+                _reset.isEnabled = ResetWanted;
             }
             finally
             {
@@ -202,7 +202,16 @@ namespace VolumetricClouds.UI
                 _refreshing = false;
             }
 
-            _reset.isEnabled = !_row.IsDefaultColour;
+            _reset.isEnabled = ResetWanted;
+        }
+
+        /// <summary>
+        /// The reset is not in Parts (it greys out on its own rule: already the default), so it
+        /// follows the row's own switch here -- the fog's colour greys out with the fog.
+        /// </summary>
+        private bool ResetWanted
+        {
+            get { return !_row.IsDefaultColour && _row.IsEnabled; }
         }
 
         /// <summary>One log line per pick, and only when the colour really moved.</summary>
@@ -343,6 +352,13 @@ namespace VolumetricClouds.UI
                     UnityEngine.Object.Destroy(copy);
                     return null;
                 }
+
+                // The template's field arrives anchored Left | Right | CenterVertical (logged
+                // 2026-09-23), and an anchored control follows its parent's size: each time a
+                // tab page changed height the swatch was re-centred and stretched with it --
+                // "the colour picker goes out of place and the second one disappears". A
+                // swatch sits where it was put.
+                field.anchor = UIAnchorStyle.None;
 
                 field.name = "VolumetricCloudsColour";
                 field.size = new Vector2(SwatchSize, SwatchSize);

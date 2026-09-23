@@ -75,6 +75,29 @@ namespace VolumetricClouds.Sky
             return Mathf.Lerp(MinDistance, MaxDistance, Mathf.Sqrt(Mathf.Clamp01(random)));
         }
 
+        /// <summary>A clap is at full volume for a strike this close, in metres; the fade starts here.</summary>
+        public const float ThunderFullDistance = 1000f;
+
+        /// <summary>The quietest the fade goes, so a distant storm is still heard.</summary>
+        public const float ThunderMinVolume = 0.3f;
+
+        /// <summary>
+        /// How loud a clap is for a strike this far from the camera (1.1.0, asked for: thunder
+        /// that "dims like 3D"). The game's own audio attenuates a clap over a 10 km range, which
+        /// makes a strike 2 km out sound like one overhead. 1 out to
+        /// <see cref="ThunderFullDistance"/>, then 1 / sqrt(distance): half volume at 4 km,
+        /// 0.38 at the band's far edge (7 km). Gentler than open air's 1 / distance on purpose --
+        /// a storm that goes near-silent at the edge of the band reads as broken. The delay the
+        /// clap already has (the speed of sound) does the rest.
+        /// </summary>
+        public static float ThunderVolume(float distance)
+        {
+            if (distance <= ThunderFullDistance)
+                return 1f;
+
+            return Mathf.Max(ThunderMinVolume, Mathf.Sqrt(ThunderFullDistance / distance));
+        }
+
         /// <summary>
         /// Where to try a strike. <paramref name="preferView"/> asks for a spot the camera can
         /// see; everything else is drawn by the caller so this stays testable.

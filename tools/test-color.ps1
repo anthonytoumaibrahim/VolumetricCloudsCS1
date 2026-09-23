@@ -117,8 +117,5 @@ Check "dark red = red (only hue counts)" (Exact ($tint::Of((C32 64 0 0)))) (Exac
 Check "pure blue: capped at 3x"   (Exact ($tint::Of((C32 0 0 255)))) "0 0 3"
 Check "pure red reads at 64%"     ("{0:F2}" -f (Lum $red)) "0.64"
 
-Check "displayable red"           (Exact ($tint::Displayable($red))) "1 0 0"
-Check "displayable white"         (Exact ($tint::Displayable($tint::Of((C32 255 255 255))))) "1 1 1"
-
 Write-Host ""
 if ($failed -eq 0) { Write-Host "all passed" } else { Write-Host "$failed FAILED"; exit 1 }

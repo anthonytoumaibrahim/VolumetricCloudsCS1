@@ -588,9 +588,10 @@ namespace VolumetricClouds.Sky
 
             foreach (Strike strike in _ownStrikes)
             {
-                // The clap: louder for a powerful strike and for one that reaches the ground.
-                // Only one gets through per cooldown, and it is the nearest -- the one the ear
-                // would pick out of a storm anyway. A test strike always wins.
+                // The clap: louder for a powerful strike and for one that reaches the ground,
+                // quieter the further off it struck. Only one gets through per cooldown, and it
+                // is the nearest -- the one the ear would pick out of a storm anyway. A test
+                // strike always wins, and is placed in front of the camera, so it is not faded.
                 if (Due(ref strike.ThunderIn))
                 {
                     float distance = strike.IsTest ? -1f : Vector3.Distance(camera, strike.Source);
@@ -604,7 +605,10 @@ namespace VolumetricClouds.Sky
                 // The roll that follows some of them: quieter, and pitched well down. Only
                 // three strikes in ten have one, so these do not need limiting.
                 if (Due(ref strike.RollIn))
-                    Thunder(strike, 0.35f, _soundRandomizer.Int32(450, 700) * 0.001f);
+                {
+                    float far = LightningPlacement.ThunderVolume(strike.IsTest ? 0f : Vector3.Distance(camera, strike.Source));
+                    Thunder(strike, 0.35f * far, _soundRandomizer.Int32(450, 700) * 0.001f);
+                }
             }
 
             // The Test button always thunders: it is pressed to hear it, and a storm that
@@ -613,7 +617,8 @@ namespace VolumetricClouds.Sky
                 return;
 
             _thunderReady = ThunderCooldown;
-            float volume = Mathf.Clamp01((clap.Bolt != null ? 0.7f : 0.45f) * (0.6f + 0.5f * clap.Profile.Power));
+            float volume = Mathf.Clamp01((clap.Bolt != null ? 0.7f : 0.45f) * (0.6f + 0.5f * clap.Profile.Power))
+                         * LightningPlacement.ThunderVolume(nearest);
             Thunder(clap, volume, _soundRandomizer.Int32(620, 1150) * 0.001f);
         }
 

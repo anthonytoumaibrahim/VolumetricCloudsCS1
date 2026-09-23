@@ -190,8 +190,15 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting FogBrightness { get; private set; }
 
-        /// <summary>-1 cool blue-grey .. 0 neutral .. +1 warm. The fog's colour, on top of the light it is in.</summary>
+        /// <summary>-1 cool blue-grey .. 0 neutral .. +1 warm. The fog's lean, on top of the light it is in.</summary>
         public static FloatSetting FogTint { get; private set; }
+
+        /// <summary>
+        /// The fog's colour (1.1.0), on top of the light it is in and the lean above: hue and
+        /// saturation only (Sky.CloudTint), so white, the default, changes nothing. The glow of
+        /// the city's lights inside the fog keeps the lights' own colours.
+        /// </summary>
+        public static ColorSetting FogColor { get; private set; }
 
         /// <summary>
         /// The city's lights (lamps, buildings, vehicles) light our fog round them. On by
@@ -251,9 +258,6 @@ namespace VolumetricClouds
         /// never part of a shared preset.
         /// </summary>
         public static IntSetting QualityPreset { get; private set; }
-
-        /// <summary>Raymarched clouds (needs the embedded shader bundle); off means billboards.</summary>
-        public static BoolSetting UseVolumetric { get; private set; }
 
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
         public static FloatSetting CloudThickness { get; private set; }
@@ -317,35 +321,20 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting MinIllumination { get; private set; }
 
-        /// <summary>Draw the visible cloud billboards.</summary>
+        /// <summary>Draw the clouds at all. Off: no clouds, no shadows, no rain from them.</summary>
         public static BoolSetting CloudsVisible { get; private set; }
 
         /// <summary>Cloud layer height above sea level, in metres.</summary>
         public static FloatSetting CloudAltitude { get; private set; }
 
-        /// <summary>How many billboard puffs to place at full coverage.</summary>
-        public static FloatSetting CloudPuffCount { get; private set; }
-
-        /// <summary>Base width of a single puff, in metres.</summary>
-        public static FloatSetting CloudPuffSize { get; private set; }
-
-        /// <summary>Take over the glow pass of batched (distant) lights. Off = untouched game.</summary>
+        /// <summary>
+        /// The one halo switch: the ported replacement shader (brightness, tightness and size
+        /// exposed; no NaN "box") on every street, building and vehicle light. Off = the game's
+        /// lights untouched. The fog the halos see is the world's (Lighting.HaloOverride).
+        /// </summary>
         public static BoolSetting HaloEnabled { get; private set; }
 
-        /// <summary>
-        /// Use the ported replacement shader, which adds brightness/tightness/size and cannot
-        /// produce the NaN "box". Off = a copy of the game's shader with only fog overridden.
-        /// </summary>
-        public static BoolSetting HaloReplaceShader { get; private set; }
-
-        /// <summary>
-        /// The fog amount the halos see, on the game's own scale (what PersistentFogAdjuster
-        /// edits): 0 is a clear night, 1 is foggy, -0.5 is no glow at all. Independent of the
-        /// world's fog.
-        /// </summary>
-        public static FloatSetting HaloFogAmount { get; private set; }
-
-        /// <summary>Multiplier on glow amplitude. Replacement shader only.</summary>
+        /// <summary>Multiplier on glow amplitude.</summary>
         public static FloatSetting HaloBrightness { get; private set; }
 
         /// <summary>
@@ -397,9 +386,6 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting DynamicHaloCutoff { get; private set; }
 
-        /// <summary>Spike aid: projects a checkerboard instead of clouds.</summary>
-        public static BoolSetting DebugChecker { get; private set; }
-
         /// <summary>
         /// Every default, in one place. Re-snapshotted for release from the author's
         /// VolumetricClouds.xml on 2026-09-21, read by eye. Left out, because they are
@@ -414,7 +400,6 @@ namespace VolumetricClouds
             public const bool ShowInUnifiedUI = true;
             public const bool ShowAdvancedInPanel = false;
             public const bool DetailedLogging = false;
-            public const bool DebugChecker = false;
 
             /// <summary>Where the button always stood before it could be dragged.</summary>
             public const float HudButtonX = 10f;
@@ -477,7 +462,6 @@ namespace VolumetricClouds
             public const int ShadowMapRate = 20;
 
             // ---- rendering (the machine, never a shared preset) ----
-            public const bool UseVolumetric = true;
             public const bool DepthOcclusion = true;
 
             /// <summary>
@@ -491,9 +475,6 @@ namespace VolumetricClouds
 
             /// <summary>High. See <see cref="QualityPreset"/>.</summary>
             public const int Preset = 2;
-
-            public const float PuffCount = 600f;
-            public const float PuffSize = 900f;
 
             // ---- rain ----
             public const bool RainEnabled = true;
@@ -536,6 +517,10 @@ namespace VolumetricClouds
             public const float FogBrightness = 0.95f;
 
             public const float FogTint = -0.4f;
+
+            /// <summary>White: no colour, the fog exactly as it was before colours existed.</summary>
+            public static readonly Color32 FogColor = new Color32(255, 255, 255, 255);
+
             public const bool FogLampsEnabled = true;
             public const float FogLampLight = 1f;
             public const float FogLampRadius = 8f;
@@ -549,8 +534,6 @@ namespace VolumetricClouds
             /// </summary>
             public const bool HaloEnabled = false;
 
-            public const bool HaloReplaceShader = true;
-            public const float HaloFogAmount = 0f;
             public const float HaloBrightness = 3f;
             public const float HaloTightness = 6f;
             public const float HaloRadius = 1.2f;
@@ -653,6 +636,7 @@ namespace VolumetricClouds
                 // carrying the clouds' brightness. See CloudVolume.FogLightScale.
                 FogBrightness = new FloatSetting("FogBrightness", Defaults.FogBrightness);
                 FogTint = new FloatSetting("FogTint", Defaults.FogTint);
+                FogColor = new ColorSetting("FogColor", Defaults.FogColor);
                 FogBreakup = new FloatSetting("FogBreakup", Defaults.FogBreakup);
                 FogSpeed = new FloatSetting("FogSpeed", Defaults.FogSpeed);
                 FogLampsEnabled = new BoolSetting("FogLampsEnabled", Defaults.FogLampsEnabled);
@@ -675,7 +659,6 @@ namespace VolumetricClouds
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
-                UseVolumetric = new BoolSetting("UseVolumetric", Defaults.UseVolumetric);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
@@ -692,15 +675,14 @@ namespace VolumetricClouds
                 CloudAltitude = new FloatSetting("CloudAltitude", Defaults.Altitude);
                 CloudSunlitColor = new ColorSetting("CloudSunlitColor", Defaults.SunlitColor);
                 CloudShadeColor = new ColorSetting("CloudShadeColor", Defaults.ShadeColor);
-                CloudPuffCount = new FloatSetting("CloudPuffCount", Defaults.PuffCount);
-                CloudPuffSize = new FloatSetting("CloudPuffSize", Defaults.PuffSize);
 
                 // Not the old HaloFogEnabled/HaloFogValue, which belonged to an experiment where
                 // values like -5 were normal; here -5 would simply mean "no glow", and an old
                 // "enabled" must not switch on a replacement shader nobody has opted into.
+                // (1.1.0 dropped HaloReplaceShader and HaloFogAmount: one switch, the world's fog.
+                // Gone with them: UseVolumetric, CloudPuffCount, CloudPuffSize -- the billboard
+                // clouds -- and DebugChecker. A file that still has them is read past them.)
                 HaloEnabled = new BoolSetting("HaloEnabled", Defaults.HaloEnabled);
-                HaloReplaceShader = new BoolSetting("HaloReplaceShader", Defaults.HaloReplaceShader);
-                HaloFogAmount = new FloatSetting("HaloFogAmount", Defaults.HaloFogAmount);
                 HaloBrightness = new FloatSetting("HaloBrightness", Defaults.HaloBrightness);
                 HaloTightness = new FloatSetting("HaloTightness", Defaults.HaloTightness);
                 HaloRadius = new FloatSetting("HaloRadius", Defaults.HaloRadius);
@@ -719,13 +701,12 @@ namespace VolumetricClouds
                 // which has nothing to do with it (street lamps are never dynamic).
                 DynamicHaloCutoff = new FloatSetting("DynamicHaloCutoff", Defaults.DynamicHaloCutoff, "HaloNearDistance");
 
-                // There is deliberately no DebugSkipDrawLight any more. It suppressed every
-                // dynamic light, was saved as true during one experiment, and then lost its
-                // checkbox when the settings moved into the panel -- so it stayed on, unseen,
-                // hiding vehicle lights for every session after. A debug switch that can
-                // change the picture must never outlive its UI.
-                DebugChecker = new BoolSetting("DebugChecker", Defaults.DebugChecker);
-
+                // There is deliberately no debug switch of any kind. DebugSkipDrawLight
+                // suppressed every dynamic light, was saved as true during one experiment, and
+                // then lost its checkbox when the settings moved into the panel -- so it stayed
+                // on, unseen, hiding vehicle lights for every session after. A debug switch that
+                // can change the picture must never outlive its UI; the last one, the shadow
+                // checkerboard, went in 1.1.0.
                 HudButtonX = new FloatSetting("HudButtonX", Defaults.HudButtonX);
                 HudButtonY = new FloatSetting("HudButtonY", Defaults.HudButtonY);
 

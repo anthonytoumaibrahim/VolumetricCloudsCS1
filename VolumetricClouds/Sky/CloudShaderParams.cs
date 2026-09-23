@@ -41,8 +41,8 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The same, in 2% steps, for the CPU fallbacks (flat cookie, billboards) that rebuild
-        /// when the cover changes: it now drifts continuously with the weather.
+        /// The same, in 2% steps, for the CPU-built flat cookie, which rebuilds when the cover
+        /// changes: it now drifts continuously with the weather.
         /// </summary>
         public static float CoverageStepped
         {

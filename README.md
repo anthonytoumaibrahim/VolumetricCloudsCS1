@@ -33,6 +33,7 @@ and bring their own rain, lightning, fog and night sky with them.
   tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
   hue changes, never the brightness; white, the default, leaves the clouds as they are. The
   game's own colour picker, a field for `#FFC0CB` or `255, 192, 203`, Copy, Paste and a reset.
+  The volumetric fog has a colour of its own, the same way.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
   the game bug that turns a halo into a solid box at negative fog values.
@@ -75,9 +76,10 @@ backups of the cities you care about.
    page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
    the F4 panel. That page also has the language, the panel's key and the reset buttons.
 
-*Volumetric fog* and *Light halos* are off until you turn them on; both ask for confirmation
-first. *Reset all settings to defaults* (on the mod's options page) restores everything,
-including turning volumetric fog and *Show advanced options in the in-game panel* off.
+*Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for
+confirmation first). *Reset all settings to defaults* (on the mod's options page) restores
+everything, including turning volumetric fog and *Show advanced options in the in-game panel*
+off.
 
 ## Compatibility
 

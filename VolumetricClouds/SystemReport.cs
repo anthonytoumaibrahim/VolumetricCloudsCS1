@@ -63,7 +63,6 @@ namespace VolumetricClouds
                 // DebugSkipDrawLight lesson, which cost a whole session of missing vehicle
                 // lights because a switch outlived its checkbox.
                 Log.Msg("features: clouds=" + On(Settings.CloudsVisible, true) +
-                        " raymarched=" + On(Settings.UseVolumetric, true) +
                         " shadows=" + On(Settings.CloudShadows, true) +
                         " rain=" + On(Settings.RainEnabled, true) +
                         " lightning=" + On(Settings.LightningEnabled, true) +
@@ -76,11 +75,11 @@ namespace VolumetricClouds
                         " | overrides: weather=" + On(Settings.CoverageOverride, false) +
                         " fog=" + On(Settings.FogOverride, false) +
                         " lightning=" + On(Settings.LightningOverride, false) +
-                        " | debugChecker=" + On(Settings.DebugChecker, false) +
-                        " advancedPanel=" + On(Settings.ShowAdvancedInPanel, false) +
+                        " | advancedPanel=" + On(Settings.ShowAdvancedInPanel, false) +
                         // The grading changes the picture, so it is in the quiet log too.
                         " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +
-                        " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor));
+                        " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor) +
+                        " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor));
 
                 // Asked here, not inside: the method names Harmony's types, and without the
                 // Harmony mod merely compiling it would fail (IsPatched names none).

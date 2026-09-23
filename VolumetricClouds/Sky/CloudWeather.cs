@@ -4,9 +4,9 @@ using UnityEngine;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// THE cloud cover. The visible clouds, the shadow map, the fallback cookie and the
-    /// billboards all read <see cref="Coverage"/>, and it is advanced in exactly one place
-    /// (CloudLighting), like the wind.
+    /// THE cloud cover. The visible clouds, the shadow map and the fallback cookie all read
+    /// <see cref="Coverage"/>, and it is advanced in exactly one place (CloudLighting), like
+    /// the wind.
     /// </summary>
     /// <remarks>
     /// By default the cover follows the game's weather, which is read and never written, so

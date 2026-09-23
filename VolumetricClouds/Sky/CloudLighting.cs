@@ -30,7 +30,6 @@ namespace VolumetricClouds.Sky
         private float _appliedCoverage = -1f;
         private float _appliedDepth = -1f;
         private int _appliedVersion = -1;
-        private bool _appliedChecker;
         private float _nextLogTime;
         private string _mode = "none";
         private string _loggedMode = "none";
@@ -86,26 +85,26 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Picks what the sun projects. The marched shadow map wins whenever it exists: each
-        /// cloud then casts its own shadow in the right place. The flat cookie is the
-        /// fallback for builds without the shader bundle, and the checkerboard is a debug aid.
+        /// cloud then casts its own shadow in the right place. The flat cookie stands in for
+        /// the moment after a load before the map is ready. (A debug checkerboard could be
+        /// projected instead until 1.1.0; gone, with its options-page switch.)
         /// </summary>
         private void ApplyCookie()
         {
             // Hidden clouds cast nothing: the sun gets its own cookie back until they return.
             bool shadows = Settings.ShadowsCast;
-            bool checker = Settings.DebugChecker != null && Settings.DebugChecker.value;
             CloudShadowMap map = CloudShadowMap.Current;
 
             Transform t = _sun.transform;
 
-            if (!shadows && !checker)
+            if (!shadows)
             {
                 _mode = "off";
                 _sun.cookie = _originalCookie;
                 _sun.cookieSize = _originalCookieSize;
                 t.position = _originalSunPosition;
             }
-            else if (map != null && map.IsReady && !checker)
+            else if (map != null && map.IsReady)
             {
                 // The cookie is centred on the light, so pin it to the point the shadow map
                 // was rendered around. Wind is already baked into the map itself.
@@ -118,8 +117,8 @@ namespace VolumetricClouds.Sky
             {
                 // A directional light ignores its position for lighting, but the cookie
                 // projection does not -- so sliding the transform scrolls the pattern.
-                _mode = checker ? "checker" : "flat-cookie";
-                RebuildFlatCookie(checker);
+                _mode = "flat-cookie";
+                RebuildFlatCookie();
                 _sun.cookie = _field.Texture;
                 _sun.cookieSize = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
                 t.position = _originalSunPosition + CloudWind.Offset;
@@ -137,25 +136,20 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>Rewrites the CPU-side cookie, but only when something it depends on moved.</summary>
-        private void RebuildFlatCookie(bool checker)
+        private void RebuildFlatCookie()
         {
             float coverage = CloudShaderParams.CoverageStepped;
             float depth = CloudShadowMap.ShadowDepth(coverage);
 
-            if (checker == _appliedChecker
-                && Mathf.Approximately(coverage, _appliedCoverage)
+            if (Mathf.Approximately(coverage, _appliedCoverage)
                 && Mathf.Approximately(depth, _appliedDepth)
                 && _field.Version == _appliedVersion)
             {
                 return;
             }
 
-            if (checker)
-                _field.ApplyChecker();
-            else
-                _field.Apply(coverage, depth);
+            _field.Apply(coverage, depth);
 
-            _appliedChecker = checker;
             _appliedCoverage = coverage;
             _appliedDepth = depth;
             _appliedVersion = _field.Version;

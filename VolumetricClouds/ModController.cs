@@ -18,7 +18,6 @@ namespace VolumetricClouds
         private CloudsPanel _panel;
         private ModButton _hudButton;
         private CloudLighting _lighting;
-        private CloudBillboards _billboards;
         private CloudVolume _volume;
         private CloudDensityField _field;
         private bool _hotkeyWasDown;
@@ -67,9 +66,6 @@ namespace VolumetricClouds
 
             _lighting = gameObject.AddComponent<CloudLighting>();
             _lighting.Initialise(_field);
-
-            _billboards = gameObject.AddComponent<CloudBillboards>();
-            _billboards.Initialise(_field);
 
             _volume = gameObject.AddComponent<CloudVolume>();
             _volume.Initialise(_field);
