@@ -1,13 +1,9 @@
-[h1]Pre-release Note[/h1]
-[b]So far it has been tested only on my own PC[/b] (Windows 11, RTX 5070 Ti), so expect some bugs and rough edges, and please report anything unusual (see [b]Reporting a bug[/b] below).
-[b]!!Works only on Windows!![/b] On Mac and Linux, the shaders won't work, so the mod switches itself off when you load a city and shows a message saying so.
-(PS: The screenshots above are from my own game with my own RenderIt! profile, and my settings for this mod are different than the defaults, so don't expect the game to look the same for you)
+[b]!!Works only on Windows!![/b] The mod needs DirectX 11, so it switches itself off on Mac and on the Linux version of the game. On Linux or Steam Deck, running the Windows version through [b]Proton[/b] should work.
 
 [hr][/hr]
 [h1]Requirements[/h1]
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
-[*][b]Windows only.[/b] The shaders are DirectX 11 only, so macOS and Linux are not supported for now
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
 [/list]
 
@@ -24,29 +20,25 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [hr][/hr]
 [h1]Features[/h1]
 [list]
-[*][b]Volumetric 3D clouds[/b]
-[*][b]Real cloud shadows[/b]
-[*][b]Follows the game's weather[/b], and overridable
-[*][b]Rain that comes from the clouds[/b]
-[*][b]Lightning[/b] that lights up the clouds from inside
-[*][b]Volumetric fog[/b] (optional, off by default): fog that rolls over the city like low cloud
+[*][b]Volumetric 3D clouds with real shadows[/b] on the ground
+[*][b]Follows the game's weather[/b], or you can set it yourself
+[*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning lights them up from inside
+[*][b]NEW: Cloud colours[/b]: pick one colour for the sunlit side of the clouds and one for the shaded side, from warm sunsets to an orange city glow at night. White keeps the normal look
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
-[*][b]Cloud colours[/b]: tint the sunlit side and the shaded side of the clouds separately, from warm sunsets to an orange city glow at night
-[*][b]Smaller light halos[/b] (optional, off by default): shrinks the oversized glow around street lamps, building lights and vehicles
+[*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
 
 [hr][/hr]
 [h1]Performance[/h1]
-The clouds are drawn in 3D every frame, so they cost more than the game's flat sky; how much depends on your graphics card.
+Based on player feedback, the clouds run great even on low-end PCs. And you can always turn the settings down:
 [list]
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
-[*]If the clouds alone are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
-[*]The Medium and Low presets are estimates for now, not yet measured on slower hardware. Reports of how they run are welcome.
+[*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
 [/list]
 
 [hr][/hr]
 [h1]Compatibility[/h1]
-I develop and test this mod in my own game. No setup covers every combination, so please report any conflict you find.
+Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b] and [b]Intersection Marking Tool[/b], with no conflicts. No setup covers every combination, so please report any conflict you find.
 [b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread. That said, I cannot be held responsible for anything that goes wrong, lost or damaged saves included, so please keep backups.
 
 [hr][/hr]
