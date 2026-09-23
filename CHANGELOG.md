@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.1.0 — unreleased
+## 1.1.0 — 2026-09-23
 
 Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is, and the
 clouds look exactly as before until you pick a colour. The file gains four lines (the two
@@ -24,7 +24,7 @@ below).
   saturated colours (pure red, pure blue) come out darker, to keep them from glowing.
 - Each colour has the game's own colour picker, a field that takes `#FFC0CB`,
   `rgb(255, 192, 203)`, `255, 192, 203` or a name such as `pink` (Ctrl+C and Ctrl+V work in
-  it), **Copy** and **Paste** buttons, and a reset button back to white.
+  it), **Copy** and **Paste** buttons, and a **Default** button back to white.
   *Reset all settings to defaults* puts both back to white too.
 - Rain, lightning, the fog and the cloud shadows on the ground keep their own colours.
 
@@ -58,8 +58,9 @@ below).
 
 ## 1.0.0 — 2026-09-21
 
-Published on the Steam Workshop as item 3805863507. First release line. Development history before this point is in the git log; there were no
-earlier public versions, so nothing below is a change from something a player has seen.
+Published on the Steam Workshop as item 3805863507. First release line. Development history
+before this point is in the git log; there were no earlier public versions, so nothing below
+is a change from something a player has seen.
 
 ### Clouds and shadows
 

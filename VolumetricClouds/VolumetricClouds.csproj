@@ -10,7 +10,7 @@
 
     <!-- We write Properties\AssemblyInfo.cs by hand instead of letting the SDK generate it. -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <!-- AssemblyVersion("1.0.*") is silently ignored while deterministic builds are on. -->
+    <!-- AssemblyVersion(Mod.Version + ".*") is silently ignored while deterministic builds are on. -->
     <Deterministic>false</Deterministic>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

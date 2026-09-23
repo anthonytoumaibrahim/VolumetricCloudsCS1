@@ -56,9 +56,10 @@ disassemble to prove a shader really compiled.
 - **`net35`, C# 7.3.** The game is Unity 5.6 on Mono's .NET 3.5 profile. A newer target builds
   fine and is then silently ignored by the game. 7.3 is the newest language version that needs
   no polyfill types. No `ImplicitUsings`, no `Nullable`, no LINQ on hot paths.
-- **`AssemblyVersion("1.0.*")` with `<Deterministic>false</Deterministic>`.** The pair must stay
-  together: the wildcard is silently ignored under deterministic builds, and without a fresh
-  assembly version the game loads its cached copy of the DLL instead of your rebuild.
+- **`AssemblyVersion(Mod.Version + ".*")` with `<Deterministic>false</Deterministic>`.** The
+  pair must stay together: the wildcard is silently ignored under deterministic builds, and
+  without a fresh assembly version the game loads its cached copy of the DLL instead of your
+  rebuild. `Mod.Version` (in `Mod.cs`) is the release, raised once per Workshop upload.
 - Game DLLs are referenced with `<Private>false</Private>` so they never reach the Mods folder.
   `libs/UnifiedUILib.dll` and `libs/CitiesHarmony.API.dll` *are* shipped — the ecosystem's
   standard pattern. `libs/CitiesHarmony.Harmony.dll` is compile-time only; the Harmony mod

@@ -82,7 +82,10 @@ namespace VolumetricClouds
                         " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +
                         " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor));
 
-                Patcher.LogSharedMethods();
+                // Asked here, not inside: the method names Harmony's types, and without the
+                // Harmony mod merely compiling it would fail (IsPatched names none).
+                if (Patcher.IsPatched)
+                    Patcher.LogSharedMethods();
             }
             catch (Exception e)
             {
