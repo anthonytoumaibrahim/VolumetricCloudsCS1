@@ -4,18 +4,50 @@ using UnityEngine;
 namespace VolumetricClouds.UI
 {
     /// <summary>
-    /// Standalone HUD button, used when Unified UI isn't available or the player has
-    /// turned the UUI icon off.
+    /// The mod's own button, used when Unified UI isn't available or the player has turned the
+    /// Unified UI icon off. Drag it to move it; where it was left is saved.
     /// </summary>
+    /// <remarks>
+    /// Until 1.0.1 it showed no icon: the icon was the button's own foreground sprite and the
+    /// background a CHILD sprite added after it, and children are drawn over their parent. Now
+    /// the button draws the game's background sprites itself and the icon is the child, so it
+    /// is on top; the child is not interactive, so every click still reaches the button.
+    /// </remarks>
     public class ModButton : UIButton
     {
-        /// <summary>Matches Unified UI's own button size so the two look consistent.</summary>
-        public const float ButtonSize = 40f;
+        /// <summary>
+        /// Play It!'s button size (36 x 36, read from its IL: ModManager.CreateUI), so the two sit
+        /// side by side as one set. It also uses the same OptionBase sprites and stretches its
+        /// icon over the whole button, as this does; our icon's art has its own margin.
+        /// </summary>
+        public const float ButtonSize = 36f;
 
-        private const string SpriteName = "VolumetricCloudsIcon";
-        private static readonly Vector3 DefaultPosition = new Vector3(10f, 60f);
+        /// <summary>How far (UI units) a press must travel before it is a drag, not a click.</summary>
+        private const float DragThreshold = 4f;
+
+        private const string IconSpriteName = "VolumetricCloudsIcon";
+
+        /// <summary>
+        /// Background sprites, normal / hovered / pressed / disabled -- blue only on hover, as in
+        /// Play It!. The first family whose normal sprite is in the live atlas wins. All three
+        /// were found in the game's asset data (sharedassets6); ButtonMenu is the one UIBuilder
+        /// already relies on. A state a family lacks falls back to its normal sprite.
+        /// </summary>
+        private static readonly string[][] Backgrounds =
+        {
+            new[] { "OptionBase", "OptionBaseHovered", "OptionBasePressed", "OptionBaseDisabled" },
+            new[] { "RoundBackBig", "RoundBackBigHovered", "RoundBackBigPressed", "RoundBackBigDisabled" },
+            new[] { "ButtonMenu", "ButtonMenuHovered", "ButtonMenuPressed", "ButtonMenuDisabled" },
+        };
+
+        private static UITextureAtlas _iconAtlas;
 
         public System.Action OnClicked;
+
+        private bool _pressed;
+        private bool _dragged;
+        private Vector2 _downAt;
+        private Vector2 _grab;
 
         public override void Start()
         {
@@ -24,65 +56,199 @@ namespace VolumetricClouds.UI
             name = "VolumetricCloudsButton";
             size = new Vector2(ButtonSize, ButtonSize);
             tooltip = Mod.DisplayName;
-            relativePosition = DefaultPosition;
+
+            // A focused UIButton keeps its focused look after the click, until something else
+            // takes the focus: the button would stay lit. Blue means the mouse is on it, only.
+            canFocus = false;
+
+            atlas = UIView.GetAView().defaultAtlas;
+            string[] sprites = PickBackground(atlas);
+            if (sprites != null)
+            {
+                normalBgSprite = sprites[0];
+                hoveredBgSprite = sprites[1];
+                pressedBgSprite = sprites[2];
+                disabledBgSprite = sprites[3];
+                focusedBgSprite = sprites[0];
+            }
 
             Texture2D icon = IconLoader.Load();
-            if (icon != null)
+            UITextureAtlas iconAtlas = icon != null ? IconAtlas(icon) : null;
+            if (iconAtlas != null)
             {
-                atlas = CreateAtlas(icon);
-                normalFgSprite = SpriteName;
+                UISprite sprite = AddUIComponent<UISprite>();
+                sprite.atlas = iconAtlas;
+                sprite.spriteName = IconSpriteName;
+                sprite.size = size;
+                sprite.relativePosition = Vector3.zero;
+                sprite.isInteractive = false;
             }
             else
             {
-                // Without an icon the button would be invisible, so fall back to text.
-                text = "VC";
+                // Without an icon the button would be an empty square, so fall back to text.
+                text = "VW";
                 textScale = 0.8f;
             }
 
-            UITextureAtlas defaultAtlas = UIView.GetAView().defaultAtlas;
-            if (defaultAtlas != null && defaultAtlas.spriteNames != null)
-            {
-                foreach (string candidate in new[] { "RoundBackBigDisabled", "GenericPanel", "ButtonMenu" })
-                {
-                    if (System.Array.IndexOf(defaultAtlas.spriteNames, candidate) >= 0)
-                    {
-                        // A separate component so the background atlas doesn't fight the icon atlas.
-                        UISprite background = AddUIComponent<UISprite>();
-                        background.atlas = defaultAtlas;
-                        background.spriteName = candidate;
-                        background.size = size;
-                        background.relativePosition = Vector3.zero;
-                        background.SendToBack();
-                        break;
-                    }
-                }
-            }
+            Place();
 
             eventClick += (component, e) =>
             {
                 if (OnClicked != null)
                     OnClicked();
             };
+
+            Log.Msg("panel button: HUD button at (" + relativePosition.x.ToString("F0") + ", " +
+                    relativePosition.y.ToString("F0") + "), " + ButtonSize.ToString("F0") + " px, background '" +
+                    (sprites != null ? sprites[0] : "none") + "', icon " +
+                    (iconAtlas != null ? icon.width + "x" + icon.height : "MISSING (text instead)"));
         }
 
-        /// <summary>Wraps a single texture in a one-sprite atlas so a UIButton can show it.</summary>
-        private static UITextureAtlas CreateAtlas(Texture2D texture)
+        /// <summary>Moves the button to the saved spot, kept on screen.</summary>
+        public void Place()
         {
+            float x = Settings.HudButtonX != null ? Settings.HudButtonX.value : Settings.Defaults.HudButtonX;
+            float y = Settings.HudButtonY != null ? Settings.HudButtonY.value : Settings.Defaults.HudButtonY;
+            relativePosition = OnScreen(new Vector2(x, y));
+        }
+
+        protected override void OnMouseDown(UIMouseEventParameter p)
+        {
+            if ((p.buttons & UIMouseButton.Left) != 0)
+            {
+                _pressed = true;
+                _dragged = false;
+                _downAt = MouseInGui();
+                _grab = _downAt - new Vector2(relativePosition.x, relativePosition.y);
+            }
+
+            base.OnMouseDown(p);
+        }
+
+        /// <summary>A press that moved is a drag: it toggles nothing.</summary>
+        protected override void OnClick(UIMouseEventParameter p)
+        {
+            if (_dragged)
+            {
+                p.Use();
+                return;
+            }
+
+            base.OnClick(p);
+        }
+
+        /// <summary>
+        /// The drag follows the mouse from here rather than from mouse-move events, which stop
+        /// the moment the pointer outruns the button.
+        /// </summary>
+        public override void Update()
+        {
+            base.Update();
+
+            if (!_pressed)
+                return;
+
+            if (!Input.GetMouseButton(0))
+            {
+                _pressed = false;
+                if (_dragged)
+                    SavePosition();
+                return;
+            }
+
+            Vector2 mouse = MouseInGui();
+            if (!_dragged && (mouse - _downAt).magnitude < DragThreshold)
+                return;
+
+            _dragged = true;
+            relativePosition = OnScreen(mouse - _grab);
+        }
+
+        private void SavePosition()
+        {
+            if (Settings.HudButtonX == null || Settings.HudButtonY == null)
+                return;
+
+            Settings.HudButtonX.value = Mathf.Round(relativePosition.x);
+            Settings.HudButtonY.value = Mathf.Round(relativePosition.y);
+            Log.Msg("panel button: moved to (" + Settings.HudButtonX.value.ToString("F0") + ", " +
+                    Settings.HudButtonY.value.ToString("F0") + ")");
+        }
+
+        /// <summary>
+        /// The mouse in UI units, from the top left. UIView.ScreenPointToGUI only flips y against
+        /// a resolution that is already in UI units (read from its IL), so the pixels are scaled
+        /// here first. The ratio is read every time, never assumed: it depends on the screen, the
+        /// game's UI scale and mods such as UI Resolution (the author's 4K screen has a UI wider
+        /// than 2256 units).
+        /// </summary>
+        private Vector2 MouseInGui()
+        {
+            UIView view = GetUIView();
+            Vector2 resolution = view.GetScreenResolution();
+            float unitsPerPixel = resolution.x / view.uiCamera.pixelWidth;
+
+            Vector3 mouse = Input.mousePosition;
+            return new Vector2(mouse.x * unitsPerPixel, resolution.y - mouse.y * unitsPerPixel);
+        }
+
+        private Vector3 OnScreen(Vector2 position)
+        {
+            Vector2 resolution = GetUIView().GetScreenResolution();
+            float x = Mathf.Clamp(position.x, 0f, Mathf.Max(0f, resolution.x - width));
+            float y = Mathf.Clamp(position.y, 0f, Mathf.Max(0f, resolution.y - height));
+            return new Vector3(x, y);
+        }
+
+        /// <summary>The first family whose normal sprite exists; a missing state falls back to it.</summary>
+        private static string[] PickBackground(UITextureAtlas atlas)
+        {
+            if (atlas == null)
+                return null;
+
+            foreach (string[] family in Backgrounds)
+            {
+                if (atlas[family[0]] == null)
+                    continue;
+
+                string[] picked = new string[family.Length];
+                for (int i = 0; i < family.Length; i++)
+                    picked[i] = atlas[family[i]] != null ? family[i] : family[0];
+
+                return picked;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The icon in a one-sprite atlas of its own, made once: a UISprite can only show a sprite
+        /// from an atlas. Unified UI's lib builds its single-texture atlases the same way.
+        /// </summary>
+        private static UITextureAtlas IconAtlas(Texture2D texture)
+        {
+            if (_iconAtlas != null)
+                return _iconAtlas;
+
+            UITextureAtlas defaultAtlas = UIView.GetAView().defaultAtlas;
+            if (defaultAtlas == null || defaultAtlas.material == null)
+                return null;
+
             UITextureAtlas atlas = ScriptableObject.CreateInstance<UITextureAtlas>();
             atlas.name = "VolumetricCloudsAtlas";
 
-            Material template = UIView.GetAView().defaultAtlas.material;
-            Material material = Object.Instantiate(template);
+            Material material = Object.Instantiate(defaultAtlas.material);
             material.mainTexture = texture;
             atlas.material = material;
 
             atlas.AddSprite(new UITextureAtlas.SpriteInfo
             {
-                name = SpriteName,
+                name = IconSpriteName,
                 texture = texture,
                 region = new Rect(0f, 0f, 1f, 1f),
             });
 
+            _iconAtlas = atlas;
             return atlas;
         }
     }

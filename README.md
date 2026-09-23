@@ -32,9 +32,8 @@ and bring their own rain, lightning, fog and night sky with them.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
   the game bug that turns a halo into a solid box at negative fog values.
-- **Two places to tune it** — an F4 panel for what you judge against the sky, and a five-tab
-  page in the game's own mod options for everything set once. One quality preset moves the
-  expensive settings together.
+- **One place to tune it** — an F4 panel with the sky's settings, and four advanced tabs for
+  the rest when you want them. One quality preset moves the expensive settings together.
 
 ## Requirements and installation
 
@@ -67,14 +66,13 @@ backups of the cities you care about.
    configuring.
 2. Press **F4** (rebindable), or the Unified UI button, to open the in-game panel.
 3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look.
-4. Everything else lives on the mod's page in the game's **Options** screen: *Weather*,
-   *Light*, *Rendering*, *Halos*, *General*.
-5. If you would rather tune with the sky in view, tick *Show advanced options in the in-game
-   panel* (Options → General) and those five tabs join the F4 panel too.
+4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
+   page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
+   the F4 panel. That page also has the language, the panel's key and the reset buttons.
 
 *Volumetric fog* and *Light halos* are off until you turn them on; both ask for confirmation
-first. *Reset all settings to defaults* (Options → General) restores everything except those
-two per-machine opt-ins, which only your own click ever turns off.
+first. *Reset all settings to defaults* (on the mod's options page) restores everything,
+including turning volumetric fog and *Show advanced options in the in-game panel* off.
 
 ## Compatibility
 
@@ -117,9 +115,9 @@ The mod writes its own log, fresh each session:
 ```
 
 It always records the system, every feature switch and anything that can suppress rendering.
-For a report, tick *Detailed logging* (Options → General), reproduce the problem, and attach
-that file together with your game version, GPU and a screenshot. A screenshot on its own
-rarely identifies the cause.
+For a report, tick *Detailed logging* (on the mod's options page), reproduce the problem, and
+attach that file together with your game version, GPU and a screenshot. A screenshot on its
+own rarely identifies the cause.
 
 ## How it works
 

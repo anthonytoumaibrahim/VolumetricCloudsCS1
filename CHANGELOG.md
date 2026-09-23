@@ -7,7 +7,9 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.0.1 — unreleased
 
-Nothing in `VolumetricClouds.xml` or in saved cities changes.
+Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is. The file
+gains two lines (where the mod's own button sits), and the settings that were on the options
+page's Weather, Light, Rendering and Halos tabs are now in the in-game panel (see below).
 
 - Fixed street and building light halos flashing for a frame, every few seconds, while
   *Customise street and building light halos* is on and the city is growing. Whenever a
@@ -19,6 +21,21 @@ Nothing in `VolumetricClouds.xml` or in saved cities changes.
   Windows the message lists the usual causes and where the log is, for a report.
 - The mod's version is now shown after its name in the mods list and on the options page, and
   at the top of its log, so a bug report can say which release it came from.
+- The sky is now set in one place, the in-game panel. The mod's page in the game's options
+  keeps only the mod itself: language, the panel's key and button, diagnostics and the reset
+  buttons. The Weather, Light, Rendering and Halos settings are the in-game panel's advanced
+  tabs; tick *Show advanced options in the in-game panel* on the options page to see them.
+  Every value you set before is kept. The in-game panel no longer has a General tab.
+- *Reset all settings to defaults* now also turns off *Volumetric fog* and *Show advanced
+  options in the in-game panel* (it asks first, as before). Until now the reset left both as
+  they were. After a reset the quality preset also reads *High* again, not *Custom*.
+- Ticking or unticking *Show advanced options in the in-game panel* while the in-game panel
+  is open now leaves it open, behind the options, instead of closing it.
+- The mod's own button (the one shown when it is not in Unified UI) now shows its icon, matches
+  Play It!'s button in size and style, and can be dragged anywhere on screen; it stays where
+  you leave it. Two new lines in `VolumetricClouds.xml` remember the spot.
+- The log now also gives the computer's memory, and names any other mod that changes the same
+  game code as this one, so a crash report can point at the cause.
 
 ## 1.0.0 — 2026-09-21
 

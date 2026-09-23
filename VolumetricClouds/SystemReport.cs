@@ -35,6 +35,9 @@ namespace VolumetricClouds
             {
                 Log.Msg("system: " + Screen.width + "x" + Screen.height +
                         (Screen.fullScreen ? " fullscreen" : " windowed") +
+                        // A crash on load in a big modded game is most often memory, and ours
+                        // can be the allocation that tips it over: the RAM settles that first.
+                        " | RAM " + SystemInfo.systemMemorySize + " MB" +
                         " | GPU '" + SystemInfo.graphicsDeviceName + "' " + SystemInfo.graphicsMemorySize + " MB, " +
                         SystemInfo.graphicsDeviceVersion +
                         " | Unity " + Application.unityVersion +
@@ -75,6 +78,8 @@ namespace VolumetricClouds
                         " lightning=" + On(Settings.LightningOverride, false) +
                         " | debugChecker=" + On(Settings.DebugChecker, false) +
                         " advancedPanel=" + On(Settings.ShowAdvancedInPanel, false));
+
+                Patcher.LogSharedMethods();
             }
             catch (Exception e)
             {

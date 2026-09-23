@@ -30,7 +30,11 @@ namespace VolumetricClouds.UI
     /// <summary>Which tab of the in-game (F4) panel a row appears on. None = not in it.</summary>
     public enum PanelPage { None, Now, Clouds, Fog }
 
-    /// <summary>Which tab of the game's mod options page a row appears on. None = not in it.</summary>
+    /// <summary>
+    /// General = the game's mod options page (which has no tabs since 1.0.1). The others are
+    /// the in-game panel's ADVANCED tabs, shown with "Show advanced options in the in-game
+    /// panel". None = neither. (The name is from when the options page had all five as tabs.)
+    /// </summary>
     public enum OptionsPage { None, Weather, Light, Rendering, Halos, General }
 
     /// <summary>
@@ -110,22 +114,6 @@ namespace VolumetricClouds.UI
         /// knows it, not in a list written a year later.
         /// </summary>
         public bool Profiled = true;
-
-        /// <summary>
-        /// A deliberate, per-machine opt-in: once the player has made it, NOTHING but the
-        /// player's own click on this row ever unmakes it. "Reset all settings to defaults"
-        /// leaves it alone, and so must anything added later (a profile may ask to turn one ON,
-        /// never off). Volumetric fog and the advanced panel are the two, after a session that
-        /// started with the fog switched off again -- "when enabled, SHOULD ALWAYS STAY ON.
-        /// Never turn it off again."
-        /// </summary>
-        public bool Sticky;
-
-        /// <summary>
-        /// Never borrowed by the F4 panel's advanced tabs: one-time set-up that belongs on the
-        /// game's options page alone (the language).
-        /// </summary>
-        public bool OptionsOnly;
 
         /// <summary>
         /// True while this row's confirmation dialog is open. The stored value is still the old
@@ -312,10 +300,10 @@ namespace VolumetricClouds.UI
     /// Reset-to-defaults walks this list, so does VolumetricClouds.xml (a setting with no row
     /// is never saved), and so will profiles in 1.1.
     ///
-    /// The split between the two UIs is by KIND, not by tab: overrides and the things you
-    /// judge against the sky are in the panel; configuration and one-time set-up are in the
-    /// options page. A row can be in both (the fog switch is), which is why there are two
-    /// page fields rather than one page plus a "where".
+    /// The split (1.0.1): everything about the SKY is in the panel -- its three basic tabs
+    /// (Row.Panel) and its four advanced ones (Row.Options other than General); the options
+    /// page has only the mod itself (Row.Options == General). A row can have both fields (the
+    /// fog switch is on the Fog tab and Rendering); the panel shows it on the basic tab only.
     ///
     /// The words are in Localization/en.xml, in the same order as the rows here: a new row
     /// needs its Label and Tooltip there (the log says at startup if one is missing).
@@ -399,11 +387,11 @@ namespace VolumetricClouds.UI
 
             Log.Msg("settings catalog: " + Rows.Count + " rows | panel Now=" + CountForPanel(PanelPage.Now) +
                     " Clouds=" + CountForPanel(PanelPage.Clouds) + " Fog=" + CountForPanel(PanelPage.Fog) +
-                    " | options Weather=" + CountForOptions(OptionsPage.Weather) +
+                    " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
                     " Light=" + CountForOptions(OptionsPage.Light) +
                     " Rendering=" + CountForOptions(OptionsPage.Rendering) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
-                    " General=" + CountForOptions(OptionsPage.General) +
+                    " | options page=" + CountForOptions(OptionsPage.General) +
                     " | rows with no UI=" + nowhere);
 
             var missing = new List<string>();
@@ -437,37 +425,36 @@ namespace VolumetricClouds.UI
         /// all, which is the other reason they are in this list. Always logged: a settings file
         /// that changed under the player is the first thing to suspect when a log looks wrong.
         /// </summary>
+        /// <remarks>
+        /// EVERY row, the two opt-ins included (1.0.1, the author's call): volumetric fog and
+        /// "Show advanced options" used to be skipped, and "I reset, so the fog is off" was
+        /// what he expected. The reset asks first, so it is the player's own click.
+        /// </remarks>
         public static void ResetAll()
         {
-            int kept = 0;
-            string keptNames = "";
-
             foreach (Row row in Rows)
-            {
-                // The per-machine opt-ins are not part of "the settings" a reset is about:
-                // they say what this player agreed to run, not how the sky looks. They are NAMED
-                // in the log with their state: "I reset, so the fog is off" was a fair thing to
-                // assume, and wrong on any machine where it had been switched on.
-                if (row.Sticky)
-                {
-                    kept++;
-                    keptNames += (keptNames.Length > 0 ? ", " : "") + row.Name + " = " +
-                                 (row.Bool != null && row.Bool.value ? "ON" : "off");
-                    continue;
-                }
-
                 row.ResetToDefault();
-            }
 
-            foreach (Row row in Rows)
+            // Under the preset's guard: every value is a default now, and the rendering rows'
+            // own hooks would otherwise flip the preset (High, reset a moment ago) to Custom.
+            _applyingPreset = true;
+            try
             {
-                if (!row.Sticky && row.AfterChange != null)
-                    row.AfterChange();
+                foreach (Row row in Rows)
+                {
+                    if (row.AfterChange != null)
+                        row.AfterChange();
+                }
+            }
+            finally
+            {
+                _applyingPreset = false;
             }
 
             SettingsXml.SaveNow();
-            Log.Msg("settings: RESET to defaults (" + (Rows.Count - kept) + " rows; " + kept +
-                    " per-machine opt-ins left as they were: " + keptNames + ")");
+            Log.Msg("settings: RESET to defaults (" + Rows.Count + " rows; volumetric fog = " +
+                    OnOff(Settings.FogEnabled)() + ", advanced panel = " + OnOff(Settings.ShowAdvancedInPanel)() +
+                    ", quality preset = " + PresetName(Settings.QualityPreset != null ? Settings.QualityPreset.value : Settings.Defaults.Preset) + ")");
         }
 
         /// <summary>
@@ -551,6 +538,8 @@ namespace VolumetricClouds.UI
             int resolution = preset == 0 ? 512 : preset == 1 ? 1024 : Settings.Defaults.ShadowMapResolution;
             int rate = preset == 0 ? 10 : Settings.Defaults.ShadowMapRate;
 
+            // Restored, not cleared: ResetAll holds the same guard around this call.
+            bool wasApplying = _applyingPreset;
             _applyingPreset = true;
             try
             {
@@ -562,7 +551,7 @@ namespace VolumetricClouds.UI
             }
             finally
             {
-                _applyingPreset = false;
+                _applyingPreset = wasApplying;
             }
 
             Log.Msg("quality preset: " + PresetName(preset) + " -> steps=" + steps.ToString("F0") +
@@ -967,7 +956,8 @@ namespace VolumetricClouds.UI
                 Confirm = true,
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
-                Sticky = true,
+                // Only the player's own click turns this off: never an update, never a profile
+                // (1.1). "Reset all settings" does, since 1.0.1 -- it is his click, and asks first.
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 
@@ -1090,7 +1080,7 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// Options -> Weather. How the game's weather MAPS to ours, plus the rain and the
+        /// Advanced tab Weather. How the game's weather MAPS to ours, plus the rain and the
         /// lightning: set once to describe the world, not dragged while watching the sky.
         /// </summary>
         private static void BuildWeatherOptions()
@@ -1215,7 +1205,7 @@ namespace VolumetricClouds.UI
             });
         }
 
-        /// <summary>Options -> Light. Shadows, the brightness curve, and the two night rows.</summary>
+        /// <summary>Advanced tab Light. Shadows, the brightness curve, and the two night rows.</summary>
         private static void BuildLightOptions()
         {
             Add(new Row
@@ -1328,7 +1318,7 @@ namespace VolumetricClouds.UI
             });
         }
 
-        /// <summary>Options -> Rendering. What this costs, and the two things that cost the most.</summary>
+        /// <summary>Advanced tab Rendering. What this costs, and the two things that cost the most.</summary>
         private static void BuildRenderingOptions()
         {
             Add(new Row
@@ -1432,7 +1422,7 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// Options -> Halos. Street and building lamps are batched at EVERY distance, so this
+        /// Advanced tab Halos. Street and building lamps are batched at EVERY distance, so this
         /// is one replacement shader doing the whole night; the near rows are a per-light
         /// distance blend inside it.
         /// </summary>
@@ -1585,7 +1575,7 @@ namespace VolumetricClouds.UI
             });
         }
 
-        /// <summary>Options -> General. The mod itself, and the reset button at the very bottom.</summary>
+        /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>
         private static void BuildGeneralOptions()
         {
             // First: whoever cannot read the rest must find this one. The group's title says for
@@ -1602,7 +1592,6 @@ namespace VolumetricClouds.UI
                 ChoiceValues = Localization.LanguageChoices(),
                 ChoiceText = Localization.LanguageName,
                 Profiled = false,
-                OptionsOnly = true,
                 AfterChange = () =>
                 {
                     Log.Msg("setting: language = " + Localization.CurrentCode +
@@ -1628,7 +1617,6 @@ namespace VolumetricClouds.UI
                 Bool = Settings.ShowAdvancedInPanel,
                 DefaultBool = Settings.Defaults.ShowAdvancedInPanel,
                 Profiled = false,
-                Sticky = true,
                 AfterChange = () =>
                 {
                     Log.Msg("setting: advanced options in the in-game panel = " + OnOff(Settings.ShowAdvancedInPanel)());
@@ -1703,6 +1691,32 @@ namespace VolumetricClouds.UI
                 Float = Settings.HaloIntensityScale,
                 DefaultFloat = Settings.Defaults.HaloIntensityScale,
                 Min = 10f, Max = 300f, Step = 5f,
+            });
+
+            // Where the player dragged the mod's own button (no Unified UI). Wide ranges on
+            // purpose: a value out of range is clamped AND written back, so a narrower range
+            // would move a saved spot on a wide screen for good. The button keeps itself on
+            // screen when it is placed.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Float = Settings.HudButtonX,
+                DefaultFloat = Settings.Defaults.HudButtonX,
+                Min = 0f, Max = 10000f, Step = 1f,
+                Format = Steps,
+                Profiled = false,
+                AfterChange = ModController.PlaceHudButton,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Float = Settings.HudButtonY,
+                DefaultFloat = Settings.Defaults.HudButtonY,
+                Min = 0f, Max = 10000f, Step = 1f,
+                Format = Steps,
+                Profiled = false,
+                AfterChange = ModController.PlaceHudButton,
             });
         }
 

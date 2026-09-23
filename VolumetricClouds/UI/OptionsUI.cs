@@ -8,11 +8,16 @@ using UnityEngine;
 namespace VolumetricClouds.UI
 {
     /// <summary>
-    /// The mod's page in the game's own options, in tabs. Everything that is set once and
-    /// forgotten lives here; the in-game panel keeps the overrides and the live look.
+    /// The mod's page in the game's own options: the mod itself (language, the panel's key and
+    /// its advanced tabs, the button, diagnostics, the resets). Every setting of the SKY is in
+    /// the in-game panel (<see cref="CloudsPanel"/>), where it can be judged against the sky.
     /// </summary>
     /// <remarks>
-    /// Three things about this page decide how it has to be written:
+    /// Until 1.0.1 this page had five tabs (Weather, Light, Rendering, Halos, General) and the
+    /// panel borrowed them behind "Show advanced options". The author's call: one place to
+    /// change the sky, the panel. The four sky tabs are now the panel's advanced tabs only.
+    ///
+    /// Two things about this page decide how it has to be written:
     ///
     /// 1. It is REBUILT, not cached. OptionsMainPanel.OnEnable -> RefreshPlugins ->
     ///    CreateCategories destroys every page and calls OnSettingsUI again, and the panel
@@ -22,44 +27,23 @@ namespace VolumetricClouds.UI
     ///    nothing here subscribes to a manager (events on our own controls die with them).
     /// 2. It can run with NO CITY LOADED -- it is reachable from the main menu. Every
     ///    AfterChange in the catalog has to survive that, and so does everything here.
-    /// 3. The atlas at the main menu need not be the one the in-game panel's sprite names were
-    ///    read from, so the tab sprites are PROBED rather than assumed, and there is a
-    ///    fallback to a single scrolling page of groups.
     ///
     /// Rows come from <see cref="SettingsCatalog"/>; the widgets are the game's own UIHelper
     /// factories, which style correctly in both contexts. UIHelper has exactly seven of them
     /// (checkbox, slider, dropdown, textfield, button, space, group) -- no key binding and no
     /// plain label -- so the key row is built by hand and group titles carry any text.
+    /// The page is short enough for the game's own scroll panel; the tabbed version needed a
+    /// scroll area per tab (UITabContainer forces every page to its own size) -- in git history.
     /// </remarks>
     public class OptionsUI
     {
         /// <summary>The page as it exists right now, or null before the first build.</summary>
         public static OptionsUI Instance { get; private set; }
 
-        private static readonly string[] TabSprites =
-        {
-            "GenericTab", "GenericTabHovered", "GenericTabPressed", "GenericTabFocused",
-        };
-
-        private static readonly OptionsPage[] Tabs =
-        {
-            OptionsPage.Weather, OptionsPage.Light, OptionsPage.Rendering,
-            OptionsPage.Halos, OptionsPage.General,
-        };
-
-        private const float TabHeight = 32f;
-        private const float FallbackPageHeight = 600f;
-
-        private const string ScrollbarTrack = "ScrollbarTrack";
-        private const string ScrollbarThumb = "ScrollbarThumb";
-
         private static int _buildCount;
-        private static bool _probed;
         private static bool _loggedSliderChildren;
 
         private readonly List<Control> _controls = new List<Control>();
-        private UITabstrip _strip;
-        private UITabContainer _container;
         private bool _refreshing;
 
         private class Control
@@ -98,230 +82,13 @@ namespace VolumetricClouds.UI
             }
             catch (Exception e)
             {
-                Log.Error("Building the options page threw; falling back to one plain page.", e);
-                page.DropTabs();
-                page.BuildFlat(helper);
+                Log.Error("Building the options page threw.", e);
             }
-        }
-
-        /// <summary>Clears away a half-built tabstrip so the fallback page is not drawn over it.</summary>
-        private void DropTabs()
-        {
-            if (_container != null)
-                UnityEngine.Object.Destroy(_container.gameObject);
-            if (_strip != null)
-                UnityEngine.Object.Destroy(_strip.gameObject);
-
-            _container = null;
-            _strip = null;
         }
 
         private void BuildPage(UIHelperBase helper)
         {
-            UIHelper root = helper as UIHelper;
-            UIComponent host = root != null ? root.self as UIComponent : null;
-
-            Probe(host);
-
-            if (host == null || !TabSpritesExist())
-            {
-                Log.Warn("options page: no usable host or tab sprites; using one page of groups instead");
-                BuildFlat(helper);
-                return;
-            }
-
-            UITabstrip strip = host.AddUIComponent<UITabstrip>();
-            _strip = strip;
-            strip.atlas = UIBuilder.Atlas;
-            strip.width = host.width - 20f;
-            strip.height = TabHeight;
-            strip.padding = new RectOffset(0, 0, 0, 0);
-
-            // The strip and the pages together fill the host exactly, so the game's own scroll
-            // panel has nothing to scroll and each TAB scrolls instead, under a strip that
-            // stays put. The first version gave the pages a fixed 680 and no scrolling of their
-            // own: UITabContainer.ArrangeTabs (read from IL) forces every page to the
-            // container's size, so a long tab simply ran off the bottom where nothing could
-            // reach it.
-            float pageHeight = host.height > 300f ? host.height - TabHeight - 28f : FallbackPageHeight;
-
-            UITabContainer container = host.AddUIComponent<UITabContainer>();
-            _container = container;
-            container.width = host.width - 20f;
-            container.height = pageHeight;
-            strip.tabPages = container;
-
-            float tabWidth = (host.width - 20f) / Tabs.Length;
-
-            for (int i = 0; i < Tabs.Length; i++)
-            {
-                UIButton tab = strip.AddTab(SettingsCatalog.TabName(Tabs[i]));
-                StyleTab(tab, tabWidth);
-
-                // AddTab creates the page inside the container; it is the i-th child of it.
-                UIPanel panel = i < container.components.Count ? container.components[i] as UIPanel : null;
-                if (panel == null)
-                {
-                    Log.Warn("options page: tab '" + Tabs[i] + "' produced no page; using one page of groups instead");
-                    DropTabs();
-                    BuildFlat(helper);
-                    return;
-                }
-
-                UIScrollablePanel scroll = AddScrollArea(panel, container.width, pageHeight);
-                BuildRows(new UIHelper(scroll), Tabs[i]);
-            }
-
-            SelectFirstTab(strip, container);
-
-            Log.Msg("options page: host " + host.width.ToString("F0") + "x" + host.height.ToString("F0") +
-                    ", each tab scrolls inside " + container.width.ToString("F0") + "x" + pageHeight.ToString("F0") +
-                    "; scrollbar sprites " + (ScrollbarSpritesExist() ? "ok" : "MISSING (mouse wheel only)"));
-
-            host.eventVisibilityChanged += (component, visible) =>
-            {
-                if (visible)
-                    RefreshValues();
-            };
-
-            // Not left to the first visibility event: the halo rows, for one, start greyed out.
-            RefreshEnabled();
-
-            Log.Msg("options page: built with " + Tabs.Length + " tabs and " + _controls.Count + " controls");
-        }
-
-        /// <summary>
-        /// Opens the first tab FOR REAL, which "selectedIndex = 0" does not.
-        /// </summary>
-        /// <remarks>
-        /// The bug this fixes looked like a layout fault -- "all the settings are overlapping;
-        /// switching to another tab fixes it" -- and was not one: every tab's rows were in
-        /// order, and all five PAGES were being drawn at once, on top of each other. Read from
-        /// the IL, three things add up to that:
-        ///   UITabContainer.AddTabPage(string, UIPanel)  never hides the page it creates (only
-        ///       the GameObject overload does);
-        ///   UITabContainer.m_SelectedIndex              has no initialiser, so it starts at 0;
-        ///   both selectedIndex setters                  return at once when the value is
-        ///       unchanged, so selecting 0 never reaches SelectPageByIndex -- the only thing
-        ///       that hides pages. The player's first tab switch is the first time it runs.
-        /// So the selection is moved away and back, on the strip (which also sets the tab
-        /// buttons' states) and then on the container itself, because the strip's own starting
-        /// index is not something this should depend on. The pages are then set by hand as
-        /// well: it costs nothing, and this bug has already survived one wrong diagnosis.
-        /// </remarks>
-        private static void SelectFirstTab(UITabstrip strip, UITabContainer container)
-        {
-            int visibleBefore = VisiblePages(container);
-
-            strip.selectedIndex = -1;
-            strip.selectedIndex = 0;
-
-            container.selectedIndex = -1;
-            container.selectedIndex = 0;
-
-            for (int i = 0; i < container.components.Count; i++)
-                container.components[i].isVisible = i == 0;
-
-            Log.Msg("options page: first tab selected; pages showing before=" + visibleBefore +
-                    " after=" + VisiblePages(container) + " of " + container.components.Count);
-        }
-
-        private static int VisiblePages(UITabContainer container)
-        {
-            int visible = 0;
-
-            for (int i = 0; i < container.components.Count; i++)
-            {
-                if (container.components[i].isVisibleSelf)
-                    visible++;
-            }
-
-            return visible;
-        }
-
-        /// <summary>
-        /// A scrolling area filling one tab's page, with its scrollbar down the right-hand edge.
-        /// The rows go inside it; the UIHelper factories only need something that lays its
-        /// children out vertically, which this does.
-        /// </summary>
-        /// <remarks>
-        /// Two things here are read from the IL of UIScrollablePanel.OnMouseWheel rather than
-        /// guessed: the handler returns at once unless builtinKeyNavigation is set (so without
-        /// that line the wheel does nothing at all), and the step is the scrollbar's
-        /// incrementAmount when one is attached, else scrollWheelAmount. The scrollbar's two
-        /// sprite names are in the game's asset data but are still probed against the live
-        /// atlas: if they are missing the bar is left out and the wheel still scrolls.
-        /// </remarks>
-        private static UIScrollablePanel AddScrollArea(UIPanel page, float width, float height)
-        {
-            const float barWidth = 12f;
-            const int wheelStep = 60;
-
-            page.autoLayout = false;
-            page.clipChildren = true;
-
-            UIScrollablePanel scroll = page.AddUIComponent<UIScrollablePanel>();
-            scroll.relativePosition = Vector3.zero;
-            scroll.size = new Vector2(width - barWidth - 6f, height);
-            scroll.autoLayout = true;
-            scroll.autoLayoutDirection = LayoutDirection.Vertical;
-            scroll.autoLayoutPadding = new RectOffset(0, 0, 0, 4);
-            scroll.clipChildren = true;
-            scroll.builtinKeyNavigation = true;
-            scroll.scrollWheelDirection = UIOrientation.Vertical;
-            scroll.scrollWheelAmount = wheelStep;
-
-            if (!ScrollbarSpritesExist())
-                return scroll;
-
-            UIScrollbar bar = page.AddUIComponent<UIScrollbar>();
-            bar.orientation = UIOrientation.Vertical;
-            bar.size = new Vector2(barWidth, height);
-            bar.relativePosition = new Vector3(width - barWidth, 0f);
-            bar.minValue = 0f;
-            bar.value = 0f;
-            bar.incrementAmount = wheelStep;
-            bar.autoHide = true;
-
-            UISlicedSprite track = bar.AddUIComponent<UISlicedSprite>();
-            track.atlas = UIBuilder.Atlas;
-            track.spriteName = ScrollbarTrack;
-            track.relativePosition = Vector3.zero;
-            track.size = bar.size;
-            track.fillDirection = UIFillDirection.Vertical;
-            bar.trackObject = track;
-
-            UISlicedSprite thumb = track.AddUIComponent<UISlicedSprite>();
-            thumb.atlas = UIBuilder.Atlas;
-            thumb.spriteName = ScrollbarThumb;
-            thumb.relativePosition = Vector3.zero;
-            thumb.width = barWidth;
-            thumb.fillDirection = UIFillDirection.Vertical;
-            bar.thumbObject = thumb;
-
-            scroll.verticalScrollbar = bar;
-            return scroll;
-        }
-
-        private static bool ScrollbarSpritesExist()
-        {
-            UITextureAtlas atlas = UIBuilder.Atlas;
-            return atlas != null && atlas[ScrollbarTrack] != null && atlas[ScrollbarThumb] != null;
-        }
-
-        /// <summary>
-        /// What ships if the tabs cannot be built: one scrolling page, a group per tab. Not as
-        /// tidy, but every setting is still reachable, which is the point.
-        /// </summary>
-        private void BuildFlat(UIHelperBase helper)
-        {
-            _controls.Clear();
-
-            foreach (OptionsPage page in Tabs)
-            {
-                UIHelperBase group = helper.AddGroup(SettingsCatalog.TabName(page));
-                BuildRows(group, page);
-            }
+            BuildRows(helper, OptionsPage.General);
 
             UIComponent host = PanelOf(helper);
             if (host != null)
@@ -333,8 +100,12 @@ namespace VolumetricClouds.UI
                 };
             }
 
+            // Not left to the first visibility event: "Reset cloud pattern" starts greyed out
+            // at the main menu.
             RefreshEnabled();
-            Log.Msg("options page: built FLAT (no tabs) with " + _controls.Count + " controls");
+
+            if (_buildCount == 1)
+                Log.Msg("options page: built with " + _controls.Count + " controls");
         }
 
         private void BuildRows(UIHelperBase page, OptionsPage which)
@@ -621,67 +392,6 @@ namespace VolumetricClouds.UI
             return code == KeyCode.LeftControl || code == KeyCode.RightControl
                 || code == KeyCode.LeftShift || code == KeyCode.RightShift
                 || code == KeyCode.LeftAlt || code == KeyCode.RightAlt;
-        }
-
-        private static void StyleTab(UIButton tab, float width)
-        {
-            if (tab == null)
-                return;
-
-            tab.atlas = UIBuilder.Atlas;
-            tab.size = new Vector2(width, TabHeight);
-            tab.autoSize = false;
-            tab.textScale = 0.85f;
-            tab.textPadding = new RectOffset(4, 4, 8, 4);
-            tab.normalBgSprite = "GenericTab";
-            tab.hoveredBgSprite = "GenericTabHovered";
-            tab.pressedBgSprite = "GenericTabPressed";
-            tab.focusedBgSprite = "GenericTabFocused";
-            tab.disabledBgSprite = "GenericTab";
-            tab.textColor = UIBuilder.StatusColour;
-            tab.hoveredTextColor = UIBuilder.HeadingColour;
-            tab.focusedTextColor = UIBuilder.HeadingColour;
-            tab.pressedTextColor = UIBuilder.HeadingColour;
-        }
-
-        private static bool TabSpritesExist()
-        {
-            UITextureAtlas atlas = UIBuilder.Atlas;
-            if (atlas == null)
-                return false;
-
-            foreach (string sprite in TabSprites)
-            {
-                if (atlas[sprite] == null)
-                    return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// What the page is actually being built into. Logged once, because the options page is
-        /// reachable from the main menu, where none of the in-game panel's assumptions hold.
-        /// </summary>
-        private static void Probe(UIComponent host)
-        {
-            if (_probed)
-                return;
-
-            _probed = true;
-
-            UITextureAtlas atlas = UIBuilder.Atlas;
-            string sprites = string.Empty;
-
-            foreach (string sprite in TabSprites)
-            {
-                sprites += (sprites.Length == 0 ? "" : ", ") + sprite + "=" +
-                           (atlas != null && atlas[sprite] != null ? "ok" : "MISSING");
-            }
-
-            Log.Msg("options page probe: atlas='" + (atlas == null ? "none" : atlas.name) +
-                    "' host=" + (host == null ? "none" : host.GetType().FullName + " width=" + host.width.ToString("F0")) +
-                    " | tab sprites: " + sprites);
         }
 
         /// <summary>

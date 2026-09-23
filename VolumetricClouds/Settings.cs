@@ -45,10 +45,16 @@ namespace VolumetricClouds
         public static SavedInputKey ToggleKey { get; private set; }
 
         /// <summary>
+        /// Where the mod's own button sits when it is not in Unified UI: its top-left corner, in
+        /// UI units from the top left of the screen. The player drags it there (1.0.1).
+        /// </summary>
+        public static FloatSetting HudButtonX { get; private set; }
+        public static FloatSetting HudButtonY { get; private set; }
+
+        /// <summary>
         /// Off (the default): the in-game panel has the three tabs a subscriber needs -- Now,
-        /// Clouds, Fog. On: it also gets every tab of the options page, so the whole mod can be
-        /// tuned against the sky the way it was built. The options page always has everything;
-        /// this only decides how much of it is ALSO one keypress away.
+        /// Clouds, Fog. On: it also gets Weather, Light, Rendering and Halos. Since 1.0.1 those
+        /// four exist nowhere else: the options page holds only the mod itself.
         /// </summary>
         public static BoolSetting ShowAdvancedInPanel { get; private set; }
 
@@ -397,6 +403,10 @@ namespace VolumetricClouds
             public const bool DetailedLogging = false;
             public const bool DebugChecker = false;
 
+            /// <summary>Where the button always stood before it could be dragged.</summary>
+            public const float HudButtonX = 10f;
+            public const float HudButtonY = 60f;
+
             /// <summary>The game's own language.</summary>
             public const int Language = 0;
 
@@ -693,6 +703,9 @@ namespace VolumetricClouds
                 // hiding vehicle lights for every session after. A debug switch that can
                 // change the picture must never outlive its UI.
                 DebugChecker = new BoolSetting("DebugChecker", Defaults.DebugChecker);
+
+                HudButtonX = new FloatSetting("HudButtonX", Defaults.HudButtonX);
+                HudButtonY = new FloatSetting("HudButtonY", Defaults.HudButtonY);
 
                 // Before the file is read: reading it walks the catalog, and building the
                 // catalog calls Init.

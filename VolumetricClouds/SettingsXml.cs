@@ -828,8 +828,10 @@ namespace VolumetricClouds
         {
             if (row.Panel != PanelPage.None)
                 return Localization.Get("File.Section.Panel", SettingsCatalog.TabName(row.Panel));
+            if (row.Options == OptionsPage.General)
+                return Localization.Get("File.Section.Options");
             if (row.Options != OptionsPage.None)
-                return Localization.Get("File.Section.Options", SettingsCatalog.TabName(row.Options));
+                return Localization.Get("File.Section.Advanced", SettingsCatalog.TabName(row.Options));
 
             return Localization.Get("File.Section.None");
         }

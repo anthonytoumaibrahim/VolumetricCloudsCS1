@@ -19,7 +19,7 @@
 [*][b]Press F4[/b] (or click the mod's button in UUI) to open the in-game panel.
 [/olist]
 
-To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] to access the Pause Menu, then [i]Options[/i]. Under "Mods Settings", find Volumetric Weather, then go to [i]General[/i] and toggle "Show advanced options in the in-game panel".
+To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] to access the Pause Menu, then [i]Options[/i]. Under "Mods Settings", find Volumetric Weather, then toggle "Show advanced options in the in-game panel".
 
 [hr][/hr]
 [h1]Features[/h1]

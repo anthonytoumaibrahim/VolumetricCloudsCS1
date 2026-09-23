@@ -111,22 +111,56 @@ namespace VolumetricClouds
 
             _panel.InitialPosition = position;
 
-            // Stays open if it was open -- unless a modal is up, which means the switch was
-            // flipped from the game's options screen with the panel left open BEHIND it. A new
-            // component is born on top of everything, so showing it there made it jump out
-            // over the options (first in-game test: "should not open the modal"). From the
-            // options screen the change is saved and the panel waits for its key.
-            bool show = wasVisible && !UIView.HasModalInput();
-
-            if (show)
+            // Stays open if it was open. From the game's options screen (a modal) that needs
+            // one more step: a new component is born on top of everything, so the rebuilt panel
+            // jumped out over the options (first in-game test: "should not open the modal").
+            // It stays open BEHIND them instead, where the old one was.
+            if (wasVisible)
+            {
                 _panel.Show();
+                KeepModalOnTop();
+            }
             else
+            {
                 _panel.Hide();
+            }
 
             _panel.eventVisibilityChanged += OnPanelVisibilityChanged;
 
             // The old panel was unhooked before it went, so Unified UI heard nothing; tell it.
-            UUIIntegration.SetPressed(show);
+            UUIIntegration.SetPressed(wasVisible);
+        }
+
+        /// <summary>
+        /// Puts the open modal (the options screen) and its dimming layer back above
+        /// everything, our new panel included. Read from the IL of UIView.BringToFront: a
+        /// top-level component is re-numbered to the top, and when it is THE modal component
+        /// the modal effect goes directly under it. Only those two move; the new panel stays
+        /// above the rest of the game's UI, so it is simply there when the options close.
+        /// </summary>
+        private static void KeepModalOnTop()
+        {
+            try
+            {
+                UIComponent modal = UIView.GetModalComponent();
+                if (modal == null)
+                    return;
+
+                UIComponent root = modal.GetRootContainer() ?? modal;
+                UIComponent effect = UIView.GetAView().panelsLibraryModalEffect;
+
+                if (effect != null && effect != root && effect.isVisible)
+                    effect.BringToFront();
+
+                root.BringToFront();
+
+                Log.Msg("panel: rebuilt behind the open '" + root.name + "'" +
+                        (effect != null && effect.isVisible ? " and its dimming" : ""));
+            }
+            catch (System.Exception e)
+            {
+                Log.Warn("panel: could not keep the options screen on top: " + e.Message);
+            }
         }
 
         private void Update()
@@ -220,8 +254,20 @@ namespace VolumetricClouds
         private void CreateHudButton()
         {
             _hudButton = UIView.GetAView().AddUIComponent(typeof(ModButton)) as ModButton;
-            if (_hudButton != null)
-                _hudButton.OnClicked = () => SetPanelVisible(_panel == null || !_panel.isVisible);
+            if (_hudButton == null)
+                return;
+
+            _hudButton.OnClicked = () => SetPanelVisible(_panel == null || !_panel.isVisible);
+        }
+
+        /// <summary>
+        /// Puts the HUD button where the settings say, after a Reset or a hand edit of
+        /// VolumetricClouds.xml. A drag writes those settings itself and does not come here.
+        /// </summary>
+        public static void PlaceHudButton()
+        {
+            if (Instance != null && Instance._hudButton != null)
+                Instance._hudButton.Place();
         }
 
         private void DestroyHudButton()

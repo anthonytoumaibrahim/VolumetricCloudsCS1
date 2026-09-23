@@ -221,7 +221,7 @@
   <String key="FogLampRadius.Label">Lit radius round a light</String>
   <String key="FogLampRadius.Tooltip">How far the glow reaches from each light before it fades away.</String>
 
-  <!-- ==================== Options: Weather ==================== -->
+  <!-- ==================== Advanced: Weather ==================== -->
 
   <String key="Group.WeatherMapping">How the game's weather maps to cloud cover</String>
 
@@ -298,7 +298,7 @@
     in the heaviest rain.
   </String>
 
-  <!-- ==================== Options: Light ==================== -->
+  <!-- ==================== Advanced: Light ==================== -->
 
   <String key="Group.Shadows">Shadows on the ground</String>
 
@@ -363,7 +363,7 @@
     into the sky.
   </String>
 
-  <!-- ==================== Options: Rendering ==================== -->
+  <!-- ==================== Advanced: Rendering ==================== -->
 
   <String key="Group.Performance">Performance</String>
 
@@ -415,7 +415,7 @@
   <String key="CloudPuffSize.Label">Billboards: puff size</String>
   <String key="CloudPuffSize.Tooltip">How big each of those flat cloud pictures is.</String>
 
-  <!-- ==================== Options: Halos ==================== -->
+  <!-- ==================== Advanced: Halos ==================== -->
 
   <String key="Group.Halos">Street and building light halos</String>
 
@@ -506,7 +506,7 @@
     Vehicle lights closer to the camera than this have no glow. 0 turns this off.
   </String>
 
-  <!-- ==================== Options: General ==================== -->
+  <!-- ==================== The game's options page ==================== -->
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Language (more languages are coming soon; for now it is English only)</String>
@@ -519,7 +519,7 @@
   </String>
   <String key="Language.Game">Same as the game</String>
 
-  <String key="Group.Panel">The in-game panel</String>
+  <String key="Group.Panel">The in-game panel (every setting of the sky is there)</String>
 
   <String key="ToggleKey.Label">Open this panel</String>
   <String key="ToggleKey.Tooltip">
@@ -529,8 +529,9 @@
 
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
   <String key="ShowAdvancedInPanel.Tooltip">
-    Adds every tab of this page (Weather, Light, Rendering, Halos and General) to the in-game
-    panel, so you can adjust everything while watching the sky. Everything stays here as well.
+    Adds four more tabs to the in-game panel -- Weather, Light, Rendering and Halos -- with
+    every other setting of the mod: how the game's weather maps to the sky, shadows and
+    brightness, performance, and the street-light glow.
   </String>
 
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
@@ -557,14 +558,13 @@
 
   <String key="ResetAll.Label">Reset all settings to defaults</String>
   <String key="ResetAll.Tooltip">
-    Puts every setting back to how the mod comes. Two switches are left as you set them:
-    'Volumetric fog' and 'Show advanced options in the in-game panel'.
+    Puts every setting back to how the mod comes. This also turns off 'Volumetric fog' and
+    'Show advanced options in the in-game panel'.
   </String>
   <String key="ResetAll.Confirm">
     Put every setting back to how the mod comes?\n\n
-    This throws away everything you have tuned, including changes made in the in-game panel.\n\n
-    Two switches stay exactly as they are, on or off: 'Volumetric fog' and 'Show advanced
-    options in the in-game panel'.
+    This throws away everything you have tuned, including changes made in the in-game panel,
+    and turns off 'Volumetric fog' and 'Show advanced options in the in-game panel'.
   </String>
 
   <String key="ResetPattern.Label">Reset cloud pattern</String>
@@ -583,6 +583,8 @@
   <!-- ==================== No row in either UI ==================== -->
 
   <String key="HaloIntensityScale.Label">Dynamic light brightness</String>
+  <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
+  <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
 
   <!-- ==================== Slider readouts ==================== -->
 
@@ -620,7 +622,8 @@
     - Delete the file with the game closed to start again from every default.
   </String>
   <String key="File.Section.Panel">In-game panel: {0} tab</String>
-  <String key="File.Section.Options">Options page: {0} tab</String>
+  <String key="File.Section.Advanced">In-game panel, with advanced options on: {0} tab</String>
+  <String key="File.Section.Options">The game's options page</String>
   <String key="File.Section.None">Not shown on either page</String>
   <String key="File.Percent">{0}, in %. {1} to {2}, default {3}.</String>
   <String key="File.Number">{0}. {1} to {2}{3}, default {4}.</String>

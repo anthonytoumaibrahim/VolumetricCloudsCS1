@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using CitiesHarmony.API;
 using HarmonyLib;
 using UnityEngine;
@@ -61,6 +62,47 @@ namespace VolumetricClouds
             catch (Exception e)
             {
                 Log.Error("Harmony patching failed; light halo options disabled.", e);
+            }
+        }
+
+        /// <summary>
+        /// One line naming every other Harmony ID that patches a method we patch, written with
+        /// the system report. A clash on one of these methods is the likeliest way another mod
+        /// and ours break each other, and without this line a report cannot say which mod.
+        /// Only Harmony patches are visible here: an old mod that detours a method by hand
+        /// does not show up.
+        /// </summary>
+        public static void LogSharedMethods()
+        {
+            if (!_patched)
+                return;
+
+            try
+            {
+                string shared = "";
+
+                foreach (MethodBase method in new Harmony(HarmonyId).GetPatchedMethods())
+                {
+                    Patches info = Harmony.GetPatchInfo(method);
+                    if (info == null)
+                        continue;
+
+                    string others = "";
+                    foreach (string owner in info.Owners)
+                    {
+                        if (owner != HarmonyId)
+                            others += (others.Length > 0 ? ", " : "") + owner;
+                    }
+
+                    if (others.Length > 0)
+                        shared += (shared.Length > 0 ? "; " : "") + method.DeclaringType.Name + "." + method.Name + " by " + others;
+                }
+
+                Log.Msg("harmony: other mods patching the methods we patch: " + (shared.Length > 0 ? shared : "none"));
+            }
+            catch (Exception e)
+            {
+                Log.Warn("Could not list other mods' patches: " + e.Message);
             }
         }
 

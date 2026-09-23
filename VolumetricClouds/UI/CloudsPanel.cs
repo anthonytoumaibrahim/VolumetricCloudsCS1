@@ -8,19 +8,15 @@ namespace VolumetricClouds.UI
     /// The in-game panel: what you set while looking at the sky.
     /// </summary>
     /// <remarks>
-    /// By default it has three tabs, and the split from the options page is by KIND rather
-    /// than by subject.
+    /// This is the ONLY place the sky is set (1.0.1). By default it has three tabs:
     ///   Now    -- every override in the mod, plus the two status lines. Photo mode.
     ///   Clouds -- the shape of the sky.
     ///   Fog    -- the fog, which is a cloud layer lying on the ground.
-    /// Everything that is set once and forgotten -- the weather mapping, the light, the
-    /// rendering, the halos, the mod itself -- lives in the game's own options page
-    /// (<see cref="OptionsUI"/>), which is what a subscriber who installs and forgets expects.
-    ///
-    /// "Show advanced options in the in-game panel" (Options -> General) adds the options
-    /// page's five tabs HERE as well, for the player who tunes the mod against the sky the way
-    /// it was built. Nothing moves: the options page always has everything, and a row that is
-    /// already on one of the three basic tabs is not repeated on an advanced one.
+    /// "Show advanced options in the in-game panel" (on the game's options page) adds four
+    /// more: Weather, Light, Rendering and Halos -- the rows whose Row.Options names them. A
+    /// row that is already on one of the three basic tabs is not repeated on an advanced one.
+    /// The mod itself (language, key, button, diagnostics, the resets) is on the options page
+    /// (<see cref="OptionsUI"/>) alone: Row.Options == General.
     ///
     /// Both UIs are drawn from <see cref="SettingsCatalog"/>, so where a row lives is a
     /// one-word edit rather than a second copy of the row.
@@ -28,7 +24,7 @@ namespace VolumetricClouds.UI
     public class CloudsPanel : UIPanel
     {
         private const float BasicWidth = 600f;
-        private const float AdvancedWidth = 680f;   // eight tabs; "Rendering" is the widest label
+        private const float AdvancedWidth = 680f;   // seven tabs; "Rendering" is the widest label
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float TabHeight = 28f;
@@ -43,11 +39,10 @@ namespace VolumetricClouds.UI
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
-            OptionsPage.Weather, OptionsPage.Light, OptionsPage.Rendering,
-            OptionsPage.Halos, OptionsPage.General,
+            OptionsPage.Weather, OptionsPage.Light, OptionsPage.Rendering, OptionsPage.Halos,
         };
 
-        /// <summary>One tab: a basic page of the panel's own, or one borrowed from the options page.</summary>
+        /// <summary>One tab: a basic page, or an advanced one.</summary>
         private struct Tab
         {
             public string Name;
@@ -60,7 +55,7 @@ namespace VolumetricClouds.UI
                     return row.Panel == Panel;
 
                 // A row that already has a home on a basic tab (the fog switch) stays there.
-                return row.Options == Options && row.Panel == PanelPage.None && !row.OptionsOnly;
+                return row.Options == Options && row.Panel == PanelPage.None;
             }
         }
 
