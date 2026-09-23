@@ -1,7 +1,10 @@
-[b]!!Works only on Windows!![/b] The mod needs DirectX 11, so it switches itself off on Mac and on the Linux version of the game. On Linux or Steam Deck, running the Windows version through [b]Proton[/b] should work.
+[h1]Version 1.1[/h1]
+Update 1.1 is out: cloud and fog colors, a fix for light halos flashing, and more. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments (see [b]Reporting a bug[/b] below for what to include).
 
 [hr][/hr]
 [h1]Requirements[/h1]
+[b]!!Works only on Windows!![/b] The mod needs DirectX 11, so it switches itself off on Mac and on the Linux version of the game. On Linux or Steam Deck, running the Windows version through [b]Proton[/b] should work.
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
