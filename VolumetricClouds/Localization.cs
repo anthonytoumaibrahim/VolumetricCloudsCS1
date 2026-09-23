@@ -13,7 +13,7 @@ namespace VolumetricClouds
     /// back to it, and a key missing from English shows as the key (and is logged once).
     /// </summary>
     /// <remarks>
-    /// The language is the player's choice on Options -> General (<see cref="Settings.Language"/>),
+    /// The language is the player's choice on the options page (<see cref="Settings.Language"/>),
     /// by default the GAME's (LocaleManager.language: en, de, es, fr, ko, pl, pt, ru, zh). It is
     /// looked at on every lookup -- an int, or a property read and a string compare -- so
     /// anything built after it changes comes out in the new one. The in-game panel is rebuilt
@@ -130,7 +130,7 @@ namespace VolumetricClouds
             return _current;
         }
 
-        /// <summary>The player's choice on Options -> General, or the game's language.</summary>
+        /// <summary>The player's choice on the options page, or the game's language.</summary>
         private static string ChosenLanguage(out bool chosen)
         {
             int value = Settings.Language != null ? Settings.Language.value : 0;

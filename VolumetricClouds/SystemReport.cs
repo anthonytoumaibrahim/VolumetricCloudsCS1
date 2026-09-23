@@ -77,7 +77,10 @@ namespace VolumetricClouds
                         " fog=" + On(Settings.FogOverride, false) +
                         " lightning=" + On(Settings.LightningOverride, false) +
                         " | debugChecker=" + On(Settings.DebugChecker, false) +
-                        " advancedPanel=" + On(Settings.ShowAdvancedInPanel, false));
+                        " advancedPanel=" + On(Settings.ShowAdvancedInPanel, false) +
+                        // The grading changes the picture, so it is in the quiet log too.
+                        " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +
+                        " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor));
 
                 Patcher.LogSharedMethods();
             }
@@ -119,6 +122,11 @@ namespace VolumetricClouds
         private static int Int(IntSetting setting, int fallback)
         {
             return setting != null ? setting.value : fallback;
+        }
+
+        private static string Hex(ColorSetting setting, Color32 fallback)
+        {
+            return ColorText.Format(setting != null ? setting.value : fallback);
         }
     }
 }

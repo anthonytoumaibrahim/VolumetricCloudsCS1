@@ -591,6 +591,16 @@ namespace VolumetricClouds
                 return null;
             }
 
+            if (row.Colour != null)
+            {
+                Color32 colour;
+                if (!ColorText.TryParse(text, out colour))
+                    return "ignored: not a colour (#RRGGBB, or r, g, b)";
+
+                row.Colour.value = colour;
+                return null;
+            }
+
             return null;
         }
 
@@ -793,6 +803,7 @@ namespace VolumetricClouds
             if (row.Bool != null) return row.Bool;
             if (row.Int != null) return row.Int;
             if (row.Key != null) return row.Key;
+            if (row.Colour != null) return row.Colour;
             return null;
         }
 
@@ -820,6 +831,8 @@ namespace VolumetricClouds
                 return row.Int.value.ToString(CultureInfo.InvariantCulture);
             if (row.Key != null)
                 return SettingsXmlFormat.FormatKey(row.Key.value);
+            if (row.Colour != null)
+                return ColorText.Format(row.Colour.value);
 
             return string.Empty;
         }
@@ -865,6 +878,10 @@ namespace VolumetricClouds
                 text = row.ChoiceValues != null
                     ? Localization.Get("File.Choice", label, ChoiceList(row), fallback)
                     : Localization.Get("File.AnyNumber", label, fallback);
+            }
+            else if (row.Colour != null)
+            {
+                text = Localization.Get("File.Colour", label, ColorText.Format(row.DefaultColour));
             }
             else
             {

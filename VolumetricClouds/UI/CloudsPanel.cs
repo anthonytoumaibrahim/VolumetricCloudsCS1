@@ -8,7 +8,7 @@ namespace VolumetricClouds.UI
     /// The in-game panel: what you set while looking at the sky.
     /// </summary>
     /// <remarks>
-    /// This is the ONLY place the sky is set (1.0.1). By default it has three tabs:
+    /// This is the ONLY place the sky is set (1.1.0). By default it has three tabs:
     ///   Now    -- every override in the mod, plus the two status lines. Photo mode.
     ///   Clouds -- the shape of the sky.
     ///   Fog    -- the fog, which is a cloud layer lying on the ground.
@@ -95,6 +95,7 @@ namespace VolumetricClouds.UI
             public UICheckBox Check;
             public UILabel Readout;
             public UILabel Status;
+            public ColourRow Colour;
             public readonly List<UIComponent> Parts = new List<UIComponent>();
             public bool Enabled = true;
         }
@@ -216,6 +217,10 @@ namespace VolumetricClouds.UI
                         control.Check.isChecked = row.Bool.value;
                         touched++;
                     }
+
+                    // It keeps its own guard: its swatch fires events when set.
+                    if (control.Colour != null)
+                        control.Colour.Refresh();
                 }
             }
             finally
@@ -408,6 +413,13 @@ namespace VolumetricClouds.UI
                     UIButton button = UIBuilder.AddKeyBinding(page, y, row.Label, row.Key);
                     button.tooltip = row.Tooltip;
                     control.Parts.Add(button);
+                    break;
+                }
+
+                case RowKind.Colour:
+                {
+                    control.Colour = new ColourRow(page, y, row);
+                    control.Parts.AddRange(control.Colour.Parts);
                     break;
                 }
 

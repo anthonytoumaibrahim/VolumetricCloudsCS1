@@ -25,13 +25,16 @@ namespace VolumetricClouds.UI
 
         /// <summary>A dropdown over <see cref="Row.Choices"/> / <see cref="Row.ChoiceValues"/>.</summary>
         Choice,
+
+        /// <summary>A colour: swatch and picker, a text field, Copy, Paste, reset. The F4 panel only.</summary>
+        Colour,
     }
 
     /// <summary>Which tab of the in-game (F4) panel a row appears on. None = not in it.</summary>
     public enum PanelPage { None, Now, Clouds, Fog }
 
     /// <summary>
-    /// General = the game's mod options page (which has no tabs since 1.0.1). The others are
+    /// General = the game's mod options page (which has no tabs since 1.1.0). The others are
     /// the in-game panel's ADVANCED tabs, shown with "Show advanced options in the in-game
     /// panel". None = neither. (The name is from when the options page had all five as tabs.)
     /// </summary>
@@ -75,6 +78,7 @@ namespace VolumetricClouds.UI
         public BoolSetting Bool;
         public IntSetting Int;
         public SavedInputKey Key;
+        public ColorSetting Colour;
 
         // The SAME constants Settings.Init() constructs from. A setting does not remember its
         // own default, so this is the only thing that can put one back.
@@ -82,6 +86,7 @@ namespace VolumetricClouds.UI
         public bool DefaultBool;
         public int DefaultInt;
         public int DefaultKey;
+        public Color32 DefaultColour;
 
         public float Min, Max, Step;
 
@@ -133,6 +138,7 @@ namespace VolumetricClouds.UI
                 if (Bool != null) return Bool.name;
                 if (Int != null) return Int.name;
                 if (Key != null) return Key.name;
+                if (Colour != null) return Colour.name;
                 return Id;
             }
         }
@@ -287,6 +293,13 @@ namespace VolumetricClouds.UI
             if (Bool != null) Bool.value = DefaultBool;
             if (Int != null) Int.value = DefaultInt;
             if (Key != null) Key.value = DefaultKey;
+            if (Colour != null) Colour.value = DefaultColour;
+        }
+
+        /// <summary>A colour row at its default: what greys out its reset button.</summary>
+        public bool IsDefaultColour
+        {
+            get { return Colour == null || ColorText.Same(Colour.value, DefaultColour); }
         }
     }
 
@@ -300,7 +313,7 @@ namespace VolumetricClouds.UI
     /// Reset-to-defaults walks this list, so does VolumetricClouds.xml (a setting with no row
     /// is never saved), and so will profiles in 1.1.
     ///
-    /// The split (1.0.1): everything about the SKY is in the panel -- its three basic tabs
+    /// The split (1.1.0): everything about the SKY is in the panel -- its three basic tabs
     /// (Row.Panel) and its four advanced ones (Row.Options other than General); the options
     /// page has only the mod itself (Row.Options == General). A row can have both fields (the
     /// fog switch is on the Fog tab and Rendering); the panel shows it on the basic tab only.
@@ -426,7 +439,7 @@ namespace VolumetricClouds.UI
         /// that changed under the player is the first thing to suspect when a log looks wrong.
         /// </summary>
         /// <remarks>
-        /// EVERY row, the two opt-ins included (1.0.1, the author's call): volumetric fog and
+        /// EVERY row, the two opt-ins included (1.1.0, the author's call): volumetric fog and
         /// "Show advanced options" used to be skipped, and "I reset, so the fog is off" was
         /// what he expected. The reset asks first, so it is the player's own click.
         /// </remarks>
@@ -939,6 +952,27 @@ namespace VolumetricClouds.UI
                 StatusText = DescribeBrightness,
                 Profiled = false,
             });
+
+            // Grading: the two lights a cloud stands in, each tinted on its own. The colour
+            // changes only the hue; brightness stays the brightness settings' (Sky.CloudTint).
+            // No AfterChange: the panel's colour row logs each pick when it is made, not every
+            // frame of a drag through the picker.
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Panel = PanelPage.Clouds,
+                Group = "CloudColour",
+                Colour = Settings.CloudSunlitColor,
+                DefaultColour = Settings.Defaults.SunlitColor,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Panel = PanelPage.Clouds,
+                Colour = Settings.CloudShadeColor,
+                DefaultColour = Settings.Defaults.ShadeColor,
+            });
         }
 
         /// <summary>
@@ -957,7 +991,7 @@ namespace VolumetricClouds.UI
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
                 // Only the player's own click turns this off: never an update, never a profile
-                // (1.1). "Reset all settings" does, since 1.0.1 -- it is his click, and asks first.
+                // (1.1). "Reset all settings" does, since 1.1.0 -- it is his click, and asks first.
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 

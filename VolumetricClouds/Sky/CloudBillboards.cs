@@ -126,6 +126,14 @@ namespace VolumetricClouds.Sky
             if (_camera == null)
                 return;
 
+            // The sunlit colour: flat puffs have one light. Capped at 1, since a material colour
+            // on these shaders is not HDR; white is exactly the shader's own default.
+            if (_material != null && _material.HasProperty("_Color"))
+            {
+                Color32 picked = Settings.CloudSunlitColor != null ? Settings.CloudSunlitColor.value : Settings.Defaults.SunlitColor;
+                _material.color = CloudTint.Displayable(CloudTint.Of(picked));
+            }
+
             float coverage = CloudShaderParams.CoverageStepped;
             int requested = Settings.CloudPuffCount != null
                 ? Mathf.Clamp(Mathf.RoundToInt(Settings.CloudPuffCount.value), 0, MaxPuffs)

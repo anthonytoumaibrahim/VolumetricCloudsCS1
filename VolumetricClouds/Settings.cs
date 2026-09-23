@@ -46,14 +46,14 @@ namespace VolumetricClouds
 
         /// <summary>
         /// Where the mod's own button sits when it is not in Unified UI: its top-left corner, in
-        /// UI units from the top left of the screen. The player drags it there (1.0.1).
+        /// UI units from the top left of the screen. The player drags it there (1.1.0).
         /// </summary>
         public static FloatSetting HudButtonX { get; private set; }
         public static FloatSetting HudButtonY { get; private set; }
 
         /// <summary>
         /// Off (the default): the in-game panel has the three tabs a subscriber needs -- Now,
-        /// Clouds, Fog. On: it also gets Weather, Light, Rendering and Halos. Since 1.0.1 those
+        /// Clouds, Fog. On: it also gets Weather, Light, Rendering and Halos. Since 1.1.0 those
         /// four exist nowhere else: the options page holds only the mod itself.
         /// </summary>
         public static BoolSetting ShowAdvancedInPanel { get; private set; }
@@ -267,6 +267,19 @@ namespace VolumetricClouds
         /// <summary>Frequency of that erosion noise: low tears off big chunks, high makes fine wisps.</summary>
         public static FloatSetting CloudBreakupScale { get; private set; }
 
+        /// <summary>
+        /// The colour of the light on the clouds' SUNLIT side (the moon's at night): tops, sunny
+        /// flanks, the bright rim towards the sun. Hue and saturation only (Sky.CloudTint);
+        /// white, the default, changes nothing.
+        /// </summary>
+        public static ColorSetting CloudSunlitColor { get; private set; }
+
+        /// <summary>
+        /// The colour of the clouds' SHADED side: the sky light on undersides and shadowed
+        /// flanks, and the glow under the base at night (city light, in real life often orange).
+        /// </summary>
+        public static ColorSetting CloudShadeColor { get; private set; }
+
         /// <summary>Multiplier on cloud optical density.</summary>
         public static FloatSetting CloudDensity { get; private set; }
 
@@ -433,6 +446,13 @@ namespace VolumetricClouds
             public const float Breakup = 0.5f;
             public const float BreakupScale = 4f;
             public const float Density = 1.5f;
+
+            /// <summary>
+            /// White: no tint, the clouds exactly as they were before colours existed (a struct
+            /// cannot be a const; nothing ever writes these).
+            /// </summary>
+            public static readonly Color32 SunlitColor = new Color32(255, 255, 255, 255);
+            public static readonly Color32 ShadeColor = new Color32(255, 255, 255, 255);
 
             /// <summary>The manual brightness, used when the curve below is switched off.</summary>
             public const float Brightness = 0.25f;
@@ -670,6 +690,8 @@ namespace VolumetricClouds
 
                 CloudsVisible = new BoolSetting("CloudsVisible", Defaults.CloudsVisible);
                 CloudAltitude = new FloatSetting("CloudAltitude", Defaults.Altitude);
+                CloudSunlitColor = new ColorSetting("CloudSunlitColor", Defaults.SunlitColor);
+                CloudShadeColor = new ColorSetting("CloudShadeColor", Defaults.ShadeColor);
                 CloudPuffCount = new FloatSetting("CloudPuffCount", Defaults.PuffCount);
                 CloudPuffSize = new FloatSetting("CloudPuffSize", Defaults.PuffSize);
 

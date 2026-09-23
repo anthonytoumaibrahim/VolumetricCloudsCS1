@@ -5,11 +5,30 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.0.1 — unreleased
+## 1.1.0 — unreleased
 
-Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is. The file
-gains two lines (where the mod's own button sits), and the settings that were on the options
-page's Weather, Light, Rendering and Halos tabs are now in the in-game panel (see below).
+Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is, and the
+clouds look exactly as before until you pick a colour. The file gains four lines (the two
+cloud colours, and where the mod's own button sits), and the settings that were on the
+options page's Weather, Light, Rendering and Halos tabs are now in the in-game panel (see
+below).
+
+### New: cloud colours
+
+- Two colours on the in-game panel's **Clouds** tab: the **sunlit side** (the tops and the
+  sides facing the sun or the moon) and the **shaded side** (the undersides, lit by the sky,
+  and the faint glow under the clouds at night -- over a city that is often orange). Warm tops
+  over cool bases, a golden hour, a blue-grey storm, or pink clouds for fun.
+- A colour changes only the hue: how bright the clouds are stays with the brightness settings.
+  White, the default, leaves the clouds exactly as they were; greys do the same. The most
+  saturated colours (pure red, pure blue) come out darker, to keep them from glowing.
+- Each colour has the game's own colour picker, a field that takes `#FFC0CB`,
+  `rgb(255, 192, 203)`, `255, 192, 203` or a name such as `pink` (Ctrl+C and Ctrl+V work in
+  it), **Copy** and **Paste** buttons, and a reset button back to white.
+  *Reset all settings to defaults* puts both back to white too.
+- Rain, lightning, the fog and the cloud shadows on the ground keep their own colours.
+
+### Fixes and changes
 
 - Fixed street and building light halos flashing for a frame, every few seconds, while
   *Customise street and building light halos* is on and the city is growing. Whenever a
@@ -33,7 +52,7 @@ page's Weather, Light, Rendering and Halos tabs are now in the in-game panel (se
   is open now leaves it open, behind the options, instead of closing it.
 - The mod's own button (the one shown when it is not in Unified UI) now shows its icon, matches
   Play It!'s button in size and style, and can be dragged anywhere on screen; it stays where
-  you leave it. Two new lines in `VolumetricClouds.xml` remember the spot.
+  you leave it.
 - The log now also gives the computer's memory, and names any other mod that changes the same
   game code as this one, so a crash report can point at the cause.
 

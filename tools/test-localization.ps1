@@ -40,7 +40,7 @@ $needed = New-Object 'System.Collections.Generic.HashSet[string]'
 # Setting property -> its name, from Settings.cs.
 $settingsSrc = Get-Content (Join-Path $root "Settings.cs") -Raw
 $nameOf = @{}
-foreach ($m in [regex]::Matches($settingsSrc, '(\w+) = new (?:Float|Bool|Int)Setting\("(\w+)"')) { $nameOf[$m.Groups[1].Value] = $m.Groups[2].Value }
+foreach ($m in [regex]::Matches($settingsSrc, '(\w+) = new (?:Float|Bool|Int|Color)Setting\("(\w+)"')) { $nameOf[$m.Groups[1].Value] = $m.Groups[2].Value }
 foreach ($m in [regex]::Matches($settingsSrc, '(\w+) = new SavedInputKey\("(\w+)"')) { $nameOf[$m.Groups[1].Value] = $m.Groups[2].Value }
 
 # The rows, one block per "Add(new Row".
@@ -52,7 +52,7 @@ foreach ($b in $blocks) {
     $rows++
     $kind = if ($b -match 'Kind = RowKind\.(\w+)') { $Matches[1] } else { '?' }
     $name = $null
-    if ($b -match '(?:Float|Bool|Int|Key) = Settings\.(\w+)') { $name = $nameOf[$Matches[1]] }
+    if ($b -match '(?:Float|Bool|Int|Key|Colour) = Settings\.(\w+)') { $name = $nameOf[$Matches[1]] }
     if ($b -match 'Id = "(\w+)"') { $name = $Matches[1] }
     if (-not $name) { Write-Host "FAIL  a row with neither a setting nor an Id:`n$b"; $failed++; continue }
     $shown = ($b -match 'Panel = PanelPage\.') -or ($b -match 'Options = OptionsPage\.')
@@ -79,7 +79,7 @@ foreach ($enum in @('PanelPage', 'OptionsPage')) {
 
 # Key-shaped literals anywhere in the code ("Status.Fog.Off", "Unit.Metres"...), including the
 # ones picked by a ?: that a Localization.Get("...") search would miss.
-$prefixes = 'Mod|Tab|Key|Status|Unit|Readout|File|Language|QualityPreset|Group|ResetAll|ResetPattern'
+$prefixes = 'Mod|Tab|Key|Status|Unit|Readout|File|Language|QualityPreset|Group|ResetAll|ResetPattern|Colour'
 foreach ($file in Get-ChildItem $root -Recurse -Filter *.cs | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' }) {
     foreach ($m in [regex]::Matches((Get-Content $file.FullName -Raw), "`"((?:$prefixes)\.[A-Z][A-Za-z.]*[A-Za-z])`"")) {
         [void]$needed.Add($m.Groups[1].Value)

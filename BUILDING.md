@@ -83,7 +83,7 @@ There is no automated test suite. The loop is:
    ```
 
    which is written fresh each session. Repeating lines are behind *Detailed logging*
-   (Options → General, default off); one-shot lines, state changes and anything that can
+   (on the mod's options page, default off); one-shot lines, state changes and anything that can
    suppress rendering are always logged. If you cannot verify something statically, add a log
    line for it.
 

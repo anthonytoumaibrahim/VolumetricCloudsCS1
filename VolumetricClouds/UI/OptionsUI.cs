@@ -13,7 +13,7 @@ namespace VolumetricClouds.UI
     /// the in-game panel (<see cref="CloudsPanel"/>), where it can be judged against the sky.
     /// </summary>
     /// <remarks>
-    /// Until 1.0.1 this page had five tabs (Weather, Light, Rendering, Halos, General) and the
+    /// Until 1.1.0 this page had five tabs (Weather, Light, Rendering, Halos, General) and the
     /// panel borrowed them behind "Show advanced options". The author's call: one place to
     /// change the sky, the panel. The four sky tabs are now the panel's advanced tabs only.
     ///

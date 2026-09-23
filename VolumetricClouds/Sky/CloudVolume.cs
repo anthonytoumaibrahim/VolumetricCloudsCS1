@@ -378,13 +378,20 @@ namespace VolumetricClouds.Sky
             Color cloudSun = (auto ? lightSun : baseSun) * brightness;
             Color cloudAmbient = WithFloor(lightAmbient * brightness);
 
+            // The player's grading, on the CLOUD's two lights only: the sunlit side and the
+            // shaded side. A tint changes the hue, never the brightness, and white is exactly
+            // (1, 1, 1) -- the shader gets bit for bit what it got before colours existed.
+            Color sunlitTint = TintOf(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor);
+            Color shadeTint = TintOf(Settings.CloudShadeColor, Settings.Defaults.ShadeColor);
+
             _material.SetVector(IdSunDir, sunDir.normalized);
-            _material.SetVector(IdSunColor, AsVector(cloudSun));
-            _material.SetVector(IdAmbientColor, AsVector(cloudAmbient));
+            _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint));
+            _material.SetVector(IdAmbientColor, AsVector(cloudAmbient * shadeTint));
 
             // Rain curtains hang from the clouds and are drawn in the same pass, so they keep
             // the CLOUD's two colours: one picture, one light. (A cloud override at 20% with
-            // another mod's rain at full is the one corner where that reads bright.)
+            // another mod's rain at full is the one corner where that reads bright.) The cloud's
+            // light, NOT its grading: rain shafts under pink clouds would read as a bug.
             float curtains = Settings.RainCurtains != null ? Mathf.Max(0f, Settings.RainCurtains.value) : 1f;
             _material.SetFloat(IdRainShaftDensity, CloudRain.Active ? RainExtinction * curtains : 0f);
             _material.SetFloat(IdRainSteps, 20f);
@@ -395,7 +402,7 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * 0.6f);
             _material.SetVector(IdRainSun, AsVector(cloudSun) * 0.12f);
 
-            ApplyNight(sun);
+            ApplyNight(sun, shadeTint);
             ApplyFog(sun, lightAmbient, baseSun);
 
             if (!_loggedLighting)
@@ -505,7 +512,7 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
-        private void ApplyNight(Light sun)
+        private void ApplyNight(Light sun, Color shadeTint)
         {
             float night = NightFactor(sun);
 
@@ -519,8 +526,17 @@ namespace VolumetricClouds.Sky
             // Pale and slightly cool, not orange, and the same everywhere: the first version
             // projected a map of the city's buildings up in sodium orange, and an orange slab
             // shaped like the street plan looked "very weird" over a real city.
+            // The shade colour tints it too: it lights the base, which is the shaded side, and
+            // over a real city at night that glow is often orange -- the player's call.
             float glow = Settings.NightGlow != null ? Mathf.Max(0f, Settings.NightGlow.value) : 1f;
-            _material.SetVector(IdNightGlow, new Vector4(0.8f, 0.86f, 0.96f, 0f) * (NightGlowStrength * glow * night));
+            Vector4 pale = new Vector4(0.8f * shadeTint.r, 0.86f * shadeTint.g, 0.96f * shadeTint.b, 0f);
+            _material.SetVector(IdNightGlow, pale * (NightGlowStrength * glow * night));
+        }
+
+        /// <summary>A colour setting as the multiplier it is on the light (Sky.CloudTint).</summary>
+        private static Color TintOf(ColorSetting setting, Color32 fallback)
+        {
+            return CloudTint.Of(setting != null ? setting.value : fallback);
         }
 
         /// <summary>

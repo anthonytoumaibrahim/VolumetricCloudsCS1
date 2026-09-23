@@ -97,7 +97,7 @@ namespace VolumetricClouds
         public static void ReportLevel()
         {
             Msg("detailed logging is " + (Detailed ? "ON" : "off") +
-                (Detailed ? "" : " -- tick it in Options -> General before reporting a problem"));
+                (Detailed ? "" : " -- tick it on the mod's options page before reporting a problem"));
         }
 
         public static void Warn(string message)

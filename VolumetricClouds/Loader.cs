@@ -53,7 +53,7 @@ namespace VolumetricClouds
         /// else). On a Mac or Linux -- or Windows forced onto OpenGL -- the bundle does not load
         /// or its shaders are unsupported, and ShaderBundle returns null. The mod used to carry
         /// on with its billboard fallback there; the author does not want a player to meet it
-        /// that way (1.0.1), so without the raymarch shader nothing starts at all.
+        /// that way (1.1.0), so without the raymarch shader nothing starts at all.
         /// </summary>
         private static bool CanDrawClouds()
         {

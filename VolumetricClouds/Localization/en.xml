@@ -146,6 +146,39 @@
   <String key="Status.Brightness.Auto">Cloud brightness: {0} (automatic, at intensity {1})</String>
   <String key="Status.Brightness.Manual">Cloud brightness: {0} (set by hand)</String>
 
+  <String key="Group.CloudColour">Colour (white leaves the clouds as they are)</String>
+
+  <String key="CloudSunlitColor.Label">Sunlit side</String>
+  <String key="CloudSunlitColor.Tooltip">
+    The colour of the light on the clouds' sunny side: their tops, the sides facing the sun and
+    the bright rim around them (the moon's light at night). Only the colour changes: how bright
+    the clouds are stays with the brightness settings. White leaves them as they are.
+  </String>
+
+  <String key="CloudShadeColor.Label">Shaded side</String>
+  <String key="CloudShadeColor.Tooltip">
+    The colour of the clouds' shaded side: their undersides and the sides away from the sun, lit
+    by the sky. At night it also colours the faint glow under the clouds, which over a city is
+    often orange. Only the colour changes: how bright the clouds are stays with the brightness
+    settings. White leaves them as they are.
+  </String>
+
+  <String key="Colour.Field.Tooltip">
+    Type or paste a colour and press Enter: #FFC0CB, rgb(255, 192, 203), 255, 192, 203, or a
+    name such as pink.
+  </String>
+  <String key="Colour.Invalid">Not a colour: {0}. Try #FFC0CB or 255, 192, 203.</String>
+  <String key="Colour.Copy">Copy</String>
+  <String key="Colour.Copied">Copied</String>
+  <String key="Colour.Copy.Tooltip">Copy this colour ({0}) to the clipboard.</String>
+  <String key="Colour.Paste">Paste</String>
+  <String key="Colour.Paste.Tooltip">
+    Use the colour on the clipboard: #FFC0CB, rgb(255, 192, 203), 255, 192, 203, or a name such
+    as pink.
+  </String>
+  <String key="Colour.Reset">Default</String>
+  <String key="Colour.Reset.Tooltip">Back to white: the clouds' own colour, as without this setting.</String>
+
   <!-- ==================== In-game panel: Fog ==================== -->
 
   <String key="FogEnabled.Label">Volumetric fog (VERY heavy on performance)</String>
@@ -632,6 +665,7 @@
   <String key="File.Toggle">{0}. true or false, default {1}.</String>
   <String key="File.Choice">{0}. One of {1}; default {2}.</String>
   <String key="File.Key">{0}. A key such as F4 or Ctrl+Shift+C, or None; default {1}.</String>
+  <String key="File.Colour">{0}. A colour, #RRGGBB (255, 192, 203 is read too); default {1}.</String>
   <String key="File.Confirm">Switching it on here skips the question the game asks first.</String>
 
 </Language>

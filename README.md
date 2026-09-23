@@ -29,6 +29,10 @@ and bring their own rain, lightning, fog and night sky with them.
   bottom up, or only above a height you choose. At night it glows round street lamps, building
   lights and headlights. Off by default.
 - **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
+- **Cloud colours** — tint the sunlit side and the shaded side of the clouds separately: warm
+  tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
+  hue changes, never the brightness; white, the default, leaves the clouds as they are. The
+  game's own colour picker, a field for `#FFC0CB` or `255, 192, 203`, Copy, Paste and a reset.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
   the game bug that turns a halo into a solid box at negative fog values.
@@ -65,7 +69,8 @@ backups of the cities you care about.
 1. Load a city. The clouds replace the game's dynamic weather straight away; nothing needs
    configuring.
 2. Press **F4** (rebindable), or the Unified UI button, to open the in-game panel.
-3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look.
+3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look,
+   the cloud colours included.
 4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
    page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
    the F4 panel. That page also has the language, the panel's key and the reset buttons.
@@ -92,8 +97,8 @@ materials, fog fields, halo materials, star render order — is put back when th
 All tuning so far was done on an RTX 5070 Ti, which hides costs. The **High** preset is the
 only one that has been measured; **Low** and **Medium** are provisional. Volumetric fog is by
 far the most expensive feature, which is why it is opt-in. The raymarch quality slider and the
-shadow map's resolution and update rate (Options → Rendering) are the levers if frames are
-tight.
+shadow map's resolution and update rate (the in-game panel's Rendering tab, shown with
+*Show advanced options in the in-game panel*) are the levers if frames are tight.
 
 ## Known limitations
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace VolumetricClouds
 {
@@ -118,6 +119,41 @@ namespace VolumetricClouds
                 _value = value;
                 Changed();
             }
+        }
+    }
+
+    /// <summary>
+    /// A colour as the player picked it: sRGB, 0..255 a channel, always opaque. Written to the
+    /// file as #RRGGBB (<see cref="ColorText"/>). What it DOES to the picture is its user's
+    /// business -- the cloud colours go through <see cref="Sky.CloudTint"/>.
+    /// </summary>
+    public sealed class ColorSetting : Setting
+    {
+        private Color32 _value;
+
+        public ColorSetting(string name, Color32 value)
+            : base(name, null)
+        {
+            _value = Opaque(value);
+        }
+
+        public Color32 value
+        {
+            get { return _value; }
+            set
+            {
+                value = Opaque(value);
+                if (ColorText.Same(_value, value))
+                    return;
+
+                _value = value;
+                Changed();
+            }
+        }
+
+        private static Color32 Opaque(Color32 colour)
+        {
+            return new Color32(colour.r, colour.g, colour.b, 255);
         }
     }
 }

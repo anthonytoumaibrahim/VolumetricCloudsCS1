@@ -326,7 +326,7 @@ namespace VolumetricClouds
         private void OnLocaleChanged()
         {
             if (Settings.Language != null && Settings.Language.value != 0)
-                return; // a language chosen on Options -> General does not follow the game's
+                return; // a language chosen on the options page does not follow the game's
 
             Log.Msg("localization: the game's language changed to '" + Localization.CurrentCode + "'; rebuilding the panel");
             CreatePanel();

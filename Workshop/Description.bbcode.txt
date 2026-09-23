@@ -31,6 +31,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Lightning[/b] that lights up the clouds from inside
 [*][b]Volumetric fog[/b] (optional, off by default): fog that rolls over the city like low cloud
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
+[*][b]Cloud colours[/b]: tint the sunlit side and the shaded side of the clouds separately, from warm sunsets to an orange city glow at night
 [*][b]Smaller light halos[/b] (optional, off by default): shrinks the oversized glow around street lamps, building lights and vehicles
 [/list]
 
@@ -39,7 +40,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 The clouds are drawn in 3D every frame, so they cost more than the game's flat sky; how much depends on your graphics card.
 [list]
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
-[*]If the clouds alone are too demanding, lower the [i]Quality preset[/i] (Options → Volumetric Weather → Rendering) to Medium or Low.
+[*]If the clouds alone are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
 [*]The Medium and Low presets are estimates for now, not yet measured on slower hardware. Reports of how they run are welcome.
 [/list]
 
@@ -51,7 +52,6 @@ I develop and test this mod in my own game. No setup covers every combination, s
 [hr][/hr]
 [h1]Coming soon[/h1]
 [list]
-[*][b]Color Grading[/b]: allows customizing the clouds' colors.
 [*][b]Profiles[/b]: save favourite skies and switch between them.
 [*][b]More languages[/b]: English only for now; translations are planned.
 [*][b]A Discord link[/b] for support and feedback.
@@ -67,7 +67,7 @@ The mod is open source under the MIT license, except for the light halo shaders,
 Please include the following:
 [olist]
 [*][b]The game's log[/b], [i]output_log.txt[/i]. In Steam, right-click Cities: Skylines → [i]Manage → Browse local files[/i], then open the [i]Cities_Data[/i] folder.
-[*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. Tick [i]Detailed logging[/i] (Options → Volumetric Weather → General) first, then make the problem happen again. To find it, paste this into File Explorer's address bar:
+[*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. Tick [i]Detailed logging[/i] (Options → Volumetric Weather) first, then make the problem happen again. To find it, paste this into File Explorer's address bar:
 [code]%LOCALAPPDATA%\Colossal Order\Cities_Skylines[/code]
 [*][b]What happened[/b]: what you did and expected, screenshots, your graphics card and your other mods.
 [/olist]

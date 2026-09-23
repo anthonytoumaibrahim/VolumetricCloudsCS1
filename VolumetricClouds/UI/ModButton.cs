@@ -8,7 +8,7 @@ namespace VolumetricClouds.UI
     /// Unified UI icon off. Drag it to move it; where it was left is saved.
     /// </summary>
     /// <remarks>
-    /// Until 1.0.1 it showed no icon: the icon was the button's own foreground sprite and the
+    /// Until 1.1.0 it showed no icon: the icon was the button's own foreground sprite and the
     /// background a CHILD sprite added after it, and children are drawn over their parent. Now
     /// the button draws the game's background sprites itself and the icon is the child, so it
     /// is on top; the child is not interactive, so every click still reaches the button.
