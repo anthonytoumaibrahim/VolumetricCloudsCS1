@@ -1,10 +1,10 @@
 [h1]Version 1.1.1: Mac and Linux[/h1]
-Update 1.1.1 brings the mod to [b]Mac[/b] and [b]Linux[/b] versions of the game, as a first, experimental release. It also adds settings for the rain streaks near the camera (length, width, brightness, colour and fall speed), under the advanced options. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+The mod should now work natively on [b]Mac[/b] and [b]Linux[/b]. The full list of changes is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]
 [h1]Requirements[/h1]
-[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b]: expect a lower frame rate than on a Windows PC (the mod's options page says so too). On Linux and Steam Deck, running the Windows version through [b]Proton[/b] works as before.
+[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b].
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
@@ -26,7 +26,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Volumetric 3D clouds with real shadows[/b] on the ground
 [*][b]Follows the game's weather[/b], or you can set it yourself
 [*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning lights them up from inside
-[*][b]NEW: Cloud and fog colours[/b]: pick one colour for the sunlit side of the clouds and one for the shaded side, from warm sunsets to an orange city glow at night, and one for the fog. White keeps the normal look
+[*][b]NEW: Cloud and fog colors[/b]: pick one color for the sunlit side of the clouds and one for the shaded side, from warm sunsets to an orange city glow at night, and one for the fog. White keeps the normal look
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
@@ -48,9 +48,8 @@ Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer
 [hr][/hr]
 [h1]Coming soon[/h1]
 [list]
-[*][b]Profiles[/b]: save favourite skies and switch between them.
-[*][b]More languages[/b]: English only for now; translations are planned.
-[*][b]A Discord link[/b] for support and feedback.
+[*][b]Profiles[/b]: save favorite skies and switch between them.
+[*][b]More languages[/b]: English only for now. To help translate, copy [url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1/blob/master/VolumetricClouds/Localization/en.xml]en.xml[/url] (instructions inside) and post a link to it as a new discussion or a comment.
 [/list]
 
 [hr][/hr]

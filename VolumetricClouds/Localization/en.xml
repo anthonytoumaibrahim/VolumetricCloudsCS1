@@ -11,8 +11,9 @@
   - \n is a real line break (used in the two confirmation dialogs).
   - A key missing from a translation shows in English, so a partial translation works.
 
-  Tooltips: say what the setting does in everyday words, then what raising or lowering it does.
-  No rendering terms (raymarch, noise, depth buffer, shader): the player sees clouds, not maths.
+  Tooltips: as few words as possible, never more than one short line (a long one runs out of
+  the game's tooltip box). Say only what the label leaves out. Everyday words, no rendering
+  terms (raymarch, noise, depth buffer, shader).
 -->
 <Language code="en" name="English">
 
@@ -50,9 +51,7 @@
     {0}
   </String>
   <String key="Mod.ExperimentalPlatformNote">
-    Mac and Linux support is new and experimental: expect a lower frame rate than on a Windows
-    PC. If the game stutters, pick the Low quality preset on the in-game panel's Rendering tab
-    (switch on the advanced options above to see it), or lower the game's resolution.
+    Mac and Linux support is new and experimental. If the game stutters, pick the Low quality preset.
   </String>
 
   <String key="Tab.Now">Now</String>
@@ -69,32 +68,20 @@
   <!-- ==================== In-game panel: Now ==================== -->
 
   <String key="FollowTheGame.Label">Follow the game's weather (clear every override)</String>
-  <String key="FollowTheGame.Tooltip">
-    Turns off all three overrides below at once, so the clouds, fog and lightning go back to
-    following the game's weather.
-  </String>
+  <String key="FollowTheGame.Tooltip">Turns off all three overrides.</String>
 
   <String key="Status.Weather.Game">rain {0}, clouds {1}</String>
   <String key="Status.Weather.Manual">OVERRIDDEN: intensity {0}  (the game says {1})</String>
   <String key="Status.Weather.Following">Following the game: {0}  ->  intensity {1}  (clear {2} to rain {3})</String>
 
   <String key="CoverageOverride.Label">Ignore the game's weather</String>
-  <String key="CoverageOverride.Tooltip">
-    Set the amount of cloud yourself with the slider below, whatever the game's weather is
-    doing. Only the clouds change: rain, fog and lightning still follow the game.
-  </String>
+  <String key="CoverageOverride.Tooltip">Set the amount of cloud yourself.</String>
 
   <String key="Coverage.Label">Fixed intensity</String>
-  <String key="Coverage.Tooltip">
-    How much of the sky is covered in cloud. Even at 100% a few gaps stay open, so some sunlight
-    still gets through.
-  </String>
+  <String key="Coverage.Tooltip">How much of the sky is cloudy.</String>
 
   <String key="WindSpeed.Label">Movement speed</String>
-  <String key="WindSpeed.Tooltip">
-    How fast the clouds drift across the sky. They stop when the game is paused and speed up
-    with the game speed.
-  </String>
+  <String key="WindSpeed.Tooltip">How fast the clouds drift.</String>
 
   <String key="Status.Fog.Off">Volumetric fog is off</String>
   <String key="Status.Fog.Waiting">Volumetric fog: waiting for the clouds</String>
@@ -104,77 +91,42 @@
   <String key="Status.Fog.Following">Following the game: fog {0}  ->  {1}</String>
 
   <String key="FogOverride.Label">Override fog</String>
-  <String key="FogOverride.Tooltip">
-    Set the amount of fog yourself with the slider below. When off, the fog follows the game's
-    foggy weather, or another mod's fog setting.
-  </String>
+  <String key="FogOverride.Tooltip">Set the amount of fog yourself.</String>
 
   <String key="FogAmount.Label">Fog amount</String>
-  <String key="FogAmount.Tooltip">
-    How much of the map is covered in fog: 30% is about a third of it, 100% is everywhere.
-  </String>
+  <String key="FogAmount.Tooltip">How much of the map is foggy.</String>
 
   <String key="LightningOverride.Label">Set lightning activity myself</String>
-  <String key="LightningOverride.Tooltip">
-    Choose how often lightning flashes with the slider below, for example for a dry
-    thunderstorm. When off, it follows the rain. This lightning is only for show: it never
-    starts fires.
-  </String>
+  <String key="LightningOverride.Tooltip">Set how often lightning flashes instead of following the rain.</String>
 
   <String key="LightningActivity.Label">Lightning activity</String>
-  <String key="LightningActivity.Tooltip">
-    How often lightning flashes. Even at the top of the slider, rapid flickering is held back
-    to protect players who are sensitive to flashing lights.
-  </String>
+  <String key="LightningActivity.Tooltip">How often lightning flashes.</String>
 
   <String key="TestLightning.Label">Test lightning (visual only, in front of the camera)</String>
-  <String key="TestLightning.Tooltip">
-    Shows one lightning strike in front of the camera, taking turns between a bolt to the ground
-    and a flash inside the cloud. Works while the game is paused.
-  </String>
+  <String key="TestLightning.Tooltip">Shows one strike, even while paused.</String>
 
   <!-- ==================== In-game panel: Clouds ==================== -->
 
-  <String key="CloudsVisible.Label">Show clouds</String>
-  <String key="CloudsVisible.Tooltip">
-    Shows the clouds. When off, you get the game's normal sky back, and this mod's cloud
-    shadows, rain, fog and lightning are switched off with them.
-  </String>
+  <String key="CloudsVisible.Label">Volumetric Weather</String>
+  <String key="CloudsVisible.Tooltip">Off: removes this mod's clouds, shadows, rain, fog and lightning.</String>
 
   <String key="CloudAltitude.Label">Cloud altitude</String>
-  <String key="CloudAltitude.Tooltip">How high the bottom of the clouds is, above sea level.</String>
+  <String key="CloudAltitude.Tooltip">Height of the cloud base above sea level.</String>
 
   <String key="CloudThickness.Label">Layer thickness</String>
-  <String key="CloudThickness.Tooltip">
-    How tall the clouds are, from bottom to top. Taller clouds are darker underneath and cost a
-    little more performance.
-  </String>
+  <String key="CloudThickness.Tooltip">How tall the clouds are.</String>
 
   <String key="CloudBreakup.Label">Break-up (solid to ragged)</String>
-  <String key="CloudBreakup.Tooltip">
-    How torn the clouds are. Low gives smooth, solid clouds; high gives ragged clouds with more
-    gaps between them.
-  </String>
+  <String key="CloudBreakup.Tooltip">How torn the clouds are.</String>
 
   <String key="CloudBreakupScale.Label">Break-up detail (big to fine)</String>
-  <String key="CloudBreakupScale.Tooltip">
-    The size of that tearing: low breaks off big chunks, high makes fine wisps.
-  </String>
+  <String key="CloudBreakupScale.Tooltip">Size of the torn pieces.</String>
 
   <String key="CloudFragments.Label">Cloud fragments</String>
-  <String key="CloudFragments.Tooltip">
-    Small, thin shreds of cloud around the big clouds, the ragged pieces real skies have
-    between and beside their large clouds. The number is how much of the sky they cover; at 0
-    there are none. They need some open sky to show: at a very high intensity the big clouds
-    leave no room for them.
-  </String>
+  <String key="CloudFragments.Tooltip">Small shreds of cloud between the big ones.</String>
 
   <String key="CloudFragmentStyle.Label">Fragment style</String>
-  <String key="CloudFragmentStyle.Tooltip">
-    How the fragments look. Clustered: gathered around the edges of the big clouds. Scattered:
-    spread over the sky in random patches. Wispy: scattered too, but thinner, fainter and more
-    torn.
-  </String>
+  <String key="CloudFragmentStyle.Tooltip">How the fragments look.</String>
   <String key="CloudFragmentStyle.Clustered">Clustered</String>
   <String key="CloudFragmentStyle.Scattered">Scattered</String>
   <String key="CloudFragmentStyle.Wispy">Wispy</String>
@@ -185,44 +137,25 @@
   <String key="Group.CloudColour">Colour (white leaves the clouds as they are)</String>
 
   <String key="CloudSunlitColor.Label">Sunlit side</String>
-  <String key="CloudSunlitColor.Tooltip">
-    The colour of the light on the clouds' sunny side: their tops, the sides facing the sun and
-    the bright rim around them (the moon's light at night). Only the colour changes: how bright
-    the clouds are stays with the brightness settings. White leaves them as they are.
-  </String>
+  <String key="CloudSunlitColor.Tooltip">Colour of the clouds' sunny side.</String>
 
   <String key="CloudShadeColor.Label">Shaded side</String>
-  <String key="CloudShadeColor.Tooltip">
-    The colour of the clouds' shaded side: their undersides and the sides away from the sun, lit
-    by the sky. At night it also colours the faint glow under the clouds, which over a city is
-    often orange. Only the colour changes: how bright the clouds are stays with the brightness
-    settings. White leaves them as they are.
-  </String>
+  <String key="CloudShadeColor.Tooltip">Colour of the clouds' undersides.</String>
 
-  <String key="Colour.Field.Tooltip">
-    Type or paste a colour and press Enter: #FFC0CB, rgb(255, 192, 203), 255, 192, 203, or a
-    name such as pink.
-  </String>
-  <String key="Colour.Invalid">Not a colour: {0}. Try #FFC0CB or 255, 192, 203.</String>
+  <String key="Colour.Field.Tooltip">Type a colour and press Enter.</String>
+  <String key="Colour.Invalid">Not a colour: {0}. Try #FFC0CB.</String>
   <String key="Colour.Copy">Copy</String>
   <String key="Colour.Copied">Copied</String>
-  <String key="Colour.Copy.Tooltip">Copy this colour ({0}) to the clipboard.</String>
+  <String key="Colour.Copy.Tooltip">Copy {0}.</String>
   <String key="Colour.Paste">Paste</String>
-  <String key="Colour.Paste.Tooltip">
-    Use the colour on the clipboard: #FFC0CB, rgb(255, 192, 203), 255, 192, 203, or a name such
-    as pink.
-  </String>
+  <String key="Colour.Paste.Tooltip">Paste a colour.</String>
   <String key="Colour.Reset">Default</String>
-  <String key="Colour.Reset.Tooltip">Back to white: the clouds' own colour, as without this setting.</String>
+  <String key="Colour.Reset.Tooltip">Back to white.</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
   <String key="FogEnabled.Label">Volumetric fog (VERY heavy on performance)</String>
-  <String key="FogEnabled.Tooltip">
-    Real 3D fog that lies on the land: it has a top you can see from above, and sunbeams break
-    through it. It replaces the game's foggy-weather effect; the game's distance haze stays.
-    This is by far the most demanding setting in the mod.
-  </String>
+  <String key="FogEnabled.Tooltip">Real 3D fog.</String>
   <String key="FogEnabled.Note">
     WARNING: This setting will significantly impact performance. Only recommended for users
     with powerful hardware.
@@ -235,357 +168,209 @@
   </String>
 
   <String key="FogLampsEnabled.Label">Fog lit by the city's lights</String>
-  <String key="FogLampsEnabled.Tooltip">
-    At night, fog around street lamps, buildings and car headlights glows in the colour of their
-    light. Only works with volumetric fog on.
-  </String>
+  <String key="FogLampsEnabled.Tooltip">Fog glows around lights at night.</String>
 
   <String key="FogDensity.Label">Fog density</String>
-  <String key="FogDensity.Tooltip">
-    How thick the fog is, which decides how far you can see through it. Thicker fog can cost
-    more performance.
-  </String>
+  <String key="FogDensity.Tooltip">How thick the fog is.</String>
 
   <String key="FogFollowsGround.Label">Fog follows the ground</String>
-  <String key="FogFollowsGround.Tooltip">
-    Off: the fog is flat, like a lake of fog, so valleys fill up and hills rise out of it.
-    On: the fog lies evenly over the land and follows hills and mountains.
-  </String>
+  <String key="FogFollowsGround.Tooltip">On: fog hugs the terrain. Off: fog lies flat.</String>
 
   <String key="FogBase.Label">Fog starts at</String>
-  <String key="FogBase.Tooltip">
-    How high the bottom of the fog is: above sea level, or above the ground when the fog follows
-    it. 0 starts the fog at the bottom. Raise it for fog that only hangs higher up, like low
-    cloud.
-  </String>
+  <String key="FogBase.Tooltip">Height of the fog's bottom.</String>
 
   <String key="FogHeight.Label">Fog height</String>
-  <String key="FogHeight.Tooltip">
-    How thick the fog layer is, from its bottom to its top. For example, starting at 200 m with
-    a height of 150 m gives fog from 200 m to 350 m.
-  </String>
+  <String key="FogHeight.Tooltip">Thickness of the fog layer.</String>
 
   <String key="FogBreakup.Label">Fog break-up (solid to wispy)</String>
-  <String key="FogBreakup.Tooltip">
-    How patchy the fog is. Low gives solid fog; high gives thin, wispy fog with gaps.
-  </String>
+  <String key="FogBreakup.Tooltip">How patchy the fog is.</String>
 
   <String key="FogSpeed.Label">Fog speed</String>
-  <String key="FogSpeed.Tooltip">How fast the fog drifts and swirls. 0 keeps it still.</String>
+  <String key="FogSpeed.Tooltip">How fast the fog drifts.</String>
 
   <String key="FogBrightness.Label">Fog brightness</String>
-  <String key="FogBrightness.Tooltip">
-    How bright the fog looks. This is separate from the brightness of the clouds.
-  </String>
+  <String key="FogBrightness.Tooltip">How bright the fog is.</String>
 
   <String key="FogTint.Label">Fog tint (cool to warm)</String>
-  <String key="FogTint.Tooltip">
-    Gives the fog a cold blue-grey or a warm, hazy tint. The time of day still colours it too:
-    orange at sunset, blue at night.
-  </String>
+  <String key="FogTint.Tooltip">Blue-grey to warm haze.</String>
 
   <String key="FogColor.Label">Fog colour</String>
-  <String key="FogColor.Tooltip">
-    Any colour for the fog, on top of the tint above and the light it stands in. Only the
-    colour changes: how bright the fog is stays with 'Fog brightness'. White leaves it as it
-    is. The glow of the city's lights inside the fog keeps the lights' own colours.
-  </String>
+  <String key="FogColor.Tooltip">Colour of the fog.</String>
 
   <String key="FogLampLight.Label">Lit fog brightness</String>
-  <String key="FogLampLight.Tooltip">How brightly the city's lights make the fog around them glow.</String>
+  <String key="FogLampLight.Tooltip">How bright the glow around lights is.</String>
 
   <String key="FogLampRadius.Label">Lit radius round a light</String>
-  <String key="FogLampRadius.Tooltip">How far the glow reaches from each light before it fades away.</String>
+  <String key="FogLampRadius.Tooltip">How far the glow reaches.</String>
 
   <!-- ==================== Advanced: Weather ==================== -->
 
   <String key="Group.WeatherMapping">How the game's weather maps to cloud cover</String>
 
   <String key="WeatherFairCoverage.Label">Intensity: clear weather</String>
-  <String key="WeatherFairCoverage.Tooltip">
-    How much cloud there is on a clear day. Raise it for more cloud in good weather. The game's
-    weather still moves the sky between this and the rain setting below.
-  </String>
+  <String key="WeatherFairCoverage.Tooltip">Cloud cover in clear weather.</String>
 
   <String key="WeatherOvercastCoverage.Label">Intensity: rain</String>
-  <String key="WeatherOvercastCoverage.Tooltip">
-    How much cloud there is when it rains, or when the game's weather turns cloudy. Raise it for
-    darker, more dramatic storms.
-  </String>
+  <String key="WeatherOvercastCoverage.Tooltip">Cloud cover in rain.</String>
 
   <String key="WeatherTileSize.Label">Weather pattern size</String>
-  <String key="WeatherTileSize.Tooltip">
-    How big the cloud patterns are. Smaller gives more, smaller groups of clouds across the
-    map; larger gives big, sweeping weather systems.
-  </String>
+  <String key="WeatherTileSize.Tooltip">Size of the cloud patterns.</String>
 
   <String key="Group.Rain">Rain</String>
 
   <String key="RainEnabled.Label">Replace the game's rain</String>
-  <String key="RainEnabled.Tooltip">
-    Rain falls only under the thickest clouds, in curtains you can see from far away, instead of
-    the game's rain that follows the camera everywhere. How much it rains is still up to the
-    game.
-  </String>
+  <String key="RainEnabled.Tooltip">Rain falls only under the clouds.</String>
 
   <String key="RainCurtains.Label">Rain curtains under clouds</String>
-  <String key="RainCurtains.Tooltip">
-    How thick the rain looks from a distance, under the clouds. 0 leaves only the raindrops near
-    the camera.
-  </String>
+  <String key="RainCurtains.Tooltip">How thick the rain looks from afar.</String>
 
   <String key="RainStreaks.Label">Rain streaks near camera</String>
-  <String key="RainStreaks.Tooltip">
-    How many raindrops fall past the camera. 0 leaves only the rain you see from a distance.
-  </String>
+  <String key="RainStreaks.Tooltip">How many raindrops fall past the camera.</String>
 
   <String key="RainStreakHeight.Label">Streaks fade out above</String>
-  <String key="RainStreakHeight.Tooltip">
-    Above this camera height the nearby raindrops fade away. From high up you see the rain from
-    a distance instead.
-  </String>
+  <String key="RainStreakHeight.Tooltip">Camera height where nearby raindrops fade out.</String>
 
   <String key="RainStreakLength.Label">Streak length</String>
-  <String key="RainStreakLength.Tooltip">
-    How long each raindrop's streak is. Longer streaks read as faster, heavier rain; shorter
-    ones as drops.
-  </String>
+  <String key="RainStreakLength.Tooltip">How long each streak is.</String>
 
   <String key="RainStreakWidth.Label">Streak width</String>
-  <String key="RainStreakWidth.Tooltip">
-    How thick each streak is. Streaks too thin to see from far away fade out rather than
-    flicker.
-  </String>
+  <String key="RainStreakWidth.Tooltip">How thick each streak is.</String>
 
   <String key="RainStreakOpacity.Label">Streak brightness</String>
-  <String key="RainStreakOpacity.Tooltip">
-    How visible the streaks are against the scene. 0 hides them; higher makes them stand out.
-  </String>
+  <String key="RainStreakOpacity.Tooltip">How visible the streaks are.</String>
 
   <String key="RainStreakColor.Label">Streak colour</String>
-  <String key="RainStreakColor.Tooltip">
-    A tint for the streaks. Their colour already follows the sky, darker at night and warmer at
-    sunset; this only changes the hue. White leaves them as they are.
-  </String>
+  <String key="RainStreakColor.Tooltip">Colour of the streaks.</String>
 
   <String key="RainFallSpeed.Label">Rain fall speed</String>
-  <String key="RainFallSpeed.Tooltip">
-    How fast the rain falls. It also moves the rain curtains in the distance, so both stay in
-    step. Slow rain with short, wide, bright streaks looks like sleet.
-  </String>
+  <String key="RainFallSpeed.Tooltip">How fast the rain falls.</String>
 
   <String key="RainLocalised.Label">Rain sound and wet roads follow the clouds</String>
-  <String key="RainLocalised.Tooltip">
-    You only hear rain, and roads only get wet, where it is actually raining, so it stays dry
-    where the sky is clear.
-  </String>
+  <String key="RainLocalised.Tooltip">Only where it is actually raining.</String>
 
   <String key="Group.Lightning">Lightning</String>
 
   <String key="LightningEnabled.Label">Lightning lights the clouds and rain</String>
-  <String key="LightningEnabled.Tooltip">
-    Lightning lights up the clouds and rain from inside. This also adds extra lightning in
-    storms, which is only for show and never starts fires.
-  </String>
+  <String key="LightningEnabled.Tooltip">Also adds harmless lightning in storms.</String>
 
   <String key="LightningReplaceBolt.Label">Replace the game's lightning bolt</String>
-  <String key="LightningReplaceBolt.Tooltip">
-    Draws a new, different bolt each time, coming down from the clouds, instead of the game's
-    single fixed bolt. Thunder and fires work as before.
-  </String>
+  <String key="LightningReplaceBolt.Tooltip">A new bolt shape for every strike.</String>
 
   <String key="LightningBrightness.Label">Lightning brightness</String>
-  <String key="LightningBrightness.Tooltip">How bright the lightning bolt and its flash in the clouds are.</String>
+  <String key="LightningBrightness.Tooltip">How bright the lightning is.</String>
 
   <String key="LightningStormScale.Label">Lightning in storms</String>
-  <String key="LightningStormScale.Tooltip">
-    How much lightning heavy rain brings. At 100% there is about one strike every three seconds
-    in the heaviest rain.
-  </String>
+  <String key="LightningStormScale.Tooltip">How much lightning heavy rain brings.</String>
 
   <!-- ==================== Advanced: Light ==================== -->
 
   <String key="Group.Shadows">Shadows on the ground</String>
 
   <String key="CloudShadows.Label">Clouds cast shadows on the ground</String>
-  <String key="CloudShadows.Tooltip">
-    Clouds cast moving shadows on the city. This is the only thing in the mod that darkens the
-    ground.
-  </String>
+  <String key="CloudShadows.Tooltip">Moving shadows on the city.</String>
 
   <String key="CloudShadowDarkness.Label">Shadow darkness</String>
-  <String key="CloudShadowDarkness.Tooltip">
-    How dark the ground gets under thick cloud. Gaps between the clouds always get full
-    sunlight.
-  </String>
+  <String key="CloudShadowDarkness.Tooltip">How dark the ground gets under cloud.</String>
 
   <String key="CloudShadowFullness.Label">Shadow fullness</String>
-  <String key="CloudShadowFullness.Tooltip">
-    Makes thin clouds and cloud edges cast stronger shadows, so more of the ground is shaded.
-    Raise it if the shadows look too faint.
-  </String>
+  <String key="CloudShadowFullness.Tooltip">Stronger shadows from thin clouds.</String>
 
   <String key="Group.Brightness">How brightly the clouds are lit</String>
 
   <String key="CloudBrightnessAuto.Label">Brightness follows the cloud intensity</String>
-  <String key="CloudBrightnessAuto.Tooltip">
-    Clouds are brighter in fair weather and greyer when they fill the sky, between the two
-    settings below. Turn it off to use one fixed brightness instead.
-  </String>
+  <String key="CloudBrightnessAuto.Tooltip">Brighter in fair weather, greyer when overcast.</String>
 
   <String key="CloudBrightnessClear.Label">Brightness: clear sky</String>
-  <String key="CloudBrightnessClear.Tooltip">How bright the clouds are when there are only a few of them.</String>
+  <String key="CloudBrightnessClear.Tooltip">Cloud brightness in a mostly clear sky.</String>
 
   <String key="CloudBrightnessOvercast.Label">Brightness: full overcast</String>
-  <String key="CloudBrightnessOvercast.Tooltip">How bright the clouds are when they cover the whole sky.</String>
+  <String key="CloudBrightnessOvercast.Tooltip">Cloud brightness when the sky is full.</String>
 
   <String key="CloudBrightness.Label">Cloud brightness (fixed)</String>
-  <String key="CloudBrightness.Tooltip">
-    The cloud brightness used when 'Brightness follows the cloud intensity' is off.
-  </String>
+  <String key="CloudBrightness.Tooltip">Used with automatic brightness off.</String>
 
   <String key="MinIllumination.Label">Clouds dim at full overcast to</String>
-  <String key="MinIllumination.Tooltip">
-    How much the clouds darken as they fill the sky. Only used when 'Brightness follows the
-    cloud intensity' is off.
-  </String>
+  <String key="MinIllumination.Tooltip">Used with automatic brightness off.</String>
 
   <String key="CloudDensity.Label">Cloud density</String>
-  <String key="CloudDensity.Tooltip">
-    How thick and solid the clouds look. Higher makes them whiter on top and darker underneath.
-  </String>
+  <String key="CloudDensity.Tooltip">How solid the clouds look.</String>
 
   <String key="Group.Night">At night</String>
 
   <String key="CloudNightOpacity.Label">Clouds hide the stars at night</String>
-  <String key="CloudNightOpacity.Tooltip">
-    Stops stars from showing through the clouds at night. It has no effect during the day.
-  </String>
+  <String key="CloudNightOpacity.Tooltip">Stops stars showing through clouds.</String>
 
   <String key="NightGlow.Label">Glow under the clouds at night</String>
-  <String key="NightGlow.Tooltip">
-    A soft, pale glow on the underside of the clouds at night, like the light a city throws up
-    into the sky.
-  </String>
+  <String key="NightGlow.Tooltip">A soft glow, like city light.</String>
 
   <!-- ==================== Advanced: Rendering ==================== -->
 
   <String key="Group.Performance">Performance</String>
 
   <String key="QualityPreset.Label">Quality preset</String>
-  <String key="QualityPreset.Tooltip">
-    Sets the three performance settings below in one go. Lower it if the mod costs you too many
-    frames. Changing any of those three yourself switches this to Custom.
-  </String>
+  <String key="QualityPreset.Tooltip">Sets the three settings below.</String>
   <String key="QualityPreset.Low">Low</String>
   <String key="QualityPreset.Medium">Medium</String>
   <String key="QualityPreset.High">High</String>
   <String key="QualityPreset.Custom">Custom</String>
 
   <String key="CloudQuality.Label">Quality (raymarch steps)</String>
-  <String key="CloudQuality.Tooltip">
-    How much detail goes into drawing the clouds and the fog. The first thing to lower on a
-    slower graphics card: halving it roughly halves what they cost.
-  </String>
+  <String key="CloudQuality.Tooltip">Detail of clouds and fog. Lower is faster.</String>
 
   <String key="ShadowMapResolution.Label">Cloud shadow resolution</String>
-  <String key="ShadowMapResolution.Tooltip">
-    How sharp the cloud shadows are. Lower it to gain frames; what it costs does not depend on
-    your screen resolution.
-  </String>
+  <String key="ShadowMapResolution.Tooltip">Shadow sharpness. Lower is faster.</String>
 
   <String key="ShadowMapRate.Label">Cloud shadow updates</String>
-  <String key="ShadowMapRate.Tooltip">
-    How many times a second the cloud shadows are updated. Lower is faster, but the shadows
-    move a little less smoothly.
-  </String>
+  <String key="ShadowMapRate.Tooltip">Updates per second. Lower is faster.</String>
 
   <String key="Group.Drawing">How the clouds are drawn</String>
 
   <String key="CloudDepthOcclusion.Label">Buildings and terrain hide clouds behind them</String>
-  <String key="CloudDepthOcclusion.Tooltip">
-    Hills and buildings in front of a cloud hide it, as they should. Only turn this off if
-    something looks wrong where the clouds meet the scenery.
-  </String>
+  <String key="CloudDepthOcclusion.Tooltip">Turn off only if cloud edges look wrong.</String>
 
   <!-- ==================== Advanced: Halos ==================== -->
 
   <String key="Group.Halos">Street and building light halos</String>
 
   <String key="HaloEnabled.Label">Use the replacement halo shader</String>
-  <String key="HaloEnabled.Tooltip">
-    Replaces the game's glow around street lamps, building lights and vehicle lights with this
-    mod's own, which the settings below control. Like the game's, it grows in foggy weather
-    (the game's fog, or Play It!'s fog slider). It also fixes the white squares the game
-    sometimes draws around lights. Off leaves the game's lights exactly as they are.
-  </String>
+  <String key="HaloEnabled.Tooltip">Replaces the game's glow around lights.</String>
 
   <String key="HaloTightness.Label">Tightness (higher = smaller)</String>
-  <String key="HaloTightness.Tooltip">
-    Higher keeps the bright centre of each glow and removes the wide haze around it, so lights
-    look smaller and crisper.
-  </String>
+  <String key="HaloTightness.Tooltip">Trims the haze around each light.</String>
 
   <String key="HaloBrightness.Label">Brightness</String>
-  <String key="HaloBrightness.Tooltip">
-    How bright the glow around lights is. With a high tightness you may need to raise this to
-    see the glow at all.
-  </String>
+  <String key="HaloBrightness.Tooltip">How bright the glow is.</String>
 
   <String key="HaloRadius.Label">Size (world radius)</String>
-  <String key="HaloRadius.Tooltip">
-    How far the glow spreads around each light. Lights close to the camera can be adjusted
-    separately below.
-  </String>
+  <String key="HaloRadius.Tooltip">How far the glow spreads.</String>
 
   <String key="Group.NearLights">The same lamps, close to the camera</String>
 
   <String key="HaloNearLightDistance.Label">Near lights: closer than</String>
-  <String key="HaloNearLightDistance.Tooltip">
-    Lights closer to the camera than this use the three settings below, blending back to normal
-    by twice this distance. 0 turns this off.
-  </String>
+  <String key="HaloNearLightDistance.Tooltip">Lights closer than this use the settings below.</String>
 
   <String key="HaloNearLightTightness.Label">Near lights: tightness</String>
-  <String key="HaloNearLightTightness.Tooltip">
-    The tightness of nearby lights, as a percentage of the tightness above.
-  </String>
+  <String key="HaloNearLightTightness.Tooltip">As a % of the main tightness.</String>
 
   <String key="HaloNearLightBrightness.Label">Near lights: brightness</String>
-  <String key="HaloNearLightBrightness.Tooltip">
-    The brightness of nearby lights, as a percentage of the brightness above. Below about 100%
-    a tight glow fades out quickly.
-  </String>
+  <String key="HaloNearLightBrightness.Tooltip">As a % of the main brightness.</String>
 
   <String key="HaloNearLightRadius.Label">Near lights: size</String>
-  <String key="HaloNearLightRadius.Tooltip">
-    The size of nearby lights' glow, as a percentage of the size above. This is the one that
-    shrinks a big blob of light right in front of the camera.
-  </String>
+  <String key="HaloNearLightRadius.Tooltip">As a % of the main size.</String>
 
   <String key="Group.Vehicles">Vehicles and other moving lights</String>
 
   <String key="HaloVehicleBrightness.Label">Vehicle light halos</String>
-  <String key="HaloVehicleBrightness.Tooltip">
-    How bright the glow around vehicle lights and other moving lights is. Lamps placed with
-    Intersection Marking Tool use the street lamp settings instead.
-  </String>
+  <String key="HaloVehicleBrightness.Tooltip">Glow brightness of vehicle lights.</String>
 
   <String key="HaloAdjustEnabled.Label">Adjust dynamic lights (vehicles)</String>
-  <String key="HaloAdjustEnabled.Tooltip">
-    Two older settings for vehicle lights: how far their glow reaches, and hiding the glow of
-    lights very close to the camera.
-  </String>
+  <String key="HaloAdjustEnabled.Tooltip">Turns on the two settings below.</String>
 
   <String key="HaloRangeScale.Label">Dynamic light size</String>
-  <String key="HaloRangeScale.Tooltip">
-    How far the glow of vehicle lights reaches. 100% is the game's normal size.
-  </String>
+  <String key="HaloRangeScale.Tooltip">How far vehicle glow reaches.</String>
 
   <String key="DynamicHaloCutoff.Label">Hide dynamic halos within</String>
-  <String key="DynamicHaloCutoff.Tooltip">
-    Vehicle lights closer to the camera than this have no glow. 0 turns this off.
-  </String>
+  <String key="DynamicHaloCutoff.Tooltip">Vehicle lights closer than this get no glow.</String>
 
   <!-- ==================== The game's options page ==================== -->
 
@@ -593,49 +378,29 @@
   <String key="Group.Language">Language (more languages are coming soon; for now it is English only)</String>
 
   <String key="Language.Label">Show this mod in</String>
-  <String key="Language.Tooltip">
-    The language of this mod's panels, tooltips and settings file. 'Same as the game' follows
-    the game's own language. The in-game panel switches at once, this options page the next
-    time you open it.
-  </String>
+  <String key="Language.Tooltip">Language of this mod's panels.</String>
   <String key="Language.Game">Same as the game</String>
 
   <String key="Group.Panel">The in-game panel (every setting of the sky is there)</String>
 
   <String key="ToggleKey.Label">Open this panel</String>
-  <String key="ToggleKey.Tooltip">
-    The key that opens and closes the in-game panel. Click, then press the new key. Backspace
-    clears it; Escape cancels.
-  </String>
+  <String key="ToggleKey.Tooltip">Click, then press a key.</String>
 
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
-  <String key="ShowAdvancedInPanel.Tooltip">
-    Adds four more tabs to the in-game panel -- Weather, Light, Rendering and Halos -- with
-    every other setting of the mod: how the game's weather maps to the sky, shadows and
-    brightness, performance, and the street-light glow.
-  </String>
+  <String key="ShowAdvancedInPanel.Tooltip">Adds the Weather, Light, Rendering and Halos tabs.</String>
 
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
-  <String key="ShowInUnifiedUI.Tooltip">
-    Puts this mod's button in the Unified UI bar. Without Unified UI, the button sits on its
-    own in the corner of the screen instead.
-  </String>
+  <String key="ShowInUnifiedUI.Tooltip">Puts the button in the Unified UI bar.</String>
 
   <String key="Group.Diagnostics">Diagnostics</String>
 
   <String key="DetailedLogging.Label">Detailed logging</String>
-  <String key="DetailedLogging.Tooltip">
-    Writes much more detail to VolumetricClouds.log. Leave it off normally. To report a problem:
-    turn it on, make the problem happen, then send the log.
-  </String>
+  <String key="DetailedLogging.Tooltip">For bug reports. Leave off normally.</String>
 
   <String key="Group.StartingOver">Starting over</String>
 
   <String key="ResetAll.Label">Reset all settings to defaults</String>
-  <String key="ResetAll.Tooltip">
-    Puts every setting back to how the mod comes. This also turns off 'Volumetric fog' and
-    'Show advanced options in the in-game panel'.
-  </String>
+  <String key="ResetAll.Tooltip">Also turns off volumetric fog and advanced options.</String>
   <String key="ResetAll.Confirm">
     Put every setting back to how the mod comes?\n\n
     This throws away everything you have tuned, including changes made in the in-game panel,
@@ -643,11 +408,7 @@
   </String>
 
   <String key="ResetPattern.Label">Reset cloud pattern</String>
-  <String key="ResetPattern.Tooltip">
-    Gives this city a new arrangement of clouds and fog. A city keeps its sky in its save, so
-    this is how you get a different one. None of your settings change. Only works with a city
-    loaded.
-  </String>
+  <String key="ResetPattern.Tooltip">New clouds and fog for this city.</String>
   <String key="ResetPattern.Confirm">
     Give this city a new pattern of clouds and fog?\n\n
     Your last save keeps the old one until you, or the autosave, save again: loading it before

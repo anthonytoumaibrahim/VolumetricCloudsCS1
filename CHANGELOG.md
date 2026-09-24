@@ -57,6 +57,7 @@ cloud shaders were rebuilt for the fragments; with them off, the clouds look as 
 - On a Mac the mod's log file, `VolumetricClouds.log`, was never written: it looked for a
   folder that does not exist there. It is now written next to `VolumetricClouds.xml` on every
   system (on Windows that is the same folder as before).
+- Every tooltip is now one short line. The long ones ran out of the game's tooltip box.
 
 ## 1.1.0 — 2026-09-23
 
