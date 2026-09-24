@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.1.1 — unreleased
+## 1.1.1 — 2026-09-24
 
 Mac and Linux, cloud fragments, and settings for the rain streaks. Nothing in
 `VolumetricClouds.xml` or in saved cities changes: every new setting starts at a value that
@@ -52,12 +52,15 @@ cloud shaders were rebuilt for the fragments; with them off, the clouds look as 
 - The colour works like the cloud colours: it changes the hue only, and the streaks still
   follow the sky's light.
 
-### Fixes
+### Fixes and changes
 
 - On a Mac the mod's log file, `VolumetricClouds.log`, was never written: it looked for a
   folder that does not exist there. It is now written next to `VolumetricClouds.xml` on every
   system (on Windows that is the same folder as before).
 - Every tooltip is now one short line. The long ones ran out of the game's tooltip box.
+- The switch at the top of the in-game panel's Clouds tab, which turns the whole of this
+  mod's sky off and on, is now labelled *Volumetric Weather* instead of *Show clouds*. The
+  line under the mod's name in the mods list is shorter, so it no longer wraps.
 
 ## 1.1.0 — 2026-09-23
 
