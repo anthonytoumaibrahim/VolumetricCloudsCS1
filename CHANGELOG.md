@@ -7,8 +7,9 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.1.1 — unreleased
 
-Mac and Linux. Nothing in `VolumetricClouds.xml` or in saved cities changes, and on Windows
-the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
+Mac and Linux, and settings for the rain streaks. Nothing in `VolumetricClouds.xml` or in
+saved cities changes: the new settings start at values that keep the rain exactly as it was,
+and on Windows the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
 
 ### New: Mac and Linux
 
@@ -22,6 +23,17 @@ the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
   on that system; on Linux it also says how to run the Windows version through Proton.
 - Mac and Linux are new and experimental, and the mod's options page says so on those
   systems, with what to do if the game stutters.
+
+### New: rain streak settings
+
+- Five new settings for the raindrops that fall past the camera: streak length, streak width,
+  streak brightness, streak colour and rain fall speed. They are in the Rain group of the
+  in-game panel's Weather tab, which appears once "Show advanced options in the in-game
+  panel" is ticked.
+- At their defaults (100%, and white for the colour) the rain looks exactly as before.
+- The fall speed also moves the rain curtains seen in the distance, so both stay in step.
+- The colour works like the cloud colours: it changes the hue only, and the streaks still
+  follow the sky's light.
 
 ### Fixes
 

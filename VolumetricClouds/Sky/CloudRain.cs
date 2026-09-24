@@ -110,8 +110,11 @@ namespace VolumetricClouds.Sky
             Vector3 velocity = new Vector3(Slant.x, -1f, Slant.z);
             FallDirection = velocity.normalized;
 
-            // Faster with the simulation, like everything else, but 3x rain is just noise.
-            Vector3 fallen = FallOffset + velocity * (FallSpeed * deltaTime * Mathf.Min(simulationRate, 2f));
+            // Faster with the simulation, like everything else, but 3x rain is just noise. The
+            // player's fall speed scales it (1.1.1); the wrap stays a whole number of curtain
+            // periods whatever the speed, so the curtains never jump.
+            float speed = FallSpeed * Mathf.Max(0.1f, Value(Settings.RainFallSpeed, Settings.Defaults.RainFallSpeed));
+            Vector3 fallen = FallOffset + velocity * (speed * deltaTime * Mathf.Min(simulationRate, 2f));
             FallOffset = new Vector3(Mathf.Repeat(fallen.x, WrapDistance),
                                      -Mathf.Repeat(-fallen.y, WrapDistance),
                                      Mathf.Repeat(fallen.z, WrapDistance));

@@ -327,6 +327,35 @@
     a distance instead.
   </String>
 
+  <String key="RainStreakLength.Label">Streak length</String>
+  <String key="RainStreakLength.Tooltip">
+    How long each raindrop's streak is. Longer streaks read as faster, heavier rain; shorter
+    ones as drops.
+  </String>
+
+  <String key="RainStreakWidth.Label">Streak width</String>
+  <String key="RainStreakWidth.Tooltip">
+    How thick each streak is. Streaks too thin to see from far away fade out rather than
+    flicker.
+  </String>
+
+  <String key="RainStreakOpacity.Label">Streak brightness</String>
+  <String key="RainStreakOpacity.Tooltip">
+    How visible the streaks are against the scene. 0 hides them; higher makes them stand out.
+  </String>
+
+  <String key="RainStreakColor.Label">Streak colour</String>
+  <String key="RainStreakColor.Tooltip">
+    A tint for the streaks. Their colour already follows the sky, darker at night and warmer at
+    sunset; this only changes the hue. White leaves them as they are.
+  </String>
+
+  <String key="RainFallSpeed.Label">Rain fall speed</String>
+  <String key="RainFallSpeed.Tooltip">
+    How fast the rain falls. It also moves the rain curtains in the distance, so both stay in
+    step. Slow rain with short, wide, bright streaks looks like sleet.
+  </String>
+
   <String key="RainLocalised.Label">Rain sound and wet roads follow the clouds</String>
   <String key="RainLocalised.Tooltip">
     You only hear rain, and roads only get wet, where it is actually raining, so it stays dry

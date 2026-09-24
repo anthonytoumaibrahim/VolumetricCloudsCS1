@@ -104,6 +104,21 @@ namespace VolumetricClouds
         /// <summary>Camera height above the ground, in metres, at which the streaks are gone.</summary>
         public static FloatSetting RainStreakHeight { get; private set; }
 
+        /// <summary>Multiplier on each streak's length (1.1 m near, 3.2 m far at 100%).</summary>
+        public static FloatSetting RainStreakLength { get; private set; }
+
+        /// <summary>Multiplier on each streak's width (1.2 cm near, 3.5 cm far at 100%).</summary>
+        public static FloatSetting RainStreakWidth { get; private set; }
+
+        /// <summary>Multiplier on the streaks' opacity.</summary>
+        public static FloatSetting RainStreakOpacity { get; private set; }
+
+        /// <summary>A hue for the streaks, on top of the sky-derived colour. White = none.</summary>
+        public static ColorSetting RainStreakColor { get; private set; }
+
+        /// <summary>Multiplier on how fast the rain falls (10 m/s): the streaks AND the curtains' pattern.</summary>
+        public static FloatSetting RainFallSpeed { get; private set; }
+
         /// <summary>
         /// The rain sound and wet roads follow the clouds too. The one setting that changes
         /// what the simulation sees (see SampleRainIntensityPatch).
@@ -481,6 +496,12 @@ namespace VolumetricClouds
             public const float RainCurtains = 1f;
             public const float RainStreaks = 1f;
             public const float RainStreakHeight = 500f;
+            public const float RainStreakLength = 1f;
+            public const float RainStreakWidth = 1f;
+            public const float RainStreakOpacity = 1f;
+            /// <summary>White: the streaks' colour exactly as before the setting existed.</summary>
+            public static readonly Color32 RainStreakColor = new Color32(255, 255, 255, 255);
+            public const float RainFallSpeed = 1f;
             public const bool RainLocalised = true;
 
             // ---- lightning ----
@@ -603,6 +624,11 @@ namespace VolumetricClouds
                 RainCurtains = new FloatSetting("RainCurtains", Defaults.RainCurtains);
                 RainStreaks = new FloatSetting("RainStreaks", Defaults.RainStreaks);
                 RainStreakHeight = new FloatSetting("RainStreakHeight", Defaults.RainStreakHeight);
+                RainStreakLength = new FloatSetting("RainStreakLength", Defaults.RainStreakLength);
+                RainStreakWidth = new FloatSetting("RainStreakWidth", Defaults.RainStreakWidth);
+                RainStreakOpacity = new FloatSetting("RainStreakOpacity", Defaults.RainStreakOpacity);
+                RainStreakColor = new ColorSetting("RainStreakColor", Defaults.RainStreakColor);
+                RainFallSpeed = new FloatSetting("RainFallSpeed", Defaults.RainFallSpeed);
                 RainLocalised = new BoolSetting("RainLocalised", Defaults.RainLocalised);
 
                 LightningEnabled = new BoolSetting("LightningEnabled", Defaults.LightningEnabled);

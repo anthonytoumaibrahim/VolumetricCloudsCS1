@@ -1191,6 +1191,60 @@ namespace VolumetricClouds.UI
                 Enabled = RainOn,
             });
 
+            // How a streak looks (1.1.1). All multipliers on what RainDrops always drew, so 100%
+            // and white are the old streaks exactly.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Weather,
+                Float = Settings.RainStreakLength,
+                DefaultFloat = Settings.Defaults.RainStreakLength,
+                Min = 25f, Max = 400f, Step = 5f,
+                Enabled = RainOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Weather,
+                Float = Settings.RainStreakWidth,
+                DefaultFloat = Settings.Defaults.RainStreakWidth,
+                Min = 25f, Max = 400f, Step = 5f,
+                Enabled = RainOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Weather,
+                Float = Settings.RainStreakOpacity,
+                DefaultFloat = Settings.Defaults.RainStreakOpacity,
+                // 200% = alpha 1: the shader does not clamp, and above 1 the blend would
+                // DARKEN what is behind a streak (OneMinusSrcAlpha goes negative).
+                Min = 0f, Max = 200f, Step = 5f,
+                Enabled = RainOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Options = OptionsPage.Weather,
+                Colour = Settings.RainStreakColor,
+                DefaultColour = Settings.Defaults.RainStreakColor,
+                Enabled = RainOn,
+            });
+
+            // Also slides the curtains' pattern: both read CloudRain.FallOffset.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Weather,
+                Float = Settings.RainFallSpeed,
+                DefaultFloat = Settings.Defaults.RainFallSpeed,
+                Min = 25f, Max = 300f, Step = 5f,
+                Enabled = RainOn,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Toggle,

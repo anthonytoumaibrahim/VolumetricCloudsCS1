@@ -125,6 +125,10 @@ namespace VolumetricClouds.Sky
                         " atCamera=" + CloudRain.LocalRain(_camera.transform.position).ToString("F2") +
                         " | streaks " + (draw ? "drawn" : "hidden") +
                         " cameraHeight=" + _heightAboveGround.ToString("F0") + "m fade=" + _fade.ToString("F2") +
+                        " look: length=" + Percent(Settings.RainStreakLength) + " width=" + Percent(Settings.RainStreakWidth) +
+                        " opacity=" + Percent(Settings.RainStreakOpacity) +
+                        " colour=" + (Settings.RainStreakColor != null ? ColorText.Format(Settings.RainStreakColor.value) : "default") +
+                        " fallSpeed=" + Percent(Settings.RainFallSpeed) +
                         " | slant=(" + CloudRain.Slant.x.ToString("F2") + "," + CloudRain.Slant.z.ToString("F2") + ")");
             }
         }
@@ -156,8 +160,10 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdBoxFar, BoxFar);
             _material.SetVector(IdFallOffset, CloudRain.FallOffset);
             _material.SetVector(IdFallDirection, CloudRain.FallDirection);
-            _material.SetVector(IdStreakNear, new Vector4(1.1f, 0.012f, 0f, 0f));
-            _material.SetVector(IdStreakFar, new Vector4(3.2f, 0.035f, 0f, 0f));
+            float length = Multiplier(Settings.RainStreakLength, Settings.Defaults.RainStreakLength, 0.1f);
+            float width = Multiplier(Settings.RainStreakWidth, Settings.Defaults.RainStreakWidth, 0.1f);
+            _material.SetVector(IdStreakNear, new Vector4(1.1f * length, 0.012f * width, 0f, 0f));
+            _material.SetVector(IdStreakFar, new Vector4(3.2f * length, 0.035f * width, 0f, 0f));
             _material.SetFloat(IdDropFade, _fade);
             _material.SetFloat(IdDropDensity, streaks);
 
@@ -165,7 +171,29 @@ namespace VolumetricClouds.Sky
             float pixelAngle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
             _material.SetFloat(IdPixelAngle, pixelAngle);
 
-            _material.SetVector(IdDropColor, DropColor());
+            _material.SetVector(IdDropColor, StreakLook(DropColor()));
+        }
+
+        private static string Percent(FloatSetting setting)
+        {
+            return setting != null ? (setting.value * 100f).ToString("F0") + "%" : "default";
+        }
+
+        private static float Multiplier(FloatSetting setting, float fallback, float min)
+        {
+            return Mathf.Max(min, setting != null ? setting.value : fallback);
+        }
+
+        /// <summary>The picked hue (white = exactly 1, CloudTint) and the opacity multiplier.</summary>
+        private static Vector4 StreakLook(Vector4 color)
+        {
+            Color tint = CloudTint.Of(Settings.RainStreakColor != null
+                ? Settings.RainStreakColor.value : Settings.Defaults.RainStreakColor);
+            float opacity = Multiplier(Settings.RainStreakOpacity, Settings.Defaults.RainStreakOpacity, 0f);
+
+            // Alpha capped at 1: the shader does not clamp, and above 1 the blend darkens.
+            return new Vector4(color.x * tint.r, color.y * tint.g, color.z * tint.b,
+                               Mathf.Min(1f, color.w * opacity));
         }
 
         /// <summary>Streaks catch the sky: the scene's ambient, lifted, with a little of the key light.</summary>

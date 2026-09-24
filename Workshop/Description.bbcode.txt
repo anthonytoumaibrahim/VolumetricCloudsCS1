@@ -1,5 +1,5 @@
 [h1]Version 1.1.1: Mac and Linux[/h1]
-Update 1.1.1 brings the mod to [b]Mac[/b] and [b]Linux[/b] versions of the game, as a first, experimental release. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+Update 1.1.1 brings the mod to [b]Mac[/b] and [b]Linux[/b] versions of the game, as a first, experimental release. It also adds settings for the rain streaks near the camera (length, width, brightness, colour and fall speed), under the advanced options. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]
