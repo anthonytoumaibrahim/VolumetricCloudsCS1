@@ -313,14 +313,22 @@ namespace VolumetricClouds.Lighting
 
             // The dynamic material takes the SAME values, from the same place, so a lamp drawn
             // dynamically (tagged; see HaloAdjuster) cannot drift from the batched lamps beside
-            // it. Untagged lights -- vehicles, non-batched effects -- get their own brightness.
+            // it. Untagged lights -- vehicles, non-batched effects -- get a fixed brightness.
             if (_dynamicReplacement != null)
             {
                 SetHaloControls(_dynamicReplacement, fog, brightness, tightness, radius,
                                 nearDistance, nearBrightness, nearTightness, nearRadius);
-                _dynamicReplacement.SetFloat(IdHaloOtherBrightness, Mathf.Max(0f, Value(Settings.HaloVehicleBrightness, 1f)));
+                _dynamicReplacement.SetFloat(IdHaloOtherBrightness, OtherLightsBrightness);
             }
         }
+
+        /// <summary>
+        /// Halo brightness of dynamic lights that are not tagged lamps (vehicles, non-batched
+        /// effects): the default of the "Vehicle light halos" slider removed in 1.1.1, which
+        /// looked the same at 0% and 300%. Kept as a number so the shader and its bundles stay
+        /// as they are.
+        /// </summary>
+        private const float OtherLightsBrightness = 2.4f;
 
         private static void SetHaloControls(Material material, float fog, float brightness, float tightness, float radius,
             float nearDistance, float nearBrightness, float nearTightness, float nearRadius)
@@ -505,7 +513,7 @@ namespace VolumetricClouds.Lighting
                     " tightness=" + Value(Settings.HaloNearLightTightness, 1f).ToString("F2") +
                     " radius=" + Value(Settings.HaloNearLightRadius, 1f).ToString("F2") +
                     " | dynamic=" + (_dynamicReplacement != null
-                        ? "PORTED otherBrightness=" + Value(Settings.HaloVehicleBrightness, 1f).ToString("F2") +
+                        ? "PORTED otherBrightness=" + OtherLightsBrightness.ToString("F2") +
                           " (lamps tagged: see the 'dynamic lights' line)"
                         : "the game's (shader missing)"));
 

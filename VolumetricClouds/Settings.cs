@@ -390,20 +390,17 @@ namespace VolumetricClouds
         /// <summary>Near lamps: multiplier on top of <see cref="HaloRadius"/>.</summary>
         public static FloatSetting HaloNearLightRadius { get; private set; }
 
-        /// <summary>
-        /// Halo brightness of dynamic lights that are NOT lamps: vehicles and non-batched
-        /// effect lights. In place of <see cref="HaloBrightness"/>, which is tuned for lamps;
-        /// tightness, size and the near multipliers are shared. Lamps drawn dynamically --
-        /// Intersection Marking Tool's -- take the lamp settings.
-        /// </summary>
-        public static FloatSetting HaloVehicleBrightness { get; private set; }
-
-        // REMOVED in 1.1.1: "Adjust dynamic lights (vehicles)" (HaloAdjustEnabled) with
-        // HaloRangeScale, DynamicHaloCutoff and the hidden HaloIntensityScale. They scaled the
-        // range and brightness of EVERY light going through LightSystem.DrawLight -- Intersection
-        // Marking Tool's lamps and other props too, not just vehicles -- and the range is the
-        // light itself, not only its halo, so switching it on put those lights out. Vehicle
-        // halos keep HaloVehicleBrightness. The four element names stay retired: never reuse them.
+        // REMOVED in 1.1.1, both on the Halos tab; their element names stay retired, never reuse
+        // them:
+        // - "Adjust dynamic lights (vehicles)" (HaloAdjustEnabled) with HaloRangeScale,
+        //   DynamicHaloCutoff and the hidden HaloIntensityScale. They scaled the range and
+        //   brightness of EVERY light going through LightSystem.DrawLight -- Intersection Marking
+        //   Tool's lamps and other props too, not just vehicles -- and the range is the light
+        //   itself, not only its halo, so switching it on put those lights out.
+        // - "Vehicle light halos" (HaloVehicleBrightness). It reached the shader (~57k dynamic
+        //   lights a second, all with a halo requested), but 0% and 300% looked the same in-game
+        //   (2026-09-24): at the lamps' tightness a vehicle's spot-light glow is invisible either
+        //   way. The shader still takes a brightness for untagged lights: HaloOverride pins it.
 
         /// <summary>
         /// Every default, in one place. Re-snapshotted for release from the author's
@@ -568,7 +565,6 @@ namespace VolumetricClouds
             public const float HaloNearBrightness = 0.9f;
             public const float HaloNearTightness = 1.75f;
             public const float HaloNearRadius = 0.1f;
-            public const float HaloVehicleBrightness = 2.4f;
         }
 
         private static bool _initialised;
@@ -715,7 +711,6 @@ namespace VolumetricClouds
                 HaloNearLightTightness = new FloatSetting("HaloNearLightTightness", Defaults.HaloNearTightness);
                 HaloNearLightRadius = new FloatSetting("HaloNearLightRadius", Defaults.HaloNearRadius);
 
-                HaloVehicleBrightness = new FloatSetting("HaloVehicleBrightness", Defaults.HaloVehicleBrightness);
 
                 // There is deliberately no debug switch of any kind. DebugSkipDrawLight
                 // suppressed every dynamic light, was saved as true during one experiment, and

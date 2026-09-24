@@ -1604,19 +1604,9 @@ namespace VolumetricClouds.UI
                 Enabled = HalosOn,
             });
 
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Options = OptionsPage.Halos,
-                Group = "Vehicles",
-                Float = Settings.HaloVehicleBrightness,
-                DefaultFloat = Settings.Defaults.HaloVehicleBrightness,
-                Min = 0f, Max = 300f, Step = 5f,
-                Enabled = HalosOn,
-            });
-
-            // "Adjust dynamic lights (vehicles)" and its two sliders were here until 1.1.1:
-            // removed, see Settings.HaloVehicleBrightness.
+            // The "Vehicles and other moving lights" group -- "Vehicle light halos" and "Adjust
+            // dynamic lights" with its two sliders -- was here until 1.1.1: removed, see the note
+            // in Settings.cs beside HaloNearLightRadius.
         }
 
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>

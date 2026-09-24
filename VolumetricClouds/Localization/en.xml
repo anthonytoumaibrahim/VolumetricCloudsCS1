@@ -358,15 +358,10 @@
   <String key="HaloNearLightRadius.Label">Near lights: size</String>
   <String key="HaloNearLightRadius.Tooltip">As a % of the main size.</String>
 
-  <String key="Group.Vehicles">Vehicles and other moving lights</String>
-
-  <String key="HaloVehicleBrightness.Label">Vehicle light halos</String>
-  <String key="HaloVehicleBrightness.Tooltip">Glow brightness of vehicle lights.</String>
-
   <!-- ==================== The game's options page ==================== -->
 
   <!-- "(more languages...)" goes when the first translation lands. -->
-  <String key="Group.Language">Language (more languages are coming soon; for now it is English only)</String>
+  <String key="Group.Language">Language</String>
 
   <String key="Language.Label">Show this mod in</String>
   <String key="Language.Tooltip">Language of this mod's panels.</String>
