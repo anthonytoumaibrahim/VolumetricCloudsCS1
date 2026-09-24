@@ -70,9 +70,6 @@ namespace VolumetricClouds
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
                         " fogLitByLights=" + On(Settings.FogLampsEnabled, true) +
                         " lightHalos=" + On(Settings.HaloEnabled, false) +
-                        // This pair can hide vehicle halos outright, so it is named here too.
-                        " dynamicLightAdjust=" + On(Settings.HaloAdjustEnabled, false) +
-                        " (cutoff " + Value(Settings.DynamicHaloCutoff, Settings.Defaults.DynamicHaloCutoff).ToString("F0") + " m)" +
                         " | overrides: weather=" + On(Settings.CoverageOverride, false) +
                         " fog=" + On(Settings.FogOverride, false) +
                         " lightning=" + On(Settings.LightningOverride, false) +

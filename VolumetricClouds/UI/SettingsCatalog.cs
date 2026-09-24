@@ -1615,36 +1615,8 @@ namespace VolumetricClouds.UI
                 Enabled = HalosOn,
             });
 
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Halos,
-                Bool = Settings.HaloAdjustEnabled,
-                DefaultBool = Settings.Defaults.HaloAdjustEnabled,
-                Enabled = HalosOn,
-                AfterChange = State("dynamic light adjustment", OnOff(Settings.HaloAdjustEnabled)),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Options = OptionsPage.Halos,
-                Float = Settings.HaloRangeScale,
-                DefaultFloat = Settings.Defaults.HaloRangeScale,
-                Min = 10f, Max = 200f, Step = 5f,
-                Enabled = () => HalosOn() && Settings.HaloAdjustEnabled != null && Settings.HaloAdjustEnabled.value,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Halos,
-                Float = Settings.DynamicHaloCutoff,
-                DefaultFloat = Settings.Defaults.DynamicHaloCutoff,
-                Min = 0f, Max = 500f, Step = 10f,
-                Format = Metres,
-                Enabled = () => HalosOn() && Settings.HaloAdjustEnabled != null && Settings.HaloAdjustEnabled.value,
-            });
+            // "Adjust dynamic lights (vehicles)" and its two sliders were here until 1.1.1:
+            // removed, see Settings.HaloVehicleBrightness.
         }
 
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>
@@ -1747,14 +1719,6 @@ namespace VolumetricClouds.UI
         /// </summary>
         private static void BuildHidden()
         {
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Float = Settings.HaloIntensityScale,
-                DefaultFloat = Settings.Defaults.HaloIntensityScale,
-                Min = 10f, Max = 300f, Step = 5f,
-            });
-
             // Where the player dragged the mod's own button (no Unified UI). Wide ranges on
             // purpose: a value out of range is clamped AND written back, so a narrower range
             // would move a saved spot on a wide screen for good. The button keeps itself on

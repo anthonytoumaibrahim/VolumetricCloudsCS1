@@ -5,9 +5,10 @@ using VolumetricClouds.Sky;
 namespace VolumetricClouds.Lighting
 {
     /// <summary>
-    /// Adjusts the size of dynamic lights and suppresses their volume pass near the camera.
-    /// Parameter names must match the game's, which is how Harmony binds them. The prefix
-    /// returns true: returning false would skip the original and the light with it.
+    /// Records dynamic lights for the fog's light map and tags lamp-type ones for the ported
+    /// halo shader; the light itself is left as the game submits it. Parameter names must
+    /// match the game's, which is how Harmony binds them. The prefix returns true: returning
+    /// false would skip the original and the light with it.
     /// </summary>
     [HarmonyPatch(typeof(LightSystem), nameof(LightSystem.DrawLight), new[]
     {
@@ -16,14 +17,13 @@ namespace VolumetricClouds.Lighting
     })]
     public static class DrawLightParametersPatch
     {
-        public static bool Prefix(LightType type, Vector3 pos, Vector3 dir, ref Vector3 vel, Color color, ref float intensity,
-            ref float range, float spotAngle, ref bool volume)
+        public static bool Prefix(LightType type, Vector3 pos, Vector3 dir, ref Vector3 vel, Color color, float intensity,
+            float range, float spotAngle, bool volume)
         {
-            // The fog is lit by what the GAME draws, before our halo adjustments touch it.
             if (FogLampMap.Collecting)
                 FogLampMap.Record(type, pos, dir, color, intensity, range, spotAngle);
 
-            return HaloAdjuster.Adjust(pos, ref vel, ref intensity, ref range, ref volume);
+            return HaloAdjuster.Adjust(ref vel, intensity, range, volume);
         }
     }
 

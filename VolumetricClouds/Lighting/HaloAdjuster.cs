@@ -38,15 +38,8 @@ namespace VolumetricClouds.Lighting
 
         public static int LampsTagged;
 
-        public static bool Enabled;
-        public static float RangeScale = 1f;
-        public static float IntensityScale = 1f;
-        public static float NearDistanceSqr;
-        public static Vector3 CameraPosition;
-
         public static int LongCalls;
         public static int DataCalls;
-        public static int VolumeSuppressed;
         public static int VolumeTrue;
 
         // What the game actually passes in, so we can tell what these lights are.
@@ -55,15 +48,17 @@ namespace VolumetricClouds.Lighting
         public static float ObservedMaxIntensity;
 
         /// <summary>
-        /// Shrinks the halo and, for lights close to the camera, skips the volume pass.
+        /// Tags lamp-type lights for the ported dynamic halo shader, and counts what passes.
+        /// It changes nothing else about a light: until 1.1.1 it also scaled the range and
+        /// brightness here ("Adjust dynamic lights"), which put out every light drawn this way,
+        /// not just the vehicles' -- the range is the light itself, not only its halo.
         /// </summary>
         /// <returns>Always true: the original DrawLight must run, or the light vanishes.</returns>
-        public static bool Adjust(Vector3 pos, ref Vector3 vel, ref float intensity, ref float range, ref bool volume)
+        public static bool Adjust(ref Vector3 vel, float intensity, float range, bool volume)
         {
             LongCalls++;
 
-            // Independent of the "adjust dynamic lights" switch below: this is what makes an
-            // IMT lamp look like the street lamps next to it.
+            // What makes an IMT lamp look like the street lamps next to it.
             if (TagLamps && InLampEffect)
             {
                 vel = new Vector3(0f, LampTag, 0f);
@@ -80,28 +75,6 @@ namespace VolumetricClouds.Lighting
             if (intensity > ObservedMaxIntensity)
                 ObservedMaxIntensity = intensity;
 
-            if (!Enabled)
-                return true;
-
-            if (volume && NearDistanceSqr > 0f)
-            {
-                float dx = pos.x - CameraPosition.x;
-                float dy = pos.y - CameraPosition.y;
-                float dz = pos.z - CameraPosition.z;
-
-                if (dx * dx + dy * dy + dz * dz < NearDistanceSqr)
-                {
-                    volume = false;
-                    VolumeSuppressed++;
-                }
-            }
-
-            if (RangeScale != 1f)
-                range *= RangeScale;
-
-            if (IntensityScale != 1f)
-                intensity *= IntensityScale;
-
             return true;
         }
 
@@ -115,7 +88,6 @@ namespace VolumetricClouds.Lighting
             LongCalls = 0;
             LampsTagged = 0;
             DataCalls = 0;
-            VolumeSuppressed = 0;
             VolumeTrue = 0;
             ObservedMinRange = float.MaxValue;
             ObservedMaxRange = 0f;

@@ -7,10 +7,11 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.1.1 — 2026-09-24
 
-Mac and Linux, cloud fragments, and settings for the rain streaks. Nothing in
-`VolumetricClouds.xml` or in saved cities changes: every new setting starts at a value that
-keeps the sky exactly as it was (cloud fragments off, the rain streaks at 100% and white). The
-cloud shaders were rebuilt for the fragments; with them off, the clouds look as before.
+Mac and Linux, cloud fragments, and settings for the rain streaks. Saved cities do not change,
+and every value in `VolumetricClouds.xml` is kept except the four of the removed *Adjust dynamic
+lights* option (see *Removed* below). Every new setting starts at a value that keeps the sky
+exactly as it was (cloud fragments off, the rain streaks at 100% and white). The cloud shaders
+were rebuilt for the fragments; with them off, the clouds look as before.
 
 ### New: cloud fragments
 
@@ -61,6 +62,15 @@ cloud shaders were rebuilt for the fragments; with them off, the clouds look as 
 - The switch at the top of the in-game panel's Clouds tab, which turns the whole of this
   mod's sky off and on, is now labelled *Volumetric Weather* instead of *Show clouds*. The
   line under the mod's name in the mods list is shorter, so it no longer wraps.
+
+### Removed
+
+- *Adjust dynamic lights (vehicles)* on the Halos tab, with its two sliders, *Dynamic light
+  size* and *Hide dynamic halos within*. It did not do what it said: besides vehicles it also
+  shrank lamps placed with Intersection Marking Tool and other props, and it changed the light
+  itself rather than only its glow, so switching it on put those lights out. Anyone who had it
+  on gets the game's lights back. The glow of vehicle lights stays adjustable with *Vehicle
+  light halos*.
 
 ## 1.1.0 — 2026-09-23
 

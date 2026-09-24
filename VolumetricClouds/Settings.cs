@@ -398,20 +398,12 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting HaloVehicleBrightness { get; private set; }
 
-        /// <summary>Master switch for the dynamic-light (vehicle) adjustments.</summary>
-        public static BoolSetting HaloAdjustEnabled { get; private set; }
-
-        /// <summary>Multiplier on a dynamic light's range. 1 leaves the game untouched.</summary>
-        public static FloatSetting HaloRangeScale { get; private set; }
-
-        /// <summary>Multiplier on a dynamic light's brightness. 1 leaves the game untouched.</summary>
-        public static FloatSetting HaloIntensityScale { get; private set; }
-
-        /// <summary>
-        /// Dynamic lights closer than this skip the volume pass. 0 disables the cutoff. Nothing
-        /// to do with <see cref="HaloNearLightDistance"/>: street lamps are never dynamic.
-        /// </summary>
-        public static FloatSetting DynamicHaloCutoff { get; private set; }
+        // REMOVED in 1.1.1: "Adjust dynamic lights (vehicles)" (HaloAdjustEnabled) with
+        // HaloRangeScale, DynamicHaloCutoff and the hidden HaloIntensityScale. They scaled the
+        // range and brightness of EVERY light going through LightSystem.DrawLight -- Intersection
+        // Marking Tool's lamps and other props too, not just vehicles -- and the range is the
+        // light itself, not only its halo, so switching it on put those lights out. Vehicle
+        // halos keep HaloVehicleBrightness. The four element names stay retired: never reuse them.
 
         /// <summary>
         /// Every default, in one place. Re-snapshotted for release from the author's
@@ -577,17 +569,6 @@ namespace VolumetricClouds
             public const float HaloNearTightness = 1.75f;
             public const float HaloNearRadius = 0.1f;
             public const float HaloVehicleBrightness = 2.4f;
-
-            /// <summary>
-            /// The older, cruder dynamic-light controls stay neutral. The author's file holds a
-            /// range of 1.55 and an intensity of 1.4 with this switch OFF -- leftovers from an
-            /// experiment, not a look.
-            /// </summary>
-            public const bool HaloAdjustEnabled = false;
-
-            public const float HaloRangeScale = 1f;
-            public const float HaloIntensityScale = 1f;
-            public const float DynamicHaloCutoff = 0f;
         }
 
         private static bool _initialised;
@@ -735,13 +716,6 @@ namespace VolumetricClouds
                 HaloNearLightRadius = new FloatSetting("HaloNearLightRadius", Defaults.HaloNearRadius);
 
                 HaloVehicleBrightness = new FloatSetting("HaloVehicleBrightness", Defaults.HaloVehicleBrightness);
-
-                HaloAdjustEnabled = new BoolSetting("HaloAdjustEnabled", Defaults.HaloAdjustEnabled);
-                HaloRangeScale = new FloatSetting("HaloRangeScale", Defaults.HaloRangeScale);
-                HaloIntensityScale = new FloatSetting("HaloIntensityScale", Defaults.HaloIntensityScale);
-                // "HaloNearDistance" in the .cgs, a name one word away from HaloNearLightDistance,
-                // which has nothing to do with it (street lamps are never dynamic).
-                DynamicHaloCutoff = new FloatSetting("DynamicHaloCutoff", Defaults.DynamicHaloCutoff, "HaloNearDistance");
 
                 // There is deliberately no debug switch of any kind. DebugSkipDrawLight
                 // suppressed every dynamic light, was saved as true during one experiment, and

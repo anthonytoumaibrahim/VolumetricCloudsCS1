@@ -363,15 +363,6 @@
   <String key="HaloVehicleBrightness.Label">Vehicle light halos</String>
   <String key="HaloVehicleBrightness.Tooltip">Glow brightness of vehicle lights.</String>
 
-  <String key="HaloAdjustEnabled.Label">Adjust dynamic lights (vehicles)</String>
-  <String key="HaloAdjustEnabled.Tooltip">Turns on the two settings below.</String>
-
-  <String key="HaloRangeScale.Label">Dynamic light size</String>
-  <String key="HaloRangeScale.Tooltip">How far vehicle glow reaches.</String>
-
-  <String key="DynamicHaloCutoff.Label">Hide dynamic halos within</String>
-  <String key="DynamicHaloCutoff.Tooltip">Vehicle lights closer than this get no glow.</String>
-
   <!-- ==================== The game's options page ==================== -->
 
   <!-- "(more languages...)" goes when the first translation lands. -->
@@ -418,7 +409,6 @@
 
   <!-- ==================== No row in either UI ==================== -->
 
-  <String key="HaloIntensityScale.Label">Dynamic light brightness</String>
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
 
