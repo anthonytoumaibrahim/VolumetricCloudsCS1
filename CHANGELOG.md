@@ -5,6 +5,10 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.1.2 — unreleased
+
+Nothing yet.
+
 ## 1.1.1 — 2026-09-24
 
 Mac and Linux, cloud fragments, and settings for the rain streaks. Saved cities do not change,
