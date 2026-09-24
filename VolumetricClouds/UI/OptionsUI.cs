@@ -99,8 +99,23 @@ namespace VolumetricClouds.UI
             // Not a group title (this page's usual way to show prose, see BuildRows): a title
             // is one line and was cut off at the page's edge. The author's call, 2026-09-24:
             // no dialog, the Workshop page carries the warning, and this line does here.
-            if (host != null && Loader.IsExperimentalPlatform)
-                AddPlatformWarning(host);
+            // Only where the mod can run at all: a platform with no bundle, or one that has
+            // already stood down in this launch, gets the stand-down message instead.
+            bool experimental = host != null && Loader.IsExperimentalPlatform &&
+                                Sky.ShaderBundle.BundleFor(Application.platform) != null &&
+                                !Loader.HasStoodDown;
+            if (experimental)
+            {
+                try
+                {
+                    AddPlatformWarning(host);
+                }
+                catch (Exception e)
+                {
+                    // A warning label must never cost the page its refresh hook below.
+                    Log.Error("Could not add the platform warning to the options page.", e);
+                }
+            }
 
             if (host != null)
             {
@@ -183,10 +198,22 @@ namespace VolumetricClouds.UI
             if (_buildCount == 1)
             {
                 Log.Msg("options page: platform warning added at the bottom (page " + host.width +
-                        " wide, layout padding " + layoutPadding.horizontal + "; label " + label.width +
-                        " x " + label.height + ")");
+                        " wide, layout padding " + layoutPadding.horizontal + "; label " + label.width + " wide)");
+
+                // The height is only known once the label has laid its text out, which is
+                // after this call returns: log it then, once. One line of text is ~20 units,
+                // so a height of 60-80 says it wrapped and a height of 20 says it did not.
+                label.eventSizeChanged += (component, size) =>
+                {
+                    if (_warningSizeLogged)
+                        return;
+                    _warningSizeLogged = true;
+                    Log.Msg("options page: platform warning laid out at " + size.x + " x " + size.y);
+                };
             }
         }
+
+        private static bool _warningSizeLogged;
 
         private Control BuildRow(UIHelperBase helper, Row row, UIComponent groupPanel)
         {

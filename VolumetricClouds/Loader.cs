@@ -14,6 +14,14 @@ namespace VolumetricClouds
         private static GameObject _root;
         private static bool _unsupportedShown;
 
+        /// <summary>
+        /// True once a city has stood down in this launch: the options page then drops its
+        /// "experimental platform" line (a page that says "expect a lower frame rate" beside a
+        /// mod that just said it cannot draw would be nonsense). A static: the machine does not
+        /// change between cities.
+        /// </summary>
+        public static bool HasStoodDown { get; private set; }
+
         public override void OnLevelLoaded(LoadMode mode)
         {
             base.OnLevelLoaded(mode);
@@ -86,6 +94,8 @@ namespace VolumetricClouds
         /// </summary>
         private static void StandDown()
         {
+            HasStoodDown = true;
+
             // Always on: SystemReport, which would have named the machine, belongs to the
             // controller that is not being created.
             Log.Msg("NOT SUPPORTED here: the cloud shader cannot run (" + SystemInfo.operatingSystem +

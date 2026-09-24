@@ -3,26 +3,22 @@ param(
     [string]$Expect = "",
     [string]$Compare = "",
     [int]$ComparePlatform = 4,
-    [string[]]$Shaders = @(
-        "VolumetricClouds/CloudRaymarch",
-        "VolumetricClouds/CloudShadowMap",
-        "VolumetricClouds/LightHalo",
-        "VolumetricClouds/LightHaloDynamic",
-        "VolumetricClouds/RainDrops",
-        "VolumetricClouds/LightningBolt",
-        "VolumetricClouds/Invisible",
-        "VolumetricClouds/FogLamps")
+    [string[]]$Shaders = @()
 )
 
 # Lists what an UNCOMPRESSED shader bundle really holds: for every shader, which graphics
 # platforms it was compiled for and what each compiled blob is (DXBC containers, GLSL and its
 # #version, Metal source). The reason it exists: a shader that fails to compile for ONE API
 # still leaves a bundle behind, and the game only says so at load time, on the player's
-# machine, as "Shader Unsupported" -- and the mod then stands down in every city.
+# machine, as "Shader Unsupported" -- and the mod then stands down in every city. Unity's
+# tell is a 4-byte EMPTY blob for that API: no error, no warning, exit 0.
 #
-#   .\bundle-apis.ps1 -Bundle UnityProject\Bundles\debug\mac\volumetricclouds
-#   .\bundle-apis.ps1 -Bundle ...\debug\win\volumetricclouds -Expect "4,15"
-#       exit 1 unless EVERY shader carries exactly these platform ids (any order)
+#   .\bundle-apis.ps1 -Bundle VolumetricClouds\Resources\volumetricclouds-mac.bundle
+#       every shader found in the bundle (its "VolumetricClouds/..." names), listed
+#   .\bundle-apis.ps1 -Bundle <bundle> -Expect "4,15" -Shaders "VolumetricClouds/A,VolumetricClouds/B"
+#       exit 1 unless EVERY named shader is there and carries exactly these platform ids
+#       (any order), each with real code: an EMPTY, unknown or corrupt blob fails.
+#       build-bundle.ps1 passes the names read out of BundleBuilder.cs.
 #   .\bundle-apis.ps1 -Bundle <new win bundle> -Compare <old win bundle> [-ComparePlatform 4]
 #       exit 1 unless the decompressed blob for that platform is byte-identical per shader:
 #       the proof that a change elsewhere (another platform added, a tool updated) left the
@@ -33,9 +29,13 @@ param(
 # Layout (the same one tools\shaderdump.ps1 reads): a Unity 5.6 Shader object stores, after
 # its name, two empty strings, a dependency count, a bool, then four uint32 arrays (platforms,
 # offsets, compressedLengths, decompressedLengths) and one LZ4-compressed blob per platform.
-# Works on the uncompressed debug bundles BundleBuilder writes; the shipped ones are LZMA.
+# The shipped bundles are built uncompressed since 1.1.1 precisely so this tool reads the
+# bytes that ship; a 1.1.0-style LZMA bundle cannot be read here.
 
 $ErrorActionPreference = "Stop"
+
+# A comma-joined list is one token when the script is run with -File, so split either way.
+$Shaders = @($Shaders | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 $src = @'
 using System;
@@ -179,6 +179,42 @@ public static class BundleApis
         return parts.Count > 0 ? string.Join(" + ", parts.ToArray()) : "unknown";
     }
 
+    /// <summary>
+    /// Every "VolumetricClouds/..." shader name in the bundle: a length-prefixed ASCII
+    /// string whose prefix matches its length. Each name occurs more than once (the object's
+    /// own name and the copy inside its parsed form), so the result is de-duplicated.
+    /// </summary>
+    public static string[] Enumerate(byte[] data)
+    {
+        byte[] prefix = Encoding.ASCII.GetBytes("VolumetricClouds/");
+        List<string> names = new List<string>();
+
+        for (int from = 0; ; )
+        {
+            int hit = Find(data, prefix, from);
+            if (hit < 0) break;
+            from = hit + 1;
+            if (hit < 4) continue;
+
+            int len = (int)U32(data, hit - 4);
+            if (len <= prefix.Length || len > 96 || hit + len > data.Length) continue;
+
+            bool plausible = true;
+            for (int i = prefix.Length; i < len && plausible; i++)
+            {
+                byte c = data[hit + i];
+                plausible = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '/' || c == '_';
+            }
+            if (!plausible) continue;
+
+            string name = Encoding.ASCII.GetString(data, hit, len);
+            if (!names.Contains(name)) names.Add(name);
+        }
+
+        names.Sort();
+        return names.ToArray();
+    }
+
     public static BundleShader Read(byte[] data, string shaderName)
     {
         BundleShader result = new BundleShader { Name = shaderName };
@@ -275,12 +311,30 @@ if ($Expect) {
 }
 
 $first = $null
+$firstNames = $null
 foreach ($file in $Bundle) {
     $data = [IO.File]::ReadAllBytes($file)
-    if ($null -eq $first) { $first = $data }
     Write-Host ("== {0} ({1} bytes)" -f $file, $data.Length)
 
-    foreach ($name in $Shaders) {
+    $found = @([BundleApis]::Enumerate($data))
+    $names = if ($Shaders.Count -gt 0) { $Shaders } else { $found }
+    if ($null -eq $first) { $first = $data; $firstNames = $names }
+
+    if ($Shaders.Count -gt 0) {
+        $extra = @($found | Where-Object { $Shaders -notcontains $_ })
+        if ($extra.Count -gt 0) {
+            Write-Host ("  in the bundle but not in the expected list: {0}" -f ($extra -join ", ")) -ForegroundColor Yellow
+        }
+    }
+    elseif ($found.Count -eq 0) {
+        Write-Host "  no VolumetricClouds/ shader found in this file (not an uncompressed bundle?)" -ForegroundColor Red
+        $failed = $true
+    }
+    else {
+        Write-Host ("  {0} shaders found" -f $found.Count)
+    }
+
+    foreach ($name in $names) {
         $s = [BundleApis]::Read($data, $name)
         if ($s.Problem) {
             Write-Host ("  {0,-36} NOT FOUND: {1}" -f $name, $s.Problem) -ForegroundColor Red
@@ -292,7 +346,11 @@ foreach ($file in $Bundle) {
         Write-Host ("  {0,-36} {1}" -f $name, $desc)
 
         foreach ($b in $s.Blobs) {
-            if ($b.Kind -eq "unknown" -or $b.Kind -like "CORRUPT*") {
+            if ($b.Kind -eq "EMPTY") {
+                Write-Host ("    {0}: EMPTY -- the compiler produced NOTHING for this API (a target level it lacks?)" -f [BundleApis]::PlatformName($b.Platform)) -ForegroundColor Red
+                $failed = $true
+            }
+            elseif ($b.Kind -eq "unknown" -or $b.Kind -like "CORRUPT*") {
                 Write-Host ("    {0}: nothing recognisable in the blob ({1})" -f [BundleApis]::PlatformName($b.Platform), $b.Kind) -ForegroundColor Red
                 $failed = $true
             }
@@ -312,7 +370,7 @@ if ($Compare) {
     $other = [IO.File]::ReadAllBytes($Compare)
     $pname = [BundleApis]::PlatformName([uint32]$ComparePlatform)
     Write-Host ("== {0} blobs: {1}  vs  {2}" -f $pname, $Bundle[0], $Compare)
-    foreach ($name in $Shaders) {
+    foreach ($name in $firstNames) {
         $a = [BundleApis]::Read($first, $name)
         $b = [BundleApis]::Read($other, $name)
         $ba = @($a.Blobs | Where-Object { $_.Platform -eq $ComparePlatform })

@@ -15,7 +15,10 @@ public static class BundleBuilder
     private const string OutputDir = "Bundles";
     private const string BundleName = "volumetricclouds";
 
-    /// <summary>Every shader the mod ships. Add new ones here and nowhere else.</summary>
+    /// <summary>
+    /// Every shader the mod ships. Add new ones here and nowhere else: build-bundle.ps1 reads
+    /// this list out of this file and makes tools/bundle-apis.ps1 check every name in it.
+    /// </summary>
     private static readonly string[] Shaders =
     {
         "Assets/VolumetricClouds/CloudRaymarch.shader",
@@ -38,8 +41,8 @@ public static class BundleBuilder
     /// <summary>
     /// The three bundles and the graphics APIs each carries. The names are the resource
     /// names ("volumetricclouds-win.bundle"...) ShaderBundle picks from by Application.platform,
-    /// and build-bundle.ps1 checks each debug copy against the same platform lists.
-    /// - Windows: no D3D9 any more. The target-4.0 raymarch never had D3D9 code, so the mod
+    /// and build-bundle.ps1 checks each bundle against the same platform lists.
+    /// - Windows: no D3D9 any more. The target-3.5 raymarch never had D3D9 code, so the mod
     ///   stands down there anyway; OpenGL Core is for a game started with -force-glcore.
     /// - Linux: the game's Linux player runs OpenGL Core. No Vulkan: the player was not
     ///   built with it, and a launch option can only pick an API the player has.
@@ -69,16 +72,18 @@ public static class BundleBuilder
     };
 
     /// <summary>
-    /// The shipped bundles, Bundles/[name]/volumetricclouds, AND their uncompressed twins in
-    /// Bundles/debug/[name]/ from the same run, so tools/bundle-apis.ps1 can prove what each
-    /// one holds and tools/shaderdump.ps1 can disassemble OUR compiled shaders. Only the
-    /// compressed ones are embedded.
+    /// One UNCOMPRESSED bundle per target in Bundles/[name]/volumetricclouds, and that exact
+    /// file is what ships. Uncompressed on purpose: tools/bundle-apis.ps1 can only read an
+    /// uncompressed bundle, and what it verifies must be the bytes that are embedded, not a
+    /// twin from a second compile (the LZMA-compressed shipped bundle of 1.1.0 and the
+    /// uncompressed debug copy were two builds). ~115 KB instead of ~45 KB per bundle inside
+    /// a 400 KB DLL is nothing; AssetBundle.LoadFromMemory takes either.
     /// </summary>
     public static void Build()
     {
         foreach (Target target in Targets)
         {
-            if (!BuildOne(target, false) || !BuildOne(target, true))
+            if (!BuildOne(target))
             {
                 EditorApplication.Exit(1);
                 return;
@@ -88,22 +93,7 @@ public static class BundleBuilder
         Debug.Log("BUNDLE BUILD ALL OK");
     }
 
-    /// <summary>Verification only: the uncompressed copies alone. Never shipped.</summary>
-    public static void BuildUncompressed()
-    {
-        foreach (Target target in Targets)
-        {
-            if (!BuildOne(target, true))
-            {
-                EditorApplication.Exit(1);
-                return;
-            }
-        }
-
-        Debug.Log("DEBUG BUNDLE ALL OK");
-    }
-
-    private static bool BuildOne(Target target, bool uncompressed)
+    private static bool BuildOne(Target target)
     {
         // Set from the script every time, never left as hidden state in the binary
         // ProjectSettings.asset: what each bundle holds must be readable here.
@@ -115,9 +105,7 @@ public static class BundleBuilder
         for (int i = 0; i < readBack.Length; i++)
             list += (i > 0 ? ", " : "") + readBack[i];
 
-        string dir = uncompressed
-            ? Path.Combine(Path.Combine(OutputDir, "debug"), target.Name)
-            : Path.Combine(OutputDir, target.Name);
+        string dir = Path.Combine(OutputDir, target.Name);
         Directory.CreateDirectory(dir);
 
         AssetBundleBuild build = new AssetBundleBuild
@@ -129,14 +117,13 @@ public static class BundleBuilder
         // Always rebuild. The incremental check only hashes the .shader files themselves,
         // so an edit confined to CloudCommon.cginc would otherwise yield a byte-identical,
         // stale bundle -- with no error anywhere.
-        BuildAssetBundleOptions options = BuildAssetBundleOptions.ForceRebuildAssetBundle;
-        if (uncompressed)
-            options |= BuildAssetBundleOptions.UncompressedAssetBundle;
+        AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(
+            dir,
+            new[] { build },
+            BuildAssetBundleOptions.ForceRebuildAssetBundle | BuildAssetBundleOptions.UncompressedAssetBundle,
+            target.BuildTarget);
 
-        AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(dir, new[] { build }, options, target.BuildTarget);
-
-        string what = (uncompressed ? "DEBUG BUNDLE" : "BUNDLE BUILD") + " " + target.Name +
-                      " (" + target.BuildTarget + ", apis=[" + list + "])";
+        string what = "BUNDLE BUILD " + target.Name + " (" + target.BuildTarget + ", apis=[" + list + "])";
 
         if (manifest == null)
         {
@@ -144,8 +131,7 @@ public static class BundleBuilder
             return false;
         }
 
-        Debug.Log((uncompressed ? "DEBUG BUNDLE OK: " : "BUNDLE BUILD OK: ") + target.Name +
-                  " -> " + Path.Combine(dir, BundleName) + "  [" + what + "]");
+        Debug.Log("BUNDLE BUILD OK: " + target.Name + " -> " + Path.Combine(dir, BundleName) + "  [" + what + "]");
         return true;
     }
 }

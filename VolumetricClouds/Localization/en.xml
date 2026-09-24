@@ -41,7 +41,8 @@
     Volumetric Weather could not draw its clouds on this PC, so it has switched itself off:
     nothing in this city is changed by it.\n\n
     The usual causes:\n
-    - the game is started with the option -force-d3d9 (Steam: right-click the game, Properties,
+    - the game is started with a launch option such as -force-d3d9, or -force-glcore on a
+    graphics card whose OpenGL is older than 3.3 (Steam: right-click the game, Properties,
     Launch Options). Remove it, and restart the game.\n
     - the graphics card is older than DirectX 10.\n\n
     If neither applies, please report it in the comments on the mod's Workshop page, with this

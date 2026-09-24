@@ -7,9 +7,11 @@
 # What it checks, and why:
 # - Unity's log for "Shader error" / "Shader warning": a shader that fails to compile still
 #   produces a bundle (containing a broken shader) and exit code 0.
-# - tools\bundle-apis.ps1 on the uncompressed twin of each bundle: every shader must carry
-#   every graphics API its platform needs. A shader that fails for ONE API can still leave a
-#   bundle behind, and a bundle without the API the game runs is a stand-down in every city.
+# - tools\bundle-apis.ps1 on EACH BUNDLE THAT SHIPS (they are built uncompressed for that
+#   reason): every shader named in BundleBuilder.cs must be in it, with real code for every
+#   graphics API of its platform. Unity leaves an EMPTY 4-byte blob, no message, exit 0, for
+#   an API it cannot compile a shader for (Metal at `#pragma target 4.0`), and a bundle
+#   without the API the game runs is a stand-down in every city.
 # - Each bundle's hash before and after, printed: an edit confined to a .cginc once produced
 #   a byte-identical stale bundle (ForceRebuild in BundleBuilder is what prevents it now, and
 #   the printed state is how to see that it did). Bundle builds are deterministic, so
@@ -25,6 +27,7 @@ $project = Join-Path $root "UnityProject"
 $log = Join-Path $project "build.log"
 $resources = Join-Path $root "VolumetricClouds\Resources"
 $apisTool = Join-Path $root "tools\bundle-apis.ps1"
+$builder = Join-Path $project "Assets\Editor\BundleBuilder.cs"
 
 # One row per bundle: its name, and the platform ids every shader in it must carry
 # (1 D3D9, 4 D3D11, 14 Metal, 15 OpenGLCore, 18 Vulkan). Must match BundleBuilder.Targets.
@@ -36,6 +39,14 @@ $targets = @(
 
 if (-not (Test-Path $Unity)) { throw "Unity not found at $Unity" }
 if (-not (Test-Path $apisTool)) { throw "Missing $apisTool" }
+if (-not (Test-Path $builder)) { throw "Missing $builder" }
+
+# The shaders to expect: read out of BundleBuilder.cs, the one list, so a shader added there
+# is checked here without anyone remembering a second list.
+$shaders = @([regex]::Matches((Get-Content $builder -Raw), '"Assets/VolumetricClouds/(\w+)\.shader"') |
+    ForEach-Object { "VolumetricClouds/" + $_.Groups[1].Value })
+if ($shaders.Count -eq 0) { throw "No shader names found in $builder" }
+Write-Host ("Expecting {0} shaders: {1}" -f $shaders.Count, ($shaders -join ", "))
 
 $before = @{}
 foreach ($t in $targets) {
@@ -64,17 +75,16 @@ if ($shaderProblems) {
 }
 
 foreach ($t in $targets) {
-    foreach ($marker in @(("BUNDLE BUILD OK: " + $t.Name), ("DEBUG BUNDLE OK: " + $t.Name))) {
-        if (-not (Select-String -Path $log -Pattern $marker -SimpleMatch -Quiet)) {
-            throw "Marker '$marker' missing from the log. See $log"
-        }
+    $marker = "BUNDLE BUILD OK: " + $t.Name
+    if (-not (Select-String -Path $log -Pattern $marker -SimpleMatch -Quiet)) {
+        throw "Marker '$marker' missing from the log. See $log"
     }
 }
 
 Write-Host "Checking what each bundle holds..."
 foreach ($t in $targets) {
-    $debug = Join-Path $project ("Bundles\debug\" + $t.Name + "\volumetricclouds")
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $apisTool -Bundle $debug -Expect $t.Platforms
+    $built = Join-Path $project ("Bundles\" + $t.Name + "\volumetricclouds")
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $apisTool -Bundle $built -Expect $t.Platforms -Shaders ($shaders -join ",")
     if ($LASTEXITCODE -ne 0) {
         throw ("The " + $t.Name + " bundle does not hold " + $t.Needs + " for every shader; nothing copied.")
     }

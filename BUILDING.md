@@ -7,8 +7,9 @@
 - Cities: Skylines installed. The project references the game's own DLLs from
   `C:\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities_Data\Managed`; if Steam
   lives elsewhere, pass `-p:GameManaged=<path to Cities_Data\Managed>`.
-- Unity **5.6.6** at `C:\Program Files\Unity\Editor\Unity.exe` — **only** if you edit shaders.
-  The compiled bundle is committed, so C# work needs no Unity.
+- Unity **5.6.6** at `C:\Program Files\Unity\Editor\Unity.exe` with its **Mac** and **Linux
+  Build Support** modules of the same version — **only** if you edit shaders. The compiled
+  bundles (one per platform) are committed, so C# work needs no Unity.
 
 ## Build and deploy
 
@@ -29,27 +30,41 @@ along with the local source paths inside it.
 
 ## Shaders
 
-Shaders cannot be compiled at runtime. They are built by Unity into an AssetBundle that is
-embedded in the DLL as a resource. After editing anything under `UnityProject\Assets`:
+Shaders cannot be compiled at runtime. They are built by Unity into AssetBundles embedded in
+the DLL as resources: one per platform, because a bundle only holds code for the graphics
+APIs of its build target (`volumetricclouds-win.bundle`: Direct3D 11 and OpenGL Core;
+`-linux`: OpenGL Core; `-mac`: Metal and OpenGL Core). The mod picks one by platform at run
+time. After editing anything under `UnityProject\Assets`:
 
 ```
 .\build-bundle.ps1
 ```
 
-then rebuild the mod to embed the new bundle.
+then rebuild the mod to embed the new bundles. The script prints each bundle's size, hash
+and whether it changed.
 
-Two traps, both of which have bitten this project:
+Three traps, all of which have bitten this project:
 
 - **A shader that fails to compile still produces a bundle and exit code 0.** `build-bundle.ps1`
   greps Unity's log for `Shader error` / `Shader warning`. Never bypass that check.
+- **A shader Unity cannot compile for one API leaves an EMPTY slot and no message at all.**
+  `#pragma target 4.0` means "has geometry shaders" and is unsupported on Metal, so 1.1.0's
+  shaders came out with 4-byte Metal blobs, exit code 0, and stood the mod down on every Mac.
+  Every shader is `#pragma target 3.5` (the same shader model 4.0 on Direct3D 11, and OpenGL
+  3.3) or lower, and `tools/bundle-apis.ps1` reads every bundle after the build: every
+  shader named in `BundleBuilder.cs`, every platform of its bundle, real code in every slot,
+  or nothing is copied. The bundles are built uncompressed precisely so that the file the
+  tool verifies is the file that ships.
 - **The incremental bundle build hashes only `.shader` files.** An edit confined to
   `CloudCommon.cginc` once produced a byte-identical stale bundle with no error, which is why
-  `BundleBuilder` keeps `BuildAssetBundleOptions.ForceRebuildAssetBundle`. Confirm the bundle's
-  file hash actually changed.
+  `BundleBuilder` keeps `BuildAssetBundleOptions.ForceRebuildAssetBundle`. Bundle builds are
+  deterministic, so the script's UNCHANGED after a shader edit means exactly that.
 
-A new shader goes in the one `Shaders` array in `UnityProject/Assets/Editor/BundleBuilder.cs`.
-`BuildUncompressed` also writes `Bundles/debug/`, which `tools/shaderdump.ps1 -AssetFile` can
-disassemble to prove a shader really compiled.
+A new shader goes in the one `Shaders` array in `UnityProject/Assets/Editor/BundleBuilder.cs`;
+`build-bundle.ps1` reads the list from there. `tools/shaderdump.ps1 -AssetFile
+UnityProject/Bundles/win/volumetricclouds -Name "VolumetricClouds/<shader>"` disassembles the
+Direct3D 11 code of any of them, and `tools/bundle-apis.ps1 -Bundle <new> -Compare <old>`
+proves, shader by shader, that a change left the Direct3D 11 code untouched.
 
 ## Hard constraints
 

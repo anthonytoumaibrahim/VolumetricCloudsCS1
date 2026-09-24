@@ -45,7 +45,7 @@ and bring their own rain, lightning, fog and night sky with them.
 
 | | |
 | --- | --- |
-| Game | Cities: Skylines (2015). **Windows** (Direct3D 11, or OpenGL with `-force-glcore`). **Mac** (Metal) and the **native Linux** version (OpenGL 3.3) since 1.1.1 — new and experimental: tested on one Apple Silicon MacBook Air, not yet on native Linux; the mod says so once, the first time a city loads there. Proton on Linux and Steam Deck runs the Windows version as before. |
+| Game | Cities: Skylines (2015). **Windows** (Direct3D 11, or OpenGL with `-force-glcore`). **Mac** (Metal) and the **native Linux** version (OpenGL 3.3) since 1.1.1 — new and experimental: tested on one Apple Silicon MacBook Air, not yet on native Linux; the mod's options page says so there. Proton on Linux and Steam Deck runs the Windows version as before. |
 | Required | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402) (Workshop 2040656402) |
 | Optional | [Unified UI](https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700) — the mod's button appears there; without it you get a button on the HUD |
 

@@ -113,6 +113,24 @@ if ((ReleaseOf $deployedVersion) -ne $version) {
     Stop-Release ("the deployed DLL is $deployedVersion, not " + $version + ".*")
 } else { Ok "$deployedVersion" }
 
+# The csproj embeds each bundle only if its file exists (Condition="Exists(...)"), so a
+# missing or renamed Resources\volumetricclouds-<p>.bundle gives a clean build, 0 warnings,
+# every test green -- and a stand-down in every city on that platform. Read the DLL.
+Step "The deployed DLL embeds the three shader bundles"
+$asm = [System.Reflection.Assembly]::ReflectionOnlyLoadFrom($deployedDll)
+$resourceNames = @($asm.GetManifestResourceNames())
+foreach ($platform in "win", "linux", "mac") {
+    $res = "VolumetricClouds.Resources.volumetricclouds-$platform.bundle"
+    if ($resourceNames -notcontains $res) {
+        Stop-Release "$res is not embedded (run build-bundle.ps1, then rebuild)"
+    }
+    $stream = $asm.GetManifestResourceStream($res)
+    $length = $stream.Length
+    $stream.Close()
+    if ($length -lt 10000) { Stop-Release "$res is only $length bytes" }
+    Ok "$res ($length bytes)"
+}
+
 Step "The deployed folder holds exactly the three shipped files"
 $present = @(Get-ChildItem $deployed -File | Select-Object -ExpandProperty Name)
 $extra = @($present | Where-Object { $shipped -notcontains $_ })

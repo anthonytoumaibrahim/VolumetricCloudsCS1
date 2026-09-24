@@ -379,8 +379,8 @@ UnityProject/*.userprefs
 UnityProject/*.pidb
 UnityProject/*.booproj
 
-# Intermediate bundle output. build-bundle.ps1 copies the result to
-# VolumetricClouds/Resources/volumetricclouds.bundle, which IS tracked.
+# Intermediate bundle output. build-bundle.ps1 copies the results to
+# VolumetricClouds/Resources/volumetricclouds-{win,linux,mac}.bundle, which ARE tracked.
 UnityProject/Bundles/
 
 # The Visual Studio template above ignores *.meta, but Unity asset metadata

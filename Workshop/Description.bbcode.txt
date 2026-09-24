@@ -4,7 +4,7 @@ The mod should continue working as usual. If anything stopped working for you af
 
 [hr][/hr]
 [h1]Requirements[/h1]
-[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b]: expect a lower frame rate than on a Windows PC, and the mod tells you so once, the first time a city loads. On Linux and Steam Deck, running the Windows version through [b]Proton[/b] works as before.
+[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b]: expect a lower frame rate than on a Windows PC (the mod's options page says so too). On Linux and Steam Deck, running the Windows version through [b]Proton[/b] works as before.
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
