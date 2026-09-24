@@ -83,5 +83,20 @@ namespace VolumetricClouds.Sky
             leadX = (float)(driftX * scale);
             leadZ = (float)(driftZ * scale);
         }
+
+        /// <summary>
+        /// (x, z) turned by <paramref name="degrees"/>: (x cos - z sin, x sin + z cos), the turn
+        /// CloudCommon.cginc applies to the fragment lookup. A turned drift is still a function of
+        /// the saved drift alone, so a lookup read through it restores exactly.
+        /// </summary>
+        public static void Turn(double x, double z, double degrees, out double tx, out double tz)
+        {
+            double a = degrees * Math.PI / 180.0;
+            double c = Math.Cos(a);
+            double s = Math.Sin(a);
+
+            tx = x * c - z * s;
+            tz = x * s + z * c;
+        }
     }
 }

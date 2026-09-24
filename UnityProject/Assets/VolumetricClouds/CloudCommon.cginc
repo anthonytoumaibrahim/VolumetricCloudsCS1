@@ -43,6 +43,44 @@ float HeightShape(float h)
     return saturate(h * 5.0) * saturate((1.0 - h) * 2.5);
 }
 
+// CLOUD FRAGMENTS (Sky/CloudFragments.cs): small, thin shreds clustered round the big clouds,
+// in the same layer and on the same base. _FragAmount == 0 means off: every use sits behind
+// that uniform branch, and nothing else of it is even set.
+float _FragAmount;
+float _FragThreshold;    // weather value where a fragment starts (solved: a share of the sky)
+float4 _FragPhase;       // xy: the fragment lookup's turned drift, zw: the area lookup's (shifts folded in)
+float4 _FragParams;      // x = multiple (whole), yz = cos, sin of the turn, w = height in metres
+float4 _FragArea;        // the area lookup: x = multiple (whole), yz = cos, sin, w = its threshold
+float4 _FragEdge;        // x = threshold drop at a big cloud's edge, y = how far out, z = density,
+                         // w = the fragments' own break-up strength, or -1 for the clouds' own
+
+// The weather map read turned by (c, s) at a whole-number multiple of its frequency. Turning is
+// linear, so the drift's phase for it is the drift turned too (CloudWind.TurnedPhase).
+float TurnedWeather(float2 xz, float multiple, float c, float s, float2 phase)
+{
+    float2 q = xz / _WeatherTile;
+    q = float2(q.x * c - q.y * s, q.x * s + q.y * c);
+    return tex2Dlod(_WeatherTex, float4(q * multiple - phase, 0, 0)).r;
+}
+
+// A fragment's shape at p, 0..1 like `shaped` below: the same weather map read again, turned,
+// finer and shifted so its pieces line up with nothing of the big pattern; a little more likely
+// just outside a big cloud; only in the random areas a coarser lookup lets them into, so no two
+// stretches of sky look alike; a short column from the same base.
+float FragmentShape(float3 p, float weather, float h01Frag)
+{
+    float wf = TurnedWeather(p.xz, _FragParams.x, _FragParams.y, _FragParams.z, _FragPhase.xy);
+    float nearBig = saturate((weather - (_Threshold - _FragEdge.y)) / _FragEdge.y);
+    float cover = saturate((wf - _FragThreshold + _FragEdge.x * nearBig) / _Softness);
+    if (cover <= 0.0)
+        return 0.0;
+
+    float wa = TurnedWeather(p.xz, _FragArea.x, _FragArea.y, _FragArea.z, _FragPhase.zw);
+    cover *= saturate((wa - _FragArea.w) / _Softness);
+
+    return cover * HeightShape(h01Frag);
+}
+
 float SampleDensity(float3 p, bool detailed)
 {
     float h = (p.y - _CloudBottom) / (_CloudTop - _CloudBottom);
@@ -52,10 +90,28 @@ float SampleDensity(float3 p, bool detailed)
     float2 uvWeather = p.xz / _WeatherTile - _WeatherPhase;
     float weather = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
     float coverage = saturate((weather - _Threshold) / _Softness);
-    if (coverage <= 0.0)
-        return 0.0;
 
+    // The big clouds' shape. (Zero exactly when coverage is, so with fragments off this returns
+    // in the same cases, with the same numbers, as before they existed.)
     float shaped = coverage * HeightShape(h);
+
+    // Fragments: where both are present the larger shape wins, so the big clouds are untouched.
+    // fragWeight says how much of this point is fragment rather than big cloud (a soft blend,
+    // so no seam where one meets the other): there the density is the fragments' own.
+    float fragWeight = 0.0;
+    if (_FragAmount > 0.0)
+    {
+        float hFrag = (p.y - _CloudBottom) / _FragParams.w;
+        if (hFrag < 1.0)
+        {
+            float fragShape = FragmentShape(p, weather, hFrag);
+            fragWeight = saturate((fragShape - shaped) / 0.1);
+            shaped = max(shaped, fragShape);
+        }
+    }
+
+    if (shaped <= 0.0)
+        return 0.0;
 
     // The volume drifts slightly faster than the weather so clouds churn instead of
     // sliding as a rigid sheet (the 1.25 is in _NoisePhase).
@@ -73,8 +129,19 @@ float SampleDensity(float3 p, bool detailed)
         // jump every time _NoisePhase wraps.
         float3 uvDetail = p / _NoiseTile * _DetailScale - _DetailPhase;
         float detail = tex3Dlod(_NoiseTex, float4(uvDetail, 0)).g;
-        d = saturate(Remap(d, detail * _DetailStrength, 1.0, 0.0, 1.0));
+
+        // A fragment style may tear its shreds harder than the big clouds are torn.
+        float erode = _DetailStrength;
+        if (_FragAmount > 0.0 && _FragEdge.w >= 0.0)
+            erode = lerp(_DetailStrength, _FragEdge.w, fragWeight);
+
+        d = saturate(Remap(d, detail * erode, 1.0, 0.0, 1.0));
     }
+
+    // Fragments are see-through: a full shape (a faint one is eaten whole by the noise above)
+    // at a fraction of the density. Inside the branch, so with them off nothing changes.
+    if (_FragAmount > 0.0)
+        d *= lerp(1.0, _FragEdge.z, fragWeight);
 
     return d * _DensityScale;
 }

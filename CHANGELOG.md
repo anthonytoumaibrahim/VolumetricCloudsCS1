@@ -7,9 +7,26 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.1.1 — unreleased
 
-Mac and Linux, and settings for the rain streaks. Nothing in `VolumetricClouds.xml` or in
-saved cities changes: the new settings start at values that keep the rain exactly as it was,
-and on Windows the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
+Mac and Linux, cloud fragments, and settings for the rain streaks. Nothing in
+`VolumetricClouds.xml` or in saved cities changes: every new setting starts at a value that
+keeps the sky exactly as it was (cloud fragments off, the rain streaks at 100% and white). The
+cloud shaders were rebuilt for the fragments; with them off, the clouds look as before.
+
+### New: cloud fragments
+
+- Small, thin, see-through shreds of cloud around and between the big clouds, the ragged
+  pieces real skies have beside their large clouds. They sit in the same layer, on the same
+  flat base, move with the clouds and cast their own small shadows; the big clouds are drawn
+  exactly as before.
+- "Cloud fragments" on the in-game panel's Clouds tab sets how much of the sky they cover. It
+  starts at 0 (none).
+- "Fragment style", right under it, picks their look: Clustered (gathered around the edges of
+  the big clouds), Scattered (spread over the sky in random patches) or Wispy (scattered, but
+  thinner, fainter and more torn).
+- They need some open sky: at a very high cloud intensity the big clouds leave no room for
+  them. Rain still falls only from the big clouds.
+- Nothing new is stored in saved cities: the fragments come from the same pattern and wind
+  the city already keeps.
 
 ### New: Mac and Linux
 

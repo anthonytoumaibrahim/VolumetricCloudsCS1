@@ -56,9 +56,8 @@ namespace VolumetricClouds.Sky
             _histogram = other._histogram;
             _thresholdTable = other._thresholdTable;
 
-            // The drawn table is solved from the density: rebuild it on next use (both, or the
-            // lazy allocation in GetThresholdAsDrawn would find one without the other).
-            _drawnTable = null;
+            // The drawn tables are solved from the density: rebuild them on next use (a null
+            // histogram forgets every table's softness too).
             _drawnHistogram = null;
 
             if (_densityTexture != null)
@@ -244,10 +243,15 @@ namespace VolumetricClouds.Sky
             return GpuReadsSrgb ? SrgbToLinear(stored) : stored;
         }
 
+        // One solved table per softness asked for, over one shared histogram: the fog (0.1) and
+        // the cloud fragments (the clouds' softness) both ask every frame, and a single slot
+        // would rebuild the whole histogram on every call.
+        private const int DrawnSlots = 2;
         private int[] _drawnHistogram;
-        private float[] _drawnTable;
-        private float _drawnSoftness = -1f;
         private bool _drawnForSrgb;
+        private readonly float[][] _drawnTables = new float[DrawnSlots][];
+        private readonly float[] _drawnSoftness = { -1f, -1f };
+        private int _drawnNext;
 
         /// <summary>
         /// The threshold that really covers <paramref name="coverage"/> of the field ON
@@ -259,18 +263,15 @@ namespace VolumetricClouds.Sky
         /// far less than 40%. The clouds were tuned against exactly that and must keep it --
         /// and the rain with them, whose "always beneath cloud" guarantee comes from sharing
         /// the clouds' table. Anything NEW that promises the player a share of the map (the
-        /// fog) asks here instead. Main thread only; rebuilt if the measurement or the
-        /// softness changes.
+        /// fog, the cloud fragments) asks here instead. Main thread only; rebuilt if the pattern
+        /// or the measurement changes, and solved once per softness.
         /// </remarks>
         public float GetThresholdAsDrawn(float coverage, float softness)
         {
-            if (_drawnTable == null || _drawnForSrgb != GpuReadsSrgb || !Mathf.Approximately(_drawnSoftness, softness))
+            if (_drawnHistogram == null || _drawnForSrgb != GpuReadsSrgb)
             {
                 if (_drawnHistogram == null)
-                {
                     _drawnHistogram = new int[HistogramBins];
-                    _drawnTable = new float[ThresholdSteps + 1];
-                }
 
                 System.Array.Clear(_drawnHistogram, 0, _drawnHistogram.Length);
                 for (int i = 0; i < _density.Length; i++)
@@ -279,16 +280,37 @@ namespace VolumetricClouds.Sky
                     _drawnHistogram[bin]++;
                 }
 
-                for (int step = 0; step <= ThresholdSteps; step++)
-                    _drawnTable[step] = Solve(_drawnHistogram, step / (float)ThresholdSteps, softness);
-
                 _drawnForSrgb = GpuReadsSrgb;
-                _drawnSoftness = softness;
+                for (int slot = 0; slot < DrawnSlots; slot++)
+                    _drawnSoftness[slot] = -1f;
+            }
+
+            float[] table = null;
+            for (int slot = 0; slot < DrawnSlots; slot++)
+            {
+                if (_drawnTables[slot] != null && Mathf.Approximately(_drawnSoftness[slot], softness))
+                {
+                    table = _drawnTables[slot];
+                    break;
+                }
+            }
+
+            if (table == null)
+            {
+                int slot = _drawnNext;
+                _drawnNext = (_drawnNext + 1) % DrawnSlots;
+
+                table = _drawnTables[slot] ?? new float[ThresholdSteps + 1];
+                for (int step = 0; step <= ThresholdSteps; step++)
+                    table[step] = Solve(_drawnHistogram, step / (float)ThresholdSteps, softness);
+
+                _drawnTables[slot] = table;
+                _drawnSoftness[slot] = softness;
             }
 
             float t = Mathf.Clamp01(coverage) * ThresholdSteps;
             int index = Mathf.Clamp((int)t, 0, ThresholdSteps - 1);
-            return Mathf.Lerp(_drawnTable[index], _drawnTable[index + 1], t - index);
+            return Mathf.Lerp(table[index], table[index + 1], t - index);
         }
 
         /// <summary>The bisection of <see cref="SolveThreshold"/>, for any histogram and softness.</summary>

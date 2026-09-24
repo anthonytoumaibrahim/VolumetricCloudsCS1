@@ -186,6 +186,40 @@ for ($i = 0; $i -lt 5000; $i++) {
 }
 Check "a metre of drift moves the lead by no more than 0.35 m" ($worst -le 0.3501) "True"
 
+# ---- Drift.Turn: the cloud fragments' lookup reads the drift turned (CloudWind.TurnedPhase) ----
+
+function Turn([double]$x, [double]$z, [double]$deg) {
+    $args2 = [object[]]@($x, $z, $deg, [double]0, [double]0)
+    [void]$drift.GetMethod('Turn').Invoke($null, $args2)
+    return @($args2[3], $args2[4])
+}
+
+$t = Turn 100 0 0
+Check "0 degrees: the drift itself" "$($t[0]),$($t[1])" "100,0"
+$t = Turn 100 0 90
+Check "90 degrees turns x into z (the cginc's x cos - z sin, x sin + z cos)" "$([math]::Round($t[0], 9)),$([math]::Round($t[1], 9))" "0,100"
+$t = Turn 3 4 37
+Check "a turn keeps the length" ([math]::Round([math]::Sqrt($t[0] * $t[0] + $t[1] * $t[1]), 9)) "5"
+
+# The shader reads turn(p / tile) * m - phase; the phase must be what makes that equal to
+# turn((p - drift) / tile) * m, modulo whole repeats -- at a drift of 2^30 m too.
+$worst = 0.0
+$rng = New-Object System.Random 11
+foreach ($d in @(0.0, 1234.5, 987654.3, [math]::Pow(2, 30))) {
+    $dx = $d; $dz = -0.37 * $d
+    $td = Turn $dx $dz 37
+    $tile = 13500.0; $m = 9
+    $phx = Phase $td[0] ($tile / $m)
+    for ($k = 0; $k -lt 50; $k++) {
+        $px = ($rng.NextDouble() - 0.5) * 30000; $pz = ($rng.NextDouble() - 0.5) * 30000
+        $tp = Turn ($px / $tile) ($pz / $tile) 37
+        $tr = Turn (($px - $dx) / $tile) (($pz - $dz) / $tile) 37
+        $err = ($tp[0] * $m - $phx) - ($tr[0] * $m)
+        $worst = [math]::Max($worst, [math]::Abs($err - [math]::Round($err)))
+    }
+}
+Check "fragment phase: the turned lookup lands where the drifted one does (worst $([math]::Round($worst, 9)) of a repeat)" ($worst -lt 1e-6) "True"
+
 # ---- SkyState: the record in the save ---------------------------------------------------------
 
 function NewState {

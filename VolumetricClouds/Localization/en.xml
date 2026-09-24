@@ -161,6 +161,24 @@
     The size of that tearing: low breaks off big chunks, high makes fine wisps.
   </String>
 
+  <String key="CloudFragments.Label">Cloud fragments</String>
+  <String key="CloudFragments.Tooltip">
+    Small, thin shreds of cloud around the big clouds, the ragged pieces real skies have
+    between and beside their large clouds. The number is how much of the sky they cover; at 0
+    there are none. They need some open sky to show: at a very high intensity the big clouds
+    leave no room for them.
+  </String>
+
+  <String key="CloudFragmentStyle.Label">Fragment style</String>
+  <String key="CloudFragmentStyle.Tooltip">
+    How the fragments look. Clustered: gathered around the edges of the big clouds. Scattered:
+    spread over the sky in random patches. Wispy: scattered too, but thinner, fainter and more
+    torn.
+  </String>
+  <String key="CloudFragmentStyle.Clustered">Clustered</String>
+  <String key="CloudFragmentStyle.Scattered">Scattered</String>
+  <String key="CloudFragmentStyle.Wispy">Wispy</String>
+
   <String key="Status.Brightness.Auto">Cloud brightness: {0} (automatic, at intensity {1})</String>
   <String key="Status.Brightness.Manual">Cloud brightness: {0} (set by hand)</String>
 

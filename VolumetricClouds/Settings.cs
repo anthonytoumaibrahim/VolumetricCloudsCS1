@@ -287,6 +287,18 @@ namespace VolumetricClouds
         public static FloatSetting CloudBreakupScale { get; private set; }
 
         /// <summary>
+        /// CLOUD FRAGMENTS (Sky.CloudFragments): the share of the sky, 0..1, covered by small, thin
+        /// shreds clustered round the big clouds, in the same layer. 0 is off and nothing of it runs.
+        /// </summary>
+        public static FloatSetting CloudFragments { get; private set; }
+
+        /// <summary>
+        /// Their style, stored by VALUE (append only): 0 Clustered (round the big clouds),
+        /// 1 Scattered, 2 Wispy (thinner, fainter, more torn). See Sky.CloudFragments.
+        /// </summary>
+        public static IntSetting CloudFragmentStyle { get; private set; }
+
+        /// <summary>
         /// The colour of the light on the clouds' SUNLIT side (the moon's at night): tops, sunny
         /// flanks, the bright rim towards the sun. Hue and saturation only (Sky.CloudTint);
         /// white, the default, changes nothing.
@@ -445,6 +457,8 @@ namespace VolumetricClouds
             public const float Thickness = 400f;
             public const float Breakup = 0.5f;
             public const float BreakupScale = 4f;
+            public const float Fragments = 0f;       // off: an update never adds fragments to a sky
+            public const int FragmentStyle = 1;      // Scattered
             public const float Density = 1.5f;
 
             /// <summary>
@@ -689,6 +703,8 @@ namespace VolumetricClouds
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
                 CloudBreakupScale = new FloatSetting("CloudBreakupScale", Defaults.BreakupScale);
+                CloudFragments = new FloatSetting("CloudFragments", Defaults.Fragments);
+                CloudFragmentStyle = new IntSetting("CloudFragmentStyle", Defaults.FragmentStyle);
                 CloudBrightness = new FloatSetting("CloudBrightness", Defaults.Brightness);
                 CloudBrightnessAuto = new BoolSetting("CloudBrightnessAuto", Defaults.BrightnessAuto);
                 CloudBrightnessClear = new FloatSetting("CloudBrightnessClear", Defaults.BrightnessClear);

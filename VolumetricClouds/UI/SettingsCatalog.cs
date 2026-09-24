@@ -666,6 +666,11 @@ namespace VolumetricClouds.UI
             return Settings.FogEnabled != null && Settings.FogEnabled.value;
         }
 
+        private static bool FragmentsOn()
+        {
+            return CloudFragments.On;
+        }
+
         private static bool FogLampsOn()
         {
             return FogOn() && Settings.FogLampsEnabled != null && Settings.FogLampsEnabled.value;
@@ -932,6 +937,31 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.BreakupScale,
                 Min = 1.5f, Max = 10f, Step = 0.25f,
                 Format = Times2,
+            });
+
+            // Small, thin shreds round the big clouds, same layer and base (Sky.CloudFragments).
+            // The number is a real share of the sky; 0 is off. No AfterChange (a slider's runs
+            // per drag tick): CloudShaderParams logs them going on and off.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CloudFragments,
+                DefaultFloat = Settings.Defaults.Fragments,
+                Min = 0f, Max = 50f, Step = 1f,
+            });
+
+            // Their style: three looks chosen side by side from offline renders (Sky.CloudFragments).
+            // Stored by value, append only.
+            Add(new Row
+            {
+                Kind = RowKind.Choice,
+                Panel = PanelPage.Clouds,
+                Int = Settings.CloudFragmentStyle,
+                DefaultInt = Settings.Defaults.FragmentStyle,
+                ChoiceKeys = new[] { "CloudFragmentStyle.Clustered", "CloudFragmentStyle.Scattered", "CloudFragmentStyle.Wispy" },
+                ChoiceValues = new[] { 0, 1, 2 },
+                Enabled = FragmentsOn,
             });
 
             Add(new Row

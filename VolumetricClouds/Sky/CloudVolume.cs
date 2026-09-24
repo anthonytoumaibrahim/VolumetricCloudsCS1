@@ -477,6 +477,7 @@ namespace VolumetricClouds.Sky
                        (_frameWorst * 1000f).ToString("F1") + " ms worst, over " + _frameCount + " frames at " +
                        Screen.width + "x" + Screen.height +
                        " | steps=" + (Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality).ToString("F0") +
+                       " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " shadows=" + Settings.ShadowsCast +
                        " clouds=" + IsActive);

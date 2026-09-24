@@ -88,5 +88,19 @@ namespace VolumetricClouds.Sky
             double k = NoiseDrift * frequency;
             return new Vector3(Drift.Phase(_x * k, tile), 0f, Drift.Phase(_z * k, tile));
         }
+
+        /// <summary>
+        /// The phase of a lookup that reads the weather map turned by <paramref name="degrees"/>
+        /// at <paramref name="multiple"/> times its frequency (CloudFragments): the shader reads
+        /// <c>turn(p / tile) * multiple - phase</c>, and turning is linear, so the phase is the
+        /// turned drift over <c>tile / multiple</c>. Moves with the clouds, exactly.
+        /// </summary>
+        public static Vector2 TurnedPhase(float tile, int multiple, double degrees)
+        {
+            double x, z;
+            Drift.Turn(_x, _z, degrees, out x, out z);
+            double period = (double)tile / multiple;
+            return new Vector2(Drift.Phase(x, period), Drift.Phase(z, period));
+        }
     }
 }

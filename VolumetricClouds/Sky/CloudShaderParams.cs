@@ -30,6 +30,12 @@ namespace VolumetricClouds.Sky
         private static readonly int IdRainAmount = Shader.PropertyToID("_RainAmount");
         private static readonly int IdRainThreshold = Shader.PropertyToID("_RainThreshold");
         private static readonly int IdRainSlant = Shader.PropertyToID("_RainSlant");
+        private static readonly int IdFragAmount = Shader.PropertyToID("_FragAmount");
+        private static readonly int IdFragThreshold = Shader.PropertyToID("_FragThreshold");
+        private static readonly int IdFragPhase = Shader.PropertyToID("_FragPhase");
+        private static readonly int IdFragParams = Shader.PropertyToID("_FragParams");
+        private static readonly int IdFragEdge = Shader.PropertyToID("_FragEdge");
+        private static readonly int IdFragArea = Shader.PropertyToID("_FragArea");
 
         /// <summary>
         /// The cover in effect: the weather's, or the slider's when it overrides. Never read
@@ -83,6 +89,66 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdRainAmount, CloudRain.Amount);
             material.SetFloat(IdRainThreshold, field.GetThreshold(CloudRain.RainCoverage));
             material.SetVector(IdRainSlant, CloudRain.Slant);
+
+            ApplyFragments(material, field, weatherTile, thickness);
         }
+
+        /// <summary>
+        /// Cloud fragments (CloudFragments). Off, the amount is written as 0 and nothing else is
+        /// looked at: every use of them sits behind that uniform branch.
+        /// </summary>
+        private static void ApplyFragments(Material material, CloudDensityField field, float weatherTile, float thickness)
+        {
+            bool on = CloudFragments.On;
+            CloudFragments.Style style = CloudFragments.Current;
+            string logged = on ? style.Name : null;
+            if (logged != _fragmentsLogged)
+            {
+                // Always on the log: it changes what is drawn. Once per switch or style, not per
+                // material and not per tick of the amount slider.
+                _fragmentsLogged = logged;
+                Log.Msg("cloud fragments: " + (on ? "ON, " : "") + CloudFragments.Describe());
+            }
+
+            if (!on)
+            {
+                material.SetFloat(IdFragAmount, 0f);
+                return;
+            }
+
+            double a = CloudFragments.Angle * System.Math.PI / 180.0;
+            double b = CloudFragments.AreaAngle * System.Math.PI / 180.0;
+            Vector2 phase = CloudWind.TurnedPhase(weatherTile, CloudFragments.Multiple, CloudFragments.Angle);
+            Vector2 areaPhase = CloudWind.TurnedPhase(weatherTile, CloudFragments.AreaMultiple, CloudFragments.AreaAngle);
+
+            // Shares of the sky, solved against what the GPU reads. Fragments are only let into
+            // AreaShare of the sky, so their own share is raised to match: the total is about
+            // what the slider says. A style let in everywhere gets an area threshold no weather
+            // value is under.
+            float share = CloudFragments.Share;
+            float softness = CloudDensityField.EdgeSoftness;
+            bool everywhere = style.AreaShare >= 1f;
+            material.SetFloat(IdFragAmount, share);
+            material.SetFloat(IdFragThreshold, field.GetThresholdAsDrawn(Mathf.Min(1f, share / style.AreaShare), softness));
+
+            // The fixed shifts are folded into the phases (the shader reads ... - phase).
+            material.SetVector(IdFragPhase, new Vector4(
+                Wrap(phase.x - CloudFragments.Offset.x), Wrap(phase.y - CloudFragments.Offset.y),
+                Wrap(areaPhase.x - CloudFragments.AreaOffset.x), Wrap(areaPhase.y - CloudFragments.AreaOffset.y)));
+            material.SetVector(IdFragParams, new Vector4(CloudFragments.Multiple, (float)System.Math.Cos(a), (float)System.Math.Sin(a),
+                Mathf.Min(style.Thickness, Mathf.Max(50f, thickness))));
+            material.SetVector(IdFragArea, new Vector4(CloudFragments.AreaMultiple, (float)System.Math.Cos(b), (float)System.Math.Sin(b),
+                everywhere ? -1f : field.GetThresholdAsDrawn(style.AreaShare, softness)));
+            // w: the fragments' own break-up strength, or -1 for the clouds' own.
+            material.SetVector(IdFragEdge, new Vector4(style.EdgeBoost, CloudFragments.EdgeReach, style.Density, style.Erosion));
+        }
+
+        private static float Wrap(float phase)
+        {
+            return phase - Mathf.Floor(phase);
+        }
+
+        // Starts "off" (null), so a session that starts with fragments says so once.
+        private static string _fragmentsLogged;
     }
 }
