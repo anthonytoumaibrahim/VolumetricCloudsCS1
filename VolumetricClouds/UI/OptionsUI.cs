@@ -86,17 +86,22 @@ namespace VolumetricClouds.UI
             }
         }
 
+        /// <summary>A warning the player should read: a warm yellow.</summary>
+        private static readonly Color32 WarningColour = new Color32(255, 213, 74, 255);
+
         private void BuildPage(UIHelperBase helper)
         {
-            // Mac and Linux (1.1.1): one sentence at the top, always -- where a player who
-            // dismissed the once-only dialog (Loader) looks next. UIHelper has no plain label;
-            // a group title is this page's one way to show prose (see BuildRows).
-            if (Loader.IsExperimentalPlatform)
-                helper.AddGroup(Localization.Get("Mod.ExperimentalPlatformNote"));
-
             BuildRows(helper, OptionsPage.General);
 
             UIComponent host = PanelOf(helper);
+
+            // Mac and Linux (1.1.1): one warning at the BOTTOM of the page, in yellow, wrapping.
+            // Not a group title (this page's usual way to show prose, see BuildRows): a title
+            // is one line and was cut off at the page's edge. The author's call, 2026-09-24:
+            // no dialog, the Workshop page carries the warning, and this line does here.
+            if (host != null && Loader.IsExperimentalPlatform)
+                AddPlatformWarning(host);
+
             if (host != null)
             {
                 host.eventVisibilityChanged += (component, visible) =>
@@ -149,6 +154,38 @@ namespace VolumetricClouds.UI
         {
             UIHelper concrete = helper as UIHelper;
             return concrete != null ? concrete.self as UIComponent : null;
+        }
+
+        /// <summary>
+        /// A UILabel of our own on the page's scroll panel, which lays its children out top to
+        /// bottom, so a label added after every row lands last. Fixed width, auto height,
+        /// word wrap: the three together are what makes it wrap instead of running off the
+        /// page. The width is logged once, with the height the text got, so a Mac log shows
+        /// whether it wrapped.
+        /// </summary>
+        private static void AddPlatformWarning(UIComponent host)
+        {
+            UIScrollablePanel scroll = host as UIScrollablePanel;
+            RectOffset layoutPadding = scroll != null && scroll.autoLayoutPadding != null
+                ? scroll.autoLayoutPadding
+                : new RectOffset();
+
+            UILabel label = host.AddUIComponent<UILabel>();
+            label.name = "VolumetricCloudsPlatformWarning";
+            label.autoSize = false;
+            label.autoHeight = true;
+            label.wordWrap = true;
+            label.width = host.width - layoutPadding.horizontal - 24f;
+            label.padding = new RectOffset(8, 8, 12, 8);
+            label.textColor = WarningColour;
+            label.text = Localization.Get("Mod.ExperimentalPlatformNote");
+
+            if (_buildCount == 1)
+            {
+                Log.Msg("options page: platform warning added at the bottom (page " + host.width +
+                        " wide, layout padding " + layoutPadding.horizontal + "; label " + label.width +
+                        " x " + label.height + ")");
+            }
         }
 
         private Control BuildRow(UIHelperBase helper, Row row, UIComponent groupPanel)

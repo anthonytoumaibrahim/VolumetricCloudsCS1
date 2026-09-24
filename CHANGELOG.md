@@ -20,10 +20,8 @@ the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
   the message.
 - If the clouds still cannot be drawn on a computer, the message now says what the mod needs
   on that system; on Linux it also says how to run the Windows version through Proton.
-- Mac and Linux are new and experimental, and the mod says so: one notice the first time a
-  city loads on that computer (once, not every game), with what to do if the game stutters,
-  and one line at the top of the mod's options page. `VolumetricClouds.xml` gains one line
-  for it, `PlatformNoticeShown`.
+- Mac and Linux are new and experimental, and the mod's options page says so on those
+  systems, with what to do if the game stutters.
 
 ### Fixes
 

@@ -1,6 +1,6 @@
 [h1]Version 1.1.1: Mac and Linux[/h1]
-Update 1.1.1 brings the mod to the [b]Mac[/b] and to the [b]native Linux[/b] version of the game, as a first, experimental release there: it has run on one Mac so far, and it costs more than on a Windows PC (a fanless MacBook Air runs at about 30 fps). Windows is unchanged. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
-The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments (see [b]Reporting a bug[/b] below for what to include).
+Update 1.1.1 brings the mod to [b]Mac[/b] and [b]Linux[/b] versions of the game, as a first, experimental release. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]
 [h1]Requirements[/h1]
@@ -37,12 +37,12 @@ Based on player feedback, the clouds run great even on low-end PCs. And you can 
 [list]
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
 [*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
-[*][b]Mac and Linux[/b] (new in 1.1.1): the clouds cost more there. A fanless MacBook Air M1 runs an empty city at about 30 fps on High; lower the preset as above, and the game's resolution if needed.
+[*][b]Mac and Linux[/b] (new in 1.1.1): tested on my MacBook Air M1 (which is fanless), it runs an empty city at about 30 fps on High; so you might need to lower the preset as above, and the game's resolution if needed.
 [/list]
 
 [hr][/hr]
 [h1]Compatibility[/h1]
-Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b] and [b]Intersection Marking Tool[/b], with no conflicts. No setup covers every combination, so please report any conflict you find.
+Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b], [b]Fog Controller[/b] and more, with no conflicts. No setup covers every combination, so please report any conflict you find.
 [b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread. That said, I cannot be held responsible for anything that goes wrong, lost or damaged saves included, so please keep backups.
 
 [hr][/hr]

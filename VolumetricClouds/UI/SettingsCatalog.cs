@@ -1696,18 +1696,6 @@ namespace VolumetricClouds.UI
                 Profiled = false,
                 AfterChange = ModController.PlaceHudButton,
             });
-
-            // Mac and Linux (1.1.1): whether the once-only "new and experimental" dialog has
-            // been shown on this machine (Loader.ShowExperimentalNoticeOnce sets it). In the
-            // catalog so that it is SAVED (invariant 7); no UI. A Reset clears it, so the
-            // dialog shows once more after one, which is fine.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Bool = Settings.PlatformNoticeShown,
-                DefaultBool = Settings.Defaults.PlatformNoticeShown,
-                Profiled = false,
-            });
         }
 
         private static void ConfirmReset()

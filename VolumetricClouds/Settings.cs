@@ -66,13 +66,6 @@ namespace VolumetricClouds
         public static BoolSetting DetailedLogging { get; private set; }
 
         /// <summary>
-        /// Mac and Linux (1.1.1): whether the once-only "new and experimental" dialog has been
-        /// shown on this machine (Loader.ShowExperimentalNoticeOnce). No UI. Once per INSTALL,
-        /// not per launch, was the author's ask ("not on every playthrough"), hence a setting.
-        /// </summary>
-        public static BoolSetting PlatformNoticeShown { get; private set; }
-
-        /// <summary>
         /// 0: the game's own language. Otherwise one of <see cref="Localization.LanguageCodes"/>,
         /// counted from 1 -- an append-only table, so a saved choice survives new languages.
         /// </summary>
@@ -407,7 +400,6 @@ namespace VolumetricClouds
             public const bool ShowInUnifiedUI = true;
             public const bool ShowAdvancedInPanel = false;
             public const bool DetailedLogging = false;
-            public const bool PlatformNoticeShown = false;
 
             /// <summary>Where the button always stood before it could be dragged.</summary>
             public const float HudButtonX = 10f;
@@ -717,7 +709,6 @@ namespace VolumetricClouds
                 // checkerboard, went in 1.1.0.
                 HudButtonX = new FloatSetting("HudButtonX", Defaults.HudButtonX);
                 HudButtonY = new FloatSetting("HudButtonY", Defaults.HudButtonY);
-                PlatformNoticeShown = new BoolSetting("PlatformNoticeShown", Defaults.PlatformNoticeShown);
 
                 // Before the file is read: reading it walks the catalog, and building the
                 // catalog calls Init.

@@ -48,18 +48,10 @@
     file:\n
     {0}
   </String>
-  <String key="Mod.ExperimentalPlatform">
-    Volumetric Weather on Mac and Linux is new and experimental: so far it has run on very few
-    computers.\n\n
-    The clouds cost more here than on a Windows PC. If the game stutters, lower the quality: on
-    this mod's page in the game's options, tick "Show advanced options in the in-game panel",
-    then open the in-game panel (F4, or the mod's button), go to its Rendering tab and set the
-    quality preset to Low or Medium. A lower game resolution helps too.\n\n
-    Everything else works as on Windows. This message is shown once.
-  </String>
   <String key="Mod.ExperimentalPlatformNote">
-    Mac and Linux support is new and experimental. If the game stutters, pick the Low quality
-    preset (in-game panel, Rendering tab, with the advanced options below switched on).
+    Mac and Linux support is new and experimental: expect a lower frame rate than on a Windows
+    PC. If the game stutters, pick the Low quality preset on the in-game panel's Rendering tab
+    (switch on the advanced options above to see it), or lower the game's resolution.
   </String>
 
   <String key="Tab.Now">Now</String>
@@ -620,7 +612,6 @@
   <String key="HaloIntensityScale.Label">Dynamic light brightness</String>
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
-  <String key="PlatformNoticeShown.Label">Mac and Linux: the "new and experimental" notice has been shown on this computer (set by the mod; false shows it once more)</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

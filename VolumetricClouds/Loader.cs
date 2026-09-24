@@ -35,13 +35,14 @@ namespace VolumetricClouds
             _root.AddComponent<ModController>();
 
             Debug.Log("[VolumetricClouds] Controller created.");
-
-            ShowExperimentalNoticeOnce();
         }
 
         /// <summary>
         /// True where the mod is new (1.1.1) and has run on very few machines: everything that
-        /// is not Windows. Drives the once-only dialog below and the note on the options page.
+        /// is not Windows. Drives the warning line at the bottom of the options page
+        /// (OptionsUI). There is deliberately NO dialog: a once-only one was built and then
+        /// dropped the same day, 2026-09-24, the author's call -- "people who subscribe to
+        /// this mod are intentionally doing it"; the Workshop page carries the warning.
         /// </summary>
         public static bool IsExperimentalPlatform
         {
@@ -49,45 +50,6 @@ namespace VolumetricClouds
             {
                 RuntimePlatform platform = Application.platform;
                 return platform != RuntimePlatform.WindowsPlayer && platform != RuntimePlatform.WindowsEditor;
-            }
-        }
-
-        /// <summary>
-        /// Mac and Linux (1.1.1): one dialog, the first time a city loads on this machine,
-        /// saying the platform is new and what to do about a low frame rate. The author's call
-        /// (2026-09-24, after his fanless M1 Air ran an empty city at 30-45 fps): "show a
-        /// warning ... that shows up once only, not on every playthrough". Once per INSTALL, so
-        /// the flag is a setting in VolumetricClouds.xml (PlatformNoticeShown, no UI; a Reset
-        /// clears it). Set only after the dialog really showed.
-        /// </summary>
-        private static void ShowExperimentalNoticeOnce()
-        {
-            if (!IsExperimentalPlatform)
-                return;
-
-            if (Settings.PlatformNoticeShown != null && Settings.PlatformNoticeShown.value)
-            {
-                Log.Msg("platform notice: already shown on this computer (" + Application.platform + ")");
-                return;
-            }
-
-            try
-            {
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage(Mod.DisplayName, Localization.Get("Mod.ExperimentalPlatform"), false);
-
-                if (Settings.PlatformNoticeShown != null)
-                {
-                    Settings.PlatformNoticeShown.value = true;
-                    SettingsXml.SaveNow();
-                }
-
-                Log.Msg("platform notice: shown (" + Application.platform +
-                        "); remembered in the settings file, so it does not show again");
-            }
-            catch (System.Exception e)
-            {
-                Log.Error("Could not show the experimental-platform notice.", e);
             }
         }
 
