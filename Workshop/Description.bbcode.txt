@@ -26,7 +26,9 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Volumetric 3D clouds with real shadows[/b] on the ground
 [*][b]Follows the game's weather[/b], or you can set it yourself
 [*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning lights them up from inside
-[*][b]NEW: Cloud and fog colors[/b]: pick one color for the sunlit side of the clouds and one for the shaded side, from warm sunsets to an orange city glow at night, and one for the fog. White keeps the normal look
+[*][b]NEW: Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
+[*][b]Cloud and fog colors[/b]
+[*][b]Rain droplets customization[/b]
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
