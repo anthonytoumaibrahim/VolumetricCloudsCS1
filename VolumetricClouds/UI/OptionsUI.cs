@@ -88,6 +88,12 @@ namespace VolumetricClouds.UI
 
         private void BuildPage(UIHelperBase helper)
         {
+            // Mac and Linux (1.1.1): one sentence at the top, always -- where a player who
+            // dismissed the once-only dialog (Loader) looks next. UIHelper has no plain label;
+            // a group title is this page's one way to show prose (see BuildRows).
+            if (Loader.IsExperimentalPlatform)
+                helper.AddGroup(Localization.Get("Mod.ExperimentalPlatformNote"));
+
             BuildRows(helper, OptionsPage.General);
 
             UIComponent host = PanelOf(helper);

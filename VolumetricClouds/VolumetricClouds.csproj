@@ -25,10 +25,20 @@
     <EmbeddedResource Include="Resources\CloudIcon.png" />
     <!-- Every language file, as "Localization.<code>.xml": Localization.cs finds them by name. -->
     <EmbeddedResource Include="Localization\*.xml" LogicalName="Localization.%(Filename)%(Extension)" />
-    <!-- Shader bundle from UnityProject (see build-bundle.ps1). Conditional so the mod still
-         builds without it; without it the mod stands down in every city (Loader.cs). -->
-    <EmbeddedResource Include="Resources\volumetricclouds.bundle"
-                      Condition="Exists('Resources\volumetricclouds.bundle')" />
+    <!-- Shader bundles from UnityProject (see build-bundle.ps1), one per platform: Direct3D 11
+         + OpenGL Core for Windows, OpenGL Core for Linux, Metal + OpenGL Core for the Mac.
+         ShaderBundle picks one by Application.platform, by these exact LogicalNames.
+         Conditional so the mod still builds without them; without the right one the mod
+         stands down in every city (Loader.cs). -->
+    <EmbeddedResource Include="Resources\volumetricclouds-win.bundle"
+                      LogicalName="VolumetricClouds.Resources.volumetricclouds-win.bundle"
+                      Condition="Exists('Resources\volumetricclouds-win.bundle')" />
+    <EmbeddedResource Include="Resources\volumetricclouds-linux.bundle"
+                      LogicalName="VolumetricClouds.Resources.volumetricclouds-linux.bundle"
+                      Condition="Exists('Resources\volumetricclouds-linux.bundle')" />
+    <EmbeddedResource Include="Resources\volumetricclouds-mac.bundle"
+                      LogicalName="VolumetricClouds.Resources.volumetricclouds-mac.bundle"
+                      Condition="Exists('Resources\volumetricclouds-mac.bundle')" />
   </ItemGroup>
 
   <ItemGroup>

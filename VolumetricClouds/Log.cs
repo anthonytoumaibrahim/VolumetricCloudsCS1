@@ -18,20 +18,53 @@ namespace VolumetricClouds
         private static string _path;
         private static bool _disabled;
 
+        /// <summary>
+        /// Next to VolumetricClouds.xml, in the folder the game itself uses: on Windows and
+        /// Linux the .NET LocalApplicationData folder (with XDG_DATA_HOME honoured on Linux),
+        /// on a Mac ~/Library/Application Support -- where .NET's answer is ~/.local/share, a
+        /// folder that does not exist there. Until 1.1.1 this asked .NET directly, and on a
+        /// Mac the log was never written (seen in a Mac's Player.log: "File logging
+        /// unavailable: Could not find a part of the path").
+        /// </summary>
         public static string Path
         {
             get
             {
                 if (_path == null)
                 {
-                    string dir = System.IO.Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        System.IO.Path.Combine("Colossal Order", "Cities_Skylines"));
+                    string dir = null;
+                    try
+                    {
+                        dir = GameDataFolder();
+                    }
+                    catch (Exception)
+                    {
+                        // Outside the game (an offline test loading this DLL), or a game API
+                        // change: the .NET folder is what every Windows player had until now.
+                    }
+
+                    if (string.IsNullOrEmpty(dir))
+                    {
+                        dir = System.IO.Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            System.IO.Path.Combine("Colossal Order", "Cities_Skylines"));
+                    }
+
                     _path = System.IO.Path.Combine(dir, FileName);
                 }
 
                 return _path;
             }
+        }
+
+        /// <summary>
+        /// Its own method so that a missing ColossalManaged.dll (offline) surfaces as an
+        /// exception at the call, inside the try above, rather than when the caller is
+        /// compiled. The game's getter also creates the folder when it is missing.
+        /// </summary>
+        private static string GameDataFolder()
+        {
+            return ColossalFramework.IO.DataLocation.localApplicationData;
         }
 
         /// <summary>Starts a fresh file for this session.</summary>
@@ -43,6 +76,10 @@ namespace VolumetricClouds
 
                 try
                 {
+                    string dir = System.IO.Path.GetDirectoryName(Path);
+                    if (!string.IsNullOrEmpty(dir))
+                        Directory.CreateDirectory(dir);
+
                     File.WriteAllText(Path,
                         Mod.DisplayName + " " + Mod.Version + " (build " +
                         typeof(Mod).Assembly.GetName().Version + ") log - session started " +

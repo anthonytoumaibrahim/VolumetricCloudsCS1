@@ -1,10 +1,10 @@
-[h1]Version 1.1[/h1]
-Update 1.1 is out: cloud and fog colors, a fix for light halos flashing, and more. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+[h1]Version 1.1.1: Mac and Linux[/h1]
+Update 1.1.1 brings the mod to the [b]Mac[/b] and to the [b]native Linux[/b] version of the game, as a first, experimental release there: it has run on one Mac so far, and it costs more than on a Windows PC (a fanless MacBook Air runs at about 30 fps). Windows is unchanged. The full list is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments (see [b]Reporting a bug[/b] below for what to include).
 
 [hr][/hr]
 [h1]Requirements[/h1]
-[b]!!Works only on Windows!![/b] The mod needs DirectX 11, so it switches itself off on Mac and on the Linux version of the game. On Linux or Steam Deck, running the Windows version through [b]Proton[/b] should work.
+[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b]: expect a lower frame rate than on a Windows PC, and the mod tells you so once, the first time a city loads. On Linux and Steam Deck, running the Windows version through [b]Proton[/b] works as before.
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
@@ -37,6 +37,7 @@ Based on player feedback, the clouds run great even on low-end PCs. And you can 
 [list]
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
 [*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
+[*][b]Mac and Linux[/b] (new in 1.1.1): the clouds cost more there. A fanless MacBook Air M1 runs an empty city at about 30 fps on High; lower the preset as above, and the game's resolution if needed.
 [/list]
 
 [hr][/hr]
@@ -61,9 +62,10 @@ The mod is open source under the MIT license, except for the light halo shaders,
 [h1]Reporting a bug[/h1]
 Please include the following:
 [olist]
-[*][b]The game's log[/b], [i]output_log.txt[/i]. In Steam, right-click Cities: Skylines → [i]Manage → Browse local files[/i], then open the [i]Cities_Data[/i] folder.
+[*][b]The game's log[/b], [i]output_log.txt[/i]. In Steam, right-click Cities: Skylines → [i]Manage → Browse local files[/i], then open the [i]Cities_Data[/i] folder. On a Mac it is [i]~/Library/Logs/Unity/Player.log[/i], on Linux [i]~/.config/unity3d/Colossal Order/Cities_Skylines/Player.log[/i].
 [*][b]The mod's own log[/b], [i]VolumetricClouds.log[/i]. Tick [i]Detailed logging[/i] (Options → Volumetric Weather) first, then make the problem happen again. To find it, paste this into File Explorer's address bar:
 [code]%LOCALAPPDATA%\Colossal Order\Cities_Skylines[/code]
+On a Mac it is in [i]~/Library/Application Support/Colossal Order/Cities_Skylines[/i], on Linux in [i]~/.local/share/Colossal Order/Cities_Skylines[/i].
 [*][b]What happened[/b]: what you did and expected, screenshots, your graphics card and your other mods.
 [/olist]
 Both logs start fresh at every launch, so copy them before restarting, upload them (Google Drive, Pastebin...) and post the link in the comments.

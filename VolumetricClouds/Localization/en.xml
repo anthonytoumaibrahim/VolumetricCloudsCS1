@@ -18,23 +18,48 @@
 
   <!-- ==================== The mod ==================== -->
 
-  <String key="Mod.Description">3D clouds that follow the game's weather, with real shadows, rain, lightning, fog and light halo controls. Requires Harmony.</String>
+  <!-- One line in the game's mods list: about 30 characters fit before it wraps (2026-09-24). -->
+  <String key="Mod.Description">3D clouds, shadows, rain, fog</String>
   <String key="Mod.Unsupported">
-    Volumetric Weather only works on Windows for now, so its clouds cannot be drawn on this
-    computer. Support for Mac and Linux may come as the mod grows.\n\n
-    Until then the mod has switched itself off: nothing in this city is changed by it. You can
-    keep it for later, or safely unsubscribe.
+    Volumetric Weather could not draw its clouds on this computer, so it has switched itself
+    off: nothing in this city is changed by it.\n\n
+    The mod needs Metal or OpenGL 3.3, and the game does not have either here. If the game is
+    started with a launch option that changes its graphics (Steam: right-click the game,
+    Properties, Launch Options), remove it and restart the game.
+  </String>
+  <String key="Mod.UnsupportedLinux">
+    Volumetric Weather could not draw its clouds on this computer, so it has switched itself
+    off: nothing in this city is changed by it.\n\n
+    The mod needs OpenGL 3.3, and the game does not have it here. If the game is started with a
+    launch option that changes its graphics (Steam: right-click the game, Properties, Launch
+    Options), remove it and restart the game.\n\n
+    The Windows version of the game runs the mod through Proton: Steam, right-click the game,
+    Properties, Compatibility, tick "Force the use of a specific Steam Play compatibility tool"
+    and pick a Proton version.
   </String>
   <String key="Mod.UnsupportedWindows">
     Volumetric Weather could not draw its clouds on this PC, so it has switched itself off:
     nothing in this city is changed by it.\n\n
     The usual causes:\n
-    - the game is started with an option such as -force-glcore or -force-d3d9 (Steam: right-click
-    the game, Properties, Launch Options). Remove it, and restart the game.\n
+    - the game is started with the option -force-d3d9 (Steam: right-click the game, Properties,
+    Launch Options). Remove it, and restart the game.\n
     - the graphics card is older than DirectX 10.\n\n
     If neither applies, please report it in the comments on the mod's Workshop page, with this
     file:\n
     {0}
+  </String>
+  <String key="Mod.ExperimentalPlatform">
+    Volumetric Weather on Mac and Linux is new and experimental: so far it has run on very few
+    computers.\n\n
+    The clouds cost more here than on a Windows PC. If the game stutters, lower the quality: on
+    this mod's page in the game's options, tick "Show advanced options in the in-game panel",
+    then open the in-game panel (F4, or the mod's button), go to its Rendering tab and set the
+    quality preset to Low or Medium. A lower game resolution helps too.\n\n
+    Everything else works as on Windows. This message is shown once.
+  </String>
+  <String key="Mod.ExperimentalPlatformNote">
+    Mac and Linux support is new and experimental. If the game stutters, pick the Low quality
+    preset (in-game panel, Rendering tab, with the advanced options below switched on).
   </String>
 
   <String key="Tab.Now">Now</String>
@@ -595,6 +620,7 @@
   <String key="HaloIntensityScale.Label">Dynamic light brightness</String>
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
+  <String key="PlatformNoticeShown.Label">Mac and Linux: the "new and experimental" notice has been shown on this computer (set by the mod; false shows it once more)</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

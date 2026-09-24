@@ -41,7 +41,7 @@ Shader "VolumetricClouds/LightHaloDynamic"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 4.0
+            #pragma target 3.5   // not 4.0: no Metal code at 4.0 in Unity 5.6 (see CloudRaymarch.shader)
             #include "UnityCG.cginc"
 
             #define MAX_LIGHTS 32

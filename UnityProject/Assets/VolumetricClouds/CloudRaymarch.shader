@@ -30,7 +30,10 @@ Shader "VolumetricClouds/CloudRaymarch"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 4.0
+            // 3.5, not 4.0: Unity 5.6 builds NO Metal code at target 4.0 (a geometry-shader
+            // level, unsupported on Metal: an EMPTY blob, no error). 3.5 is the same SM4.0
+            // on D3D11 (blobs byte-identical), OpenGL 3.3, and Metal. tools/bundle-apis.ps1.
+            #pragma target 3.5
             #include "UnityCG.cginc"
             #include "CloudCommon.cginc"
 

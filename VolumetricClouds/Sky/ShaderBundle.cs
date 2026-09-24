@@ -7,12 +7,20 @@ using UnityEngine;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// The shaders compiled in Unity 5.6 and embedded in this assembly as an AssetBundle.
+    /// The shaders compiled in Unity 5.6 and embedded in this assembly as AssetBundles: one
+    /// per platform, because a bundle only holds code for the graphics APIs its build target
+    /// allows (Direct3D 11 and OpenGL Core for Windows, Metal and OpenGL Core for the Mac,
+    /// OpenGL Core for Linux; build-bundle.ps1). The one for <see cref="Application.platform"/>
+    /// is loaded; the others stay unread inside the DLL.
     /// </summary>
     /// <remarks>
     /// Loaded once and the bundle released immediately (keeping the shaders alive): a
     /// bundle left loaded cannot be loaded a second time, which would break the mod's
     /// hot-reload loop.
+    /// A bundle built for another standalone platform still LOADS (seen on a Mac with the
+    /// Windows-only 1.1.0 bundle): every shader comes out with isSupported false, and Unity
+    /// warns "Shader Unsupported ... Setting to default shader" for each. So a wrong pick is
+    /// a stand-down (Loader), never a crash.
     /// </remarks>
     public static class ShaderBundle
     {
@@ -25,9 +33,37 @@ namespace VolumetricClouds.Sky
         public const string Invisible = "VolumetricClouds/Invisible";
         public const string FogLamps = "VolumetricClouds/FogLamps";
 
-        private const string Resource = "VolumetricClouds.Resources.volumetricclouds.bundle";
+        /// <summary>
+        /// "VolumetricClouds.Resources.volumetricclouds-win.bundle" and so on: the csproj's
+        /// LogicalName for each bundle, with the name from <see cref="BundleFor"/> in between.
+        /// </summary>
+        private const string ResourcePrefix = "VolumetricClouds.Resources.volumetricclouds-";
+        private const string ResourceSuffix = ".bundle";
 
         private static Dictionary<string, Shader> _shaders;
+
+        /// <summary>
+        /// Which bundle a platform gets: "win", "mac" or "linux"; null where none is built
+        /// (the mod then stands down). The editor variants are for anyone running the mod
+        /// inside an editor.
+        /// </summary>
+        public static string BundleFor(RuntimePlatform platform)
+        {
+            switch (platform)
+            {
+                case RuntimePlatform.WindowsPlayer:
+                case RuntimePlatform.WindowsEditor:
+                    return "win";
+                case RuntimePlatform.OSXPlayer:
+                case RuntimePlatform.OSXEditor:
+                    return "mac";
+                case RuntimePlatform.LinuxPlayer:
+                case RuntimePlatform.LinuxEditor:
+                    return "linux";
+                default:
+                    return null;
+            }
+        }
 
         /// <summary>Returns the named shader, or null if it is missing or unsupported here.</summary>
         public static Shader Get(string shaderName)
@@ -44,7 +80,8 @@ namespace VolumetricClouds.Sky
 
             if (!shader.isSupported)
             {
-                Log.Error("Shader '" + shaderName + "' is not supported on this GPU/graphics API.");
+                Log.Error("Shader '" + shaderName + "' is not supported on this GPU/graphics API (" +
+                          SystemInfo.graphicsDeviceType + ", '" + SystemInfo.graphicsDeviceName + "').");
                 return null;
             }
 
@@ -57,18 +94,28 @@ namespace VolumetricClouds.Sky
 
             try
             {
-                byte[] data = ReadResource();
+                string name = BundleFor(Application.platform);
+                if (name == null)
+                {
+                    Log.Warn("No shader bundle is built for the platform '" + Application.platform +
+                             "'; the mod cannot draw and stands down.");
+                    return result;
+                }
+
+                string resource = ResourcePrefix + name + ResourceSuffix;
+                byte[] data = ReadResource(resource);
                 if (data == null)
                 {
-                    Log.Warn("Shader bundle is not embedded in this build; the mod cannot draw and stands down. " +
-                             "Run build-bundle.ps1, then rebuild the mod.");
+                    Log.Warn("Shader bundle '" + resource + "' is not embedded in this build (embedded: " +
+                             string.Join(", ", Assembly.GetExecutingAssembly().GetManifestResourceNames()) +
+                             "); the mod cannot draw and stands down. Run build-bundle.ps1, then rebuild the mod.");
                     return result;
                 }
 
                 AssetBundle bundle = AssetBundle.LoadFromMemory(data);
                 if (bundle == null)
                 {
-                    Log.Error("Shader bundle failed to load (built with a mismatched Unity version?).");
+                    Log.Error("Shader bundle '" + name + "' failed to load (built with a mismatched Unity version?).");
                     return result;
                 }
 
@@ -86,7 +133,8 @@ namespace VolumetricClouds.Sky
 
                 string[] names = new string[result.Count];
                 result.Keys.CopyTo(names, 0);
-                Log.Msg("shader bundle loaded: " + string.Join(", ", names));
+                Log.Msg("shader bundle loaded: " + name + " (" + data.Length + " bytes) for " + Application.platform +
+                        " on " + SystemInfo.graphicsDeviceType + ": " + string.Join(", ", names));
             }
             catch (Exception e)
             {
@@ -96,9 +144,9 @@ namespace VolumetricClouds.Sky
             return result;
         }
 
-        private static byte[] ReadResource()
+        private static byte[] ReadResource(string resource)
         {
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Resource))
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource))
             {
                 if (stream == null)
                     return null;

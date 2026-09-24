@@ -173,9 +173,10 @@ Full dimensions, formats and limits are in *Specifications* above.
       modelled on Node Controller Renewal's page), to be read through before it is pasted:
       no images for now (the two imgur ones, a compatibility banner naming game 1.21.1 and a
       GitHub button, were dropped for copyright on 2026-09-21; the author will make his own) ·
-      pre-release, tested on one PC · what it does, and
-      that everything can be switched off or overridden · requirements (Harmony, with the link,
-      and Windows/D3D11 only) · how to use (F4 or the button, the three tabs, Options → Mod
+      tested on one PC and, since 1.1.1, one Mac · what it does, and
+      that everything can be switched off or overridden · requirements (Harmony, with the link;
+      Windows, and since 1.1.1 Mac and native Linux marked new and experimental, Proton as
+      before) · how to use (F4 or the button, the three tabs, Options → Mod
       Settings, Reset) · fog and halos are opt-in · the honest performance paragraph ·
       compatibility (the author's own game with thousands of mods and assets, no conflicts
       found; Render It!, Theme Mixer, Play It! and cloud replacers checked; what the mod takes

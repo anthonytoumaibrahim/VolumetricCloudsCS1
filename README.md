@@ -1,13 +1,14 @@
 # Volumetric Weather
 
-**Pre-release — Cities: Skylines 1, Windows only**
+**Cities: Skylines 1 — Windows, and since 1.1.1 Mac and Linux (experimental)**
 
 Raymarched volumetric clouds that cast real shadows on your city, follow the game's weather,
 and bring their own rain, lightning, fog and night sky with them.
 
-> **Status:** working and confirmed in-game; not on the Steam Workshop yet. Performance has
-> only ever been measured on one high-end GPU. This mod was written almost entirely by an AI
-> under human direction — read the [AI disclosure](#ai-disclosure) before you rely on it.
+> **Status:** on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3805863507).
+> Performance has only ever been measured on one high-end Windows GPU and one MacBook Air.
+> This mod was written almost entirely by an AI under human direction — read the
+> [AI disclosure](#ai-disclosure) before you rely on it.
 
 ## Features
 
@@ -44,7 +45,7 @@ and bring their own rain, lightning, fog and night sky with them.
 
 | | |
 | --- | --- |
-| Game | Cities: Skylines (2015) on PC. **Windows only** — the shaders are compiled for Direct3D 11. |
+| Game | Cities: Skylines (2015). **Windows** (Direct3D 11, or OpenGL with `-force-glcore`). **Mac** (Metal) and the **native Linux** version (OpenGL 3.3) since 1.1.1 — new and experimental: tested on one Apple Silicon MacBook Air, not yet on native Linux; the mod says so once, the first time a city loads there. Proton on Linux and Steam Deck runs the Windows version as before. |
 | Required | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402) (Workshop 2040656402) |
 | Optional | [Unified UI](https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700) — the mod's button appears there; without it you get a button on the HUD |
 
@@ -97,16 +98,20 @@ materials, fog fields, halo materials, star render order — is put back when th
 ## Performance
 
 All tuning so far was done on an RTX 5070 Ti, which hides costs. The **High** preset is the
-only one that has been measured; **Low** and **Medium** are provisional. Volumetric fog is by
-far the most expensive feature, which is why it is opt-in. The raymarch quality slider and the
+only one that has been measured; **Low** and **Medium** are provisional. On a fanless
+MacBook Air M1 an empty city ran at 22 to 33 ms a frame on High at 1680x1050, more with the
+fog on: expect a lower frame rate on a Mac than on a Windows PC. Volumetric fog is by far
+the most expensive feature, which is why it is opt-in. The raymarch quality slider and the
 shadow map's resolution and update rate (the in-game panel's Rendering tab, shown with
 *Show advanced options in the in-game panel*) are the levers if frames are tight.
 
 ## Known limitations
 
-- Windows / Direct3D 11 only. On macOS and Linux (or Windows forced onto OpenGL) the cloud
-  shaders cannot run, so the mod switches itself off when a city loads and says so once per
-  launch; nothing in the city is changed by it.
+- Mac and Linux support is new (1.1.1) and experimental: one Mac tested, no native Linux
+  machine yet, and the clouds cost more there than on a Windows PC. Where the graphics
+  cannot run the shaders at all (they need shader model 4, Metal, or OpenGL 3.3) the mod
+  switches itself off when a city loads and says so once per launch; nothing in the city is
+  changed by it.
 - No moon shadows — cloud shadows are cast by the sun only.
 - 100% intensity is not a sealed overcast: the 3D noise erodes the layer, so sun patches
   remain. That is deliberate.
@@ -118,7 +123,9 @@ shadow map's resolution and update rate (the in-game panel's Rendering tab, show
 The mod writes its own log, fresh each session:
 
 ```
-%LOCALAPPDATA%\Colossal Order\Cities_Skylines\VolumetricClouds.log
+Windows:  %LOCALAPPDATA%\Colossal Order\Cities_Skylines\VolumetricClouds.log
+Mac:      ~/Library/Application Support/Colossal Order/Cities_Skylines/VolumetricClouds.log
+Linux:    ~/.local/share/Colossal Order/Cities_Skylines/VolumetricClouds.log
 ```
 
 It always records the system, every feature switch and anything that can suppress rendering.
@@ -161,8 +168,8 @@ with gaps still works: anything not yet translated shows in English.
 ## Build and test
 
 See [BUILDING.md](BUILDING.md). In short: `dotnet build VolumetricClouds/VolumetricClouds.csproj`
-builds **and** deploys; the compiled shader bundle is committed, so Unity is only needed after
-editing `UnityProject\Assets`. There is no automated test suite — pure maths is tested offline
+builds **and** deploys; the compiled shader bundles (one per platform) are committed, so Unity
+is only needed after editing `UnityProject\Assets`. There is no automated test suite — pure maths is tested offline
 by `tools/test-*.ps1`, everything else is verified in the game by reading the mod's log.
 
 ## AI disclosure
@@ -177,7 +184,8 @@ What that means in practice:
 
 - The code was not taken on trust. Game APIs were checked by reflection and by reading the
   game's IL, the shader ports were checked by diffing disassembly, and pure maths is tested
-  offline. But there is no automated test suite, and the mod has been seen on one machine.
+  offline. But there is no automated test suite, and the mod has been seen on two machines,
+  a Windows PC and a Mac.
 - AI-written code can be confidently wrong. Several theories during development were, and
   were only caught in the game or in its IL. Read the code before you depend on it.
 - The mod is provided as-is, with no warranty of any kind. Use it at your own risk.

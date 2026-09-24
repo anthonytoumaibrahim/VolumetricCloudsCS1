@@ -5,6 +5,32 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.1.1 — unreleased
+
+Mac and Linux. Nothing in `VolumetricClouds.xml` or in saved cities changes, and on Windows
+the clouds are drawn by exactly the same compiled shaders as in 1.1.0.
+
+### New: Mac and Linux
+
+- The mod now runs on the Mac version of the game and on the native Linux version. Until now
+  it switched itself off there with a message. Anyone who kept it subscribed gets the clouds
+  on their next launch, with the default settings (the volumetric fog and the advanced panel
+  are off until you turn them on, as on Windows).
+- Windows started with the `-force-glcore` launch option also gets the clouds now, instead of
+  the message.
+- If the clouds still cannot be drawn on a computer, the message now says what the mod needs
+  on that system; on Linux it also says how to run the Windows version through Proton.
+- Mac and Linux are new and experimental, and the mod says so: one notice the first time a
+  city loads on that computer (once, not every game), with what to do if the game stutters,
+  and one line at the top of the mod's options page. `VolumetricClouds.xml` gains one line
+  for it, `PlatformNoticeShown`.
+
+### Fixes
+
+- On a Mac the mod's log file, `VolumetricClouds.log`, was never written: it looked for a
+  folder that does not exist there. It is now written next to `VolumetricClouds.xml` on every
+  system (on Windows that is the same folder as before).
+
 ## 1.1.0 — 2026-09-23
 
 Every value in `VolumetricClouds.xml` and everything in saved cities is kept as it is, and the
