@@ -274,6 +274,15 @@ namespace VolumetricClouds
         /// </summary>
         public static IntSetting QualityPreset { get; private set; }
 
+        /// <summary>
+        /// THE CLOUD STYLE (Sky.CloudStyle, 1.2), stored by VALUE (append only): 0 Classic, the
+        /// cloud layer the mod has always drawn; 1 Cumulus, EVE-Redux V5's model -- every cloud
+        /// carved from one big noise, each with its own height. New installs and a Reset get
+        /// Cumulus; a settings file from before the row existed means Classic (the author's
+        /// call: existing players keep their clouds and switch when they like).
+        /// </summary>
+        public static IntSetting CloudStyle { get; private set; }
+
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
         public static FloatSetting CloudThickness { get; private set; }
 
@@ -449,6 +458,15 @@ namespace VolumetricClouds
 
             // ---- the clouds ----
             public const bool CloudsVisible = true;
+
+            /// <summary>
+            /// Cumulus for new installs and a Reset. A settings file written before the row
+            /// existed stands for <see cref="CloudStyleForOlderFiles"/> instead: an update never
+            /// swaps a player's clouds for new ones.
+            /// </summary>
+            public const int CloudStyle = 1;
+            public const int CloudStyleForOlderFiles = 0;
+
             public const float Altitude = 750f;
             public const float Thickness = 400f;
             /// <summary>
@@ -690,6 +708,7 @@ namespace VolumetricClouds
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
+                CloudStyle = new IntSetting("CloudStyle", Defaults.CloudStyle);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudDetail = new FloatSetting("CloudDetail", Defaults.Detail);

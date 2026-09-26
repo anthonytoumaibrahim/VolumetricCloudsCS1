@@ -165,6 +165,16 @@ Shader "VolumetricClouds/CloudRaymarch"
                                     // y = growth of the light steps beyond 24 m (to about the layer's
                                     // thickness), z = log2(pixel angle / detail texel): lod offset
 
+            // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0): EVE-Redux
+            // V5's four phase lobes -- two of single scattering (the silver lining), two of multiple
+            // scattering (the soft glow deep inside, through a reduced extinction).
+            float4 _CumulusLight;   // x = the multiple scattering's share of the extinction, y = the
+                                    // gain that keeps a side-lit sunny face as bright as before,
+                                    // z = the single lobes' cap, w = 1 / the span the sky light's
+                                    // height is measured over
+            float4 _CumulusLobes;   // strengths: single 1, single 2, multiple 1, multiple 2
+            float4 _CumulusLobeG;   // their eccentricities, in the same order
+
             // A forward peak (silver linings towards the sun, capped so the rim cannot blow out)
             // over a weak back lobe; octave c flattens both (Wrenninge 2013).
             float DetailPhase(float cosTheta, float c)
@@ -290,6 +300,18 @@ Shader "VolumetricClouds/CloudRaymarch"
                                      a * a * DetailPhase(cosTheta, c * c)) * _DetailLight.w;
                 }
 
+                // The Cumulus style: its lobes depend on the ray only (CloudStyle.Single/Multiple).
+                bool cumulus = _CloudStyle > 0.5;
+                float2 lobes = 0;
+                if (cumulus)
+                {
+                    float single = _CumulusLobes.x * HenyeyGreenstein(cosTheta, _CumulusLobeG.x)
+                                 + _CumulusLobes.y * HenyeyGreenstein(cosTheta, _CumulusLobeG.y);
+                    float multiple = _CumulusLobes.z * HenyeyGreenstein(cosTheta, _CumulusLobeG.z)
+                                   + _CumulusLobes.w * HenyeyGreenstein(cosTheta, _CumulusLobeG.w);
+                    lobes = float2(min(single, _CumulusLight.z), multiple) * _CumulusLight.y;
+                }
+
                 float transmittance = 1.0;
                 float3 light = 0;
 
@@ -301,19 +323,36 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     float3 p = origin + dir * t;
 
-                    // The detail's mip level from this pixel's footprint here: far billows
-                    // average away instead of sparkling.
-                    float lod = detail ? max(log2(max(t, 1.0)) + _DetailLight2.z, 0.0) : 0.0;
+                    // The noise's mip level from this pixel's footprint here (the detail's, or
+                    // the Cumulus style's: _DetailLight2.z is set for whichever is in use): far
+                    // billows average away instead of sparkling. Under Cumulus it goes in
+                    // unclamped: the layer's detail is _DetailLodShift levels finer, and clamps
+                    // there itself.
+                    float lod = cumulus ? log2(max(t, 1.0)) + _DetailLight2.z
+                              : (detail ? max(log2(max(t, 1.0)) + _DetailLight2.z, 0.0) : 0.0);
                     float d = SampleDensityLod(p, true, lod);
 
                     if (d > 0.001)
                     {
                         float h = saturate((p.y - _CloudBottom) / (_CloudTop - _CloudBottom));
 
-                        // Undersides get less sky light than tops.
-                        float3 ambient = _AmbientColor * (0.45 + 0.55 * h);
+                        // Undersides get less sky light than tops. (A Cumulus cloud's height is
+                        // measured over the whole span its curve runs over, not over the part
+                        // the march covers.)
+                        float hSky = cumulus ? saturate((p.y - _CloudBottom) * _CumulusLight.w) : h;
+                        float3 ambient = _AmbientColor * (0.45 + 0.55 * hSky);
                         float3 radiance;
-                        if (detail)
+                        if (cumulus)
+                        {
+                            float tau = SunDepth(p, lod);
+                            float sunLit = lobes.x * exp(-tau) + lobes.y * exp(-tau * _CumulusLight.x);
+
+                            // The sky light is blocked by the cloud above: two looks straight up.
+                            float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
+                                        + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
+                            radiance = _SunColor * sunLit + ambient * exp(-above * _Absorption * _DetailLight2.x);
+                        }
+                        else if (detail)
                         {
                             float tau = SunDepth(p, lod);
                             float b = _DetailLight.y;

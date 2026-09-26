@@ -106,6 +106,14 @@ $tMany = $sw.Elapsed.TotalMilliseconds
 "  one thread: $([int]$tOne) ms, all cores ($([Environment]::ProcessorCount), capped at 8): $([int]$tMany) ms"
 
 Check ([DetailStats]::Same($one, $many)) "the same bytes on one thread and on every core (a seed reproduces it)"
+
+# Generator 1's bytes for this seed, recorded 2026-09-26 before the generator moved into
+# Sky/WorleyVolume (shared with the Cumulus noise): a refactor must never change a city's billows.
+$md5 = [System.Security.Cryptography.MD5]::Create()
+$all = New-Object System.IO.MemoryStream
+foreach ($level in $one) { $all.Write($level, 0, $level.Length) }
+$hash = [BitConverter]::ToString($md5.ComputeHash($all.ToArray())).Replace("-", "")
+Check ($hash -eq "066224B6E7A017DC41947D75D3E2BE26") "the same bytes generator 1 has always made for this seed (md5 $hash)"
 Check ($one.Length -eq 8) "8 mip levels for 128^3 (got $($one.Length))"
 $sizesOk = $true
 for ($l = 0; $l -lt $one.Length; $l++) { $e = [int][Math]::Pow($size -shr $l, 3); if ($one[$l].Length -ne $e) { $sizesOk = $false } }

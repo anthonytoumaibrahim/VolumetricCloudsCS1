@@ -43,6 +43,19 @@ namespace VolumetricClouds.Sky
         private bool _failed;
         private bool _loggedLighting;
 
+        // The Cumulus style's noise (CloudStyle / CumulusNoise3D). Made on the load's worker thread
+        // when the style is Cumulus then, else the first time it is chosen (a thread of its own;
+        // the clouds stay Classic the few seconds that takes), and again for a new pattern.
+        // _cumulusSeed is the noise seed the uploaded one was made from: when it is not the city's,
+        // it is out of date. Written by the worker before _cumulusPending (volatile), read after.
+        private Texture3D _cumulus;
+        private int _cumulusSeed;
+        private volatile Color32[][] _cumulusPending;
+        private int _cumulusPendingSeed;
+        private string _cumulusError;
+        private int _cumulusMilliseconds;
+        private volatile bool _cumulusWorking;
+
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
         private static readonly int IdUseDepth = Shader.PropertyToID("_UseDepth");
@@ -95,6 +108,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdShadowDarkness = Shader.PropertyToID("_ShadowDarkness");
         private static readonly int IdDetailLight = Shader.PropertyToID("_DetailLight");
         private static readonly int IdDetailLight2 = Shader.PropertyToID("_DetailLight2");
+        private static readonly int IdCumulusLight = Shader.PropertyToID("_CumulusLight");
+        private static readonly int IdCumulusLobes = Shader.PropertyToID("_CumulusLobes");
+        private static readonly int IdCumulusLobeG = Shader.PropertyToID("_CumulusLobeG");
 
         /// <summary>
         /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
@@ -165,7 +181,11 @@ namespace VolumetricClouds.Sky
             // the main thread and upload when it lands. Clouds appear a moment after load.
             // The seed is this city's (SkyPattern): the save's, or a new one for a new city.
             int seed = SkyPattern.NoiseSeed;
+            bool cumulus = CloudStyle.IsCumulus;
             CloudDetail.Failed = false;
+            CloudStyle.Failed = false;
+            if (cumulus)
+                _cumulusWorking = true;
             _noiseThread = new Thread(() =>
             {
                 byte[] noise;
@@ -184,7 +204,12 @@ namespace VolumetricClouds.Sky
                 _detailError = error;
                 _detailMilliseconds = milliseconds;
 
-                // Last: the main thread takes both once it sees this.
+                // The Cumulus noise too, when that is the style: the clouds then appear once, as
+                // Cumulus, never Classic first.
+                if (cumulus)
+                    MakeCumulus(seed);
+
+                // Last: the main thread takes them once it sees this.
                 _noiseBytes = noise;
             })
             {
@@ -203,6 +228,8 @@ namespace VolumetricClouds.Sky
 
             if (_noise == null && !TryUploadNoise())
                 return;
+
+            UpdateCumulus();
 
             // Once: find out how shaders see the weather texture, so its CPU twin can match.
             _field.MeasureGpuDecoding();
@@ -280,8 +307,113 @@ namespace VolumetricClouds.Sky
             UploadDetail(_detailLevels);
             _detailLevels = null;
 
+            // Made with it when the style was Cumulus at load: in the same frame.
+            UpdateCumulus();
+
             Log.Msg("3D noise uploaded; volumetric clouds live.");
             return true;
+        }
+
+        /// <summary>
+        /// Worker thread: the Cumulus noise for <paramref name="seed"/>, handed to the main thread
+        /// through <see cref="_cumulusPending"/>. A failure is kept for the log.
+        /// </summary>
+        private void MakeCumulus(int seed)
+        {
+            string error;
+            int milliseconds;
+            Color32[][] levels = CloudStyle.BuildLevels(seed, out error, out milliseconds);
+
+            _cumulusError = error;
+            _cumulusMilliseconds = milliseconds;
+            _cumulusPendingSeed = seed;
+            _cumulusPending = levels;
+            _cumulusWorking = false;
+        }
+
+        /// <summary>
+        /// Main thread, every frame once the noise is up: uploads a finished Cumulus noise, and
+        /// starts one when the style wants it and the one there is missing or for another seed
+        /// (a new pattern that came without it). A result for an old seed is dropped.
+        /// </summary>
+        private void UpdateCumulus()
+        {
+            // _cumulusWorking is read before the error: the worker clears it last.
+            Color32[][] levels = _cumulusPending;
+            if (levels != null || (!_cumulusWorking && _cumulusError != null))
+            {
+                _cumulusPending = null;
+                int seed = _cumulusPendingSeed;
+                string error = _cumulusError;
+                _cumulusError = null;
+
+                if (levels == null)
+                {
+                    CloudStyle.Failed = true;
+                    Log.Warn("cloud style: the Cumulus noise could not be made (" + (error ?? "unknown") +
+                             "); the clouds are drawn Classic");
+                }
+                else if (seed == SkyPattern.NoiseSeed)
+                {
+                    UploadCumulus(levels, seed, "made in " + _cumulusMilliseconds + " ms on worker threads");
+                }
+            }
+
+            bool wanted = CloudStyle.IsCumulus || _cumulus != null;
+            if (wanted && !_cumulusWorking && !CloudStyle.Failed && _cumulusSeed != SkyPattern.NoiseSeed)
+            {
+                int seed = SkyPattern.NoiseSeed;
+                _cumulusWorking = true;
+                Thread thread = new Thread(() => MakeCumulus(seed))
+                {
+                    IsBackground = true,
+                    Name = "VolumetricClouds cumulus",
+                };
+                thread.Start();
+                Log.Msg("cloud style: making the Cumulus noise (" + CumulusNoise3D.Size + "^3) for seed " + seed + " on a worker thread");
+            }
+        }
+
+        /// <summary>
+        /// The Cumulus noise, with the mip chain the worker built: ARGB32 read from ALPHA, like
+        /// cloud detail's texture and for the same reason -- NEVER R8, which crashes Unity 5.6's
+        /// Texture3D.SetPixels32 (see UploadDetail). Into the same texture when there is one.
+        /// </summary>
+        private void UploadCumulus(Color32[][] levels, int seed, string how)
+        {
+            int size = CumulusNoise3D.Size;
+            try
+            {
+                if (_cumulus == null)
+                {
+                    _cumulus = new Texture3D(size, size, size, TextureFormat.ARGB32, true)
+                    {
+                        name = "VolumetricCloudsCumulus3D",
+                        wrapMode = TextureWrapMode.Repeat,
+                        filterMode = FilterMode.Trilinear,
+                    };
+                }
+
+                for (int level = 0; level < levels.Length; level++)
+                    _cumulus.SetPixels32(levels[level], level);
+                _cumulus.Apply(false);
+            }
+            catch (Exception e)
+            {
+                if (_cumulus != null)
+                    Destroy(_cumulus);
+                _cumulus = null;
+                CloudStyle.Texture = null;
+                CloudStyle.Failed = true;
+                Log.Warn("cloud style: the Cumulus noise could not be uploaded (" + e.GetType().Name + ": " + e.Message +
+                         "); the clouds are drawn Classic");
+                return;
+            }
+
+            _cumulusSeed = seed;
+            CloudStyle.Texture = _cumulus;
+            Log.Msg("cloud style: Cumulus noise " + size + "^3 ARGB32 (read from alpha), " + levels.Length + " mip levels, " +
+                    how + " (generator " + CumulusNoise3D.Generator + ", seed " + seed + ")");
         }
 
         /// <summary>
@@ -357,11 +489,11 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// "Reset cloud pattern": the new seed's noise and detail, generated on a worker thread,
-        /// into the SAME textures -- the shadow map and every material keep their reference.
-        /// Main thread.
+        /// "Reset cloud pattern": the new seed's noise, detail and (when it was wanted) Cumulus
+        /// noise, generated on a worker thread, into the SAME textures -- the shadow map and every
+        /// material keep their reference. Main thread, after SkyPattern took the new seeds.
         /// </summary>
-        public void ReplaceNoise(byte[] bytes, Color32[][] detail)
+        public void ReplaceNoise(byte[] bytes, Color32[][] detail, Color32[][] cumulus)
         {
             if (_noise == null || bytes == null || bytes.Length != NoiseSize * NoiseSize * NoiseSize * 4)
                 return;
@@ -375,6 +507,11 @@ namespace VolumetricClouds.Sky
                     _detail.SetPixels32(detail[level], level);
                 _detail.Apply(false);
             }
+
+            // Without it (the style was Classic when the pattern was asked for), the one there is
+            // now for the old seed, and UpdateCumulus makes a new one if it is wanted.
+            if (cumulus != null && !CloudStyle.Failed)
+                UploadCumulus(cumulus, SkyPattern.NoiseSeed, "with the new pattern");
         }
 
         private void UpdateMaterial()
@@ -393,29 +530,48 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// Cloud detail's light: the octaves (CloudDetail), how far the light steps reach, and
-        /// the mip offset that makes a pixel's footprint pick the detail's mip level. Unused
-        /// while the detail is off (the shader's branch never reads them).
+        /// The light of cloud detail or of the Cumulus style: the octaves (CloudDetail) or the four
+        /// lobes (CloudStyle), how far the light steps reach, and the mip offset that makes a
+        /// pixel's footprint pick the noise's mip level. Unused while neither is drawn (the
+        /// shader's branches never read them).
         /// </summary>
         private void ApplyDetailLight()
         {
-            if (!CloudDetail.On || CloudDetail.Texture == null)
+            bool cumulus = CloudStyle.Drawn;
+            if (!cumulus && (!CloudDetail.On || CloudDetail.Texture == null))
                 return;
 
+            // The light steps reach about the tallest cloud: the layer's thickness, or under Cumulus
+            // the whole span of its curve or the thickest the layer gets (as the renders it was
+            // chosen on), whichever is more.
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
-            float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
+            float reach = cumulus ? Mathf.Max(CloudStyle.Span, thickness * CloudStyle.LayerThickest) : thickness;
 
             // After the three fine steps (6, 12, 24 m) four more grow by this much each, to about
-            // the layer's thickness: 2x for the 350 m layer the look was chosen on.
-            float growth = Mathf.Max(1.25f, Mathf.Pow(Mathf.Max(1.1f * thickness, 100f) / 24f, 0.25f));
+            // 1.1 x that: 2x for the 350 m layer cloud detail's look was chosen on.
+            float growth = Mathf.Max(1.25f, Mathf.Pow(Mathf.Max(1.1f * reach, 100f) / 24f, 0.25f));
 
             // A pixel covers t x angle metres at distance t; its mip level is log2 of that over a
             // texel, i.e. log2(t) + log2(angle / texel).
             float angle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
-            float texel = CloudDetail.Tile(scale) / CloudDetail3D.Size;
+            float texel = CloudShaderParams.NoiseTexel;
+            float occlusion = cumulus ? CloudStyle.AmbientOcclusion : CloudDetail.AmbientOcclusion;
 
-            _material.SetVector(IdDetailLight, new Vector4(CloudDetail.OctaveA, CloudDetail.OctaveB, CloudDetail.OctaveC, CloudDetail.LightGain));
-            _material.SetVector(IdDetailLight2, new Vector4(CloudDetail.AmbientOcclusion, growth, Mathf.Log(angle / texel, 2f), 0f));
+            _material.SetVector(IdDetailLight2, new Vector4(occlusion, growth, Mathf.Log(angle / texel, 2f), 0f));
+
+            if (cumulus)
+            {
+                _material.SetVector(IdCumulusLight, new Vector4(
+                    CloudStyle.MultipleExtinction, CloudStyle.LightGain, CloudStyle.SingleCap, 1f / CloudStyle.Span));
+                _material.SetVector(IdCumulusLobes, new Vector4(
+                    CloudStyle.SingleW1, CloudStyle.SingleW2, CloudStyle.MultipleW1, CloudStyle.MultipleW2));
+                _material.SetVector(IdCumulusLobeG, new Vector4(
+                    CloudStyle.SingleG1, CloudStyle.SingleG2, CloudStyle.MultipleG1, CloudStyle.MultipleG2));
+            }
+            else
+            {
+                _material.SetVector(IdDetailLight, new Vector4(CloudDetail.OctaveA, CloudDetail.OctaveB, CloudDetail.OctaveC, CloudDetail.LightGain));
+            }
         }
 
         /// <summary>
@@ -587,6 +743,7 @@ namespace VolumetricClouds.Sky
                        (_frameWorst * 1000f).ToString("F1") + " ms worst, over " + _frameCount + " frames at " +
                        Screen.width + "x" + Screen.height +
                        " | steps=" + (Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality).ToString("F0") +
+                       " style=" + (CloudStyle.Drawn ? "Cumulus" : "Classic") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
@@ -815,6 +972,16 @@ namespace VolumetricClouds.Sky
                     CloudDetail.Texture = null;
                 Destroy(_detail);
             }
+
+            if (_cumulus != null)
+            {
+                if (CloudStyle.Texture == _cumulus)
+                    CloudStyle.Texture = null;
+                Destroy(_cumulus);
+            }
+
+            // A worker still making one for this city: its result is for a city that is gone.
+            _cumulusPending = null;
         }
     }
 }

@@ -41,6 +41,38 @@ namespace VolumetricClouds.Sky
         private static readonly int IdDetailParams = Shader.PropertyToID("_DetailParams");
         private static readonly int IdDetailLookup = Shader.PropertyToID("_DetailLookup");
         private static readonly int IdDetailTexPhase = Shader.PropertyToID("_DetailTexPhase");
+        private static readonly int IdCloudStyle = Shader.PropertyToID("_CloudStyle");
+        private static readonly int IdCumulusTex = Shader.PropertyToID("_CumulusTex");
+        private static readonly int IdWeatherScoreTex = Shader.PropertyToID("_WeatherScoreTex");
+        private static readonly int IdCumulusShape = Shader.PropertyToID("_CumulusShape");
+        private static readonly int IdCumulusNoise = Shader.PropertyToID("_CumulusNoise");
+        private static readonly int IdCumulusPhase = Shader.PropertyToID("_CumulusPhase");
+        private static readonly int IdCumulusCurve0 = Shader.PropertyToID("_CumulusCurve0");
+        private static readonly int IdCumulusCurve1 = Shader.PropertyToID("_CumulusCurve1");
+        private static readonly int IdCumulusCurveKeys = Shader.PropertyToID("_CumulusCurveKeys");
+        private static readonly int IdLayerShape = Shader.PropertyToID("_LayerShape");
+        private static readonly int IdLayerShapeMax = Shader.PropertyToID("_LayerShapeMax");
+        private static readonly int IdDetailLodShift = Shader.PropertyToID("_DetailLodShift");
+
+        /// <summary>Metres the Cumulus slab reaches above the tallest cloud: the march must not clip its tops.</summary>
+        private const float CumulusTopMargin = 25f;
+
+        /// <summary>
+        /// The top of what is marched, in metres above the base: the layer's thickness for
+        /// Classic; for Cumulus the tallest heap the curve allows or the thickest the layer gets,
+        /// whichever is higher.
+        /// </summary>
+        public static float LayerHeight
+        {
+            get
+            {
+                float thickness = Mathf.Max(50f, Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness);
+                if (CloudStyle.Drawn)
+                    return Mathf.Max(CloudStyle.Tallest + CumulusTopMargin, thickness * CloudStyle.LayerThickest);
+
+                return thickness;
+            }
+        }
 
         /// <summary>
         /// The cover in effect: the weather's, or the slider's when it overrides. Never read
@@ -72,7 +104,7 @@ namespace VolumetricClouds.Sky
             material.SetTexture(IdWeatherTex, field.DensityTexture);
             material.SetTexture(IdNoiseTex, noise);
             material.SetFloat(IdCloudBottom, bottom);
-            material.SetFloat(IdCloudTop, bottom + Mathf.Max(50f, thickness));
+            material.SetFloat(IdCloudTop, bottom + LayerHeight);
             material.SetFloat(IdThreshold, field.GetThreshold(Coverage));
             material.SetFloat(IdSoftness, CloudDensityField.EdgeSoftness);
             material.SetFloat(IdWeatherTile, weatherTile);
@@ -95,13 +127,79 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdRainThreshold, field.GetThreshold(CloudRain.RainCoverage));
             material.SetVector(IdRainSlant, CloudRain.Slant);
 
+            // The layer is drawn in both styles, with all of Classic's settings: its fragments and
+            // its detail too. Under Cumulus the heaps come on top (ApplyStyle).
+            ApplyStyle(material, field, weatherTile, thickness, detailScale);
             ApplyFragments(material, field, weatherTile, thickness);
             ApplyDetail(material, detailScale);
         }
 
         /// <summary>
-        /// Cloud detail (CloudDetail). Off -- or no texture yet -- the amount is written as 0 and
-        /// nothing else is looked at: every use of it sits behind that uniform branch.
+        /// The cloud style (CloudStyle). Classic -- or Cumulus before its noise exists -- writes
+        /// 0 and nothing else: every use of the Cumulus uniforms sits behind that branch.
+        /// </summary>
+        private static void ApplyStyle(Material material, CloudDensityField field, float weatherTile, float thickness, float breakupScale)
+        {
+            bool drawn = CloudStyle.Drawn;
+
+            // Always on the log: it changes what is drawn. Once per state. Chosen but not there
+            // yet is the few seconds its noise takes to make (CloudVolume), or a failure, said once.
+            string state = drawn ? "cumulus" : !CloudStyle.IsCumulus ? "classic" : CloudStyle.Failed ? "failed" : "waiting";
+            if (state != _styleLogged)
+            {
+                _styleLogged = state;
+                Log.Msg(state == "cumulus"
+                    ? "cloud style: Cumulus -- " + CloudStyle.DescribeShape()
+                    : state == "classic"
+                        ? "cloud style: Classic (the layer as it has always been drawn)"
+                        : state == "failed"
+                            ? "cloud style: Cumulus chosen but its noise failed: drawn Classic"
+                            : "cloud style: Cumulus chosen; its noise is being made, drawn Classic until it is there");
+            }
+
+            material.SetFloat(IdCloudStyle, drawn ? 1f : 0f);
+            if (!drawn)
+                return;
+
+            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
+            float[] c0 = CloudStyle.Cubics[0];
+            float[] c1 = CloudStyle.Cubics[1];
+
+            // The heaps' coverage: a line in the map's normal scores (its own ranks, so every city
+            // gets the same amount at the same slider), no more heaps above HeapCap.
+            float lineA, lineB;
+            CloudStyle.Line(CloudStyle.HeapEdge(Coverage), out lineA, out lineB);
+
+            // The layer beside them: Classic's, its thickness following the map. `lod` is the
+            // Cumulus noise's; the layer's detail is finer by the ratio of their texels.
+            float[] layerLine = CloudStyle.LayerLineCached;
+            material.SetVector(IdLayerShape, new Vector4(Mathf.Max(50f, thickness), layerLine[0], layerLine[1], CloudStyle.LayerThinnest));
+            material.SetFloat(IdLayerShapeMax, CloudStyle.LayerThickest);
+            material.SetFloat(IdDetailLodShift, Mathf.Log(CloudStyle.NoiseTile / CloudDetail.Tile(breakupScale), 2f));
+
+            material.SetTexture(IdCumulusTex, CloudStyle.Texture);
+            material.SetTexture(IdWeatherScoreTex, field.ScoreTexture);
+            material.SetVector(IdCumulusShape, new Vector4(lineA, lineB, CloudStyle.CoverageMax, 1f / CloudStyle.Span));
+
+            // Density in the units the march multiplies by _Absorption: the default Density slider
+            // is BaseExtinction per metre, and the slider scales it as it scales Classic's.
+            material.SetVector(IdCumulusNoise, new Vector4(
+                1f / CloudStyle.NoiseTile, CloudStyle.ErosionDepth, 1f / (1f - CloudStyle.Hardness),
+                CloudStyle.BaseExtinction / Absorption * density / Settings.Defaults.Density));
+
+            // It drifts with the 3D noise (1.25x the weather): its own phase over its own repeat.
+            material.SetVector(IdCumulusPhase, CloudWind.NoisePhase(CloudStyle.NoiseTile, 1f));
+
+            material.SetVector(IdCumulusCurve0, new Vector4(c0[0], c0[1], c0[2], c0[3]));
+            material.SetVector(IdCumulusCurve1, new Vector4(c1[0], c1[1], c1[2], c1[3]));
+            material.SetVector(IdCumulusCurveKeys, new Vector4(
+                CloudStyle.CurveTime[0], CloudStyle.CurveTime[1], CloudStyle.CurveTime[2], CloudStyle.CurveValue[2]));
+        }
+
+        /// <summary>
+        /// Cloud detail (CloudDetail), on the layer in both styles. Off -- or no texture yet -- the
+        /// amount is written as 0 and nothing else is looked at: every use of it sits behind that
+        /// uniform branch.
         /// </summary>
         private static void ApplyDetail(Material material, float breakupScale)
         {
@@ -156,19 +254,37 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The detail texture's mip level for something that covers <paramref name="metres"/>: a
+        /// Metres per texel of the noise the style in use carves with: cloud detail's texture for
+        /// Classic, the Cumulus noise for Cumulus.
+        /// </summary>
+        public static float NoiseTexel
+        {
+            get
+            {
+                if (CloudStyle.Drawn)
+                    return CloudStyle.NoiseTile / CumulusNoise3D.Size;
+
+                float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
+                return CloudDetail.Tile(scale) / CloudDetail3D.Size;
+            }
+        }
+
+        /// <summary>
+        /// The style's noise mip level for something that covers <paramref name="metres"/>: a
         /// pixel far away, or a texel of the shadow map. 0 while it is finer than a texel.
         /// </summary>
         public static float DetailLod(float metres)
         {
-            float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
-            float texel = CloudDetail.Tile(scale) / CloudDetail3D.Size;
-            return Mathf.Max(0f, Mathf.Log(Mathf.Max(metres, 1e-3f) / texel, 2f));
+            // Under Cumulus unclamped: the layer's detail, finer than the Cumulus noise, clamps its
+            // own level in the shader (SampleDensityLod).
+            float lod = Mathf.Log(Mathf.Max(metres, 1e-3f) / NoiseTexel, 2f);
+            return CloudStyle.Drawn ? lod : Mathf.Max(0f, lod);
         }
 
         /// <summary>
-        /// Cloud fragments (CloudFragments). Off, the amount is written as 0 and nothing else is
-        /// looked at: every use of them sits behind that uniform branch.
+        /// Cloud fragments (CloudFragments), round the layer's clouds in both styles. Off, the
+        /// amount is written as 0 and nothing else is looked at: every use of them sits behind that
+        /// uniform branch.
         /// </summary>
         private static void ApplyFragments(Material material, CloudDensityField field, float weatherTile, float thickness)
         {
@@ -226,5 +342,8 @@ namespace VolumetricClouds.Sky
 
         // The same for the detail: its first state is always logged.
         private static string _detailLogged;
+
+        // And the style's.
+        private static string _styleLogged;
     }
 }

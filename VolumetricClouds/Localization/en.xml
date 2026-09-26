@@ -110,6 +110,12 @@
   <String key="CloudsVisible.Label">Volumetric Weather</String>
   <String key="CloudsVisible.Tooltip">Off: removes this mod's clouds, shadows, rain, fog and lightning.</String>
 
+  <String key="CloudStyle.Label">Cloud style</String>
+  <String key="CloudStyle.Tooltip">Cumulus: heaped clouds of every size and height, with the Classic layer among them.
+    Classic: the original even layer. The settings below shape the layer in both.</String>
+  <String key="CloudStyle.Classic">Classic</String>
+  <String key="CloudStyle.Cumulus">Cumulus</String>
+
   <String key="CloudAltitude.Label">Cloud altitude</String>
   <String key="CloudAltitude.Tooltip">Height of the cloud base above sea level.</String>
 

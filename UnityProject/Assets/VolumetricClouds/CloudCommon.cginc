@@ -97,16 +97,74 @@ float4 _DetailLookup;    // x = 1 / its repeat in metres, y = the anti-tiling sh
                          // 0 would read red, for a single-channel texture)
 float3 _DetailTexPhase;  // the wind's drift over one repeat of it (CloudWind.NoisePhase), like _DetailPhase
 
-// `lod` is the detail texture's mip level: distant detail averages away instead of aliasing
-// (the raymarch works it out from the pixel's footprint, the shadow map from its texel).
-float SampleDensityLod(float3 p, bool detailed, float lod)
+// THE CUMULUS STYLE (Sky/CloudStyle.cs, 1.2): EVE-Redux V5's cloud model for the HEAPS -- every one
+// carved out of ONE big noise, the weather map only saying where they gather, gently (EVE's
+// "in-between" coverage: the noise decides the shapes, so each gets its own height, a flat base
+// and a heaped top) -- with the CLASSIC LAYER among and under them (the author's idea: "combine the
+// classic and cumulus clouds"), its thickness following the map. _CloudStyle == 0 is Classic: the
+// layer alone, computed exactly as it always was.
+float _CloudStyle;          // 0 Classic, 1 Cumulus
+float4 _LayerShape;         // the layer under the Cumulus style: x = Layer thickness in metres; its
+                            // factor on that is a line in the map's score, y + z * score (thick where
+                            // the map is high), within w .. _LayerShapeMax
+float _LayerShapeMax;
+float _DetailLodShift;      // under the Cumulus style `lod` is the Cumulus noise's; the detail's is this
+                            // much more (log2 of the ratio of their texels)
+sampler3D _CumulusTex;      // Sky/CumulusNoise3D: 128^3 ARGB32, mipmapped, 8 octaves of puffy
+                            // Worley; the value is read from ALPHA, which is never sRGB-decoded
+sampler2D _WeatherScoreTex; // CloudDensityField.ScoreTexture: the weather map's NORMAL SCORES (each
+                            // texel's rank on its own map as a normal z, 0..1 stored), LINEAR, read
+                            // from alpha; the same share of every city's map lies above any score
+float4 _CumulusShape;       // xy = the coverage as a line in the score, x + y * score (CloudStyle.Line),
+                            // z = the most coverage anywhere, w = 1 / the coverage curve's span in metres
+float4 _CumulusNoise;       // x = 1 / its repeat in metres, y = erosion depth, z = 1 / (1 - edge
+                            // hardness), w = the density at full, in _Absorption's units
+float3 _CumulusPhase;       // the wind's drift over one repeat of it (CloudWind.NoisePhase)
+float4 _CumulusCurve0;      // EVE's cumulus coverage curve, first segment, as a cubic in s: a, b, c, d
+float4 _CumulusCurve1;      // ... second segment
+float4 _CumulusCurveKeys;   // x, y, z = the keys' heights (fractions of the span); w = the value past
+                            // the last key (before the first it is the first segment's d)
+
+// Coverage over height: the cloud's silhouette. A cloud only reaches as high as its coverage lets
+// it (cg below): what makes every cloud its own height.
+float CumulusCurve(float h)
 {
-    float h = (p.y - _CloudBottom) / (_CloudTop - _CloudBottom);
-    if (h <= 0.0 || h >= 1.0)
+    if (h <= _CumulusCurveKeys.x)
+        return _CumulusCurve0.w;
+    if (h >= _CumulusCurveKeys.z)
+        return _CumulusCurveKeys.w;
+
+    bool first = h < _CumulusCurveKeys.y;
+    float4 k = first ? _CumulusCurve0 : _CumulusCurve1;
+    float start = first ? _CumulusCurveKeys.x : _CumulusCurveKeys.y;
+    float end = first ? _CumulusCurveKeys.y : _CumulusCurveKeys.z;
+    float s = (h - start) / (end - start);
+    return ((k.x * s + k.y) * s + k.z) * s + k.w;
+}
+
+// EVE V5: cg = saturate(coverage + curve(h) - 1); the noise carves erosion-depth deep into it,
+// and the edge hardness gives what is left a surface. CloudStyle.Density is its C# twin.
+// `score`: the map's normal score here (the same lookup as the weather map's: repeat and drift).
+float CumulusDensity(float3 p, float lod, float score)
+{
+    float coverage = clamp(_CumulusShape.x + _CumulusShape.y * score, 0.0, _CumulusShape.z);
+    if (coverage <= 0.0)
         return 0.0;
 
-    float2 uvWeather = p.xz / _WeatherTile - _WeatherPhase;
-    float weather = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
+    float cg = saturate(coverage + CumulusCurve((p.y - _CloudBottom) * _CumulusShape.w) - 1.0);
+    if (cg <= 0.0)
+        return 0.0;
+
+    float3 uv = p * _CumulusNoise.x - _CumulusPhase;
+    float noise = tex3Dlod(_CumulusTex, float4(uv, lod)).a;
+    return saturate((cg - (1.0 - noise) * _CumulusNoise.y) * _CumulusNoise.z) * _CumulusNoise.w;
+}
+
+// THE CLASSIC LAYER at p: `h` its height through the layer (0 at the base, 1 at the top), `weather`
+// the map there, `lod` cloud detail's mip level. The layer the mod has always drawn; the Cumulus
+// style draws it too, beside its heaps.
+float LayerDensity(float3 p, bool detailed, float lod, float h, float weather)
+{
     float coverage = saturate((weather - _Threshold) / _Softness);
 
     // The big clouds' shape. (Zero exactly when coverage is, so with fragments off this returns
@@ -194,6 +252,38 @@ float SampleDensityLod(float3 p, bool detailed, float lod)
         d *= lerp(1.0, _FragEdge.z, fragWeight);
 
     return d * _DensityScale;
+}
+
+// `lod` is the mip level of the style's noise (Classic: cloud detail's texture; Cumulus: the
+// Cumulus noise, the detail's being _DetailLodShift more): distant detail averages away instead
+// of aliasing (the raymarch works it out from the pixel's footprint, the shadow map from its texel).
+float SampleDensityLod(float3 p, bool detailed, float lod)
+{
+    float h = (p.y - _CloudBottom) / (_CloudTop - _CloudBottom);
+    if (h <= 0.0 || h >= 1.0)
+        return 0.0;
+
+    float2 uvWeather = p.xz / _WeatherTile - _WeatherPhase;
+
+    if (_CloudStyle > 0.5)
+    {
+        // The heaps, and the Classic layer among and under them: where both are, the denser wins.
+        float score = tex2Dlod(_WeatherScoreTex, float4(uvWeather, 0, 0)).a;
+        float heaps = CumulusDensity(p, max(lod, 0.0), score);
+
+        // The layer is thick where the map is high and thin where it is low: variety over
+        // kilometres, so a full sky is not one even carpet of the same puffs.
+        float thickness = _LayerShape.x * clamp(_LayerShape.y + _LayerShape.z * score, _LayerShape.w, _LayerShapeMax);
+        float hLayer = (p.y - _CloudBottom) / thickness;
+        if (hLayer >= 1.0)
+            return heaps;
+
+        float weatherHere = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
+        return max(heaps, LayerDensity(p, detailed, max(lod + _DetailLodShift, 0.0), hLayer, weatherHere));
+    }
+
+    float weather = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
+    return LayerDensity(p, detailed, lod, h, weather);
 }
 
 float SampleDensity(float3 p, bool detailed)

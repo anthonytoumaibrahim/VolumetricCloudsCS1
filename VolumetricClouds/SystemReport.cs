@@ -66,6 +66,7 @@ namespace VolumetricClouds
                         " shadows=" + On(Settings.CloudShadows, true) +
                         " rain=" + On(Settings.RainEnabled, true) +
                         " lightning=" + On(Settings.LightningEnabled, true) +
+                        " style=" + Sky.CloudStyle.Describe() +
                         " detail=" + Sky.CloudDetail.Describe() +
                         " fragments=" + Sky.CloudFragments.Describe() +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +

@@ -28,6 +28,7 @@ namespace VolumetricClouds.Sky
             public CloudDensityField Field;
             public byte[] Noise;
             public UnityEngine.Color32[][] Detail;   // CloudDetail's texture; null if it failed (said once)
+            public UnityEngine.Color32[][] Cumulus;  // the Cumulus noise, when it was wanted; null otherwise
             public Exception Error;
         }
 
@@ -86,7 +87,12 @@ namespace VolumetricClouds.Sky
             int noiseSeed = NewSeed(NoiseSeed);
             _working = true;
 
-            Log.Msg("sky: a new cloud pattern was asked for -- generating seeds " + fieldSeed + "/" + noiseSeed + " on a worker thread");
+            // The Cumulus noise too while that style is chosen or its noise exists, so the new
+            // pattern lands in one frame; otherwise it is made later, if it is ever wanted.
+            bool withCumulus = (CloudStyle.IsCumulus || CloudStyle.Texture != null) && !CloudStyle.Failed;
+
+            Log.Msg("sky: a new cloud pattern was asked for -- generating seeds " + fieldSeed + "/" + noiseSeed + " on a worker thread" +
+                    (withCumulus ? " (with the Cumulus noise)" : ""));
 
             Thread thread = new Thread(() =>
             {
@@ -101,6 +107,14 @@ namespace VolumetricClouds.Sky
                     result.Detail = CloudDetail.BuildLevels(noiseSeed, out detailError, out milliseconds);
                     if (detailError != null)
                         Log.Warn("sky: the new pattern's detail texture failed (" + detailError + "); the old one's billows stay");
+
+                    if (withCumulus)
+                    {
+                        string cumulusError;
+                        result.Cumulus = CloudStyle.BuildLevels(noiseSeed, out cumulusError, out milliseconds);
+                        if (cumulusError != null)
+                            Log.Warn("sky: the new pattern's Cumulus noise failed (" + cumulusError + "); it is tried again after the pattern lands");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -125,11 +139,12 @@ namespace VolumetricClouds.Sky
         /// way would otherwise land over the new one.
         /// </summary>
         public static bool TryTake(bool noiseCanBeReplaced, out CloudDensityField field, out byte[] noise,
-                                   out UnityEngine.Color32[][] detail)
+                                   out UnityEngine.Color32[][] detail, out UnityEngine.Color32[][] cumulus)
         {
             field = null;
             noise = null;
             detail = null;
+            cumulus = null;
 
             Replacement result = _ready;
             if (result == null)
@@ -161,6 +176,7 @@ namespace VolumetricClouds.Sky
             field = result.Field;
             noise = result.Noise;
             detail = result.Detail;
+            cumulus = result.Cumulus;
             return true;
         }
 

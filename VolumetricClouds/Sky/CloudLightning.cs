@@ -472,7 +472,9 @@ namespace VolumetricClouds.Sky
         private Strike NewStrike(uint frame, Vector3 ground, bool fromGame, bool withBolt)
         {
             float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
-            float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
+            // The height the clouds actually reach: the layer's thickness, or the Cumulus style's
+            // tallest cloud (CloudShaderParams.LayerHeight).
+            float thickness = CloudShaderParams.LayerHeight;
 
             System.Random random = new System.Random(unchecked((int)(frame * 2654435761u) ^ ground.GetHashCode()));
             // Where in the cloud it starts varies too: a stroke to the ground leaves the lower

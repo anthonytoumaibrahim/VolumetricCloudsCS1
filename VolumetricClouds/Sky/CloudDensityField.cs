@@ -27,6 +27,7 @@ namespace VolumetricClouds.Sky
 
         private Texture2D _texture;
         private Texture2D _densityTexture;
+        private Texture2D _scoreTexture;
 
         /// <summary>
         /// Builds the field for a seed. Pure managed maths and arrays, no Unity objects (the
@@ -62,6 +63,8 @@ namespace VolumetricClouds.Sky
 
             if (_densityTexture != null)
                 UploadDensity();
+            if (_scoreTexture != null)
+                UploadScores();
 
             Version++;
         }
@@ -127,6 +130,124 @@ namespace VolumetricClouds.Sky
 
             _densityTexture.SetPixels32(pixels);
             _densityTexture.Apply(false);
+        }
+
+        /// <summary>
+        /// THE CUMULUS STYLE's view of the field (Sky/CloudStyle): each texel's NORMAL SCORE -- its
+        /// rank on the map turned into a standard normal z -- stored as (z + <see cref="ScoreRange"/>)
+        /// / (2 x ScoreRange) in every channel of a LINEAR texture (the shader reads alpha).
+        /// </summary>
+        /// <remarks>
+        /// The same share of every city's map lies above any score, which the raw values are not:
+        /// one city's map sits lower than another's, and measured from the values, the Cumulus
+        /// sky was twice as cloudy in one city as in another at the same slider. A rank alone
+        /// would flatten the cores; its normal score spreads the top of the map the way these
+        /// maps spread (seed 12345: its top 3% and 1% at 1.51 and 1.87 x its median-to-top-tenth
+        /// span; normal scores 1.47 and 1.81). A rank is the same whether the GPU decodes the
+        /// values or not, so this needs no measurement. Built on first use, rewritten by Adopt.
+        /// </remarks>
+        public Texture2D ScoreTexture
+        {
+            get
+            {
+                if (_scoreTexture == null)
+                {
+                    _scoreTexture = new Texture2D(Resolution, Resolution, TextureFormat.ARGB32, false, true)
+                    {
+                        name = "VolumetricCloudsWeatherScore",
+                        wrapMode = TextureWrapMode.Repeat,
+                        filterMode = FilterMode.Bilinear,
+                        anisoLevel = 0,
+                    };
+
+                    UploadScores();
+                }
+
+                return _scoreTexture;
+            }
+        }
+
+        /// <summary>The normal scores the texture holds run over -ScoreRange .. +ScoreRange.</summary>
+        public const float ScoreRange = 3f;
+
+        private void UploadScores()
+        {
+            byte[] scores = ScoreBytes();
+            Color32[] pixels = new Color32[scores.Length];
+            for (int i = 0; i < scores.Length; i++)
+            {
+                byte v = scores[i];
+                pixels[i] = new Color32(v, v, v, v);
+            }
+
+            _scoreTexture.SetPixels32(pixels);
+            _scoreTexture.Apply(false);
+        }
+
+        /// <summary>
+        /// Every texel's normal score as the texture stores it. Pure managed maths (the offline
+        /// preview and tests read it): the rank from the histogram, with the place inside the bin.
+        /// </summary>
+        public byte[] ScoreBytes()
+        {
+            float[] density = _density;
+            int[] histogram = _histogram;
+            int n = density.Length;
+
+            // How many texels lie in the bins below each bin.
+            int[] below = new int[HistogramBins + 1];
+            for (int bin = 0; bin < HistogramBins; bin++)
+                below[bin + 1] = below[bin] + histogram[bin];
+
+            byte[] bytes = new byte[n];
+            float half = 0.5f / n;
+            for (int i = 0; i < n; i++)
+            {
+                float position = Mathf.Clamp01(density[i]) * HistogramBins;
+                int bin = Mathf.Clamp((int)position, 0, HistogramBins - 1);
+                float inside = Mathf.Clamp01(position - bin);
+                float rank = Mathf.Clamp((below[bin] + inside * histogram[bin]) / n, half, 1f - half);
+
+                float z = Mathf.Clamp(NormalQuantile(rank), -ScoreRange, ScoreRange);
+                int v = (int)((z + ScoreRange) / (2f * ScoreRange) * 255f + 0.5f);
+                bytes[i] = (byte)(v < 0 ? 0 : (v > 255 ? 255 : v));
+            }
+
+            return bytes;
+        }
+
+        /// <summary>
+        /// The standard normal quantile (the z below which a share p of a normal distribution lies):
+        /// Acklam's rational approximation, relative error under 1.2e-9.
+        /// </summary>
+        public static float NormalQuantile(float p)
+        {
+            double q, r;
+            const double low = 0.02425, high = 1 - 0.02425;
+
+            if (p <= 0f)
+                return float.NegativeInfinity;
+            if (p >= 1f)
+                return float.PositiveInfinity;
+
+            if (p < low)
+            {
+                q = System.Math.Sqrt(-2 * System.Math.Log(p));
+                return (float)((((((-7.784894002430293e-03 * q - 3.223964580411365e-01) * q - 2.400758277161838e+00) * q - 2.549732539343734e+00) * q + 4.374664141464968e+00) * q + 2.938163982698783e+00)
+                               / ((((7.784695709041462e-03 * q + 3.224671290700398e-01) * q + 2.445134137142996e+00) * q + 3.754408661907416e+00) * q + 1));
+            }
+
+            if (p > high)
+            {
+                q = System.Math.Sqrt(-2 * System.Math.Log(1 - p));
+                return -(float)((((((-7.784894002430293e-03 * q - 3.223964580411365e-01) * q - 2.400758277161838e+00) * q - 2.549732539343734e+00) * q + 4.374664141464968e+00) * q + 2.938163982698783e+00)
+                                / ((((7.784695709041462e-03 * q + 3.224671290700398e-01) * q + 2.445134137142996e+00) * q + 3.754408661907416e+00) * q + 1));
+            }
+
+            q = p - 0.5;
+            r = q * q;
+            return (float)((((((-3.969683028665376e+01 * r + 2.209460984245205e+02) * r - 2.759285104469687e+02) * r + 1.383577518672690e+02) * r - 3.066479806614716e+01) * r + 2.506628277459239e+00) * q
+                           / (((((-5.447609879822406e+01 * r + 1.615858368580409e+02) * r - 1.556989798598866e+02) * r + 6.680131188771972e+01) * r - 1.328068155288572e+01) * r + 1));
         }
 
         /// <summary>The density threshold that yields the requested sky coverage.</summary>

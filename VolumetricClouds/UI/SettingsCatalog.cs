@@ -104,6 +104,15 @@ namespace VolumetricClouds.UI
 
         public int[] ChoiceValues;
 
+        /// <summary>
+        /// A row added after release whose default is NOT what an existing player had: the value
+        /// a settings file that lacks it stands for, when VolumetricClouds.xml is read at startup
+        /// (a file with no such element was written before the row existed). Null: the default,
+        /// as for every other row. The cloud style is the one: an update never swaps a player's
+        /// clouds for new ones.
+        /// </summary>
+        public int? OlderFileInt;
+
         /// <summary>Live-apply hook. Must be safe with no city loaded: the options page is.</summary>
         public Action AfterChange;
 
@@ -900,6 +909,21 @@ namespace VolumetricClouds.UI
                 AfterChange = State("show clouds", OnOff(Settings.CloudsVisible)),
             });
 
+            // Classic, the layer the mod has always drawn, or Cumulus, EVE-Redux V5's model
+            // (Sky.CloudStyle). Stored by value, append only. A settings file from before the row
+            // means Classic: an update never swaps a player's clouds (Row.OlderFileInt).
+            Add(new Row
+            {
+                Kind = RowKind.Choice,
+                Panel = PanelPage.Clouds,
+                Int = Settings.CloudStyle,
+                DefaultInt = Settings.Defaults.CloudStyle,
+                OlderFileInt = Settings.Defaults.CloudStyleForOlderFiles,
+                ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus" },
+                ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus },
+                AfterChange = State("cloud style", CloudStyle.Describe),
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Value,
@@ -910,6 +934,8 @@ namespace VolumetricClouds.UI
                 Format = Metres,
             });
 
+            // The rows from here to the fragments shape the Classic layer, which both styles draw
+            // (under Cumulus beside its heaps, which make their own heights and billows).
             Add(new Row
             {
                 Kind = RowKind.Value,

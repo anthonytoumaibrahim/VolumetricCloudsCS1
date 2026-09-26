@@ -153,7 +153,7 @@ namespace VolumetricClouds
                 Remember(text);
 
             string error;
-            Result result = Apply(text, out error);
+            Result result = Apply(text, out error, null, true);
             if (result == null)
             {
                 _broken = true;
@@ -454,6 +454,7 @@ namespace VolumetricClouds
         {
             public int Applied;
             public readonly List<string> Missing = new List<string>();
+            public readonly List<string> OlderFile = new List<string>();
             public readonly List<string> Unknown = new List<string>();
             public readonly List<string> Problems = new List<string>();
             public readonly List<string> ChangeList = new List<string>();
@@ -465,6 +466,8 @@ namespace VolumetricClouds
                 string text = "";
                 if (Missing.Count > 0)
                     text += "; " + Missing.Count + " not in it, left as they were: " + List(Missing);
+                if (OlderFile.Count > 0)
+                    text += "; written before these existed, so set to what an older file means: " + List(OlderFile);
                 if (Unknown.Count > 0)
                     text += "; ignored names the mod does not know: " + List(Unknown);
                 if (Duplicates.Count > 0)
@@ -496,8 +499,12 @@ namespace VolumetricClouds
             }
         }
 
-        /// <summary>Takes every value the text holds. Null (and why) if it is not a settings file.</summary>
-        private static Result Apply(string text, out string error, List<Row> changedRows = null)
+        /// <summary>
+        /// Takes every value the text holds. Null (and why) if it is not a settings file.
+        /// <paramref name="startup"/>: the file as the game starts, where a row with an
+        /// <see cref="Row.OlderFileInt"/> that the file lacks was added after it was written.
+        /// </summary>
+        private static Result Apply(string text, out string error, List<Row> changedRows = null, bool startup = false)
         {
             error = null;
             var result = new Result();
@@ -526,7 +533,19 @@ namespace VolumetricClouds
                     string value;
                     if (!values.TryGetValue(row.Name, out value))
                     {
-                        result.Missing.Add(row.Name);
+                        // A row whose default is not what an existing player had: a file
+                        // without it is older than the row and means that value, not the
+                        // default. (A hand edit that deletes the element later is read as
+                        // "unchanged", like any other.)
+                        if (startup && row.OlderFileInt.HasValue && row.Int != null)
+                        {
+                            row.Int.value = row.OlderFileInt.Value;
+                            result.OlderFile.Add(row.Name + " " + ValueText(row));
+                        }
+                        else
+                        {
+                            result.Missing.Add(row.Name);
+                        }
                         continue;
                     }
 
@@ -706,7 +725,12 @@ namespace VolumetricClouds
                     string key = LegacyKeyOf(row);
                     string problem;
                     if (!ImportOne(row, key, out problem))
+                    {
+                        // Newer than the .cgs: what an older file means (Row.OlderFileInt).
+                        if (row.OlderFileInt.HasValue && row.Int != null)
+                            row.Int.value = row.OlderFileInt.Value;
                         continue;
+                    }
 
                     imported++;
                     if (key != row.Name)
