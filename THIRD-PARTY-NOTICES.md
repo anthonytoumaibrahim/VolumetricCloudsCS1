@@ -64,6 +64,17 @@ Games) in *The Real-Time Volumetric Cloudscapes of Horizon Zero Dawn*, SIGGRAPH 
 technique is acknowledged here; the implementation in `CloudCommon.cginc`,
 `CloudRaymarch.shader` and `CloudShadowMap.shader` was written for this mod.
 
+Cloud detail and the Cumulus style (1.2) follow EVE-Redux, blackrack's volumetric clouds for
+Kerbal Space Program ([LGhassen/EnvironmentalVisualEnhancements](https://github.com/LGhassen/EnvironmentalVisualEnhancements),
+MIT): its "spherical" Worley noise and that noise's default octaves, its coverage, erosion and
+edge-hardness model, the four phase lobes of its lighting, and the cumulus coverage curve of an
+Earth-like configuration (Promised Worlds' Gurdamma). Those numbers and formulas were read from
+its public C# code, wiki and configurations; EVE-Redux's shaders are not public and were not
+used, and the implementation was written for this mod. The multiple-scattering octaves follow Magnus
+Wrenninge (*Oz: The Great and Volumetric*, SIGGRAPH 2013) as presented by Sébastien Hillaire
+(*Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite*, SIGGRAPH 2016), and the
+weather map's normal scores use Peter Acklam's rational approximation of the normal quantile.
+
 Other mods were read to understand the game's behaviour and to stay compatible with them —
 Unified UI, CitiesHarmony, Render It!, Theme Mixer, Intersection Marking Tool, Persistent Fog
 Adjuster and Play It! among them. That study informed integration and compatibility decisions;

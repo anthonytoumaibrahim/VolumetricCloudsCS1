@@ -277,9 +277,9 @@ namespace VolumetricClouds
         /// <summary>
         /// THE CLOUD STYLE (Sky.CloudStyle, 1.2), stored by VALUE (append only): 0 Classic, the
         /// cloud layer the mod has always drawn; 1 Cumulus, EVE-Redux V5's model -- every cloud
-        /// carved from one big noise, each with its own height. New installs and a Reset get
-        /// Cumulus; a settings file from before the row existed means Classic (the author's
-        /// call: existing players keep their clouds and switch when they like).
+        /// carved from one big noise, each with its own height. Classic by default, for
+        /// everyone: Cumulus is chosen on the panel. A settings file from before the row existed
+        /// means Classic too, whatever the default (Row.OlderFileInt).
         /// </summary>
         public static IntSetting CloudStyle { get; private set; }
 
@@ -460,11 +460,12 @@ namespace VolumetricClouds
             public const bool CloudsVisible = true;
 
             /// <summary>
-            /// Cumulus for new installs and a Reset. A settings file written before the row
-            /// existed stands for <see cref="CloudStyleForOlderFiles"/> instead: an update never
+            /// Classic for everyone, new installs and a Reset included: Cumulus is chosen on the
+            /// panel. A settings file written before the row existed stands for
+            /// <see cref="CloudStyleForOlderFiles"/>, whatever this default is: an update never
             /// swaps a player's clouds for new ones.
             /// </summary>
-            public const int CloudStyle = 1;
+            public const int CloudStyle = 0;
             public const int CloudStyleForOlderFiles = 0;
 
             public const float Altitude = 750f;

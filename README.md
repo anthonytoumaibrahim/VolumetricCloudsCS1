@@ -14,6 +14,12 @@ and bring their own rain, lightning, fog and night sky with them.
 
 - **Volumetric clouds** — a real 3D layer you can fly through, not a sky texture. Altitude,
   thickness, break-up, density and brightness are all adjustable.
+- **Two cloud styles** — *Cumulus* (1.2): heaped clouds of every size and height, with flat
+  bases and billowing tops, modelled on the KSP clouds of EVE-Redux, among the classic layer.
+  *Classic*, the default: the even layer the mod has always drawn.
+- **Cloud detail** (1.2) — crisp edges, puffy billows and real light and shade, on by default;
+  0% gives the old soft look. **Cloud fragments** (1.1.1) — small, thin shreds round and
+  between the big clouds, off by default.
 - **Real cloud shadows** on terrain and buildings, drifting with the wind. Gaps get full sun;
   nothing is dimmed globally.
 - **Follows the game's weather** — cover, rain, fog and wind direction are read from the game,
@@ -99,8 +105,10 @@ materials, fog fields, halo materials, star render order — is put back when th
 
 All tuning so far was done on an RTX 5070 Ti, which hides costs. The **High** preset is the
 only one that has been measured; **Low** and **Medium** are provisional. On a fanless
-MacBook Air M1 an empty city ran at 22 to 33 ms a frame on High at 1680x1050, more with the
-fog on: expect a lower frame rate on a Mac than on a Windows PC. Volumetric fog is by far
+MacBook Air M1 an empty city ran at 22 to 33 ms a frame on High at 1680x1050 with 1.1.1, more
+with the fog on: expect a lower frame rate on a Mac than on a Windows PC. Cloud detail and the
+Cumulus style (1.2) cost more wherever there is cloud; *Cloud detail* at 0% with the *Classic*
+style costs what 1.1 did. Volumetric fog is by far
 the most expensive feature, which is why it is opt-in. The raymarch quality slider and the
 shadow map's resolution and update rate (the in-game panel's Rendering tab, shown with
 *Show advanced options in the in-game panel*) are the levers if frames are tight.

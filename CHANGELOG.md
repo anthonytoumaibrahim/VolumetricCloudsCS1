@@ -5,13 +5,13 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.2.0 — unreleased
+## 1.2.0 — 2026-09-26
 
 A new cloud style, Cumulus, and much more detailed clouds. Saved cities keep their sky: the
 big clouds come from the same pattern as before. Every value in `VolumetricClouds.xml` is kept;
-the file gains two lines. "Cloud style" is Classic for everyone who already has the mod, so an
-existing sky only changes by the cloud detail below. New installs, and "Reset all settings",
-get Cumulus. "Cloud detail" starts at 100%.
+the file gains two lines. "Cloud style" starts at Classic for everyone, new installs and
+"Reset all settings" included, so an existing sky only changes by the cloud detail below.
+"Cloud detail" starts at 100%.
 
 ### New: the Cumulus cloud style
 
@@ -20,9 +20,8 @@ get Cumulus. "Cloud detail" starts at 100%.
   cloud layer among and under them. Every heap is carved out of one large noise, and the
   weather pattern decides where they gather. The layer is thicker where the weather pattern is
   heavy and thinner where it is light.
-- "Cloud style" at the top of the in-game panel's Clouds tab switches between Cumulus and
-  Classic, the cloud layer the mod has always drawn. Players who already have the mod keep
-  Classic until they switch.
+- "Cloud style" at the top of the in-game panel's Clouds tab switches between Classic, the
+  cloud layer the mod has always drawn, and Cumulus. It starts at Classic.
 - Cumulus gives somewhat more cloud than Classic at the same Intensity, because the heaps come
   on top of the layer. Above 85% no more heaps are added and the layer fills the sky, so a
   near-overcast sky stays natural instead of showing the heaps' repeating pattern. As with

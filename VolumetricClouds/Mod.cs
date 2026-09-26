@@ -18,7 +18,7 @@ namespace VolumetricClouds
         /// with its own section in CHANGELOG.md. Also the first three parts of the assembly
         /// version (Properties/AssemblyInfo.cs).
         /// </summary>
-        public const string Version = "1.1.1";
+        public const string Version = "1.2.0";
 
         /// <summary>
         /// The mods list and the options page show the version after the name, so a bug report

@@ -1,13 +1,12 @@
-[h1]Version 1.1.1: Mac and Linux[/h1]
-The mod should now work natively on [b]Mac[/b] and [b]Linux[/b]. The full list of changes is in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]Change Notes[/url] tab for the mod.
+[h1]Version 1.2: New Cloud Style and Cloud Detail[/h1]
+Under the [i]Clouds[/i] tab, you'll find [b]Cloud style[/b]. Classic is the original look, and Cumulus is the new style, much more realistic and detailed. Check the Change Notes to see all the changes.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]
 [h1]Requirements[/h1]
-[b]Windows, Mac and Linux.[/b] On Windows the mod needs DirectX 11 (OpenGL works too). The Mac (Metal) and the native Linux version (OpenGL 3.3) are supported since 1.1.1 and are [b]new and experimental[/b].
 [list]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] ([b]required[/b])
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional): the mod's button appears in its toolbar
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700]Unified UI[/url] (optional)
 [/list]
 
 [hr][/hr]
@@ -23,10 +22,11 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [hr][/hr]
 [h1]Features[/h1]
 [list]
-[*][b]Volumetric 3D clouds with real shadows[/b] on the ground
+[*][b]Volumetric 3D clouds with real shadows[/b] on the ground. Two styles since v1.2: Classic and Cumulus
+[*][b]Cloud detail[/b] (new in v1.2): crisp edges, puffy shapes, and real light and shade
 [*][b]Follows the game's weather[/b], or you can set it yourself
 [*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning lights them up from inside
-[*][b]NEW: Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
+[*][b]Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
 [*][b]Cloud and fog colors[/b]
 [*][b]Rain droplets customization[/b]
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
@@ -37,15 +37,17 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [h1]Performance[/h1]
 Based on player feedback, the clouds run great even on low-end PCs. And you can always turn the settings down:
 [list]
+[*][b]Cloud detail and Cumulus (new in v1.2) cost more.[/b] On a slower PC, lower [i]Cloud detail[/i] (0% is the old look), or use Classic.
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
 [*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is on the in-game panel's [i]Rendering[/i] tab, which appears once [i]Show advanced options in the in-game panel[/i] is ticked (Options → Volumetric Weather).
-[*][b]Mac and Linux[/b] (new in 1.1.1): tested on my MacBook Air M1 (which is fanless), it runs an empty city at about 30 fps on High; so you might need to lower the preset as above, and the game's resolution if needed.
+[*][b]Mac and Linux[/b] (new in 1.1.1): on my MacBook Air M1 (which is fanless), v1.1.1 ran an empty city at about 30 fps on High. The new clouds in v1.2 cost more. You might need to lower the preset as above, and the game's resolution if needed.
 [/list]
 
 [hr][/hr]
 [h1]Compatibility[/h1]
-Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b], [b]Fog Controller[/b] and more, with no conflicts. No setup covers every combination, so please report any conflict you find.
-[b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread. That said, I cannot be held responsible for anything that goes wrong, lost or damaged saves included, so please keep backups.
+Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b], [b]Fog Controller[/b] and more, with no conflicts.
+Works on Windows and Mac as of v1.1.1. Linux is supported too, but still experimental.
+[b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread.
 
 [hr][/hr]
 [h1]Coming soon[/h1]
