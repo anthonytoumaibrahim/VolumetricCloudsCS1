@@ -404,9 +404,11 @@ namespace VolumetricClouds.Sky
         public static string DescribeShape()
         {
             CultureInfo c = CultureInfo.InvariantCulture;
-            return "clouds carved from one " + CumulusNoise3D.Size + "^3 noise repeating every " + NoiseTile.ToString("F0", c) +
+            return "heaps carved from one " + CumulusNoise3D.Size + "^3 noise repeating every " + NoiseTile.ToString("F0", c) +
                    " m, up to " + Tallest.ToString("F0", c) + " m tall, edges " + (Hardness * 100f).ToString("F0", c) +
-                   "% hard, erosion " + ErosionDepth.ToString("F2", c);
+                   "% hard, erosion " + ErosionDepth.ToString("F2", c) + ", no more of them above " +
+                   (HeapCap * 100f).ToString("F0", c) + "%; with the Classic layer, its thickness x " +
+                   LayerThinnest.ToString("F2", c) + ".." + LayerThickest.ToString("F2", c) + " following the map";
         }
     }
 }
