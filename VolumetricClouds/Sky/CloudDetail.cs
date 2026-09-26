@@ -55,6 +55,25 @@ namespace VolumetricClouds.Sky
         /// <summary>How strongly the cloud above takes the sky light away.</summary>
         public const float AmbientOcclusion = 0.15f;
 
+        /// <summary>
+        /// The slider between its ends (the author, 2026-09-26: "under around 10% the cloud changes
+        /// shape completely"). This erosion is scaled by the amount, so just above 0% the clouds had
+        /// almost no break-up left -- smooth blobs, and floating shreds the old erosion eats -- and at
+        /// 0% the old erosion came back at full strength. Now the OLD break-up (detail off's) keeps
+        /// the share 1 - amount of the erosion (CloudCommon.cginc), and the old light is handed over
+        /// to this one across the first <see cref="LightHandover"/> of the slider (CloudRaymarch):
+        /// 0% is the old look exactly, 100% the new one exactly, and each step between changes a
+        /// little. In between reads both erosions, and below LightHandover both lights, so the
+        /// cheap setting is 0%, not a low one.
+        /// </summary>
+        public const float LightHandover = 0.25f;
+
+        /// <summary>This light's share at an amount: 0 at 0%, 1 from <see cref="LightHandover"/> up.</summary>
+        public static float NewLightShare(float amount)
+        {
+            return Mathf.Clamp01(amount / LightHandover);
+        }
+
         /// <summary>The live texture, while a city is loaded (CloudVolume uploads it; null = none yet).</summary>
         public static Texture3D Texture { get; set; }
 

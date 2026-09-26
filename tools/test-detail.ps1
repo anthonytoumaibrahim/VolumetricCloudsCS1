@@ -153,4 +153,17 @@ $sum = (Lobe 0 1.0) + 0.5 * (Lobe 0 0.5) + 0.25 * (Lobe 0 0.25)
 Check ([Math]::Abs($gain * $sum - $old) -lt 1e-4) "gain x octaves = the old light on a sunlit face seen side-on"
 
 ""
+"=== CloudDetail.NewLightShare: the old light handed over at a low amount, no step at 0% ==="
+$share = $detail.GetMethod("NewLightShare")
+$handover = [single]$detail.GetField("LightHandover").GetValue($null)
+$shares = @(0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 1.0) | ForEach-Object { [single]$share.Invoke($null, [object[]]@([single]$_)) }
+"  handover over the first $($handover * 100)%: shares at 0/5/10/15/20/25/50/100% = $(($shares | ForEach-Object { $_.ToString('F2') }) -join ' ')"
+Check ($shares[0] -eq 0) "0% is the old light only"
+Check (($shares[5] -eq 1) -and ($shares[6] -eq 1) -and ($shares[7] -eq 1)) "from $($handover * 100)% up the detail's light only (100% unchanged)"
+$rising = $true
+for ($i = 1; $i -lt $shares.Count; $i++) { if ($shares[$i] -lt $shares[$i - 1]) { $rising = $false } }
+Check $rising "the share never falls as the slider rises"
+Check ($shares[1] -le 0.25) "5% is still mostly the old light (got $($shares[1].ToString('F2')))"
+
+""
 if ($failed -eq 0) { "all detail checks pass" } else { "$failed detail check(s) FAILED"; exit 1 }

@@ -163,7 +163,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                                     // side-lit sunny face as bright as the light below made it
             float4 _DetailLight2;   // x = how strongly the cloud above takes the sky light away,
                                     // y = growth of the light steps beyond 24 m (to about the layer's
-                                    // thickness), z = log2(pixel angle / detail texel): lod offset
+                                    // thickness), z = log2(pixel angle / detail texel): lod offset,
+                                    // w = this light's share (below 1, at a low amount, the old light
+                                    // is handed over to it: no step at 0%)
 
             // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0): EVE-Redux
             // V5's four phase lobes -- two of single scattering (the silver lining), two of multiple
@@ -362,6 +364,11 @@ Shader "VolumetricClouds/CloudRaymarch"
                             float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
                                         + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
                             radiance = _SunColor * sunLit + ambient * exp(-above * _Absorption * _DetailLight2.x);
+
+                            // A low amount: the old light (detail off's, below) handed over to this
+                            // one, as the old break-up is in CloudCommon -- no step at 0%.
+                            if (_DetailLight2.w < 1.0)
+                                radiance = lerp(_SunColor * SunTransmittance(p) * phase + ambient, radiance, _DetailLight2.w);
                         }
                         else
                         {

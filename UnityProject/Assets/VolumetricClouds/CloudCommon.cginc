@@ -219,8 +219,23 @@ float LayerDensity(float3 p, bool detailed, float lod, float h, float weather)
             float erode = _DetailParams.x * lerp(1.0, _DetailParams.w, saturate((h - 0.45) * 2.5));
             if (_FragAmount > 0.0 && _DetailLookup.z >= 0.0)
                 erode = lerp(erode, _DetailLookup.z, fragWeight);
+            float threshold = erosion * erode;
 
-            d = saturate(Remap(d, erosion * erode, 1.0, 0.0, 1.0));
+            // Below 100% the old break-up (detail off's, below) keeps the share the amount leaves.
+            // This erosion alone is scaled by the amount: just above 0% the clouds had almost no
+            // break-up left -- smooth blobs, and floating shreds the old one eats -- and at 0% they
+            // changed shape again. With it 0% hands over to 100% without a step (Sky/CloudDetail).
+            if (_DetailAmount < 1.0 && _DetailStrength > 0.0)
+            {
+                float3 uvOld = p / _NoiseTile * _DetailScale - _DetailPhase;
+                float oldBreakup = tex3Dlod(_NoiseTex, float4(uvOld, 0)).g;
+                float oldErode = _DetailStrength;
+                if (_FragAmount > 0.0 && _FragEdge.w >= 0.0)
+                    oldErode = lerp(_DetailStrength, _FragEdge.w, fragWeight);
+                threshold += (1.0 - _DetailAmount) * oldBreakup * oldErode;
+            }
+
+            d = saturate(Remap(d, threshold, 1.0, 0.0, 1.0));
         }
 
         // Edge hardness: full density a short way in, so a cloud has a surface rather than an

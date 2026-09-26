@@ -557,7 +557,10 @@ namespace VolumetricClouds.Sky
             float texel = CloudShaderParams.NoiseTexel;
             float occlusion = cumulus ? CloudStyle.AmbientOcclusion : CloudDetail.AmbientOcclusion;
 
-            _material.SetVector(IdDetailLight2, new Vector4(occlusion, growth, Mathf.Log(angle / texel, 2f), 0f));
+            // w: at a low amount the old light is handed over to the detail's (Classic; the Cumulus
+            // light is its own at every amount).
+            float share = cumulus ? 1f : CloudDetail.NewLightShare(CloudDetail.Amount);
+            _material.SetVector(IdDetailLight2, new Vector4(occlusion, growth, Mathf.Log(angle / texel, 2f), share));
 
             if (cumulus)
             {

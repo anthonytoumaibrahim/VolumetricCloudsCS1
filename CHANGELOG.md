@@ -42,11 +42,13 @@ the file gains two lines. "Cloud style" starts at Classic for everyone, new inst
   of EVE-Redux).
 - "Cloud detail" on the in-game panel's Clouds tab, right under "Layer thickness", sets how
   sculpted they are. It starts at 100% for everyone, existing players included; 0% draws the
-  soft clouds from before.
+  soft clouds from before, and the values in between change them gradually from one to the
+  other.
 - "Break-up" and "Break-up detail" keep their jobs with it on: how torn the clouds are, and
   how big the billows are (500 m at the default 4x).
-- It costs more to draw where there are clouds. On a slower graphics card, lower it to 0%, or
-  lower the Quality setting on the Rendering tab.
+- It costs more to draw where there are clouds. On a slower graphics card, set it to 0% (the
+  values in between cost a little more than 100%), or lower the Quality setting on the
+  Rendering tab.
 - Nothing new is stored in saved cities: the detail comes from the pattern the city already
   keeps, and "Reset cloud pattern" renews it with everything else.
 
