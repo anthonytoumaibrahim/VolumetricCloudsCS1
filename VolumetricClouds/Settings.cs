@@ -532,9 +532,14 @@ namespace VolumetricClouds
             public const float RainCurtains = 1f;
             public const float RainStreaks = 1f;
             public const float RainStreakHeight = 500f;
-            public const float RainStreakLength = 1f;
-            public const float RainStreakWidth = 1f;
-            public const float RainStreakOpacity = 1f;
+
+            // 1.2 (the author: "make the streaks much smaller and slightly less bright"): half the
+            // length and width and 80% of the brightness of the streaks before 1.1.1's settings, which
+            // 100% still is. A changed default reaches new installs and a Reset only: a settings file
+            // already lists these rows (invariant 15).
+            public const float RainStreakLength = 0.5f;
+            public const float RainStreakWidth = 0.5f;
+            public const float RainStreakOpacity = 0.8f;
             /// <summary>White: the streaks' colour exactly as before the setting existed.</summary>
             public static readonly Color32 RainStreakColor = new Color32(255, 255, 255, 255);
             public const float RainFallSpeed = 1f;

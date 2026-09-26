@@ -60,6 +60,12 @@ the file gains two lines. "Cloud style" starts at Classic for everyone, new inst
 - The fine grain in the clouds, the rain and the volumetric fog is now even, instead of
   gathering into small dots (the steps start at blue-noise offsets). It showed most on the
   Cumulus clouds and in the fog.
+- Seen from high above, the clouds now reach far towards the horizon instead of ending about
+  20 km out. The higher the camera is over the clouds, the further they reach. From under the
+  clouds nothing changes.
+- The rain streaks near the camera are smaller and a little dimmer by default: half the length
+  and width, 80% of the brightness. This reaches new installs and "Reset all settings"; everyone
+  else keeps their streak settings, and 100% is still the old look.
 
 ## 1.1.1 — 2026-09-24
 

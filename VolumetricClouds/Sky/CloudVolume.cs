@@ -18,6 +18,17 @@ namespace VolumetricClouds.Sky
         public const int NoiseSize = 64;
         private const float MaxDistance = 30000f;
 
+        /// <summary>
+        /// From ABOVE the clouds the reach grows by this many metres per metre of height over their
+        /// tops (the author, 2026-09-26: "From really high up in the sky, they disappear at a certain
+        /// distance" -- from 4 km up every cloud is far along the ray, so the 30 km fade left only a
+        /// near band). 4 km over 1.1 km tops: 103 km, a carpet to the horizon on the preview
+        /// (render-detail.ps1 -Set reach). From below the tops it is MaxDistance exactly: the look
+        /// from the city is untouched.
+        /// </summary>
+        private const float ReachPerMetreAbove = 25f;
+        private const float MaxReach = 150000f;
+
         /// <summary>True while the volumetric layer is actually drawing (the fog needs the pass).</summary>
         public static bool IsActive { get; private set; }
 
@@ -384,6 +395,23 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// How far along a ray the clouds reach -- where the distance fade ends and the march stops:
+        /// <see cref="MaxDistance"/> from below the tops, more from above them (<see cref="ReachPerMetreAbove"/>).
+        /// </summary>
+        private float Reach
+        {
+            get
+            {
+                if (_camera == null)
+                    return MaxDistance;
+
+                float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
+                float above = _camera.transform.position.y - (bottom + CloudShaderParams.LayerHeight);
+                return Mathf.Min(MaxReach, MaxDistance + ReachPerMetreAbove * Mathf.Max(0f, above));
+            }
+        }
+
+        /// <summary>
         /// The raymarch's step count: the Quality setting, times <see cref="CloudStyle.StepFactor"/>
         /// while Cumulus is drawn (its slab is ~2.8x Classic's height).
         /// </summary>
@@ -606,7 +634,7 @@ namespace VolumetricClouds.Sky
             // The jitter tile, or 0: the shader's white-noise hash.
             _material.SetTexture(IdBlueNoiseTex, _blueNoise);
             _material.SetFloat(IdBlueNoiseScale, _blueNoise != null ? 1f / BlueNoise.Size : 0f);
-            _material.SetFloat(IdMaxDistance, MaxDistance);
+            _material.SetFloat(IdMaxDistance, Reach);
             _material.SetFloat(IdUseDepth, useDepth ? 1f : 0f);
 
             ApplyLighting();
@@ -831,6 +859,7 @@ namespace VolumetricClouds.Sky
                        (_frameWorst * 1000f).ToString("F1") + " ms worst, over " + _frameCount + " frames at " +
                        Screen.width + "x" + Screen.height +
                        " | steps=" + MarchSteps.ToString("F0") +
+                       " reach=" + (Reach / 1000f).ToString("F0") + "km" +
                        " style=" + (CloudStyle.Drawn ? "Cumulus" : "Classic") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
@@ -873,7 +902,9 @@ namespace VolumetricClouds.Sky
 
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             _material.SetFloat(IdNightOpacity, night * opacity);
-            _material.SetFloat(IdCloudExtent, _holder.transform.localScale.x);
+            // Where the night's opaque clouds end softly: the box's edge, pushed out as the reach
+            // grows from above the clouds.
+            _material.SetFloat(IdCloudExtent, _holder.transform.localScale.x * Reach / MaxDistance);
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
