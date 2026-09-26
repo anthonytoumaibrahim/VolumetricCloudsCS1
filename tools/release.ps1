@@ -36,7 +36,7 @@ $workshop = "C:\Program Files (x86)\Steam\steamapps\workshop\content\255710\$wor
 $deployed = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\Addons\Mods\VolumetricClouds"
 $parked = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\VolumetricClouds-dev-parked"
 $shipped = @("VolumetricClouds.dll", "UnifiedUILib.dll", "CitiesHarmony.API.dll")
-$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus")
+$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise")
 
 $problems = 0
 

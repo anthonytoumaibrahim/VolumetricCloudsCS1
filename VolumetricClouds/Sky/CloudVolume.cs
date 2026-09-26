@@ -56,6 +56,12 @@ namespace VolumetricClouds.Sky
         private int _cumulusMilliseconds;
         private volatile bool _cumulusWorking;
 
+        // The raymarches' jitter (BlueNoise): made on the load's worker thread (once per session),
+        // uploaded with the noise. Null: the shader keeps its white-noise hash. The error is
+        // written by the worker before _noiseBytes (volatile), read after.
+        private Texture2D _blueNoise;
+        private string _blueNoiseError;
+
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
         private static readonly int IdUseDepth = Shader.PropertyToID("_UseDepth");
@@ -106,6 +112,8 @@ namespace VolumetricClouds.Sky
         private static readonly int IdShadowUp = Shader.PropertyToID("_ShadowUp");
         private static readonly int IdShadowSize = Shader.PropertyToID("_ShadowSize");
         private static readonly int IdShadowDarkness = Shader.PropertyToID("_ShadowDarkness");
+        private static readonly int IdBlueNoiseTex = Shader.PropertyToID("_BlueNoiseTex");
+        private static readonly int IdBlueNoiseScale = Shader.PropertyToID("_BlueNoiseScale");
         private static readonly int IdDetailLight = Shader.PropertyToID("_DetailLight");
         private static readonly int IdDetailLight2 = Shader.PropertyToID("_DetailLight2");
         private static readonly int IdCumulusLight = Shader.PropertyToID("_CumulusLight");
@@ -209,6 +217,17 @@ namespace VolumetricClouds.Sky
                 if (cumulus)
                     MakeCumulus(seed);
 
+                // The raymarches' jitter tile: made the first time, kept for the session.
+                try
+                {
+                    if (BlueNoise.Bytes == null)
+                        _blueNoiseError = "no tile";
+                }
+                catch (Exception e)
+                {
+                    _blueNoiseError = e.GetType().Name + ": " + e.Message;
+                }
+
                 // Last: the main thread takes them once it sees this.
                 _noiseBytes = noise;
             })
@@ -307,11 +326,74 @@ namespace VolumetricClouds.Sky
             UploadDetail(_detailLevels);
             _detailLevels = null;
 
+            UploadBlueNoise();
+
             // Made with it when the style was Cumulus at load: in the same frame.
             UpdateCumulus();
 
             Log.Msg("3D noise uploaded; volumetric clouds live.");
             return true;
+        }
+
+        /// <summary>
+        /// The raymarches' jitter tile (BlueNoise), made by the worker: ARGB32, LINEAR, the value in
+        /// every channel (the shader reads alpha), point-sampled, repeating -- the score texture's
+        /// format. Without it the shader keeps its white-noise hash, and the log says why.
+        /// </summary>
+        private void UploadBlueNoise()
+        {
+            if (_blueNoiseError != null)
+            {
+                Log.Warn("jitter: the blue-noise tile could not be made (" + _blueNoiseError +
+                         "); the clouds, rain and fog keep the white-noise hash");
+                return;
+            }
+
+            try
+            {
+                byte[] bytes = BlueNoise.Bytes;
+                Color32[] pixels = new Color32[bytes.Length];
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    byte v = bytes[i];
+                    pixels[i] = new Color32(v, v, v, v);
+                }
+
+                _blueNoise = new Texture2D(BlueNoise.Size, BlueNoise.Size, TextureFormat.ARGB32, false, true)
+                {
+                    name = "VolumetricCloudsBlueNoise",
+                    wrapMode = TextureWrapMode.Repeat,
+                    filterMode = FilterMode.Point,
+                    anisoLevel = 0,
+                };
+                _blueNoise.SetPixels32(pixels);
+                _blueNoise.Apply(false);
+            }
+            catch (Exception e)
+            {
+                if (_blueNoise != null)
+                    Destroy(_blueNoise);
+                _blueNoise = null;
+                Log.Warn("jitter: the blue-noise tile could not be uploaded (" + e.GetType().Name + ": " + e.Message +
+                         "); the clouds, rain and fog keep the white-noise hash");
+                return;
+            }
+
+            Log.Msg("jitter: blue noise " + BlueNoise.Size + "^2 for the clouds', rain's and fog's steps (made in " +
+                    BlueNoise.Milliseconds + " ms, once per session)");
+        }
+
+        /// <summary>
+        /// The raymarch's step count: the Quality setting, times <see cref="CloudStyle.StepFactor"/>
+        /// while Cumulus is drawn (its slab is ~2.8x Classic's height).
+        /// </summary>
+        private static float MarchSteps
+        {
+            get
+            {
+                float steps = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
+                return CloudStyle.Drawn ? steps * CloudStyle.StepFactor : steps;
+            }
         }
 
         /// <summary>
@@ -516,11 +598,14 @@ namespace VolumetricClouds.Sky
 
         private void UpdateMaterial()
         {
-            float steps = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
             bool useDepth = Settings.CloudDepthOcclusion == null || Settings.CloudDepthOcclusion.value;
 
             CloudShaderParams.Apply(_material, _field, _noise);
-            _material.SetFloat(IdSteps, steps);
+            _material.SetFloat(IdSteps, MarchSteps);
+
+            // The jitter tile, or 0: the shader's white-noise hash.
+            _material.SetTexture(IdBlueNoiseTex, _blueNoise);
+            _material.SetFloat(IdBlueNoiseScale, _blueNoise != null ? 1f / BlueNoise.Size : 0f);
             _material.SetFloat(IdMaxDistance, MaxDistance);
             _material.SetFloat(IdUseDepth, useDepth ? 1f : 0f);
 
@@ -745,7 +830,7 @@ namespace VolumetricClouds.Sky
             Log.Detail("frame: " + (mean * 1000f).ToString("F1") + " ms mean, " +
                        (_frameWorst * 1000f).ToString("F1") + " ms worst, over " + _frameCount + " frames at " +
                        Screen.width + "x" + Screen.height +
-                       " | steps=" + (Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality).ToString("F0") +
+                       " | steps=" + MarchSteps.ToString("F0") +
                        " style=" + (CloudStyle.Drawn ? "Cumulus" : "Classic") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
@@ -968,6 +1053,8 @@ namespace VolumetricClouds.Sky
                 Destroy(_material);
             if (_noise != null)
                 Destroy(_noise);
+            if (_blueNoise != null)
+                Destroy(_blueNoise);
 
             if (_detail != null)
             {

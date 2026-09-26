@@ -31,6 +31,9 @@ the file gains two lines. "Cloud style" starts at Classic for everyone, new inst
   Weather pattern size, the brightness and the colours apply to both.
 - The first time Cumulus is chosen in a city, its noise takes a few seconds to make; the
   clouds stay Classic until then.
+- Its clouds are taller than Classic's, so they are drawn with twice the steps, and cost up to
+  about twice as much where there are clouds. On a slower graphics card, use Classic or lower
+  the Quality setting on the Rendering tab.
 - Nothing new is stored in saved cities: the noise comes from the pattern the city already
   keeps, and "Reset cloud pattern" renews it with everything else.
 
@@ -51,6 +54,12 @@ the file gains two lines. "Cloud style" starts at Classic for everyone, new inst
   Rendering tab.
 - Nothing new is stored in saved cities: the detail comes from the pattern the city already
   keeps, and "Reset cloud pattern" renews it with everything else.
+
+### Changed
+
+- The fine grain in the clouds, the rain and the volumetric fog is now even, instead of
+  gathering into small dots (the steps start at blue-noise offsets). It showed most on the
+  Cumulus clouds and in the fog.
 
 ## 1.1.1 — 2026-09-24
 

@@ -72,8 +72,10 @@ Earth-like configuration (Promised Worlds' Gurdamma). Those numbers and formulas
 its public C# code, wiki and configurations; EVE-Redux's shaders are not public and were not
 used, and the implementation was written for this mod. The multiple-scattering octaves follow Magnus
 Wrenninge (*Oz: The Great and Volumetric*, SIGGRAPH 2013) as presented by Sébastien Hillaire
-(*Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite*, SIGGRAPH 2016), and the
-weather map's normal scores use Peter Acklam's rational approximation of the normal quantile.
+(*Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite*, SIGGRAPH 2016), the
+weather map's normal scores use Peter Acklam's rational approximation of the normal quantile,
+and the raymarches' blue-noise jitter is made with Robert Ulichney's void-and-cluster method
+(*The void-and-cluster method for dither array generation*, SPIE 1993).
 
 Other mods were read to understand the game's behaviour and to stay compatible with them —
 Unified UI, CitiesHarmony, Render It!, Theme Mixer, Intersection Marking Tool, Persistent Fog

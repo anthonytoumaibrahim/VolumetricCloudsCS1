@@ -232,6 +232,11 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453);
             }
 
+            // The marches' jitter (Sky/BlueNoise): a tile of blue noise, point-sampled, the value in
+            // alpha. White noise clumped the steps' error into dots; blue noise spreads it evenly.
+            sampler2D _BlueNoiseTex;
+            float _BlueNoiseScale;     // 1 / the tile's size in pixels; 0 until it is there (the hash)
+
             // Light reaching p from the lightning sources. An inverse-square core, softened so
             // the source itself never blows out, times an exponential reach standing in for
             // the cloud the light has to cross. There is no march towards the source: the
@@ -317,8 +322,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float transmittance = 1.0;
                 float3 light = 0;
 
+                // 192: the Quality setting's 96 at most, twice that under Cumulus (CloudStyle.StepFactor).
                 [loop]
-                for (int s = 0; s < 96; s++)
+                for (int s = 0; s < 192; s++)
                 {
                     if ((float)s >= steps || transmittance < 0.02)
                         break;
@@ -767,7 +773,10 @@ Shader "VolumetricClouds/CloudRaymarch"
                 tExit = min(tExit, sceneDist);
 
                 float2 screenUV = i.screenPos.xy / i.screenPos.w;
-                float jitter = Hash12(screenUV * _ScreenParams.xy);
+                float2 pixel = screenUV * _ScreenParams.xy;
+                float jitter = _BlueNoiseScale > 0.0
+                    ? tex2Dlod(_BlueNoiseTex, float4(pixel * _BlueNoiseScale, 0, 0)).a
+                    : Hash12(pixel);
                 float cosTheta = dot(dir, _SunDir);
 
                 float4 clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta);

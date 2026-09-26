@@ -141,6 +141,15 @@ namespace VolumetricClouds.Sky
         /// <summary>Extinction per metre at full density, at the default Density.</summary>
         public const float BaseExtinction = 0.03f;
 
+        /// <summary>
+        /// The raymarch takes this many times the Quality setting's steps under Cumulus (the shader's
+        /// loop allows 192 = 96 x 2). Its slab is ~2.8x Classic's height (the tallest heap, 1.1 km),
+        /// so with the same count every step skipped over the heaps' hard edges and the jitter showed
+        /// as grain (the author, 2026-09-26: "small dots everywhere"). On the offline preview twice
+        /// the steps with blue-noise jitter (<see cref="BlueNoise"/>) came close to four times.
+        /// </summary>
+        public const float StepFactor = 2f;
+
         // EVE's cumulus coverage curve (Gurdamma, type Cumulus): Unity float-curve keys, time =
         // height over Span, value = coverage, in/out tangents per unit of time.
         public static readonly float[] CurveTime = { 0.01728953f, 0.08695792f, 0.9732781f };
