@@ -36,6 +36,11 @@ namespace VolumetricClouds.Sky
         private static readonly int IdFragParams = Shader.PropertyToID("_FragParams");
         private static readonly int IdFragEdge = Shader.PropertyToID("_FragEdge");
         private static readonly int IdFragArea = Shader.PropertyToID("_FragArea");
+        private static readonly int IdDetailTex = Shader.PropertyToID("_DetailTex");
+        private static readonly int IdDetailAmount = Shader.PropertyToID("_DetailAmount");
+        private static readonly int IdDetailParams = Shader.PropertyToID("_DetailParams");
+        private static readonly int IdDetailLookup = Shader.PropertyToID("_DetailLookup");
+        private static readonly int IdDetailTexPhase = Shader.PropertyToID("_DetailTexPhase");
 
         /// <summary>
         /// The cover in effect: the weather's, or the slider's when it overrides. Never read
@@ -91,6 +96,74 @@ namespace VolumetricClouds.Sky
             material.SetVector(IdRainSlant, CloudRain.Slant);
 
             ApplyFragments(material, field, weatherTile, thickness);
+            ApplyDetail(material, detailScale);
+        }
+
+        /// <summary>
+        /// Cloud detail (CloudDetail). Off -- or no texture yet -- the amount is written as 0 and
+        /// nothing else is looked at: every use of it sits behind that uniform branch.
+        /// </summary>
+        private static void ApplyDetail(Material material, float breakupScale)
+        {
+            Texture3D texture = CloudDetail.Texture;
+            float amount = texture != null ? CloudDetail.Amount : 0f;
+
+            // Always on the log: it changes what is drawn. Once per state, not per material and
+            // not per tick of the slider. (Before the city's texture exists -- the rain can ask
+            // first -- there is nothing to say yet; a texture that FAILED is said once.)
+            string state = amount > 0f ? "on" : !CloudDetail.On ? "off" : CloudDetail.Failed ? "failed" : null;
+            if (state != null && state != _detailLogged)
+            {
+                _detailLogged = state;
+                Log.Msg(state == "on"
+                    ? "cloud detail: ON, " + CloudDetail.Describe() + " -- billows every " +
+                      CloudDetail.Tile(breakupScale).ToString("F0") + " m, erosion " +
+                      (CloudDetail.ErosionPerBreakup * BreakupValue * amount).ToString("F2") + ", edges " +
+                      (CloudDetail.Hardness * amount * 100f).ToString("F0") + "% hard"
+                    : state == "off"
+                        ? "cloud detail: off (the soft look from before)"
+                        : "cloud detail: set to " + CloudDetail.Describe() + " but its texture failed: drawn without it");
+            }
+
+            material.SetFloat(IdDetailAmount, amount);
+            if (amount <= 0f)
+                return;
+
+            float tile = CloudDetail.Tile(breakupScale);
+            CloudFragments.Style style = CloudFragments.Current;
+
+            material.SetTexture(IdDetailTex, texture);
+            material.SetVector(IdDetailParams, new Vector4(
+                CloudDetail.ErosionPerBreakup * BreakupValue * amount,
+                1f - CloudDetail.Hardness * amount,
+                CloudDetail.DensityGradient * amount,
+                CloudDetail.TopErosion));
+
+            // A fragment style with its own break-up gets it in the detail's units too.
+            material.SetVector(IdDetailLookup, new Vector4(
+                1f / tile,
+                CloudDetail.Warp,
+                style.Erosion >= 0f ? style.Erosion * CloudDetail.ErosionPerBreakup * amount : -1f,
+                CloudDetail.TextureIsAlpha ? 1f : 0f));
+
+            // It drifts with the 3D noise (1.25x the weather): its own phase over its own repeat.
+            material.SetVector(IdDetailTexPhase, CloudWind.NoisePhase(tile, 1f));
+        }
+
+        private static float BreakupValue
+        {
+            get { return Settings.CloudBreakup != null ? Mathf.Clamp01(Settings.CloudBreakup.value) : Settings.Defaults.Breakup; }
+        }
+
+        /// <summary>
+        /// The detail texture's mip level for something that covers <paramref name="metres"/>: a
+        /// pixel far away, or a texel of the shadow map. 0 while it is finer than a texel.
+        /// </summary>
+        public static float DetailLod(float metres)
+        {
+            float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
+            float texel = CloudDetail.Tile(scale) / CloudDetail3D.Size;
+            return Mathf.Max(0f, Mathf.Log(Mathf.Max(metres, 1e-3f) / texel, 2f));
         }
 
         /// <summary>
@@ -150,5 +223,8 @@ namespace VolumetricClouds.Sky
 
         // Starts "off" (null), so a session that starts with fragments says so once.
         private static string _fragmentsLogged;
+
+        // The same for the detail: its first state is always logged.
+        private static string _detailLogged;
     }
 }

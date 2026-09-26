@@ -27,6 +27,7 @@ namespace VolumetricClouds.Sky
             public int NoiseSeed;
             public CloudDensityField Field;
             public byte[] Noise;
+            public UnityEngine.Color32[][] Detail;   // CloudDetail's texture; null if it failed (said once)
             public Exception Error;
         }
 
@@ -94,6 +95,12 @@ namespace VolumetricClouds.Sky
                 {
                     result.Field = new CloudDensityField(fieldSeed);
                     result.Noise = CloudNoise3D.Generate(CloudVolume.NoiseSize, noiseSeed);
+
+                    string detailError;
+                    int milliseconds;
+                    result.Detail = CloudDetail.BuildLevels(noiseSeed, out detailError, out milliseconds);
+                    if (detailError != null)
+                        Log.Warn("sky: the new pattern's detail texture failed (" + detailError + "); the old one's billows stay");
                 }
                 catch (Exception e)
                 {
@@ -117,10 +124,12 @@ namespace VolumetricClouds.Sky
         /// <paramref name="noiseCanBeReplaced"/> is false -- the city's first noise still on its
         /// way would otherwise land over the new one.
         /// </summary>
-        public static bool TryTake(bool noiseCanBeReplaced, out CloudDensityField field, out byte[] noise)
+        public static bool TryTake(bool noiseCanBeReplaced, out CloudDensityField field, out byte[] noise,
+                                   out UnityEngine.Color32[][] detail)
         {
             field = null;
             noise = null;
+            detail = null;
 
             Replacement result = _ready;
             if (result == null)
@@ -151,6 +160,7 @@ namespace VolumetricClouds.Sky
             NoiseSeed = result.NoiseSeed;
             field = result.Field;
             noise = result.Noise;
+            detail = result.Detail;
             return true;
         }
 

@@ -278,6 +278,13 @@ namespace VolumetricClouds
         public static FloatSetting CloudThickness { get; private set; }
 
         /// <summary>
+        /// CLOUD DETAIL (Sky.CloudDetail, 1.2): how sculpted the clouds are, 0..1 -- crisp edges,
+        /// puffy billows and the light and shade that show them. 0 is off: the soft look from
+        /// before, exactly. On with the update for everyone (the author's call, 2026-09-26).
+        /// </summary>
+        public static FloatSetting CloudDetail { get; private set; }
+
+        /// <summary>
         /// How hard fine noise erodes the clouds: 0 leaves smooth solid masses, the 0.3
         /// default gives soft cumulus, higher tears them into ragged tufts and opens gaps.
         /// </summary>
@@ -444,6 +451,13 @@ namespace VolumetricClouds
             public const bool CloudsVisible = true;
             public const float Altitude = 750f;
             public const float Thickness = 400f;
+            /// <summary>
+            /// ON, at full: players asked for it, and the author chose to give it to everyone
+            /// with the update. A new row, so its default reaches every existing file too (a
+            /// missing element is its default); 0% is the soft look from before, exactly.
+            /// </summary>
+            public const float Detail = 1f;
+
             public const float Breakup = 0.5f;
             public const float BreakupScale = 4f;
             public const float Fragments = 0f;       // off: an update never adds fragments to a sky
@@ -678,6 +692,7 @@ namespace VolumetricClouds
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
+                CloudDetail = new FloatSetting("CloudDetail", Defaults.Detail);
                 CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
                 CloudBreakupScale = new FloatSetting("CloudBreakupScale", Defaults.BreakupScale);
                 CloudFragments = new FloatSetting("CloudFragments", Defaults.Fragments);

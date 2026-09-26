@@ -35,6 +35,7 @@ Shader "VolumetricClouds/CloudShadowMap"
             float _ShadowDepth;     // 0 = no shadow, 1 = thick cloud blocks all direct light
             float _ShadowFullness;  // >1 makes thin cloud cast a fuller shadow, <1 a fainter one
             float _ShadowSteps;
+            float _DetailShadowLod;  // cloud detail's mip level for a texel of this map (Sky/CloudDetail.cs)
 
             float4 frag(v2f_img i) : SV_Target
             {
@@ -69,7 +70,7 @@ Shader "VolumetricClouds/CloudShadowMap"
                     if ((float)n >= steps)
                         break;
 
-                    opticalDepth += SampleDensity(origin + dir * s, true);
+                    opticalDepth += SampleDensityLod(origin + dir * s, true, _DetailShadowLod);
                     s += stepLen;
                 }
 

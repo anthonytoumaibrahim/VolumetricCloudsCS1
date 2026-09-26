@@ -60,6 +60,7 @@ namespace VolumetricClouds.Sky
         private static readonly int IdShadowDepth = Shader.PropertyToID("_ShadowDepth");
         private static readonly int IdShadowFullness = Shader.PropertyToID("_ShadowFullness");
         private static readonly int IdShadowSteps = Shader.PropertyToID("_ShadowSteps");
+        private static readonly int IdDetailShadowLod = Shader.PropertyToID("_DetailShadowLod");
 
         /// <summary>The live shadow map, if the shader was available. Read by CloudLighting.</summary>
         public static CloudShadowMap Current { get; private set; }
@@ -158,6 +159,9 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdShadowDepth, ShadowDepth(CloudShaderParams.Coverage));
             _material.SetFloat(IdShadowFullness, ShadowFullness);
             _material.SetFloat(IdShadowSteps, Steps);
+
+            // Cloud detail's billows, averaged over what one texel of this map covers.
+            _material.SetFloat(IdDetailShadowLod, CloudShaderParams.DetailLod(CookieSize / _resolution));
 
             RenderTexture previous = RenderTexture.active;
             Graphics.Blit(null, _texture, _material);

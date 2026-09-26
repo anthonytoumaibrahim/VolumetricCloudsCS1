@@ -29,9 +29,17 @@ namespace VolumetricClouds.Sky
         private Material _material;
         private Mesh _mesh;
         private Texture3D _noise;
+        private Texture3D _detail;
 
         private Thread _noiseThread;
         private volatile byte[] _noiseBytes;
+
+        // Cloud detail's texture (CloudDetail3D), made on the same worker thread BEFORE the noise
+        // is handed over, so the clouds appear once, with it -- never soft first and sculpted a
+        // moment later. Written before _noiseBytes (volatile), read after it.
+        private volatile Color32[][] _detailLevels;
+        private string _detailError;
+        private int _detailMilliseconds;
         private bool _failed;
         private bool _loggedLighting;
 
@@ -85,6 +93,8 @@ namespace VolumetricClouds.Sky
         private static readonly int IdShadowUp = Shader.PropertyToID("_ShadowUp");
         private static readonly int IdShadowSize = Shader.PropertyToID("_ShadowSize");
         private static readonly int IdShadowDarkness = Shader.PropertyToID("_ShadowDarkness");
+        private static readonly int IdDetailLight = Shader.PropertyToID("_DetailLight");
+        private static readonly int IdDetailLight2 = Shader.PropertyToID("_DetailLight2");
 
         /// <summary>
         /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
@@ -155,16 +165,27 @@ namespace VolumetricClouds.Sky
             // the main thread and upload when it lands. Clouds appear a moment after load.
             // The seed is this city's (SkyPattern): the save's, or a new one for a new city.
             int seed = SkyPattern.NoiseSeed;
+            CloudDetail.Failed = false;
             _noiseThread = new Thread(() =>
             {
+                byte[] noise;
                 try
                 {
-                    _noiseBytes = CloudNoise3D.Generate(NoiseSize, seed);
+                    noise = CloudNoise3D.Generate(NoiseSize, seed);
                 }
                 catch (Exception)
                 {
-                    _noiseBytes = new byte[0];
+                    noise = new byte[0];
                 }
+
+                string error;
+                int milliseconds;
+                _detailLevels = CloudDetail.BuildLevels(seed, out error, out milliseconds);
+                _detailError = error;
+                _detailMilliseconds = milliseconds;
+
+                // Last: the main thread takes both once it sees this.
+                _noiseBytes = noise;
             })
             {
                 IsBackground = true,
@@ -256,8 +277,62 @@ namespace VolumetricClouds.Sky
             _noise.Apply(false);
             _noiseBytes = null;
 
+            UploadDetail(_detailLevels);
+            _detailLevels = null;
+
             Log.Msg("3D noise uploaded; volumetric clouds live.");
             return true;
+        }
+
+        /// <summary>
+        /// Cloud detail's texture, with the mip chain the worker built: ARGB32 -- the format the
+        /// 64^3 noise has always used, on every platform -- read from ALPHA, which is never
+        /// sRGB-decoded. NEVER R8: Unity 5.6's Texture3D.SetPixels32 on an R8 texture calls a null
+        /// function pointer and the whole game crashes (2026-09-26, three times in the author's
+        /// game; then reproduced in the 5.6 editor, where ARGB32, RGBA32 and Alpha8 all filled
+        /// every mip level and read back exactly). No managed exception, so nothing can catch it:
+        /// only formats probed there may ever be used here. Without the texture the clouds are
+        /// drawn as before, and the log says why.
+        /// </summary>
+        private void UploadDetail(Color32[][] levels)
+        {
+            if (levels == null)
+            {
+                CloudDetail.Failed = true;
+                Log.Warn("cloud detail: its texture could not be made (" + (_detailError ?? "unknown") +
+                         "); the clouds are drawn without detail");
+                return;
+            }
+
+            int size = CloudDetail3D.Size;
+            try
+            {
+                _detail = new Texture3D(size, size, size, TextureFormat.ARGB32, true)
+                {
+                    name = "VolumetricCloudsDetail3D",
+                    wrapMode = TextureWrapMode.Repeat,
+                    filterMode = FilterMode.Trilinear,
+                };
+
+                for (int level = 0; level < levels.Length; level++)
+                    _detail.SetPixels32(levels[level], level);
+                _detail.Apply(false);
+            }
+            catch (Exception e)
+            {
+                if (_detail != null)
+                    Destroy(_detail);
+                _detail = null;
+                CloudDetail.Failed = true;
+                Log.Warn("cloud detail: its texture could not be uploaded (" + e.GetType().Name + ": " + e.Message +
+                         "); the clouds are drawn without detail");
+                return;
+            }
+
+            CloudDetail.Texture = _detail;
+            CloudDetail.TextureIsAlpha = true;
+            Log.Msg("cloud detail: texture " + size + "^3 ARGB32 (read from alpha), " + levels.Length + " mip levels, made in " +
+                    _detailMilliseconds + " ms on worker threads (generator " + CloudDetail3D.Generator + ")");
         }
 
         private static Color32[] ToColors(byte[] bytes)
@@ -282,16 +357,24 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// "Reset cloud pattern": the new seed's noise, generated on a worker thread, into the
-        /// SAME texture -- the shadow map and every material keep their reference. Main thread.
+        /// "Reset cloud pattern": the new seed's noise and detail, generated on a worker thread,
+        /// into the SAME textures -- the shadow map and every material keep their reference.
+        /// Main thread.
         /// </summary>
-        public void ReplaceNoise(byte[] bytes)
+        public void ReplaceNoise(byte[] bytes, Color32[][] detail)
         {
             if (_noise == null || bytes == null || bytes.Length != NoiseSize * NoiseSize * NoiseSize * 4)
                 return;
 
             _noise.SetPixels32(ToColors(bytes));
             _noise.Apply(false);
+
+            if (_detail != null && detail != null)
+            {
+                for (int level = 0; level < detail.Length; level++)
+                    _detail.SetPixels32(detail[level], level);
+                _detail.Apply(false);
+            }
         }
 
         private void UpdateMaterial()
@@ -305,7 +388,34 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdUseDepth, useDepth ? 1f : 0f);
 
             ApplyLighting();
+            ApplyDetailLight();
             CloudLightning.ApplyTo(_material);
+        }
+
+        /// <summary>
+        /// Cloud detail's light: the octaves (CloudDetail), how far the light steps reach, and
+        /// the mip offset that makes a pixel's footprint pick the detail's mip level. Unused
+        /// while the detail is off (the shader's branch never reads them).
+        /// </summary>
+        private void ApplyDetailLight()
+        {
+            if (!CloudDetail.On || CloudDetail.Texture == null)
+                return;
+
+            float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
+            float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
+
+            // After the three fine steps (6, 12, 24 m) four more grow by this much each, to about
+            // the layer's thickness: 2x for the 350 m layer the look was chosen on.
+            float growth = Mathf.Max(1.25f, Mathf.Pow(Mathf.Max(1.1f * thickness, 100f) / 24f, 0.25f));
+
+            // A pixel covers t x angle metres at distance t; its mip level is log2 of that over a
+            // texel, i.e. log2(t) + log2(angle / texel).
+            float angle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
+            float texel = CloudDetail.Tile(scale) / CloudDetail3D.Size;
+
+            _material.SetVector(IdDetailLight, new Vector4(CloudDetail.OctaveA, CloudDetail.OctaveB, CloudDetail.OctaveC, CloudDetail.LightGain));
+            _material.SetVector(IdDetailLight2, new Vector4(CloudDetail.AmbientOcclusion, growth, Mathf.Log(angle / texel, 2f), 0f));
         }
 
         /// <summary>
@@ -477,6 +587,7 @@ namespace VolumetricClouds.Sky
                        (_frameWorst * 1000f).ToString("F1") + " ms worst, over " + _frameCount + " frames at " +
                        Screen.width + "x" + Screen.height +
                        " | steps=" + (Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality).ToString("F0") +
+                       " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " shadows=" + Settings.ShadowsCast +
@@ -697,6 +808,13 @@ namespace VolumetricClouds.Sky
                 Destroy(_material);
             if (_noise != null)
                 Destroy(_noise);
+
+            if (_detail != null)
+            {
+                if (CloudDetail.Texture == _detail)
+                    CloudDetail.Texture = null;
+                Destroy(_detail);
+            }
         }
     }
 }

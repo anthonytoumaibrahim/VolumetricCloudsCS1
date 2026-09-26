@@ -158,6 +158,42 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return (1.0 - g2) / pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5);
             }
 
+            // Cloud detail's light (Sky/CloudDetail.cs; only while _DetailAmount > 0).
+            float4 _DetailLight;    // x, y, z = Wrenninge's a, b, c; w = the gain that keeps a
+                                    // side-lit sunny face as bright as the light below made it
+            float4 _DetailLight2;   // x = how strongly the cloud above takes the sky light away,
+                                    // y = growth of the light steps beyond 24 m (to about the layer's
+                                    // thickness), z = log2(pixel angle / detail texel): lod offset
+
+            // A forward peak (silver linings towards the sun, capped so the rim cannot blow out)
+            // over a weak back lobe; octave c flattens both (Wrenninge 2013).
+            float DetailPhase(float cosTheta, float c)
+            {
+                return 0.75 * min(HenyeyGreenstein(cosTheta, 0.8 * c), 10.0)
+                     + 0.25 * HenyeyGreenstein(cosTheta, -0.3 * c);
+            }
+
+            // The sun's optical depth at p: seven stretches towards it, 0-6-12-24 m read WITH the
+            // detail (the small billows shading each other), then four growing ones out to about
+            // the layer's thickness from the big shape only.
+            float SunDepth(float3 p, float lod)
+            {
+                float tau = 0.0;
+                float prev = 0.0;
+                float s = 6.0;
+
+                [loop]
+                for (int k = 0; k < 7; k++)
+                {
+                    float segment = s - prev;
+                    tau += SampleDensityLod(p + _SunDir * (prev + segment * 0.5), k < 3, lod) * segment;
+                    prev = s;
+                    s *= k < 2 ? 2.0 : _DetailLight2.y;
+                }
+
+                return tau * _Absorption;
+            }
+
             // How much sunlight reaches p: a short march towards the light.
             float SunTransmittance(float3 p)
             {
@@ -241,6 +277,19 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // sun without leaving clouds black everywhere else.
                 float phase = 0.65 + 0.35 * min(HenyeyGreenstein(cosTheta, 0.55), 5.0);
 
+                // Cloud detail: three octaves of multiple scattering, each dimmed by a, reaching
+                // deeper (extinction x b) and scattering more evenly (phase flattened by c) --
+                // bright surfaces, soft insides, real shade. Their phases depend on the ray only.
+                bool detail = _DetailAmount > 0.0;
+                float3 octaves = 0;
+                if (detail)
+                {
+                    float a = _DetailLight.x;
+                    float c = _DetailLight.z;
+                    octaves = float3(DetailPhase(cosTheta, 1.0), a * DetailPhase(cosTheta, c),
+                                     a * a * DetailPhase(cosTheta, c * c)) * _DetailLight.w;
+                }
+
                 float transmittance = 1.0;
                 float3 light = 0;
 
@@ -251,16 +300,36 @@ Shader "VolumetricClouds/CloudRaymarch"
                         break;
 
                     float3 p = origin + dir * t;
-                    float d = SampleDensity(p, true);
+
+                    // The detail's mip level from this pixel's footprint here: far billows
+                    // average away instead of sparkling.
+                    float lod = detail ? max(log2(max(t, 1.0)) + _DetailLight2.z, 0.0) : 0.0;
+                    float d = SampleDensityLod(p, true, lod);
 
                     if (d > 0.001)
                     {
-                        float sun = SunTransmittance(p);
                         float h = saturate((p.y - _CloudBottom) / (_CloudTop - _CloudBottom));
 
                         // Undersides get less sky light than tops.
                         float3 ambient = _AmbientColor * (0.45 + 0.55 * h);
-                        float3 radiance = _SunColor * sun * phase + ambient;
+                        float3 radiance;
+                        if (detail)
+                        {
+                            float tau = SunDepth(p, lod);
+                            float b = _DetailLight.y;
+                            float sunLit = octaves.x * exp(-tau) + octaves.y * exp(-tau * b) + octaves.z * exp(-tau * b * b);
+
+                            // The sky light is blocked by the cloud above: two looks straight up.
+                            float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
+                                        + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
+                            radiance = _SunColor * sunLit + ambient * exp(-above * _Absorption * _DetailLight2.x);
+                        }
+                        else
+                        {
+                            float sun = SunTransmittance(p);
+                            radiance = _SunColor * sun * phase + ambient;
+                        }
+
                         if (_FlashCount > 0.5)
                             radiance += Lightning(p);
 

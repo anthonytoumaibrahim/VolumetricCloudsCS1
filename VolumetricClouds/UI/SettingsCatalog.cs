@@ -920,6 +920,18 @@ namespace VolumetricClouds.UI
                 Format = Metres,
             });
 
+            // Crisp edges, puffy billows and the light that shows them (Sky.CloudDetail); 0 is
+            // the soft look from before, exactly. No AfterChange (a slider's runs per drag tick):
+            // CloudShaderParams logs it going on and off.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CloudDetail,
+                DefaultFloat = Settings.Defaults.Detail,
+                Min = 0f, Max = 100f, Step = 5f,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,

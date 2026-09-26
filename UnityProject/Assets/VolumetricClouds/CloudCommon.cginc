@@ -81,7 +81,25 @@ float FragmentShape(float3 p, float weather, float h01Frag)
     return cover * HeightShape(h01Frag);
 }
 
-float SampleDensity(float3 p, bool detailed)
+// CLOUD DETAIL (Sky/CloudDetail.cs, 1.2): crisp edges and puffy billows. Documented techniques,
+// each chosen from offline renders of this formula: Horizon Zero Dawn's erosion rule (wispy in
+// the bottom tenth, billowy above), EVE-Redux V5's "spherical" Worley texture, edge hardness and
+// density curve. _DetailAmount == 0 means off: every use sits behind that uniform branch, and
+// SampleDensity then computes exactly what it did before the feature existed.
+sampler3D _DetailTex;    // Sky/CloudDetail3D: 128^3 ARGB32, mipmapped, puffy Worley; the value is
+                         // read from ALPHA, which is never sRGB-decoded (the RGB copies are)
+float _DetailAmount;     // 0..1
+float4 _DetailParams;    // x = erosion strength, y = edge softness (1 - hardness),
+                         // z = density lost at the base (denser tops), w = erosion multiplier on the tops
+float4 _DetailLookup;    // x = 1 / its repeat in metres, y = the anti-tiling shift (repeats),
+                         // z = the fragments' own erosion in these units (-1 = the clouds'),
+                         // w = 1: the value is in alpha (always, since R8 crashed Unity 5.6;
+                         // 0 would read red, for a single-channel texture)
+float3 _DetailTexPhase;  // the wind's drift over one repeat of it (CloudWind.NoisePhase), like _DetailPhase
+
+// `lod` is the detail texture's mip level: distant detail averages away instead of aliasing
+// (the raymarch works it out from the pixel's footprint, the shadow map from its texel).
+float SampleDensityLod(float3 p, bool detailed, float lod)
 {
     float h = (p.y - _CloudBottom) / (_CloudTop - _CloudBottom);
     if (h <= 0.0 || h >= 1.0)
@@ -120,10 +138,42 @@ float SampleDensity(float3 p, bool detailed)
 
     float d = saturate(Remap(base, 1.0 - shaped, 1.0, 0.0, 1.0)) * shaped;
 
-    // Erosion: subtract fine cellular noise from the solid shape. This is what breaks a
-    // cloud up from one smooth mass into lobes, tufts and ragged edges. Thin parts of the
-    // cloud vanish first, so raising the strength also opens gaps through it.
-    if (detailed && d > 0.0 && _DetailStrength > 0.0)
+    if (_DetailAmount > 0.0)
+    {
+        if (detailed && d > 0.0)
+        {
+            // Two values this lookup has already read -- the base noise (hundreds of metres) and
+            // the weather (kilometres) -- shift where each stretch of cloud reads the detail, in
+            // different directions: its 500 m repeat made a grid of billows in the distance.
+            float3 uvDetail = p * _DetailLookup.x - _DetailTexPhase;
+            float shiftBase = (base - 0.5) * _DetailLookup.y;
+            float shiftWeather = (weather - _Threshold) * _DetailLookup.y * 2.0;
+            uvDetail += float3(shiftBase + shiftWeather * 0.6, shiftBase * 0.5, shiftWeather - shiftBase * 0.8);
+
+            float4 texel = tex3Dlod(_DetailTex, float4(uvDetail, lod));
+            float billow = max(texel.r, texel.a * _DetailLookup.w);
+
+            // HZD: carve the billows' centres at the very base (wisps), between them above (puffs).
+            float erosion = lerp(billow, 1.0 - billow, saturate(h * 10.0));
+
+            // Gentler on the tops: from above, full erosion read as clutter; from below you see
+            // the bases and sides, which keep all of it.
+            float erode = _DetailParams.x * lerp(1.0, _DetailParams.w, saturate((h - 0.45) * 2.5));
+            if (_FragAmount > 0.0 && _DetailLookup.z >= 0.0)
+                erode = lerp(erode, _DetailLookup.z, fragWeight);
+
+            d = saturate(Remap(d, erosion * erode, 1.0, 0.0, 1.0));
+        }
+
+        // Edge hardness: full density a short way in, so a cloud has a surface rather than an
+        // inside made of noise. Then the density curve: denser tops, softer bases.
+        d = saturate(d / _DetailParams.y);
+        d *= 1.0 - _DetailParams.z * (1.0 - h);
+    }
+    // Detail off, the soft look from before: subtract fine cellular noise from the solid shape.
+    // This is what breaks a cloud up from one smooth mass into lobes, tufts and ragged edges.
+    // Thin parts of the cloud vanish first, so raising the strength also opens gaps through it.
+    else if (detailed && d > 0.0 && _DetailStrength > 0.0)
     {
         // Its own phase: _DetailScale is not a whole number, so uvNoise * _DetailScale would
         // jump every time _NoisePhase wraps.
@@ -144,6 +194,11 @@ float SampleDensity(float3 p, bool detailed)
         d *= lerp(1.0, _FragEdge.z, fragWeight);
 
     return d * _DensityScale;
+}
+
+float SampleDensity(float3 p, bool detailed)
+{
+    return SampleDensityLod(p, detailed, 0.0);
 }
 
 // ---------------------------------------------------------------------------------------------

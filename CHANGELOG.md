@@ -5,9 +5,27 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.1.2 — unreleased
+## 1.2.0 — unreleased
 
-Nothing yet.
+Much more detailed clouds, on for everyone. Saved cities keep their sky: the big clouds come
+from the same pattern as before, and the detail only sculpts their surfaces. Every value in
+`VolumetricClouds.xml` is kept; the file gains one line, "Cloud detail", at 100%.
+
+### New: cloud detail
+
+- The clouds get crisp edges, puffy billows and real light and shade: bright sunlit tops,
+  grey shaded undersides, and small puffs that shade each other. Built from the documented
+  techniques behind the best-known real-time clouds (Horizon Zero Dawn's, and the KSP clouds
+  of EVE-Redux).
+- "Cloud detail" on the in-game panel's Clouds tab, right under "Layer thickness", sets how
+  sculpted they are. It starts at 100% for everyone, existing players included; 0% draws the
+  soft clouds from before.
+- "Break-up" and "Break-up detail" keep their jobs with it on: how torn the clouds are, and
+  how big the billows are (500 m at the default 4x).
+- It costs more to draw where there are clouds. On a slower graphics card, lower it to 0%, or
+  lower the Quality setting on the Rendering tab.
+- Nothing new is stored in saved cities: the detail comes from the pattern the city already
+  keeps, and "Reset cloud pattern" renews it with everything else.
 
 ## 1.1.1 — 2026-09-24
 

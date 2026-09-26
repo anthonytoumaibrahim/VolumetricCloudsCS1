@@ -116,6 +116,9 @@
   <String key="CloudThickness.Label">Layer thickness</String>
   <String key="CloudThickness.Tooltip">How tall the clouds are.</String>
 
+  <String key="CloudDetail.Label">Cloud detail (soft to sculpted)</String>
+  <String key="CloudDetail.Tooltip">Crisp, puffy clouds with light and shade. 0% is the old soft look.</String>
+
   <String key="CloudBreakup.Label">Break-up (solid to ragged)</String>
   <String key="CloudBreakup.Tooltip">How torn the clouds are.</String>
 

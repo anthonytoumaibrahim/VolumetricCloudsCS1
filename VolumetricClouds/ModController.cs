@@ -195,12 +195,13 @@ namespace VolumetricClouds
 
             CloudDensityField field;
             byte[] noise;
-            if (SkyPattern.TryTake(_volume == null || _volume.CanReplaceNoise, out field, out noise))
+            Color32[][] detail;
+            if (SkyPattern.TryTake(_volume == null || _volume.CanReplaceNoise, out field, out noise, out detail))
             {
                 if (_field != null)
                     _field.Adopt(field);
                 if (_volume != null)
-                    _volume.ReplaceNoise(noise);
+                    _volume.ReplaceNoise(noise, detail);
             }
 
             // The button greys out while a pattern is on its way; give it back.
