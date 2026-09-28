@@ -28,6 +28,15 @@ namespace VolumetricClouds.Sky
         /// <summary>Terminal velocity of a raindrop, m/s.</summary>
         private const float FallSpeed = 10f;
 
+        /// <summary>A snowflake's, m/s (1.2.1, winter maps): about a metre a second, too slow to streak.</summary>
+        private const float SnowFallSpeed = 1.2f;
+
+        /// <summary>
+        /// Metres a flake falls in one sway from side to side. The fall wraps every
+        /// <see cref="WrapDistance"/>, a whole number of these (2100), so the sway never jumps.
+        /// </summary>
+        private const float SwayFall = 2.4f;
+
         /// <summary>
         /// Horizontal size of the rain curtains' noise pattern, and how much taller than wide
         /// it is stretched. CloudRaymarch slides that pattern down by the distance fallen.
@@ -61,8 +70,17 @@ namespace VolumetricClouds.Sky
         /// <summary>True while our rain replaces the game's.</summary>
         public static bool Active { get; private set; }
 
-        /// <summary>True on winter maps, where the game's rain is snow and ours stands down.</summary>
+        /// <summary>
+        /// True on winter maps, where the game's "rain" is snow. Since 1.2.1 ours snows there, just
+        /// as it rains elsewhere (flakes instead of streaks, RainDrops; whiter curtains,
+        /// CloudVolume), and road snow -- which the game keeps as road wetness -- follows the clouds
+        /// through the same patch as wet roads (asked for: "They should work just as well as rain
+        /// does"). Until then ours stood down and the game kept its snow.
+        /// </summary>
         public static bool IsSnow { get; private set; }
+
+        /// <summary>The flakes' drift from side to side, in radians: moves only as the snow falls.</summary>
+        public static float SwayPhase { get; private set; }
 
         /// <summary>The game's rain, 0..1, or 0 when our rain is off.</summary>
         public static float Amount { get; private set; }
@@ -90,13 +108,18 @@ namespace VolumetricClouds.Sky
             bool wanted = Settings.RainEnabled == null || Settings.RainEnabled.value;
             bool cloudsShowing = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
 
-            // On winter maps the game's "rain" is snow. Fast grey streaks are not snowflakes,
-            // so until there is a snow look of our own the game keeps its snow.
+            // On winter maps the game's "rain" is snow: ours snows there (1.2.1), with its own look.
+            bool wasSnow = IsSnow;
             IsSnow = Singleton<WeatherManager>.exists
                   && Singleton<WeatherManager>.instance.m_properties != null
                   && Singleton<WeatherManager>.instance.m_properties.m_rainIsSnow;
 
-            Active = wanted && cloudsShowing && shadersAvailable && field != null && !IsSnow;
+            if (IsSnow != wasSnow)
+                Log.Msg(IsSnow
+                    ? "snow: a winter map -- OUR snow falls under the clouds in place of the game's, and road snow follows it"
+                    : "rain: not a winter map");
+
+            Active = wanted && cloudsShowing && shadersAvailable && field != null;
             Amount = Active ? CloudWeather.Rain : 0f;
 
             float spread = Mathf.Pow(Mathf.Clamp01(Amount / RainForFullSpread), 0.75f);
@@ -105,19 +128,24 @@ namespace VolumetricClouds.Sky
             if (Reporter.Moved(Amount))
                 Report();
 
-            // Rain leans with the wind, and leans harder in a downpour.
-            Slant = CloudWeather.WindDirection * (0.2f + 0.25f * Amount);
+            // Rain leans with the wind, and leans harder in a downpour. Snow, lighter and slower,
+            // is carried much further by the same wind.
+            Slant = CloudWeather.WindDirection * (IsSnow ? 0.5f + 0.5f * Amount : 0.2f + 0.25f * Amount);
             Vector3 velocity = new Vector3(Slant.x, -1f, Slant.z);
             FallDirection = velocity.normalized;
 
             // Faster with the simulation, like everything else, but 3x rain is just noise. The
             // player's fall speed scales it (1.1.1); the wrap stays a whole number of curtain
             // periods whatever the speed, so the curtains never jump.
-            float speed = FallSpeed * Mathf.Max(0.1f, Value(Settings.RainFallSpeed, Settings.Defaults.RainFallSpeed));
+            float speed = (IsSnow ? SnowFallSpeed : FallSpeed) *
+                          Mathf.Max(0.1f, Value(Settings.RainFallSpeed, Settings.Defaults.RainFallSpeed));
             Vector3 fallen = FallOffset + velocity * (speed * deltaTime * Mathf.Min(simulationRate, 2f));
             FallOffset = new Vector3(Mathf.Repeat(fallen.x, WrapDistance),
                                      -Mathf.Repeat(-fallen.y, WrapDistance),
                                      Mathf.Repeat(fallen.z, WrapDistance));
+
+            // One sway per SwayFall metres fallen: continuous across the wrap (a whole number of them).
+            SwayPhase = (float)(Frac(-FallOffset.y / SwayFall) * 2.0 * System.Math.PI);
 
             bool localised = Active && Amount > 0f
                           && (Settings.RainLocalised == null || Settings.RainLocalised.value);
@@ -163,15 +191,16 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private static void Report()
         {
+            string what = IsSnow ? "snow" : "rain";
             if (Amount <= 0f)
             {
-                Log.Msg("rain: OUR rain has stopped");
+                Log.Msg(what + ": OUR " + what + " has stopped");
                 return;
             }
 
             float curtains = Mathf.Max(0f, Value(Settings.RainCurtains, Settings.Defaults.RainCurtains));
 
-            Log.Msg("rain: OUR rain is on screen at " + (Amount * 100f).ToString("F0") + "% (the game's rain), under " +
+            Log.Msg(what + ": OUR " + what + " is on screen at " + (Amount * 100f).ToString("F0") + "% (the game's " + what + "), under " +
                     (RainCoverage * 100f).ToString("F0") + "% of the sky on the slider scale; curtains at " +
                     (curtains * 100f).ToString("F0") + "% -- in heavy rain they haze the distance like a fog" +
                     " | our volumetric fog: " + (!CloudFog.Enabled ? "switched off" : (CloudFog.Amount * 100f).ToString("F0") + "% of the map") +
@@ -198,6 +227,11 @@ namespace VolumetricClouds.Sky
         private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? setting.value : fallback;
+        }
+
+        private static double Frac(double value)
+        {
+            return value - System.Math.Floor(value);
         }
     }
 }

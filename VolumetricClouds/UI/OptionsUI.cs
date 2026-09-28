@@ -9,7 +9,8 @@ namespace VolumetricClouds.UI
 {
     /// <summary>
     /// The mod's page in the game's own options: the mod itself (language, the panel's key and
-    /// its advanced tabs, the button, diagnostics, the resets). Every setting of the SKY is in
+    /// its advanced tabs, the button, diagnostics, the resets) and, first, the quality preset
+    /// (1.2.1, Row.OnOptionsPage: found without the advanced tabs). Every setting of the SKY is in
     /// the in-game panel (<see cref="CloudsPanel"/>), where it can be judged against the sky.
     /// </summary>
     /// <remarks>
@@ -141,7 +142,10 @@ namespace VolumetricClouds.UI
 
             foreach (Row row in SettingsCatalog.Rows)
             {
-                if (row.Options != which)
+                // The page's own rows, and on the options page those that ask to be there too
+                // (the quality preset, 1.2.1).
+                bool shown = which == OptionsPage.General ? SettingsCatalog.IsOnOptionsPage(row) : row.Options == which;
+                if (!shown)
                     continue;
 
                 if (row.Group != null)
@@ -223,6 +227,10 @@ namespace VolumetricClouds.UI
             {
                 case RowKind.Status:
                     // Status lines are live text; the panel has them, this page does not.
+                    return null;
+
+                case RowKind.Text:
+                    // No control: the profile's name is set by the panel's profile bar.
                     return null;
 
                 case RowKind.Toggle:

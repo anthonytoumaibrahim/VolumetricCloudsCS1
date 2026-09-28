@@ -20,6 +20,10 @@
 //   TEXCOORD1  x = rank (drops with rank above the local rain strength are hidden, so heavier
 //                  rain is MORE drops, not brighter ones), y = layer (0 near, 1 far),
 //              z = speed variation
+//
+// SNOW (1.2.1, winter maps, _Snow = 1): the same seeds as round, soft flakes -- a snowflake
+// falls at a metre or so a second, too slowly to streak -- that drift from side to side, each on
+// its own rhythm, by a phase that moves only as the snow falls (so it stops when the game pauses).
 Shader "VolumetricClouds/RainDrops"
 {
     SubShader
@@ -51,6 +55,9 @@ Shader "VolumetricClouds/RainDrops"
             float _PixelAngle;        // radians one pixel subtends
             float4 _StreakNear;       // x = length, y = width (metres)
             float4 _StreakFar;
+            float _Snow;              // 1 on a winter map: flakes, not streaks
+            float _SwayPhase;         // radians: how far the flakes' drift has gone (CloudRain.SwayPhase)
+            float _SnowSway;          // metres a flake drifts to each side
 
             struct appdata
             {
@@ -79,6 +86,16 @@ Shader "VolumetricClouds/RainDrops"
                 // it relative to the camera keeps the drop in the box without tying it to it.
                 float3 fallen = _FallOffset * (0.85 + 0.3 * v.random.z);
                 float3 rel = (frac(v.vertex.xyz + (fallen - _WorldSpaceCameraPos) / box + 0.5) - 0.5) * box;
+
+                // A snowflake drifts from side to side as it falls, each on its own rhythm: an
+                // ellipse of its own shape and turn. Only whole multiples of the phase, which wraps
+                // every sway -- a fraction of it would jump at every wrap.
+                if (_Snow > 0.5)
+                {
+                    float a = _SwayPhase + v.random.z * 6.2832;
+                    rel.xz += float2(sin(a + v.vertex.x * 40.0), sin(a + v.vertex.z * 40.0)) * _SnowSway;
+                }
+
                 float3 head = _WorldSpaceCameraPos + rel;
 
                 // EVERYTHING that decides whether and how strongly this drop shows is computed
@@ -92,6 +109,10 @@ Shader "VolumetricClouds/RainDrops"
                 // in and out of existence. Widen it and thin its opacity to match.
                 float width = max(streak.y, dist * _PixelAngle);
                 float widened = streak.y / width;
+
+                // A flake is as long as it is wide, a pixel at the least like its width.
+                if (_Snow > 0.5)
+                    streak.x = width;
 
                 // How hard it is raining where this drop is. Heavier rain shows MORE drops.
                 float local = SampleRain(head);
@@ -122,6 +143,15 @@ Shader "VolumetricClouds/RainDrops"
                 // Soft across the width; bright head, fading tail.
                 float across = 1.0 - i.corner.x * i.corner.x;
                 float along = 1.0 - smoothstep(0.15, 1.0, i.corner.y);
+
+                // A flake is round: soft from its middle to its edge, whichever way it falls.
+                if (_Snow > 0.5)
+                {
+                    float2 q = float2(i.corner.x, i.corner.y * 2.0 - 1.0);
+                    across = saturate(1.0 - dot(q, q));
+                    along = 1.0;
+                }
+
                 return float4(_DropColor.rgb, i.alpha * across * along);
             }
             ENDCG

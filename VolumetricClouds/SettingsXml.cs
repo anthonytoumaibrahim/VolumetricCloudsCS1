@@ -41,6 +41,10 @@ namespace VolumetricClouds
     /// in the log. A file that cannot be read AT ALL is never saved over: it may hold an
     /// afternoon of tuning with one bracket missing, and writing the defaults over it would
     /// also switch off the fog, which only the player's own click may do (invariant 12).
+    ///
+    /// PROFILES (1.2.1): while one is picked, its file is written in the same save, from the
+    /// same walk of the catalog, with only the rows a profile carries (<see cref="Profiles"/>).
+    /// This file stays the whole truth either way: it gains one element, &lt;Profile&gt;.
     /// </remarks>
     public static class SettingsXml
     {
@@ -68,17 +72,12 @@ namespace VolumetricClouds
         private static float _quietSince;
         private static float _nextFileCheck;
 
-        /// <summary>True while values are being taken FROM the file: those are not changes to save.</summary>
+        /// <summary>True while values are being taken FROM a file: those are not changes to save.</summary>
         private static bool _loading;
 
-        /// <summary>The file exists and cannot be read. Nothing is written until it can.</summary>
-        private static bool _broken;
+        /// <summary>This file on disk: its text, and whether it can be read (nothing is written until it can).</summary>
+        private static WatchedFile _live;
         private static bool _warnedBrokenSave;
-
-        /// <summary>What is on disk as far as this session knows; null when unknown.</summary>
-        private static string _diskText;
-        private static DateTime _seenTime;
-        private static long _seenLength = -1;
 
         private static int _savedKey;
         private static bool _replaceFailed;
@@ -98,7 +97,23 @@ namespace VolumetricClouds
 
         private static string TempPath
         {
-            get { return Path + ".tmp"; }
+            get { return TempOf(Path); }
+        }
+
+        private static string TempOf(string path)
+        {
+            return path + ".tmp";
+        }
+
+        private static WatchedFile Live
+        {
+            get
+            {
+                if (_live == null)
+                    _live = new WatchedFile(Path);
+
+                return _live;
+            }
         }
 
         /// <summary>A value changed. Saved a second after the last one; see <see cref="Tick"/>.</summary>
@@ -143,6 +158,10 @@ namespace VolumetricClouds
                 Log.Error("settings: could not load " + Path + "; running on the defaults", e);
             }
 
+            // The picked profile's file on top of this one: after it, so that nothing above has
+            // written the profile before it was read (Profiles never writes before this).
+            Profiles.Startup();
+
             _savedKey = CurrentKey();
         }
 
@@ -150,20 +169,20 @@ namespace VolumetricClouds
         {
             string text = File.ReadAllText(file);
             if (file == Path)
-                Remember(text);
+                Live.Remember(text);
 
             string error;
-            Result result = Apply(text, out error, null, true);
+            ReadResult result = Read(text, out error, null, false, true, null);
             if (result == null)
             {
-                _broken = true;
+                Live.Broken = true;
                 Log.Warn("settings: " + file + " cannot be read (" + error + "). Running on the defaults, " +
                          "and NOT saving over it: fix it or delete it, and it is read again within a second.");
                 return;
             }
 
             Log.Msg("settings: " + verb + " " + result.Applied + " values from " + file + result.Describe());
-            result.LogProblems();
+            result.LogProblems("settings");
 
             // Lists every setting, with its comment: a file from an older version gains the new
             // ones, and a clamped value is written as it now is. Skipped when nothing differs.
@@ -180,6 +199,20 @@ namespace VolumetricClouds
 
             float now = Time.realtimeSinceStartup;
 
+            // The files first, then the pending save: a hand edit is read before anything is
+            // written (and the saves themselves never write over one they have not read).
+            if (now >= _nextFileCheck)
+            {
+                _nextFileCheck = now + FileCheckInterval;
+
+                // Unified UI holds our key too; anything that sets it bypasses every UI path.
+                if (CurrentKey() != _savedKey)
+                    MarkDirty();
+
+                CheckFile();
+                Profiles.Check();
+            }
+
             if (_dirty)
             {
                 int stamp = _changeStamp;
@@ -193,17 +226,6 @@ namespace VolumetricClouds
                     SaveNow();
                 }
             }
-
-            if (now < _nextFileCheck)
-                return;
-
-            _nextFileCheck = now + FileCheckInterval;
-
-            // Unified UI holds our key too; anything that sets it bypasses every UI path.
-            if (CurrentKey() != _savedKey)
-                MarkDirty();
-
-            CheckFile();
         }
 
         /// <summary>Writes a pending change now: quitting, the mod being disabled.</summary>
@@ -243,19 +265,19 @@ namespace VolumetricClouds
                 info = new FileInfo(Path);
                 if (!info.Exists)
                 {
-                    if (_diskText != null || _broken)
+                    if (Live.DiskText != null || Live.Broken)
                     {
                         Log.Msg("settings: " + FileName + " was deleted while the game runs; writing it again from " +
                                 "the settings in use (delete it with the game closed to go back to the defaults)");
                     }
 
-                    _diskText = null;
-                    _broken = false;
+                    Live.DiskText = null;
+                    Live.Broken = false;
                     SaveNow();
                     return;
                 }
 
-                if (info.LastWriteTimeUtc == _seenTime && info.Length == _seenLength)
+                if (!Live.Moved(info))
                     return;
             }
             catch (Exception e)
@@ -281,34 +303,52 @@ namespace VolumetricClouds
             }
 
             // Saved again unchanged, or only its date moved: nothing to take.
-            bool same = text == _diskText;
-            Remember(text);
+            bool same = text == Live.DiskText;
+            Live.Remember(text);
             if (same)
                 return;
 
             string error;
             var changed = new List<Row>();
-            Result result = Apply(text, out error, changed);
+            ReadResult result = Read(text, out error, null, false, false, changed);
             if (result == null)
             {
-                _broken = true;
-                _diskText = null;
+                Live.Broken = true;
+                Live.DiskText = null;
                 Log.Warn("settings: " + FileName + " was edited and cannot be read (" + error + "). Nothing was " +
                          "taken from it, and it will not be saved over until it can be read again.");
                 return;
             }
 
-            bool wasBroken = _broken;
-            _broken = false;
+            bool wasBroken = Live.Broken;
+            Live.Broken = false;
             _warnedBrokenSave = false;
 
             Log.Msg("settings: " + FileName + " was edited" + (wasBroken ? " and can be read again" : "") + " -- " +
                     (changed.Count == 0 ? "no value changed" : changed.Count + " changed: " + result.Changes()) +
                     result.Describe());
-            result.LogProblems();
+            result.LogProblems("settings");
 
             // As if each row had been moved in the UI, in catalog order -- which puts the quality
-            // preset before the three rows it writes.
+            // preset before the three rows it writes, and the picked profile (the last row) after
+            // every value it might then replace.
+            RunAfterChange(changed, "the file");
+
+            // A picked profile follows a hand edit of this file at once: a quit before the next
+            // change would otherwise leave the profile behind, and it is read on top of this file
+            // at the next start.
+            Profiles.Save();
+
+            _savedKey = CurrentKey();
+            SettingsCatalog.RefreshAllUIs();
+        }
+
+        /// <summary>
+        /// Each changed row's live-apply hook, as if it had been moved in the UI, in catalog order.
+        /// One that throws is logged and the rest still run.
+        /// </summary>
+        internal static void RunAfterChange(List<Row> changed, string source)
+        {
             foreach (Row row in changed)
             {
                 if (row.AfterChange == null)
@@ -320,17 +360,17 @@ namespace VolumetricClouds
                 }
                 catch (Exception e)
                 {
-                    Log.Error("settings: applying '" + row.Name + "' from the file failed", e);
+                    Log.Error("settings: applying '" + row.Name + "' from " + source + " failed", e);
                 }
             }
-
-            _savedKey = CurrentKey();
-            SettingsCatalog.RefreshAllUIs();
         }
 
         // ---- saving ---------------------------------------------------------------------------
 
-        /// <summary>Writes the file now, if what it would hold differs from what is there.</summary>
+        /// <summary>
+        /// Writes the file now, if what it would hold differs from what is there -- and the picked
+        /// profile's file with it (Profiles.Save).
+        /// </summary>
         public static void SaveNow()
         {
             _dirty = false;
@@ -339,7 +379,28 @@ namespace VolumetricClouds
             if (!Settings.IsInitialised)
                 return;
 
-            if (_broken)
+            SaveLive();
+
+            // Even when this file cannot be read and is left alone: the profile's file can be.
+            Profiles.Save();
+        }
+
+        /// <summary>
+        /// This file alone: after a hand edit of the picked profile's file, whose own text is left
+        /// as the player wrote it until the next change (as this file's is after a hand edit).
+        /// </summary>
+        internal static void SaveLiveOnly()
+        {
+            _dirty = false;
+            _seenStamp = _changeStamp;
+
+            if (Settings.IsInitialised)
+                SaveLive();
+        }
+
+        private static void SaveLive()
+        {
+            if (Live.Broken)
             {
                 if (!_warnedBrokenSave)
                 {
@@ -353,14 +414,24 @@ namespace VolumetricClouds
 
             try
             {
-                string text = Compose();
+                // Edited on disk since we last read or wrote it: that edit is read first
+                // (CheckFile, within a second) and this save comes after it -- never write over
+                // an edit unread. (A save and a hand edit inside the same second used to lose the
+                // edit; now the edit wins what it holds, and the rest is saved a second later.)
+                if (Live.DiskText != null && File.Exists(Path) && Live.Moved(new FileInfo(Path)))
+                {
+                    MarkDirty();
+                    return;
+                }
+
+                string text = Compose(null, Localization.Get("File.Header"));
                 _savedKey = CurrentKey();
 
-                if (text == _diskText && File.Exists(Path))
+                if (text == Live.DiskText && File.Exists(Path))
                     return;
 
-                WriteReplacing(text);
-                Remember(text);
+                WriteReplacing(Path, text);
+                Live.Remember(text);
                 _lastSaveError = null;
 
                 if (Log.Detailed)
@@ -377,13 +448,18 @@ namespace VolumetricClouds
             }
         }
 
-        private static void WriteReplacing(string text)
+        /// <summary>
+        /// Writes a temporary file, then moves it into place: a crash never leaves half a file.
+        /// UTF-8 without a byte-order mark. Throws what the file system throws.
+        /// </summary>
+        internal static void WriteReplacing(string path, string text)
         {
-            File.WriteAllText(TempPath, text, new UTF8Encoding(false));
+            string temp = TempOf(path);
+            File.WriteAllText(temp, text, new UTF8Encoding(false));
 
-            if (!File.Exists(Path))
+            if (!File.Exists(path))
             {
-                File.Move(TempPath, Path);
+                File.Move(temp, path);
                 return;
             }
 
@@ -391,7 +467,7 @@ namespace VolumetricClouds
             {
                 try
                 {
-                    File.Replace(TempPath, Path, null);
+                    File.Replace(temp, path, null);
                     return;
                 }
                 catch (Exception e)
@@ -401,28 +477,15 @@ namespace VolumetricClouds
                 }
             }
 
-            File.Copy(TempPath, Path, true);
-            File.Delete(TempPath);
+            File.Copy(temp, path, true);
+            File.Delete(temp);
         }
 
-        /// <summary>What is now on disk, so our own write is not mistaken for an edit.</summary>
-        private static void Remember(string text)
-        {
-            _diskText = text;
-
-            try
-            {
-                var info = new FileInfo(Path);
-                _seenTime = info.Exists ? info.LastWriteTimeUtc : DateTime.MinValue;
-                _seenLength = info.Exists ? info.Length : -1;
-            }
-            catch (Exception)
-            {
-                _seenLength = -1;
-            }
-        }
-
-        private static string Compose()
+        /// <summary>
+        /// The file's text: one commented element per row that <paramref name="filter"/> takes
+        /// (null: every row), in catalog order.
+        /// </summary>
+        private static string Compose(Predicate<Row> filter, string header)
         {
             var entries = new List<SettingsXmlFormat.Entry>();
             var seen = new HashSet<object>();
@@ -431,6 +494,9 @@ namespace VolumetricClouds
             {
                 object setting = SettingOf(row);
                 if (setting == null || !seen.Add(setting))
+                    continue;
+
+                if (filter != null && !filter(row))
                     continue;
 
                 entries.Add(new SettingsXmlFormat.Entry
@@ -444,18 +510,64 @@ namespace VolumetricClouds
             }
 
             // The comments are in the player's language (Localization); the names are not.
-            return SettingsXmlFormat.Write(entries, Localization.Get("File.Header"));
+            return SettingsXmlFormat.Write(entries, header);
+        }
+
+        // ---- profiles -------------------------------------------------------------------------
+
+        /// <summary>A row a profile carries: one with a value, and Row.Profiled (invariant 11).</summary>
+        internal static bool IsProfiled(Row row)
+        {
+            return row.Profiled && SettingOf(row) != null;
+        }
+
+        /// <summary>How many values a profile's file holds.</summary>
+        internal static int ProfiledCount
+        {
+            get
+            {
+                int count = 0;
+                var seen = new HashSet<object>();
+                foreach (Row row in SettingsCatalog.Rows)
+                {
+                    object setting = SettingOf(row);
+                    if (setting != null && seen.Add(setting) && row.Profiled)
+                        count++;
+                }
+
+                return count;
+            }
+        }
+
+        /// <summary>A profile's file as the sky is now: the rows a profile carries, commented like this file.</summary>
+        internal static string ComposeProfile()
+        {
+            return Compose(IsProfiled, Localization.Get("File.ProfileHeader"));
+        }
+
+        /// <summary>
+        /// Takes a profile's values: only the rows a profile carries, and a name that belongs to
+        /// any other row is named in the log and left alone. <paramref name="missingMeansDefault"/>:
+        /// a profile is a complete sky when it is picked, so a value it lacks goes back to its
+        /// default; a hand edit of the picked profile's file, and its read at startup, leave a
+        /// missing value as it is. Null (and why) if the text is not a settings file.
+        /// </summary>
+        internal static ReadResult ReadProfile(string text, out string error, bool missingMeansDefault, List<Row> changedRows)
+        {
+            return Read(text, out error, IsProfiled, missingMeansDefault, false, changedRows);
         }
 
         // ---- applying values ------------------------------------------------------------------
 
-        /// <summary>What one read of the file did, for the log.</summary>
-        private sealed class Result
+        /// <summary>What one read of a file did, for the log.</summary>
+        internal sealed class ReadResult
         {
             public int Applied;
             public readonly List<string> Missing = new List<string>();
+            public readonly List<string> Defaulted = new List<string>();
             public readonly List<string> OlderFile = new List<string>();
             public readonly List<string> Unknown = new List<string>();
+            public readonly List<string> NotProfiled = new List<string>();
             public readonly List<string> Problems = new List<string>();
             public readonly List<string> ChangeList = new List<string>();
             public List<string> Duplicates = new List<string>();
@@ -466,10 +578,14 @@ namespace VolumetricClouds
                 string text = "";
                 if (Missing.Count > 0)
                     text += "; " + Missing.Count + " not in it, left as they were: " + List(Missing);
+                if (Defaulted.Count > 0)
+                    text += "; " + Defaulted.Count + " not in it, set to their defaults: " + List(Defaulted);
                 if (OlderFile.Count > 0)
                     text += "; written before these existed, so set to what an older file means: " + List(OlderFile);
                 if (Unknown.Count > 0)
                     text += "; ignored names the mod does not know: " + List(Unknown);
+                if (NotProfiled.Count > 0)
+                    text += "; ignored, not part of a profile: " + List(NotProfiled);
                 if (Duplicates.Count > 0)
                     text += "; written twice, the last one taken: " + List(Duplicates);
                 if (Version > SettingsXmlFormat.Version)
@@ -483,10 +599,11 @@ namespace VolumetricClouds
                 return List(ChangeList);
             }
 
-            public void LogProblems()
+            /// <summary>One warning for every value not taken as written. <paramref name="prefix"/> starts the line ("settings", "profile").</summary>
+            public void LogProblems(string prefix)
             {
                 if (Problems.Count > 0)
-                    Log.Warn("settings: not taken as written -- " + string.Join("; ", Problems.ToArray()));
+                    Log.Warn(prefix + ": not taken as written -- " + string.Join("; ", Problems.ToArray()));
             }
 
             private static string List(List<string> items)
@@ -500,14 +617,18 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// Takes every value the text holds. Null (and why) if it is not a settings file.
-        /// <paramref name="startup"/>: the file as the game starts, where a row with an
+        /// Takes every value the text holds for the rows <paramref name="filter"/> takes (null:
+        /// every row). Null (and why) if it is not a settings file.
+        /// <paramref name="startup"/>: the settings file as the game starts, where a row with an
         /// <see cref="Row.OlderFileInt"/> that the file lacks was added after it was written.
+        /// <paramref name="missingMeansDefault"/>: a row the text lacks goes back to its default
+        /// (or to what an older file means, where the row says) instead of staying as it is.
         /// </summary>
-        private static Result Apply(string text, out string error, List<Row> changedRows = null, bool startup = false)
+        private static ReadResult Read(string text, out string error, Predicate<Row> filter, bool missingMeansDefault,
+            bool startup, List<Row> changedRows)
         {
             error = null;
-            var result = new Result();
+            var result = new ReadResult();
 
             Dictionary<string, string> values;
             try
@@ -521,6 +642,7 @@ namespace VolumetricClouds
             }
 
             var seen = new HashSet<object>();
+            var heldBack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _loading = true;
             try
             {
@@ -529,6 +651,12 @@ namespace VolumetricClouds
                     object setting = SettingOf(row);
                     if (setting == null || !seen.Add(setting))
                         continue;
+
+                    if (filter != null && !filter(row))
+                    {
+                        heldBack.Add(row.Name);
+                        continue;
+                    }
 
                     string value;
                     if (!values.TryGetValue(row.Name, out value))
@@ -541,6 +669,23 @@ namespace VolumetricClouds
                         {
                             row.Int.value = row.OlderFileInt.Value;
                             result.OlderFile.Add(row.Name + " " + ValueText(row));
+                        }
+                        else if (missingMeansDefault)
+                        {
+                            string was = ValueText(row);
+                            if (row.OlderFileInt.HasValue && row.Int != null)
+                                row.Int.value = row.OlderFileInt.Value;
+                            else
+                                row.ResetToDefault();
+
+                            result.Defaulted.Add(row.Name);
+                            string now = ValueText(row);
+                            if (now != was)
+                            {
+                                result.ChangeList.Add(row.Name + " " + was + " -> " + now);
+                                if (changedRows != null)
+                                    changedRows.Add(row);
+                            }
                         }
                         else
                         {
@@ -571,7 +716,14 @@ namespace VolumetricClouds
                 _loading = false;
             }
 
-            result.Unknown.AddRange(values.Keys);
+            foreach (string name in values.Keys)
+            {
+                if (heldBack.Contains(name))
+                    result.NotProfiled.Add(name);
+                else
+                    result.Unknown.Add(name);
+            }
+
             return result;
         }
 
@@ -617,6 +769,14 @@ namespace VolumetricClouds
                     return "ignored: not a colour (#RRGGBB, or r, g, b)";
 
                 row.Colour.value = colour;
+                return null;
+            }
+
+            // Stored as written (trimmed); what it may hold is its user's business -- a profile's
+            // name is checked by Profiles when it is used.
+            if (row.Text != null)
+            {
+                row.Text.value = text;
                 return null;
             }
 
@@ -828,6 +988,7 @@ namespace VolumetricClouds
             if (row.Int != null) return row.Int;
             if (row.Key != null) return row.Key;
             if (row.Colour != null) return row.Colour;
+            if (row.Text != null) return row.Text;
             return null;
         }
 
@@ -857,6 +1018,8 @@ namespace VolumetricClouds
                 return SettingsXmlFormat.FormatKey(row.Key.value);
             if (row.Colour != null)
                 return ColorText.Format(row.Colour.value);
+            if (row.Text != null)
+                return row.Text.value;
 
             return string.Empty;
         }
@@ -906,6 +1069,10 @@ namespace VolumetricClouds
             else if (row.Colour != null)
             {
                 text = Localization.Get("File.Colour", label, ColorText.Format(row.DefaultColour));
+            }
+            else if (row.Text != null)
+            {
+                text = Localization.Get("File.Text", label);
             }
             else
             {

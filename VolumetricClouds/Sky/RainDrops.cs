@@ -29,6 +29,16 @@ namespace VolumetricClouds.Sky
         private static readonly int IdPixelAngle = Shader.PropertyToID("_PixelAngle");
         private static readonly int IdStreakNear = Shader.PropertyToID("_StreakNear");
         private static readonly int IdStreakFar = Shader.PropertyToID("_StreakFar");
+        private static readonly int IdSnow = Shader.PropertyToID("_Snow");
+        private static readonly int IdSwayPhase = Shader.PropertyToID("_SwayPhase");
+        private static readonly int IdSnowSway = Shader.PropertyToID("_SnowSway");
+
+        /// <summary>A snowflake near the camera and far from it, metres across, at "Streak width" 100%.</summary>
+        private const float FlakeNear = 0.03f;
+        private const float FlakeFar = 0.07f;
+
+        /// <summary>Metres a flake drifts to each side as it falls.</summary>
+        private const float FlakeSway = 0.35f;
 
         private static bool _shadersChecked;
         private static bool _shadersAvailable;
@@ -119,7 +129,7 @@ namespace VolumetricClouds.Sky
             if (Log.Detailed && Time.time >= _nextLogTime)
             {
                 _nextLogTime = Time.time + LogInterval;
-                Log.Detail("rain: active=" + CloudRain.Active + (CloudRain.IsSnow ? " (winter map: the game keeps its snow)" : "") +
+                Log.Detail("rain: active=" + CloudRain.Active + (CloudRain.IsSnow ? " (winter map: snow, drawn as flakes)" : "") +
                         " amount=" + CloudRain.Amount.ToString("F2") +
                         " rainsUnder=" + (CloudRain.RainCoverage * 100f).ToString("F0") + "% of sky" +
                         " atCamera=" + CloudRain.LocalRain(_camera.transform.position).ToString("F2") +
@@ -162,8 +172,24 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdFallDirection, CloudRain.FallDirection);
             float length = Multiplier(Settings.RainStreakLength, Settings.Defaults.RainStreakLength, 0.1f);
             float width = Multiplier(Settings.RainStreakWidth, Settings.Defaults.RainStreakWidth, 0.1f);
-            _material.SetVector(IdStreakNear, new Vector4(1.1f * length, 0.012f * width, 0f, 0f));
-            _material.SetVector(IdStreakFar, new Vector4(3.2f * length, 0.035f * width, 0f, 0f));
+            bool snow = CloudRain.IsSnow;
+
+            if (snow)
+            {
+                // Flakes (winter maps): round, so "Streak width" sizes them and "Streak length",
+                // which only a streak has, is not read.
+                _material.SetVector(IdStreakNear, new Vector4(FlakeNear * width, FlakeNear * width, 0f, 0f));
+                _material.SetVector(IdStreakFar, new Vector4(FlakeFar * width, FlakeFar * width, 0f, 0f));
+            }
+            else
+            {
+                _material.SetVector(IdStreakNear, new Vector4(1.1f * length, 0.012f * width, 0f, 0f));
+                _material.SetVector(IdStreakFar, new Vector4(3.2f * length, 0.035f * width, 0f, 0f));
+            }
+
+            _material.SetFloat(IdSnow, snow ? 1f : 0f);
+            _material.SetFloat(IdSwayPhase, CloudRain.SwayPhase);
+            _material.SetFloat(IdSnowSway, FlakeSway);
             _material.SetFloat(IdDropFade, _fade);
             _material.SetFloat(IdDropDensity, streaks);
 
@@ -171,7 +197,7 @@ namespace VolumetricClouds.Sky
             float pixelAngle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
             _material.SetFloat(IdPixelAngle, pixelAngle);
 
-            _material.SetVector(IdDropColor, StreakLook(DropColor()));
+            _material.SetVector(IdDropColor, StreakLook(DropColor(snow)));
         }
 
         private static string Percent(FloatSetting setting)
@@ -196,8 +222,11 @@ namespace VolumetricClouds.Sky
                                Mathf.Min(1f, color.w * opacity));
         }
 
-        /// <summary>Streaks catch the sky: the scene's ambient, lifted, with a little of the key light.</summary>
-        private static Vector4 DropColor()
+        /// <summary>
+        /// Streaks catch the sky: the scene's ambient, lifted, with a little of the key light.
+        /// Snowflakes are white and scatter far more of it: brighter, and nearly opaque.
+        /// </summary>
+        private static Vector4 DropColor(bool snow)
         {
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
@@ -207,20 +236,21 @@ namespace VolumetricClouds.Sky
             if (linear)
                 ambient = ambient.linear;
 
-            Color color = ambient * 1.4f;
+            Color color = ambient * (snow ? 2.2f : 1.4f);
 
             DayNightProperties properties = DayNightProperties.instance;
             Light sun = properties != null && properties.m_SunLight != null
                 ? properties.m_SunLight.GetComponent<Light>() : null;
             if (sun != null)
-                color += (linear ? sun.color.linear : sun.color) * (sun.intensity * 0.04f);
+                color += (linear ? sun.color.linear : sun.color) * (sun.intensity * (snow ? 0.08f : 0.04f));
 
             // Visible against a night sky, never glowing against a day one.
-            const float floor = 0.05f;
-            return new Vector4(Mathf.Clamp(color.r, floor, 1.2f),
-                               Mathf.Clamp(color.g, floor, 1.2f),
-                               Mathf.Clamp(color.b, floor * 1.2f, 1.2f),
-                               0.5f);
+            float floor = snow ? 0.08f : 0.05f;
+            float ceiling = snow ? 1.5f : 1.2f;
+            return new Vector4(Mathf.Clamp(color.r, floor, ceiling),
+                               Mathf.Clamp(color.g, floor, ceiling),
+                               Mathf.Clamp(color.b, floor * 1.2f, ceiling),
+                               snow ? 0.9f : 0.5f);
         }
 
         /// <summary>

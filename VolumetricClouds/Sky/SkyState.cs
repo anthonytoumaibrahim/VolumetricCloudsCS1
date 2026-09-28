@@ -28,10 +28,13 @@ namespace VolumetricClouds.Sky
     /// </remarks>
     public struct SkyState
     {
-        public const byte CurrentVersion = 1;
+        public const byte CurrentVersion = 2;
 
         /// <summary>Bytes in a version-1 record: 1 + 2 x 4 + 4 x 8 + 5 x 4.</summary>
         public const int Version1Length = 61;
+
+        /// <summary>Bytes in a version-2 record (1.2.1): version 1's, then the cloud position, 2 x 8.</summary>
+        public const int Version2Length = 77;
 
         public int FieldSeed;
         public int NoiseSeed;
@@ -62,9 +65,18 @@ namespace VolumetricClouds.Sky
         public float RainFallY;
         public float RainFallZ;
 
+        /// <summary>
+        /// Version 2 (1.2.1): the player's shift of this city's clouds, metres along x and z
+        /// (CloudWind.ShiftX / ShiftZ, "Cloud position" on the Weather tab). 0 in a version-1
+        /// record. An older mod reads the record's version-1 part, draws the clouds unshifted,
+        /// and its next save writes a version-1 record: the shift is lost, nothing else.
+        /// </summary>
+        public double ShiftX;
+        public double ShiftZ;
+
         public byte[] ToBytes()
         {
-            using (MemoryStream stream = new MemoryStream(Version1Length))
+            using (MemoryStream stream = new MemoryStream(Version2Length))
             using (BinaryWriter writer = new BinaryWriter(stream))
             {
                 writer.Write(CurrentVersion);
@@ -79,6 +91,8 @@ namespace VolumetricClouds.Sky
                 writer.Write(RainFallX);
                 writer.Write(RainFallY);
                 writer.Write(RainFallZ);
+                writer.Write(ShiftX);
+                writer.Write(ShiftZ);
                 writer.Flush();
                 return stream.ToArray();
             }
@@ -129,6 +143,21 @@ namespace VolumetricClouds.Sky
                     state.RainFallX = reader.ReadSingle();
                     state.RainFallY = reader.ReadSingle();
                     state.RainFallZ = reader.ReadSingle();
+
+                    // Version 2's cloud position. A version-2 record cut short is read as a
+                    // version-1 one: the shift is 0, and the note says so.
+                    if (version >= 2)
+                    {
+                        if (data.Length >= Version2Length)
+                        {
+                            state.ShiftX = reader.ReadDouble();
+                            state.ShiftZ = reader.ReadDouble();
+                        }
+                        else
+                        {
+                            note = "a version-" + version + " record without its cloud position; read as version 1";
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -140,15 +169,16 @@ namespace VolumetricClouds.Sky
 
             if (!Finite(state.WindX) || !Finite(state.WindZ) || !Finite(state.FogX) || !Finite(state.FogZ)
                 || !Finite(state.FogBoil) || !Finite(state.FogAmount)
-                || !Finite(state.RainFallX) || !Finite(state.RainFallY) || !Finite(state.RainFallZ))
+                || !Finite(state.RainFallX) || !Finite(state.RainFallY) || !Finite(state.RainFallZ)
+                || !Finite(state.ShiftX) || !Finite(state.ShiftZ))
             {
                 state = default(SkyState);
                 note = "a drift that is not a number";
                 return false;
             }
 
-            if (version > CurrentVersion)
-                note = "version " + version + ", newer than this mod's " + CurrentVersion + "; its version-1 part was read";
+            if (version > CurrentVersion && note == null)
+                note = "version " + version + ", newer than this mod's " + CurrentVersion + "; its version-" + CurrentVersion + " part was read";
 
             return true;
         }
@@ -162,7 +192,10 @@ namespace VolumetricClouds.Sky
                    ", fog drift (" + FogX.ToString("F0", c) + ", " + FogZ.ToString("F0", c) + ") m" +
                    ", swirl " + FogBoil.ToString("F3", c) +
                    ", fog amount " + (FogAmount * 100f).ToString("F0", c) + "%" +
-                   ", rain fallen " + (-RainFallY).ToString("F0", c) + " m";
+                   ", rain fallen " + (-RainFallY).ToString("F0", c) + " m" +
+                   (ShiftX != 0.0 || ShiftZ != 0.0
+                       ? ", clouds moved (" + ShiftX.ToString("F0", c) + ", " + ShiftZ.ToString("F0", c) + ") m"
+                       : "");
         }
 
         private static bool Finite(double value)

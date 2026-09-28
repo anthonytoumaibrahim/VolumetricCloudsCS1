@@ -333,7 +333,33 @@ namespace VolumetricClouds
             if (string.IsNullOrEmpty(text))
                 return string.Empty;
 
-            return text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+            return Printable(text).Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+        }
+
+        /// <summary>
+        /// Without the characters XML 1.0 does not allow at all -- control characters but tab and
+        /// the two line ends, and the two non-characters U+FFFE/U+FFFF -- which would make the
+        /// whole file unreadable, escaped or not. Only a line of text could ever hold one (a
+        /// profile's name, from a file name on Linux or the Mac).
+        /// </summary>
+        public static string Printable(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            StringBuilder kept = null;
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                bool allowed = c == '\t' || c == '\n' || c == '\r' || (c >= ' ' && c != '￾' && c != '￿');
+
+                if (!allowed && kept == null)
+                    kept = new StringBuilder(text, 0, i, text.Length);
+                else if (allowed && kept != null)
+                    kept.Append(c);
+            }
+
+            return kept == null ? text : kept.ToString();
         }
     }
 }

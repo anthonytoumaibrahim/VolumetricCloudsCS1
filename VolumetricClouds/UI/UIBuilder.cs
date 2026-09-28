@@ -31,6 +31,20 @@ namespace VolumetricClouds.UI
         public static readonly Color32 StatusColour = new Color32(185, 221, 254, 255);
         public static readonly Color32 WarningColour = new Color32(255, 190, 120, 255);
 
+        /// <summary>A text field's text, and the red of text the field could not take.</summary>
+        public static readonly Color32 TextFieldColour = new Color32(0, 0, 0, 255);
+        public static readonly Color32 InvalidColour = new Color32(190, 30, 30, 255);
+
+        /// <summary>
+        /// Every sprite <see cref="AddDropDown"/> needs, all from the game's options page. Probed in
+        /// the live atlas before each use: a missing one would fail silently as an invisible list.
+        /// </summary>
+        private static readonly string[] DropDownSprites =
+        {
+            "OptionsDropbox", "OptionsDropboxHovered", "OptionsDropboxFocused", "OptionsDropboxDisabled",
+            "OptionsDropboxListbox", "ListItemHover", "ListItemHighlight",
+        };
+
         public static UILabel AddLabel(UIComponent parent, string text, Vector3 position, float scale)
         {
             UILabel label = parent.AddUIComponent<UILabel>();
@@ -160,6 +174,101 @@ namespace VolumetricClouds.UI
             button.focusedBgSprite = "ButtonMenu";
             button.disabledBgSprite = "ButtonMenuDisabled";
             return button;
+        }
+
+        /// <summary>
+        /// A one-line text field in the game's own style (the TextFieldPanel sprites). Ctrl+C and
+        /// Ctrl+V work in it natively (UITextField.OnKeyDown). Enter submits and Escape cancels,
+        /// each after ending its focus (UITextField.OnSubmit / OnCancel); a click elsewhere submits.
+        /// </summary>
+        public static UITextField AddTextField(UIComponent parent, Vector2 size, Vector3 position, int maxLength)
+        {
+            UITextField field = parent.AddUIComponent<UITextField>();
+            field.atlas = Atlas;
+            field.size = size;
+            field.relativePosition = position;
+            field.normalBgSprite = "TextFieldPanelHovered";
+            field.hoveredBgSprite = "TextFieldPanelHovered";
+            field.focusedBgSprite = "TextFieldPanel";
+            field.disabledBgSprite = "TextFieldPanelHovered";
+            field.selectionSprite = "EmptySprite";
+            field.selectionBackgroundColor = new Color32(0, 172, 234, 255);
+            field.color = new Color32(255, 255, 255, 255);
+            field.textColor = TextFieldColour;
+            field.textScale = 0.85f;
+            field.padding = new RectOffset(6, 6, 6, 3);
+            field.maxLength = maxLength;
+            field.builtinKeyNavigation = true;
+            field.isInteractive = true;
+            field.readOnly = false;
+            field.canFocus = true;
+            field.selectOnFocus = true;
+            field.submitOnFocusLost = true;
+            return field;
+        }
+
+        /// <summary>
+        /// A dropdown built the way Render It! builds its own (RenderIt.UIUtils.CreateDropDown, read
+        /// from its IL): the options page's sprites, and a child button over its whole face as the
+        /// trigger -- a UIDropDown opens its list only from its triggerButton's click
+        /// (UIDropDown.OnTriggerClick) and has no trigger of its own. Null, with the sprite that is
+        /// missing, when the live atlas lacks one of them.
+        /// </summary>
+        public static UIDropDown AddDropDown(UIComponent parent, Vector2 size, Vector3 position, int visibleItems,
+            out string missing)
+        {
+            missing = null;
+            UITextureAtlas atlas = Atlas;
+            foreach (string sprite in DropDownSprites)
+            {
+                if (atlas == null || atlas[sprite] == null)
+                {
+                    missing = sprite;
+                    return null;
+                }
+            }
+
+            const int itemHeight = 24;
+            const int padding = 5;
+
+            UIDropDown drop = parent.AddUIComponent<UIDropDown>();
+            drop.atlas = atlas;
+            drop.size = size;
+            drop.relativePosition = position;
+            drop.textScale = 0.8f;
+            drop.normalBgSprite = "OptionsDropbox";
+            drop.hoveredBgSprite = "OptionsDropboxHovered";
+            drop.focusedBgSprite = "OptionsDropboxFocused";
+            drop.disabledBgSprite = "OptionsDropboxDisabled";
+            drop.foregroundSpriteMode = UIForegroundSpriteMode.Stretch;
+            drop.horizontalAlignment = UIHorizontalAlignment.Center;
+            drop.verticalAlignment = UIVerticalAlignment.Middle;
+            drop.listBackground = "OptionsDropboxListbox";
+            drop.itemHover = "ListItemHover";
+            drop.itemHighlight = "ListItemHighlight";
+            drop.itemHeight = itemHeight;
+            drop.listHeight = visibleItems * itemHeight + 2 * padding;
+            drop.listWidth = (int)size.x;
+            drop.listPosition = UIDropDown.PopupListPosition.Automatic;
+            drop.itemPadding = new RectOffset(padding, padding, padding, padding);
+            drop.listPadding = new RectOffset(padding, padding, padding, padding);
+            drop.textFieldPadding = new RectOffset(10, 5, (int)Mathf.Max(4f, (size.y - 14f) * 0.5f), 5);
+            drop.popupColor = new Color32(255, 255, 255, 255);
+            drop.popupTextColor = new Color32(170, 170, 170, 255);
+
+            // Not Render It!'s: a dropdown keeps the focus after a pick, and with key navigation
+            // the arrow keys -- which also pan the camera; UIView.HasInputFocus is true only for
+            // a text field -- would step through the list. Nor may a wheel turned over the panel
+            // to zoom change the sky. The mouse does everything.
+            drop.builtinKeyNavigation = false;
+            drop.enableMouseWheel = false;
+
+            UIButton trigger = drop.AddUIComponent<UIButton>();
+            trigger.size = size;
+            trigger.relativePosition = Vector3.zero;
+            drop.triggerButton = trigger;
+
+            return drop;
         }
 
         public static UIButton AddTab(UIComponent parent, string text, Vector2 size, Vector3 position)

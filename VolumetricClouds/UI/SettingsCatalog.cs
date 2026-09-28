@@ -28,6 +28,12 @@ namespace VolumetricClouds.UI
 
         /// <summary>A colour: swatch and picker, a text field, Copy, Paste, reset. The F4 panel only.</summary>
         Colour,
+
+        /// <summary>
+        /// A line of text (<see cref="Row.Text"/>). Neither UI draws one: the only one is the
+        /// current profile's name, which the panel's profile bar sets.
+        /// </summary>
+        Text,
     }
 
     /// <summary>Which tab of the in-game (F4) panel a row appears on. None = not in it.</summary>
@@ -74,11 +80,19 @@ namespace VolumetricClouds.UI
         /// </summary>
         public bool Confirm;
 
+        /// <summary>
+        /// ALSO on the game's options page, beside the page <see cref="Options"/> names (1.2.1, the
+        /// author: the quality preset there too, "so users will notice it first without having to
+        /// toggle advanced options"). In catalog order, like every row there.
+        /// </summary>
+        public bool OnOptionsPage;
+
         public FloatSetting Float;
         public BoolSetting Bool;
         public IntSetting Int;
         public SavedInputKey Key;
         public ColorSetting Colour;
+        public StringSetting Text;
 
         // The SAME constants Settings.Init() constructs from. A setting does not remember its
         // own default, so this is the only thing that can put one back.
@@ -87,6 +101,7 @@ namespace VolumetricClouds.UI
         public int DefaultInt;
         public int DefaultKey;
         public Color32 DefaultColour;
+        public string DefaultText;
 
         public float Min, Max, Step;
 
@@ -103,6 +118,15 @@ namespace VolumetricClouds.UI
         public Func<int, string> ChoiceText;
 
         public int[] ChoiceValues;
+
+        /// <summary>
+        /// A slider over a value that is NOT a setting (1.2.1: this city's cloud position, kept in
+        /// its save): read and written through these, never saved to VolumetricClouds.xml, never
+        /// reset, never in a profile -- the row has no setting, and everything that walks the
+        /// catalog for settings passes it by.
+        /// </summary>
+        public Func<float> CityValue;
+        public Action<float> SetCityValue;
 
         /// <summary>
         /// A row added after release whose default is NOT what an existing player had: the value
@@ -123,9 +147,9 @@ namespace VolumetricClouds.UI
         public Func<bool> Enabled;
 
         /// <summary>
-        /// False only for the machine (rendering quality) and housekeeping. Nothing reads it
-        /// yet -- profiles are version 1.1 -- but the answer belongs next to the row that
-        /// knows it, not in a list written a year later.
+        /// Carried by a profile (1.2.1). False only for the machine (rendering quality) and
+        /// housekeeping: does the row describe the sky, or the computer (invariant 11)? A profile
+        /// posted in the Workshop comments must never set someone else's step count.
         /// </summary>
         public bool Profiled = true;
 
@@ -136,8 +160,8 @@ namespace VolumetricClouds.UI
         public bool Pending;
 
         /// <summary>
-        /// The name this row is stored under in VolumetricClouds.xml, the log and (later)
-        /// profiles, and its key in the language files.
+        /// The name this row is stored under in VolumetricClouds.xml, the log and a profile's
+        /// file, and its key in the language files.
         /// </summary>
         public string Name
         {
@@ -148,6 +172,7 @@ namespace VolumetricClouds.UI
                 if (Int != null) return Int.name;
                 if (Key != null) return Key.name;
                 if (Colour != null) return Colour.name;
+                if (Text != null) return Text.name;
                 return Id;
             }
         }
@@ -253,7 +278,7 @@ namespace VolumetricClouds.UI
             get
             {
                 if (Float == null)
-                    return 0f;
+                    return CityValue != null ? CityValue() : 0f;
 
                 return Kind == RowKind.Percent ? Float.value * 100f : Float.value;
             }
@@ -262,7 +287,11 @@ namespace VolumetricClouds.UI
         public void Store(float display)
         {
             if (Float == null)
+            {
+                if (SetCityValue != null)
+                    SetCityValue(display);
                 return;
+            }
 
             Float.value = Kind == RowKind.Percent ? display / 100f : display;
         }
@@ -303,6 +332,7 @@ namespace VolumetricClouds.UI
             if (Int != null) Int.value = DefaultInt;
             if (Key != null) Key.value = DefaultKey;
             if (Colour != null) Colour.value = DefaultColour;
+            if (Text != null) Text.value = DefaultText;
         }
 
         /// <summary>A colour row at its default: what greys out its reset button.</summary>
@@ -320,7 +350,7 @@ namespace VolumetricClouds.UI
     /// widget vocabularies (the F4 panel's hand-built controls and the options page's
     /// UIHelper factories), and keeping two imperative lists in step is how they drift.
     /// Reset-to-defaults walks this list, so does VolumetricClouds.xml (a setting with no row
-    /// is never saved), and so will profiles in 1.1.
+    /// is never saved), and so does a profile's file (its rows with Row.Profiled).
     ///
     /// The split (1.1.0): everything about the SKY is in the panel -- its three basic tabs
     /// (Row.Panel) and its four advanced ones (Row.Options other than General); the options
@@ -367,11 +397,17 @@ namespace VolumetricClouds.UI
             int n = 0;
             foreach (Row row in Rows)
             {
-                if (row.Options == page)
+                if (page == OptionsPage.General ? IsOnOptionsPage(row) : row.Options == page)
                     n++;
             }
 
             return n;
+        }
+
+        /// <summary>The game's options page shows its own rows and those that ask to be there too.</summary>
+        public static bool IsOnOptionsPage(Row row)
+        {
+            return row.Options == OptionsPage.General || row.OnOptionsPage;
         }
 
         /// <summary>A tab's name, in the game's language.</summary>
@@ -451,9 +487,16 @@ namespace VolumetricClouds.UI
         /// EVERY row, the two opt-ins included (1.1.0, the author's call): volumetric fog and
         /// "Show advanced options" used to be skipped, and "I reset, so the fog is off" was
         /// what he expected. The reset asks first, so it is the player's own click.
+        ///
+        /// A picked profile is let go FIRST (1.2.1): while one is picked every change is saved
+        /// into its file too, and the defaults would be written straight over it. The profiles'
+        /// files are all kept; picking one again brings its sky back.
         /// </remarks>
         public static void ResetAll()
         {
+            string profile = Profiles.Selected;
+            Profiles.Detach("reset all settings");
+
             foreach (Row row in Rows)
                 row.ResetToDefault();
 
@@ -476,7 +519,8 @@ namespace VolumetricClouds.UI
             SettingsXml.SaveNow();
             Log.Msg("settings: RESET to defaults (" + Rows.Count + " rows; volumetric fog = " +
                     OnOff(Settings.FogEnabled)() + ", advanced panel = " + OnOff(Settings.ShowAdvancedInPanel)() +
-                    ", quality preset = " + PresetName(Settings.QualityPreset != null ? Settings.QualityPreset.value : Settings.Defaults.Preset) + ")");
+                    ", quality preset = " + PresetName(Settings.QualityPreset != null ? Settings.QualityPreset.value : Settings.Defaults.Preset) +
+                    ", profile = none" + (profile.Length > 0 ? " ('" + profile + "' let go first; its file is kept)" : "") + ")");
         }
 
         /// <summary>
@@ -628,6 +672,27 @@ namespace VolumetricClouds.UI
             return Localization.Get("Unit.Kilometres", (value / 1000f).ToString("F1"));
         }
 
+        private static string SignedKilometres(float value)
+        {
+            return Localization.Get("Unit.Kilometres", (value / 1000f).ToString("+0.00;-0.00;0"));
+        }
+
+        private static float _nextMoveLog;
+
+        /// <summary>A "Cloud position" slider moved: this city's clouds go there. Logged at most every two seconds of a drag.</summary>
+        private static void MoveClouds(double x, double z)
+        {
+            CloudWind.SetShift(x, z);
+
+            float now = Time.realtimeSinceStartup;
+            if (now < _nextMoveLog)
+                return;
+
+            _nextMoveLog = now + 2f;
+            Log.Msg("sky: this city's clouds moved to (" + x.ToString("F0") + ", " + z.ToString("F0") +
+                    ") m from where the pattern puts them; saved with the city");
+        }
+
         private static string Times(float value)
         {
             return Localization.Get("Unit.Times", value.ToString("F1"));
@@ -678,6 +743,11 @@ namespace VolumetricClouds.UI
         private static bool FragmentsOn()
         {
             return CloudFragments.On;
+        }
+
+        private static bool NightColoursOn()
+        {
+            return Settings.CloudNightColors != null && Settings.CloudNightColors.value;
         }
 
         private static bool FogLampsOn()
@@ -1031,6 +1101,37 @@ namespace VolumetricClouds.UI
                 Colour = Settings.CloudShadeColor,
                 DefaultColour = Settings.Defaults.ShadeColor,
             });
+
+            // 1.2.1 (asked for: the colours "should be different during day than night"). Off,
+            // the default, the two above are used around the clock -- exactly as before, so an
+            // update changes nobody's clouds. On, these two take over at night, blended in through
+            // the twilight (Sky.CloudTint.Blend). Like the day's, each pick is logged by its row.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.Clouds,
+                Bool = Settings.CloudNightColors,
+                DefaultBool = Settings.Defaults.NightColors,
+                AfterChange = State("different cloud colours at night", OnOff(Settings.CloudNightColors)),
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Panel = PanelPage.Clouds,
+                Colour = Settings.CloudMoonlitColor,
+                DefaultColour = Settings.Defaults.MoonlitColor,
+                Enabled = NightColoursOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Colour,
+                Panel = PanelPage.Clouds,
+                Colour = Settings.CloudNightShadeColor,
+                DefaultColour = Settings.Defaults.NightShadeColor,
+                Enabled = NightColoursOn,
+            });
         }
 
         /// <summary>
@@ -1048,8 +1149,10 @@ namespace VolumetricClouds.UI
                 Confirm = true,
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
-                // Only the player's own click turns this off: never an update, never a profile
-                // (1.1). "Reset all settings" does, since 1.1.0 -- it is his click, and asks first.
+                // Only the player's own click turns this off, never an update. "Reset all
+                // settings" does, since 1.1.0 -- it is his click, and asks first. So does picking
+                // a profile that has it off (1.2.1): also his click, on a sky he saved or chose,
+                // and it asks nothing, like a value typed into the settings file.
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 
@@ -1216,6 +1319,36 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.WeatherTileSize,
                 Min = 3000f, Max = 20000f, Step = 500f,
                 Format = Kilometres,
+            });
+
+            // 1.2.1 (asked for: "edit the X and Y values" of the clouds' position, "for advanced
+            // settings"): moves THIS city's clouds, all of them together (CloudWind.SetShift),
+            // saved with the city (SkyState version 2) -- not a setting: every city's pattern is its
+            // own, so no profile or reset carries it. Y is the map's second axis (the world's z).
+            // +-10 km: the pattern repeats every Weather pattern size (at most 20 km).
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Options = OptionsPage.Weather,
+                Group = "CloudPosition",
+                Id = "CloudPositionX",
+                Min = -10000f, Max = 10000f, Step = 50f,
+                Format = SignedKilometres,
+                CityValue = () => (float)CloudWind.ShiftX,
+                SetCityValue = x => MoveClouds(x, CloudWind.ShiftZ),
+                Profiled = false,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Options = OptionsPage.Weather,
+                Id = "CloudPositionY",
+                Min = -10000f, Max = 10000f, Step = 50f,
+                Format = SignedKilometres,
+                CityValue = () => (float)CloudWind.ShiftZ,
+                SetCityValue = z => MoveClouds(CloudWind.ShiftX, z),
+                Profiled = false,
             });
 
             Add(new Row
@@ -1479,10 +1612,13 @@ namespace VolumetricClouds.UI
         /// <summary>Advanced tab Rendering. What this costs, and the two things that cost the most.</summary>
         private static void BuildRenderingOptions()
         {
+            // Also on the game's options page (1.2.1, the author's call), where a player finds it
+            // without the advanced tabs: the first row there, under the same heading.
             Add(new Row
             {
                 Kind = RowKind.Choice,
                 Options = OptionsPage.Rendering,
+                OnOptionsPage = true,
                 Group = "Performance",
                 Int = Settings.QualityPreset,
                 DefaultInt = Settings.Defaults.Preset,
@@ -1743,10 +1879,24 @@ namespace VolumetricClouds.UI
 
         /// <summary>
         /// Settings that are live but have no row anywhere. They are in the catalog because a
-        /// reset -- and, in 1.1, a profile -- walks this list and must reach them too.
+        /// reset and the settings file walk this list and must reach them too.
         /// </summary>
         private static void BuildHidden()
         {
+            // The profile picked at the top of the in-game panel (Profiles, 1.2.1), empty for
+            // none. The panel's profile bar is its only UI. A hand edit of the element goes
+            // through the AfterChange: an existing profile is picked, a new name makes one of the
+            // sky as it is, empty lets go. Never carried by a profile: it names one.
+            Add(new Row
+            {
+                Kind = RowKind.Text,
+                Text = Settings.CurrentProfile,
+                DefaultText = Settings.Defaults.Profile,
+                HasNote = true,
+                Profiled = false,
+                AfterChange = Profiles.OnSelectionEdited,
+            });
+
             // Where the player dragged the mod's own button (no Unified UI). Wide ranges on
             // purpose: a value out of range is clamped AND written back, so a narrower range
             // would move a saved spot on a wide screen for good. The button keeps itself on

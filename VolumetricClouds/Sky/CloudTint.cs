@@ -47,6 +47,28 @@ namespace VolumetricClouds.Sky
             return new Color(r * gain, g * gain, b * gain, 1f);
         }
 
+        /// <summary>
+        /// The tint at a time of day (1.2.1, "Different colours at night"): the day's colour at
+        /// <paramref name="night"/> 0, the night's at 1, and between them through the twilight
+        /// (CloudVolume's night factor, from the sun's elevation). Both ends go through
+        /// <see cref="Of"/> first and the multipliers are blended, which keeps the brightness:
+        /// luminance is linear, so a blend of two luminance-1 tints is luminance 1 as well. At
+        /// either end it IS that colour's tint, bit for bit, and two whites blend to exactly
+        /// (1, 1, 1) at any point (1 + 0 x t).
+        /// </summary>
+        public static Color Blend(Color32 day, Color32 nightColour, float night)
+        {
+            if (!(night > 0f)) // NaN too
+                return Of(day);
+
+            if (night >= 1f)
+                return Of(nightColour);
+
+            Color a = Of(day);
+            Color b = Of(nightColour);
+            return new Color(a.r + (b.r - a.r) * night, a.g + (b.g - a.g) * night, a.b + (b.b - a.b) * night, 1f);
+        }
+
         /// <summary>Rec. 709 luminance of a linear colour.</summary>
         public static float Luminance(float r, float g, float b)
         {

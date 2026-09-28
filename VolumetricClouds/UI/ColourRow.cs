@@ -36,9 +36,6 @@ namespace VolumetricClouds.UI
         private const float InvalidShownFor = 3f;
         private const float CopiedShownFor = 1.5f;
 
-        private static readonly Color32 TextColour = new Color32(0, 0, 0, 255);
-        private static readonly Color32 InvalidColour = new Color32(190, 30, 30, 255);
-
         private static bool _probed;
 
         private readonly Row _row;
@@ -92,7 +89,7 @@ namespace VolumetricClouds.UI
 
             x += SwatchSize + Gap;
 
-            _text = CreateText(parent, new Vector3(x, y + 4f));
+            _text = UIBuilder.AddTextField(parent, new Vector2(TextWidth, 26f), new Vector3(x, y + 4f), 64);
             _text.text = ColorText.Format(_shown);
             _text.tooltip = Localization.Get("Colour.Field.Tooltip");
             _text.eventTextSubmitted += (component, text) => Submit(text);
@@ -290,7 +287,7 @@ namespace VolumetricClouds.UI
         {
             _invalidUntil = -1f;
             _text.text = ColorText.Format(_shown);
-            _text.textColor = TextColour;
+            _text.textColor = UIBuilder.TextFieldColour;
             _text.tooltip = Localization.Get("Colour.Field.Tooltip");
         }
 
@@ -302,35 +299,9 @@ namespace VolumetricClouds.UI
                 shown = shown.Substring(0, 40);
 
             _text.text = shown;
-            _text.textColor = InvalidColour;
+            _text.textColor = UIBuilder.InvalidColour;
             _text.tooltip = Localization.Get("Colour.Invalid", shown);
             _invalidUntil = Time.realtimeSinceStartup + InvalidShownFor;
-        }
-
-        private static UITextField CreateText(UIComponent parent, Vector3 position)
-        {
-            UITextField field = parent.AddUIComponent<UITextField>();
-            field.atlas = UIBuilder.Atlas;
-            field.size = new Vector2(TextWidth, 26f);
-            field.relativePosition = position;
-            field.normalBgSprite = "TextFieldPanelHovered";
-            field.hoveredBgSprite = "TextFieldPanelHovered";
-            field.focusedBgSprite = "TextFieldPanel";
-            field.disabledBgSprite = "TextFieldPanelHovered";
-            field.selectionSprite = "EmptySprite";
-            field.selectionBackgroundColor = new Color32(0, 172, 234, 255);
-            field.color = new Color32(255, 255, 255, 255);
-            field.textColor = TextColour;
-            field.textScale = 0.85f;
-            field.padding = new RectOffset(6, 6, 6, 3);
-            field.maxLength = 64;
-            field.builtinKeyNavigation = true;
-            field.isInteractive = true;
-            field.readOnly = false;
-            field.canFocus = true;
-            field.selectOnFocus = true;
-            field.submitOnFocusLost = true;
-            return field;
         }
 
         /// <summary>The game's own colour field, cloned out of the transport-line template.</summary>

@@ -27,7 +27,8 @@ and bring their own rain, lightning, fog and night sky with them.
   overridden from the in-game panel, and one button hands control back to the game.
 - **Rain that belongs to the clouds** — curtains hang under the clouds that are actually
   raining, streaks fall near the camera, and rain sound and wet roads follow the clouds instead
-  of falling everywhere at once. Stands down on winter maps.
+  of falling everywhere at once. On winter maps (1.2.1) it snows instead: whiter curtains, soft
+  drifting flakes near the camera, and road snow that builds up only where it is snowing.
 - **Lightning** — flashes light the clouds and rain from inside, the bolt is redrawn, and
   thunder arrives after a speed-of-sound delay. Storm lightning is visual-only and never starts
   a fire; the game's own strikes are left untouched.
@@ -40,7 +41,12 @@ and bring their own rain, lightning, fog and night sky with them.
   tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
   hue changes, never the brightness; white, the default, leaves the clouds as they are. The
   game's own colour picker, a field for `#FFC0CB` or `255, 192, 203`, Copy, Paste and a reset.
-  The volumetric fog has a colour of its own, the same way.
+  Since 1.2.1 the clouds can have a second pair of colours for the night, blended in through
+  dusk and dawn. The volumetric fog has a colour of its own, the same way.
+- **Profiles** (1.2.1) — save the whole sky under a name and switch between skies from the list
+  at the top of the in-game panel. Each profile is a plain XML file in a
+  `VolumetricCloudsProfiles` folder beside the settings file, easy to share; the settings that
+  describe your computer (quality, language, keys) are never part of one.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
   the game bug that turns a halo into a solid box at negative fog values.
@@ -64,9 +70,9 @@ remove or disable the local copy first.
 The mod runs in a loaded city — new game or load game — not in the editors, and not yet when
 starting a scenario.
 
-It keeps a small record of each city's sky in the savegame (61 bytes under its own key: the
-cloud pattern and how far the wind has carried it), so a city looks the same when you come
-back. Nothing of the game's own data is written. Removing the mod should not corrupt a save:
+It keeps a small record of each city's sky in the savegame (77 bytes under its own key, 61
+before 1.2.1: the cloud pattern, how far the wind has carried it, and where you moved the
+clouds), so a city looks the same when you come back. Nothing of the game's own data is written. Removing the mod should not corrupt a save:
 the game keeps mod data as opaque key/value pairs, loads the save the same way without the
 mod, and writes the record back unread on the next save. That said, the mod is provided as-is
 and I am not responsible for anything that goes wrong, lost or damaged saves included. Keep
@@ -81,7 +87,8 @@ backups of the cities you care about.
    the cloud colours included.
 4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
    page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
-   the F4 panel. That page also has the language, the panel's key and the reset buttons.
+   the F4 panel. That page also has the quality preset (at the top), the language, the
+   panel's key and the reset buttons.
 
 *Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for
 confirmation first). *Reset all settings to defaults* (on the mod's options page) restores
@@ -90,7 +97,9 @@ off.
 
 ## Compatibility
 
-- **Render It!, Theme Mixer** — no conflict; the mod never writes the sun's intensity.
+- **Render It!, Theme Mixer** — no conflict; the mod never writes the sun's intensity. While
+  the clouds are shown, the game fog's horizon band is kept off the sky (1.2.1); whatever value
+  Render It! gives it comes back when they are hidden.
 - **Play It!** — its rain, fog and cloud sliders drive this mod's sky.
 - **Cloud replacer mods** — the game's painted sky layer is left alone. Only the rain-cloud
   dome is switched off while these clouds show, and it is restored afterwards.
@@ -99,7 +108,8 @@ off.
 - **Persistent Fog Adjuster** — no longer needed for smaller halos.
 
 Everything the mod touches on game objects — the sun's light cookie, rain and lightning
-materials, fog fields, halo materials, star render order — is put back when the city unloads.
+materials, fog fields (the horizon band included), halo materials, star render order — is put
+back when the city unloads.
 
 ## Performance
 
@@ -109,9 +119,11 @@ MacBook Air M1 an empty city ran at 22 to 33 ms a frame on High at 1680x1050 wit
 with the fog on: expect a lower frame rate on a Mac than on a Windows PC. Cloud detail and the
 Cumulus style (1.2) cost more wherever there is cloud; *Cloud detail* at 0% with the *Classic*
 style costs what 1.1 did. Volumetric fog is by far
-the most expensive feature, which is why it is opt-in. The raymarch quality slider and the
-shadow map's resolution and update rate (the in-game panel's Rendering tab, shown with
-*Show advanced options in the in-game panel*) are the levers if frames are tight.
+the most expensive feature, which is why it is opt-in. The *Quality preset*, at the top of the
+mod's options page (and on the in-game panel's Rendering tab), sets the clouds', the fog's and
+the shadows' quality together; the raymarch quality slider and the shadow map's resolution and
+update rate (the Rendering tab, shown with *Show advanced options in the in-game panel*) are
+the finer levers if frames are tight.
 
 ## Known limitations
 
@@ -155,7 +167,8 @@ own rarely identifies the cause.
    higher threshold, which makes rain a subset of the clouds by construction.
 5. **The weather is read, never written** — writing it would change solar plants and the
    savegame. The single change to the simulation is a Harmony postfix on
-   `WeatherManager.SampleRainIntensity`, so rain sound and wet roads follow the clouds.
+   `WeatherManager.SampleRainIntensity`, so rain sound and wet roads follow the clouds — and on
+   winter maps road snow, which the game keeps as road wetness.
 6. **Rain, lightning and fog share the cloud pass** and composite front to back. Fog is a level
    slab above the map's sea level, or follows the ground through a 256² height texture, and is lit through the cloud shadow map — that is where
    the sun shafts come from.

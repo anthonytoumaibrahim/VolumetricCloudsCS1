@@ -235,6 +235,8 @@ function NewState {
     $s.RainFallX = [float]12.5
     $s.RainFallY = [float]-1234.25
     $s.RainFallZ = [float]0.75
+    $s.ShiftX = 2450.0
+    $s.ShiftZ = -125.5
     return $s
 }
 
@@ -246,9 +248,10 @@ function Read([byte[]]$bytes) {
 
 $s = NewState
 $bytes = $s.ToBytes()
-Check "a record is 61 bytes" $bytes.Length "61"
-Check "...and starts with version 1" $bytes[0] "1"
+Check "a record is 77 bytes (version 2: the cloud position after version 1's 61)" $bytes.Length "77"
+Check "...and starts with version 2" $bytes[0] "2"
 Check "...then the field seed, little-endian" ([BitConverter]::ToInt32($bytes, 1)) "12345"
+Check "...and the cloud position where version 1 ended" ([BitConverter]::ToDouble($bytes, 61)) "2450"
 
 $r = Read $bytes
 Check "it reads back" $r.Ok "True"
@@ -258,6 +261,22 @@ Check "seeds exact" "$($t.FieldSeed)/$($t.NoiseSeed)" "12345/99999"
 Check "wind exact (doubles, all 17 digits)" "$($t.WindX.ToString('R'))|$($t.WindZ.ToString('R'))" "$($s.WindX.ToString('R'))|$($s.WindZ.ToString('R'))"
 Check "fog exact" "$($t.FogX.ToString('R'))|$($t.FogZ.ToString('R'))|$($t.FogBoil)|$($t.FogAmount)" "$($s.FogX.ToString('R'))|$($s.FogZ.ToString('R'))|$($s.FogBoil)|$($s.FogAmount)"
 Check "rain fall exact" "$($t.RainFallX)|$($t.RainFallY)|$($t.RainFallZ)" "12.5|-1234.25|0.75"
+Check "cloud position exact" "$($t.ShiftX.ToString('R'))|$($t.ShiftZ.ToString('R'))" "2450|-125.5"
+
+# A save made by 1.2.0 or older: a version-1 record, 61 bytes. It reads, with the clouds where
+# the pattern puts them.
+$v1 = [byte[]]$bytes[0..60]
+$v1[0] = 1
+$r = Read $v1
+Check "a version-1 record (every save before 1.2.1) still reads" $r.Ok "True"
+Check "...with no note" ($r.Note -eq $null) "True"
+Check "...the same sky" "$($r.State.FieldSeed)/$($r.State.WindX.ToString('R'))/$($r.State.RainFallZ)" "12345/$($s.WindX.ToString('R'))/0.75"
+Check "...and no cloud position" "$($r.State.ShiftX)|$($r.State.ShiftZ)" "0|0"
+
+$cut = [byte[]]$bytes[0..68]
+$r = Read $cut
+Check "a version-2 record cut short reads as version 1" "$($r.Ok)|$($r.State.ShiftX)|$($r.State.FieldSeed)" "True|0|12345"
+Check "...and says so" ($r.Note -match 'without its cloud position') "True"
 
 $r = Read $null
 Check "no data is refused" "$($r.Ok) ($($r.Note))" "False (empty)"
@@ -274,14 +293,14 @@ $r = Read $short
 Check "60 bytes (one short of version 1) is refused" $r.Ok "False"
 Write-Host "      (the note: $($r.Note))"
 
-# A NEWER mod's record: version 2 with more fields after ours. An older mod reads its sky.
-$newer = New-Object byte[] 73
-[Array]::Copy($bytes, $newer, 61)
-$newer[0] = 2
-for ($i = 61; $i -lt 73; $i++) { $newer[$i] = 0xAB }
+# A NEWER mod's record: version 3 with more fields after ours. This mod reads its sky.
+$newer = New-Object byte[] 89
+[Array]::Copy($bytes, $newer, 77)
+$newer[0] = 3
+for ($i = 77; $i -lt 89; $i++) { $newer[$i] = 0xAB }
 $r = Read $newer
 Check "a newer version's record is still read" $r.Ok "True"
-Check "...with the same sky" "$($r.State.FieldSeed)/$($r.State.WindX.ToString('R'))" "12345/$($s.WindX.ToString('R'))"
+Check "...with the same sky" "$($r.State.FieldSeed)/$($r.State.WindX.ToString('R'))/$($r.State.ShiftX)" "12345/$($s.WindX.ToString('R'))/2450"
 Check "...and says so" ($r.Note -match 'newer') "True"
 
 $nan = NewState
@@ -299,7 +318,39 @@ $inf.RainFallY = [float]::NaN
 $r = Read ($inf.ToBytes())
 Check "a rain fall that is not a number is refused" $r.Ok "False"
 
-Check "the log line" ((NewState).Describe()) "pattern seeds 12345/99999, wind drift (123456789, -987654) m, fog drift (5500000000, 0) m, swirl 0.438, fog amount 62%, rain fallen 1234 m"
+$inf = NewState
+$inf.ShiftZ = [double]::NegativeInfinity
+$r = Read ($inf.ToBytes())
+Check "a cloud position that is not a number is refused" $r.Ok "False"
+
+$still = NewState
+$still.ShiftX = 0.0
+$still.ShiftZ = 0.0
+Check "the log line, clouds where the pattern puts them" ($still.Describe()) "pattern seeds 12345/99999, wind drift (123456789, -987654) m, fog drift (5500000000, 0) m, swirl 0.438, fog amount 62%, rain fallen 1234 m"
+Check "the log line, clouds moved" ((NewState).Describe()) "pattern seeds 12345/99999, wind drift (123456789, -987654) m, fog drift (5500000000, 0) m, swirl 0.438, fog amount 62%, rain fallen 1234 m, clouds moved (2450, -126) m"
+
+# ---- CloudWind's shift: the whole sky moves as one ------------------------------------------
+
+$wind = $asm.GetType('VolumetricClouds.Sky.CloudWind', $true)
+$wind::Restore(123456.0, -7890.0)
+$wind::SetShift(0.0, 0.0)
+$w0 = $wind::WeatherPhase([float]13500)
+$n0 = $wind::NoisePhase([float]4000, [float]1)
+$d0 = $wind::NoisePhase([float]4000, [float]4)
+$wind::SetShift(2000.0, -300.0)
+$w1 = $wind::WeatherPhase([float]13500)
+$n1 = $wind::NoisePhase([float]4000, [float]1)
+$d1 = $wind::NoisePhase([float]4000, [float]4)
+function Wrapped([double]$a) { return $a - [math]::Round($a) }
+$worst = 0.0
+foreach ($pair in @(@(($w1.x - $w0.x), (2000.0 / 13500)), @(($w1.y - $w0.y), (-300.0 / 13500)),
+                    @(($n1.x - $n0.x), (2000.0 / 4000)), @(($n1.z - $n0.z), (-300.0 / 4000)),
+                    @(($d1.x - $d0.x), (2000.0 * 4 / 4000)), @(($d1.z - $d0.z), (-300.0 * 4 / 4000)))) {
+    $worst = [math]::Max($worst, [math]::Abs((Wrapped ([double]$pair[0] - [double]$pair[1]))))
+}
+Check "a shift moves the map, the noise and the detail by the same metres (worst $([math]::Round($worst, 7)) of a repeat)" ($worst -lt 1e-5) "True"
+$wind::Reset()
+Check "Reset puts the shift back to 0" "$($wind::ShiftX)|$($wind::ShiftZ)" "0|0"
 
 Write-Host ""
 if ($failed -eq 0) { Write-Host "all passed" } else { Write-Host "$failed FAILED"; exit 1 }

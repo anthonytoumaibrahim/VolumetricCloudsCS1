@@ -75,6 +75,7 @@ namespace VolumetricClouds
             gameObject.AddComponent<CloudLightning>().Initialise(_field);
             gameObject.AddComponent<TerrainHeightMap>();
             gameObject.AddComponent<GameFog>();
+            gameObject.AddComponent<GameHorizon>();
             gameObject.AddComponent<GameStars>();
             gameObject.AddComponent<HaloController>();
             gameObject.AddComponent<HaloOverride>();

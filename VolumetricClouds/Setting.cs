@@ -29,7 +29,7 @@ namespace VolumetricClouds
             Registry.Add(this);
         }
 
-        /// <summary>The element name in VolumetricClouds.xml (and, in 1.1, in a profile).</summary>
+        /// <summary>The element name in VolumetricClouds.xml and in a profile's file.</summary>
         public string name { get; private set; }
 
         /// <summary>
@@ -154,6 +154,40 @@ namespace VolumetricClouds
         private static Color32 Opaque(Color32 colour)
         {
             return new Color32(colour.r, colour.g, colour.b, 255);
+        }
+    }
+
+    /// <summary>
+    /// A line of text, stored trimmed and never null (1.2.1: the name of the profile picked at the
+    /// top of the in-game panel). Neither UI draws one; what it means is its user's business.
+    /// </summary>
+    public sealed class StringSetting : Setting
+    {
+        private string _value;
+
+        public StringSetting(string name, string value)
+            : base(name, null)
+        {
+            _value = Tidy(value);
+        }
+
+        public string value
+        {
+            get { return _value; }
+            set
+            {
+                value = Tidy(value);
+                if (_value == value)
+                    return;
+
+                _value = value;
+                Changed();
+            }
+        }
+
+        private static string Tidy(string text)
+        {
+            return text == null ? string.Empty : text.Trim();
         }
     }
 }

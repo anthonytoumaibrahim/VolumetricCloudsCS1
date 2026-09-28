@@ -72,6 +72,14 @@ namespace VolumetricClouds
         public static IntSetting Language { get; private set; }
 
         /// <summary>
+        /// PROFILES (1.2.1): the name of the profile picked at the top of the in-game panel, empty
+        /// for none. While one is picked, its file (VolumetricCloudsProfiles\&lt;name&gt;.xml) is
+        /// written together with VolumetricClouds.xml (see <see cref="Profiles"/>). Never part of
+        /// a profile: it names one.
+        /// </summary>
+        public static StringSetting CurrentProfile { get; private set; }
+
+        /// <summary>
         /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
         /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
         /// </summary>
@@ -91,7 +99,8 @@ namespace VolumetricClouds
 
         /// <summary>
         /// Replace the game's camera-locked rain with ours: curtains under the clouds and
-        /// world-anchored streaks near the camera, both only where it is raining.
+        /// world-anchored streaks near the camera, both only where it is raining. On a winter
+        /// map the game's rain is snow, and so is ours (1.2.1): flakes, whiter curtains.
         /// </summary>
         public static BoolSetting RainEnabled { get; private set; }
 
@@ -120,8 +129,9 @@ namespace VolumetricClouds
         public static FloatSetting RainFallSpeed { get; private set; }
 
         /// <summary>
-        /// The rain sound and wet roads follow the clouds too. The one setting that changes
-        /// what the simulation sees (see SampleRainIntensityPatch).
+        /// The rain sound and wet roads follow the clouds too -- and on a winter map road snow,
+        /// which the game keeps as road wetness (1.2.1). The one setting that changes what the
+        /// simulation sees (see SampleRainIntensityPatch).
         /// </summary>
         public static BoolSetting RainLocalised { get; private set; }
 
@@ -327,6 +337,23 @@ namespace VolumetricClouds
         /// </summary>
         public static ColorSetting CloudShadeColor { get; private set; }
 
+        /// <summary>
+        /// DIFFERENT COLOURS AT NIGHT (1.2.1): on, the clouds take <see cref="CloudMoonlitColor"/>
+        /// and <see cref="CloudNightShadeColor"/> at night, blended in through the twilight; off
+        /// (the default, so an update changes no one's clouds), the two colours above are used day
+        /// and night, exactly as before the switch existed.
+        /// </summary>
+        public static BoolSetting CloudNightColors { get; private set; }
+
+        /// <summary>At night, with the switch on: the colour of the clouds' lit side (the moon's light).</summary>
+        public static ColorSetting CloudMoonlitColor { get; private set; }
+
+        /// <summary>
+        /// At night, with the switch on: the colour of the clouds' shaded side and of the glow under
+        /// their base (city light, in real life often orange).
+        /// </summary>
+        public static ColorSetting CloudNightShadeColor { get; private set; }
+
         /// <summary>Multiplier on cloud optical density.</summary>
         public static FloatSetting CloudDensity { get; private set; }
 
@@ -440,6 +467,9 @@ namespace VolumetricClouds
             /// <summary>The game's own language.</summary>
             public const int Language = 0;
 
+            /// <summary>No profile: the settings file alone, which is what every player had before profiles.</summary>
+            public const string Profile = "";
+
             // ---- the weather and the cover ----
 
             /// <summary>What the override asks for when it is first switched on.</summary>
@@ -489,6 +519,15 @@ namespace VolumetricClouds
             /// </summary>
             public static readonly Color32 SunlitColor = new Color32(255, 255, 255, 255);
             public static readonly Color32 ShadeColor = new Color32(255, 255, 255, 255);
+
+            /// <summary>
+            /// OFF: a new row reaches every existing settings file with its default, and off means
+            /// the day's two colours around the clock -- the clouds exactly as before. The night
+            /// colours start white, like the day's.
+            /// </summary>
+            public const bool NightColors = false;
+            public static readonly Color32 MoonlitColor = new Color32(255, 255, 255, 255);
+            public static readonly Color32 NightShadeColor = new Color32(255, 255, 255, 255);
 
             /// <summary>The manual brightness, used when the curve below is switched off.</summary>
             public const float Brightness = 0.25f;
@@ -734,6 +773,9 @@ namespace VolumetricClouds
                 CloudAltitude = new FloatSetting("CloudAltitude", Defaults.Altitude);
                 CloudSunlitColor = new ColorSetting("CloudSunlitColor", Defaults.SunlitColor);
                 CloudShadeColor = new ColorSetting("CloudShadeColor", Defaults.ShadeColor);
+                CloudNightColors = new BoolSetting("CloudNightColors", Defaults.NightColors);
+                CloudMoonlitColor = new ColorSetting("CloudMoonlitColor", Defaults.MoonlitColor);
+                CloudNightShadeColor = new ColorSetting("CloudNightShadeColor", Defaults.NightShadeColor);
 
                 // Not the old HaloFogEnabled/HaloFogValue, which belonged to an experiment where
                 // values like -5 were normal; here -5 would simply mean "no glow", and an old
@@ -760,6 +802,9 @@ namespace VolumetricClouds
                 // checkerboard, went in 1.1.0.
                 HudButtonX = new FloatSetting("HudButtonX", Defaults.HudButtonX);
                 HudButtonY = new FloatSetting("HudButtonY", Defaults.HudButtonY);
+
+                // The element is "Profile", a name that stays for good (invariant 15).
+                CurrentProfile = new StringSetting("Profile", Defaults.Profile);
 
                 // Before the file is read: reading it walks the catalog, and building the
                 // catalog calls Init.

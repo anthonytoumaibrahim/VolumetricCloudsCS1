@@ -7,7 +7,104 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.2.1 — unreleased
 
+Profiles, cloud colours of their own at night, snow on winter maps, and a way to move the
+clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains four lines: `Profile`
+(empty: no profile) and the three night-colour settings (switched off, so the clouds keep the
+colours you gave them, day and night). Saved cities keep their sky, and are saved with one more
+value, where you moved their clouds (none until you do); an older version of the mod reads them
+as before. What changes for everyone with the update: on winter maps the mod now draws the
+snow and road snow follows the clouds (see *New: snow*); the sun no longer shines through the
+clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
+volumetric fog is less grainy (and costs more), and lightning bolts are no longer cut off by
+the clouds behind them.
+
+### New: profiles
+
+- Save a whole sky under a name and switch between skies with one click. The list is at the
+  top of the in-game panel, above the tabs, with a **+** and a **-** button beside it.
+- **+** saves the sky as it is now as a new profile: type a name and press Enter (Escape
+  cancels). The new profile is then the picked one.
+- While a profile is picked, every change you make in the panel is saved into it as well, so
+  there is no Save button and nothing to forget. Pick "(no profile)" to go on without one: the
+  sky stays as it is, and the profile stays as it was.
+- Picking a profile puts its whole sky in, the volumetric fog switch included, without asking.
+  A setting the profile does not have goes back to its default.
+- **-** deletes the picked profile's file, after asking. The sky stays as it is.
+- A profile holds every setting of the sky: every tab of the panel, the colours and the
+  switches. It does not hold the settings that describe the computer (the Rendering tab's
+  quality settings, the language, the keys, the button), so a profile from a faster computer
+  never slows yours down. Nor does it hold a city's cloud pattern, which stays in the city's
+  save.
+- Each profile is a file of its own, named after it, in the `VolumetricCloudsProfiles` folder
+  beside `VolumetricClouds.xml`: `%LOCALAPPDATA%\Colossal Order\Cities_Skylines\` on Windows,
+  `~/Library/Application Support/Colossal Order/Cities_Skylines/` on a Mac,
+  `~/.local/share/Colossal Order/Cities_Skylines/` on Linux. Copy one to share a sky, rename one
+  to rename it, or drop one in with the game running: the list is read each time it opens.
+- Profiles are written like `VolumetricClouds.xml` and can be edited by hand, even with the
+  game running. A file that cannot be read never breaks anything: the sky keeps running, the
+  file is left alone until it can be read, and the log says why.
+- "Reset all settings" lets go of the picked profile first, so it never resets a profile. Your
+  profiles are kept, and picking one brings its sky back.
+
+### New: different cloud colours at night
+
+- "Different colours at night" on the Clouds tab, under the two cloud colours, gives the
+  clouds two colours of their own at night: the moonlit side and the shaded side, whose colour
+  also tints the glow under the clouds (city light at night is often orange). Through dusk and
+  dawn the colours change gradually from one pair to the other.
+- It starts switched off: the two colours above are then used day and night, exactly as
+  before.
+
+### New: snow on winter maps
+
+- On a winter map (the Snowfall DLC) the mod now draws the snow, as it draws the rain on other
+  maps: snowfall only under the clouds it falls from, whiter curtains hanging from them in the
+  distance, and near the camera round, soft snowflakes that fall slowly and drift from side to
+  side. Until now the mod stood down on winter maps and the game drew its own snow everywhere.
+- Road snow follows the clouds: it builds up only where it is snowing, as roads only get wet
+  where it rains. This is the existing "Rain sound, wet roads and road snow follow the clouds"
+  switch (the Weather tab, with advanced options on), which is on by default; switch it off for
+  the game's own snow on every road at once.
+- The rain settings work for the snow too: "Replace the game's rain and snow" switches it all
+  off, "Streak width" sets the size of the snowflakes, and the streak brightness and colour and
+  the fall speed apply to them.
+
+### New: cloud position
+
+- "Cloud position X" and "Cloud position Y" move the city's clouds along the map's two axes, up
+  to 10 km each way: to put a cloud over a spot for a screenshot, or a clearing. Everything moves
+  together: the clouds, their shadows, the rain and the lightning. They are on the Weather tab,
+  with advanced options on.
+- Where you moved them is saved with the city, like its cloud pattern, so every city keeps its
+  own; profiles and "Reset all settings" leave it alone.
+
+### Changed
+
+- The Quality preset is now also on the mod's options page (Esc, Options, then Volumetric
+  Weather under the mods' settings), at the top, so it can be found without switching on the
+  in-game panel's advanced options. It sets the clouds', the fog's and the shadows' quality, as
+  before, and is still on the Rendering tab too.
+- The volumetric fog is much less grainy: its steps now crowd where the view enters the fog,
+  which is the part you see, and at the High quality preset it takes twice as many (58). With
+  the fog on, High costs more than before, most of all with the camera down in it; Medium takes
+  26 steps (19 before) and Low 8 (10 before), so a slower computer pays no more than it did.
+  The Quality setting on the Rendering tab sets it.
+
 ### Fixed
+
+- A hand edit of `VolumetricClouds.xml` saved within a second of a change in the game could be
+  written over before the mod had read it. The mod now reads the edit first and saves after it.
+- Lightning bolts were drawn before the clouds, so the clouds BEHIND a bolt were laid over it
+  too: seen from under the clouds, a channel could look cut off or as if it started behind the
+  clouds. Bolts are now drawn after the clouds and dimmed only by the cloud, rain and fog in
+  front of them. The glow of lightning inside the clouds is unchanged.
+- The sun no longer shines through distant clouds in the morning and evening: near the sun the
+  clouds keep their full cover into the distance, as they already did at night for the stars.
+- The game's fog draws a hazy band over the lowest part of the sky, which covered the distant
+  clouds, most visibly at night. While the mod's clouds are shown ("Volumetric Weather" ticked)
+  that band is taken off the sky; the game's fog on the ground and at the map's edge is
+  unchanged, and the band comes back as it was when the clouds are hidden. At night the clouds
+  now reach as far as they are drawn, instead of fading out about 10 km away.
 
 - Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own to the
   game. Its button goes in the Unified UI bar when the Unified UI mod is enabled, or when

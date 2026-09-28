@@ -246,6 +246,16 @@ if ($r.Values -ne $null) {
 Check "CRLF line ends"      ($text.Contains("`r`n")) "True"
 Check "one section heading each" ([regex]::Matches($text, "==========  ?Options page").Count) 1
 
+# A character XML cannot hold at all (a control character, from a profile's file name on Linux)
+# is left out of the file, or the whole file would be unreadable.
+$odd = [Activator]::CreateInstance([System.Collections.Generic.List``1].MakeGenericType($entryType))
+$odd.Add((Entry "Not shown on either page" $null "Profile" ("Storm" + [char]1 + "y") "Current profile."))
+$r = Parse ($fmt::Write($odd, "Header"))
+Check "a control character in a value: the file still parses" ($r.Error -eq $null) "True"
+Check "...without the character" $r.Values["Profile"] "Stormy"
+Check "Printable keeps tabs and line ends" (($fmt::Printable("a`tb`r`nc")).Length) "6"
+Check "Printable drops U+FFFF" ($fmt::Printable("a" + [char]0xFFFF + "b")) "ab"
+
 $r = Parse "<VolumetricClouds version=`"1`"><Mine><A>1</A></Mine><B> 2 </B></VolumetricClouds>"
 Check "wrapped lines are looked into" ("" + $r.Values["A"] + "," + $r.Values["B"]) "1,2"
 

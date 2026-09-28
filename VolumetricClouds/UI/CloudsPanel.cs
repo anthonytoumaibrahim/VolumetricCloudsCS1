@@ -20,6 +20,8 @@ namespace VolumetricClouds.UI
     ///
     /// Both UIs are drawn from <see cref="SettingsCatalog"/>, so where a row lives is a
     /// one-word edit rather than a second copy of the row.
+    ///
+    /// Under the title, on every tab: the profile bar (1.2.1, <see cref="ProfileBar"/>).
     /// </remarks>
     public class CloudsPanel : UIPanel
     {
@@ -27,6 +29,7 @@ namespace VolumetricClouds.UI
         private const float AdvancedWidth = 680f;   // seven tabs; "Rendering" is the widest label
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
+        private const float BarHeight = ProfileBar.Height;
         private const float TabHeight = 28f;
         private const float Margin = 14f;
 
@@ -66,6 +69,7 @@ namespace VolumetricClouds.UI
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
         private readonly List<Control> _controls = new List<Control>();
+        private ProfileBar _bar;
 
         private const float RefreshInterval = 0.25f;
         private float _nextRefreshTime;
@@ -116,6 +120,7 @@ namespace VolumetricClouds.UI
             isInteractive = true;
 
             BuildTitleBar();
+            BuildProfileBar();
 
             foreach (Tab tab in Tabs(advanced))
                 _contentHeights.Add(BuildPage(AddPage(tab.Name), tab));
@@ -228,6 +233,10 @@ namespace VolumetricClouds.UI
                 _refreshing = false;
             }
 
+            // Its own guard too, and it never throws.
+            if (_bar != null)
+                _bar.Refresh();
+
             RefreshEnabled();
 
             if (touched > 0 && Log.Detailed)
@@ -279,11 +288,26 @@ namespace VolumetricClouds.UI
             close.pressedBgSprite = "buttonclosepressed";
             close.eventClick += (component, e) => Hide();
 
-            // Dragging the title bar moves the whole panel.
+            // Dragging the title bar moves the whole panel. Only the title bar: the profile bar
+            // under it is controls.
             UIDragHandle drag = AddUIComponent<UIDragHandle>();
             drag.target = this;
             drag.size = new Vector2(_width - 40f, TitleBarHeight);
             drag.relativePosition = Vector3.zero;
+        }
+
+        private void BuildProfileBar()
+        {
+            try
+            {
+                _bar = new ProfileBar(this, Margin, TitleBarHeight, _width - 2f * Margin);
+            }
+            catch (System.Exception e)
+            {
+                // The panel works without it; the sliders still save into a picked profile.
+                _bar = null;
+                Log.Error("panel: the profile bar could not be built", e);
+            }
         }
 
         private UIPanel AddPage(string tabName)
@@ -296,7 +320,7 @@ namespace VolumetricClouds.UI
 
             UIPanel page = AddUIComponent<UIPanel>();
             page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
-            page.relativePosition = new Vector3(Margin, TitleBarHeight + TabHeight + Margin);
+            page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + TabHeight + Margin);
             _pages.Add(page);
 
             return page;
@@ -309,7 +333,7 @@ namespace VolumetricClouds.UI
             for (int i = 0; i < _tabs.Count; i++)
             {
                 _tabs[i].size = new Vector2(width, TabHeight);
-                _tabs[i].relativePosition = new Vector3(Margin + i * width, TitleBarHeight + 2f);
+                _tabs[i].relativePosition = new Vector3(Margin + i * width, TitleBarHeight + BarHeight + 2f);
             }
         }
 
@@ -325,7 +349,7 @@ namespace VolumetricClouds.UI
             // started: most pages fit, the Halos one has half as many rows again.
             float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
             _pages[index].height = content;
-            height = TitleBarHeight + TabHeight + 2f * Margin + content;
+            height = TitleBarHeight + BarHeight + TabHeight + 2f * Margin + content;
         }
 
         /// <summary>Draws every catalog row that belongs on this tab, in catalog order.</summary>
@@ -335,7 +359,8 @@ namespace VolumetricClouds.UI
 
             foreach (Row row in SettingsCatalog.Rows)
             {
-                if (!tab.Shows(row))
+                // A line of text has no control (the profile's name: the bar above is its UI).
+                if (!tab.Shows(row) || row.Kind == RowKind.Text)
                     continue;
 
                 if (row.Group != null)
@@ -531,7 +556,7 @@ namespace VolumetricClouds.UI
             UIView view = GetUIView();
             relativePosition = new Vector3(
                 Mathf.Floor((view.fixedWidth - _width) / 2f),
-                Mathf.Floor((view.fixedHeight - PanelHeight) / 2f));
+                Mathf.Floor((view.fixedHeight - height) / 2f));
         }
 
         public override void OnDestroy()

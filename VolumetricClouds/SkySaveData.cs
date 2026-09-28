@@ -13,8 +13,8 @@ namespace VolumetricClouds
     /// Safe with the mod removed (read from IL, 2026-09-21): the save keeps mod data in
     /// SimulationManager.m_serializableDataStorage, a dictionary of name -> bytes that
     /// SimulationManager.Data reads back whole and writes out whole, with no idea whose each
-    /// entry is. Without the mod our 61 bytes are simply carried along; nothing of the game's
-    /// own data is ever touched.
+    /// entry is. Without the mod our 77 bytes (61 before 1.2.1) are simply carried along;
+    /// nothing of the game's own data is ever touched.
     ///
     /// THREADS. OnSaveData runs on the SIMULATION thread (LoadingManager.SaveLevelCoroutine
     /// queues the serializer with SimulationManager.AddAction; autosaves too), so it never
@@ -143,6 +143,7 @@ namespace VolumetricClouds
             {
                 SkyState s = loaded.Value;
                 CloudWind.Restore(s.WindX, s.WindZ);
+                CloudWind.SetShift(s.ShiftX, s.ShiftZ);
                 CloudFog.Restore(s.FogX, s.FogZ, s.FogBoil, s.FogAmount);
                 CloudRain.RestoreFall(new UnityEngine.Vector3(s.RainFallX, s.RainFallY, s.RainFallZ));
             }
@@ -173,6 +174,8 @@ namespace VolumetricClouds
                 RainFallX = CloudRain.FallOffset.x,
                 RainFallY = CloudRain.FallOffset.y,
                 RainFallZ = CloudRain.FallOffset.z,
+                ShiftX = CloudWind.ShiftX,
+                ShiftZ = CloudWind.ShiftZ,
             };
 
             lock (Sync)

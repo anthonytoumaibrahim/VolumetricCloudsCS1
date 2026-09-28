@@ -79,7 +79,13 @@ namespace VolumetricClouds
                         // The grading changes the picture, so it is in the quiet log too.
                         " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +
                         " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor) +
-                        " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor));
+                        (Settings.CloudNightColors != null && Settings.CloudNightColors.value
+                            ? " night: moonlit=" + Hex(Settings.CloudMoonlitColor, Settings.Defaults.MoonlitColor) +
+                              " shade=" + Hex(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor)
+                            : " (the same at night)") +
+                        " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor) +
+                        // Which saved sky is being edited, if any: a slider moved goes into it.
+                        " | profile=" + Profiles.Describe());
 
                 // Asked here, not inside: the method names Harmony's types, and without the
                 // Harmony mod merely compiling it would fail (IsPatched names none).

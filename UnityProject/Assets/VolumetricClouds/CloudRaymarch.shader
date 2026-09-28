@@ -36,25 +36,16 @@ Shader "VolumetricClouds/CloudRaymarch"
             #pragma target 3.5
             #include "UnityCG.cginc"
             #include "CloudCommon.cginc"
+            // The distance fade, the rain curtains, the fog and the jitter: shared with the
+            // lightning bolt, which is seen through them (CloudMedia.cginc).
+            #include "CloudMedia.cginc"
 
             sampler2D_float _CameraDepthTexture;
 
             float _Steps;
-            float _MaxDistance;
             float _UseDepth;
-            float3 _SunDir;        // towards the light
-            float3 _SunColor;
+            float3 _SunColor;      // (_SunDir, towards the light, is in CloudMedia)
             float3 _AmbientColor;
-
-            // Rain curtains under the cloud base. Where it rains comes from CloudCommon.
-            float _RainShaftDensity;   // extinction per metre where it rains at full strength
-            float _RainSteps;
-            float _RainMaxDistance;
-            float _RainFloor;
-            float _RainFall;           // metres fallen so far; slides the curtain pattern down
-            float _RainCurtainScale;
-            float3 _RainAmbient;
-            float3 _RainSun;
 
             // Lightning: point sources INSIDE the cloud layer (CloudLightning.cs). The clouds
             // only ever knew the sun, the moon and the ambient, so the game's strikes lit the
@@ -64,61 +55,12 @@ Shader "VolumetricClouds/CloudRaymarch"
             float4 _FlashPos[MAX_FLASHES];     // xyz world position, w = reach in metres
             float4 _FlashColor[MAX_FLASHES];   // rgb, already scaled by this frame's flicker
 
-            // Night. Clouds dissolve into the distance by going TRANSPARENT, which by day lets
-            // sky colour through and reads as haze -- and by night lets the stars through.
-            // _NightOpacity (0 by day) takes that transparency away, out to the edge of the
-            // box the clouds are drawn on (_CloudExtent), where they still have to end softly.
-            float _NightOpacity;
-            float _CloudExtent;
-
             // Night glow: a small, even, pale luminance on the underside of the clouds, which
             // is how clouds over settled land look at night -- lit faintly from below by
             // diffuse skyglow, not black. Deliberately NOT derived from where the city is: a
             // first version projected a map of the buildings onto the cloud base in sodium
             // orange, and an orange slab following the street plan looked "very weird".
             float3 _NightGlow;         // colour * strength * how much it is night; 0 by day
-
-            // Fog: a CLOUD LAYER LYING ON THE GROUND, not a haze. Two earlier versions -- a
-            // height-limited blanket, then soft kilometre-wide banks with an exponential
-            // falloff -- both read as a coating, for the reasons a cloud does not: they were
-            // translucent, had no boundary, and did not shade themselves. So this one is
-            // dense, measured from a reference up -- the map's sea level, or with
-            // _FogFollowGround the GROUND (_TerrainTex) -- to a defined, lumpy top, shaded
-            // by its own thickness towards the sun, and its billows are pushed around by a
-            // drifting swirl so they shear, curl and merge instead of sliding past as one
-            // rigid pattern.
-            float _FogAmount;          // 0..1: fades the whole thing in and out
-            float _FogDensity;         // extinction per metre inside the fog
-            float _FogThreshold;       // weather-field threshold: how much of the map has fog
-            float _FogTile;            // metres one tile of the weather field spans, for fog
-            float _FogBoil;            // phase of the swirl, 0..1
-
-            // How far the fog has drifted, as each of its lookups sees it: the share of ONE
-            // repeat of that lookup, 0..1 per axis (CloudFog / Drift.Phase, in doubles on the
-            // CPU) -- never the drift itself, which grows for the life of the city. The
-            // tiles come from the same C# constants the phases are worked out against.
-            float2 _FogPhase;          // placement, over _FogTile
-            float3 _FogBillowTile;     // metres per repeat of the billow noise (x, y, z)
-            float2 _FogBillowPhase;
-            float2 _FogLead;           // metres the top of the layer is carried beyond its base (Drift.FogLead)
-            float _FogSwirlTile;
-            float2 _FogSwirlPhase;     // the swirl drifts at 0.55x
-            float _FogWispTile;
-            float2 _FogWispPhase;      // the wisps at 1.8x
-            float _FogPool;            // fog gathers on ground below this level
-            float _FogFollowGround;    // 1: heights are above the ground. 0: above _FogLevel
-            float _FogLevel;           // the map's sea level: what a LEVEL fog is measured from
-            float _FogBase;            // metres from that reference to the layer's underside
-            float _FogHeight;          // metres from the underside to the top of the layer
-            float _FogBreakup;         // 0 solid .. 1 wispy
-            float _FogSteps;
-            float _FogMaxDistance;
-            float3 _FogAmbient;
-            float3 _FogSun;
-
-            sampler2D _TerrainTex;     // TerrainHeightMap: ground (or water) height in metres
-            float _TerrainMapSize;
-            float _FogFloor;           // just under the lowest ground on the map
 
             // The city's lights, as the fog sees them (FogLampMap + FogLamps.shader): a map,
             // centred on the camera, of the light each lamp and vehicle sheds into the air
@@ -161,11 +103,8 @@ Shader "VolumetricClouds/CloudRaymarch"
             // Cloud detail's light (Sky/CloudDetail.cs; only while _DetailAmount > 0).
             float4 _DetailLight;    // x, y, z = Wrenninge's a, b, c; w = the gain that keeps a
                                     // side-lit sunny face as bright as the light below made it
-            float4 _DetailLight2;   // x = how strongly the cloud above takes the sky light away,
-                                    // y = growth of the light steps beyond 24 m (to about the layer's
-                                    // thickness), z = log2(pixel angle / detail texel): lod offset,
-                                    // w = this light's share (below 1, at a low amount, the old light
-                                    // is handed over to it: no step at 0%)
+                                    // (_DetailLight2, the rest of it, is in CloudMedia.cginc: the
+                                    // bolt needs its lod offset)
 
             // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0): EVE-Redux
             // V5's four phase lobes -- two of single scattering (the silver lining), two of multiple
@@ -226,16 +165,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // light instead of going pitch black.
                 return max(exp(-depth), 0.7 * exp(-depth * 0.25));
             }
-
-            float Hash12(float2 p)
-            {
-                return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453);
-            }
-
-            // The marches' jitter (Sky/BlueNoise): a tile of blue noise, point-sampled, the value in
-            // alpha. White noise clumped the steps' error into dots; blue noise spreads it evenly.
-            sampler2D _BlueNoiseTex;
-            float _BlueNoiseScale;     // 1 / the tile's size in pixels; 0 until it is there (the hash)
 
             // Light reaching p from the lightning sources. An inverse-square core, softened so
             // the source itself never blows out, times an exponential reach standing in for
@@ -331,13 +260,8 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     float3 p = origin + dir * t;
 
-                    // The noise's mip level from this pixel's footprint here (the detail's, or
-                    // the Cumulus style's: _DetailLight2.z is set for whichever is in use): far
-                    // billows average away instead of sparkling. Under Cumulus it goes in
-                    // unclamped: the layer's detail is _DetailLodShift levels finer, and clamps
-                    // there itself.
-                    float lod = cumulus ? log2(max(t, 1.0)) + _DetailLight2.z
-                              : (detail ? max(log2(max(t, 1.0)) + _DetailLight2.z, 0.0) : 0.0);
+                    // The noise's mip level from this pixel's footprint here (CloudMedia).
+                    float lod = CloudLod(t);
                     float d = SampleDensityLod(p, true, lod);
 
                     if (d > 0.001)
@@ -401,14 +325,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Stretch what is left so that "stopped early" means opaque.
                 transmittance = saturate((transmittance - 0.02) / 0.98);
 
-                // Dissolve into the distance rather than ending on a hard line.
-                float fade = saturate(1.0 - tEnter / _MaxDistance);
-                fade *= fade;
-
-                // At night that dissolve only happens where the clouds actually run out. The
-                // same factor scales the light and the coverage, as premultiplied alpha needs.
-                float edge = 1.0 - smoothstep(0.7, 1.0, tEnter / max(_CloudExtent, 1.0));
-                float presence = lerp(fade, max(fade, edge), _NightOpacity);
+                // Dissolve into the distance rather than ending on a hard line; at night, and in
+                // front of the sun, only where the clouds run out (CloudMedia).
+                float presence = CloudPresence(tEnter, SunCover(cosTheta));
 
                 return float4(light * presence, 1.0 - (1.0 - transmittance) * presence);
             }
@@ -445,18 +364,12 @@ Shader "VolumetricClouds/CloudRaymarch"
                     float t = tPrev + segment * jitter;
 
                     float3 p = origin + dir * t;
-                    float rain = SampleRain(p);
 
-                    if (rain > 0.001)
+                    // Uneven curtains, stretched tall, sliding down as the rain falls (CloudMedia).
+                    float sigma = RainSigma(p, t);
+
+                    if (sigma > 0.0)
                     {
-                        // Uneven curtains, stretched tall, sliding down as the rain falls.
-                        // The 6 is CloudRain.CurtainStretch; the fall wraps on a multiple of it.
-                        float3 q = float3(p.x, (p.y + _RainFall) / 6.0, p.z) / _RainCurtainScale;
-                        float curtain = 0.5 + tex3Dlod(_NoiseTex, float4(q, 0)).r;
-
-                        float fade = saturate(1.0 - t / _RainMaxDistance);
-                        float sigma = _RainShaftDensity * rain * curtain * fade * fade;
-
                         // A strike lights the rain around it as well as the cloud above it.
                         float3 lit = radiance;
                         if (_FlashCount > 0.5)
@@ -473,106 +386,8 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return float4(light, transmittance);
             }
 
-            // Height of the ground (or the water on it) under p.
-            float GroundAt(float3 p)
-            {
-                return tex2Dlod(_TerrainTex, float4(p.xz / _TerrainMapSize + 0.5, 0, 0)).r;
-            }
-
-            // What the fog's heights are measured from under p: the ground, so the layer drapes
-            // over hills, or one level for the whole map (its sea level), so it lies flat and
-            // the hills stand out of it. A uniform branch: the level fog never reads the map.
-            float FogGround(float3 p)
-            {
-                // One return: this compiler calls two "potentially uninitialized".
-                float ground = _FogLevel;
-                if (_FogFollowGround > 0.5)
-                    ground = GroundAt(p);
-
-                return ground;
-            }
-
-            // Whether a point `above` its reference is inside the layer's height range. With the
-            // base at 0 there is no underside to be below: the terrain map is coarse (67 m a
-            // texel), so a camera on a slope can read as a little under the ground.
-            bool InFogLayer(float above)
-            {
-                return above < _FogBase + _FogHeight && (_FogBase <= 0.0 || above >= _FogBase);
-            }
-
-            // Fog density at p, 0..1 before _FogDensity: the clouds' recipe, lying on the ground.
-            // `above` is p's height over FogGround(p), which every caller already has.
-            float FogAt(float3 p, float above, bool detailed)
-            {
-                float h = (above - _FogBase) / _FogHeight;
-                if (h >= 1.0 || h < -0.25)
-                    return 0.0;
-
-                // A raised layer has an UNDERSIDE, rounded off like its top but over a shorter
-                // reach, and never over more than the gap beneath it -- so raising the base off
-                // zero grows an underside instead of popping one in. A layer that starts at its
-                // reference has none: "a little below the ground" is still ground (see above).
-                float under = 1.0;
-                if (_FogBase > 0.0)
-                {
-                    float u = saturate((above - _FogBase) / max(min(_FogBase, _FogHeight * 0.25), 1.0));
-                    under = u * u * (3.0 - 2.0 * u);
-                    if (under <= 0.0)
-                        return 0.0;
-                }
-
-                h = max(h, 0.0);
-
-                // Where there is fog: the clouds' weather field, read at another scale and
-                // another place so a fog patch is not a cloud's footprint. It gathers on low
-                // ground: a little extra wherever the ground is below the pooling level.
-                float2 uv = p.xz / _FogTile - _FogPhase + float2(0.37, 0.61);
-                float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
-                float pooling = saturate((_FogPool - (p.y - above)) / 150.0) * 0.1;
-                float cover = saturate((weather + pooling - _FogThreshold) / 0.1);
-                if (cover <= 0.0)
-                    return 0.0;
-
-                // Solid from the ground up, rounding off into the top: a boundary, which an
-                // exponential falloff never has.
-                float shaped = cover * (1.0 - smoothstep(0.4, 1.0, h)) * under;
-
-                // FLOW. The noise lookup is displaced by a larger, slower swirl that drifts on
-                // its own and turns over with _FogBoil, so billows shear, curl and merge; and
-                // the upper part of the layer is carried further than the ground layer, which
-                // drags. A pattern that only translated would slide past like a texture.
-                //
-                // "Further" is _FogLead, which swings between 400 m ahead and 400 m behind.
-                // It used to be 0.35 x the whole drift, which never stopped growing: minutes
-                // into a session the top was kilometres ahead of a base a few hundred metres
-                // below it, and the billows had been sheared into sheets, then stripes.
-                float3 s = p / _FogSwirlTile;   // slower than what it displaces
-                s.xz -= _FogSwirlPhase;
-                s.y += _FogBoil;
-                float2 swirl = tex3Dlod(_NoiseTex, float4(s, 0)).rg - 0.5;
-
-                float3 q = p / _FogBillowTile;
-                q.xz -= _FogBillowPhase + h * _FogLead / _FogBillowTile.xz;
-                q.xz += swirl * 0.75;
-                q.y -= _FogBoil * 2.0;
-                float base = tex3Dlod(_NoiseTex, float4(q, 0)).r;
-
-                // The clouds' own shaping: where the cover is thin only the strongest noise
-                // survives, so the layer breaks into lumps with a billowing top.
-                float d = saturate(Remap(base, 1.0 - shaped, 1.0, 0.0, 1.0)) * shaped;
-
-                // Wisps: fine noise eats into it, moving faster than the billows and rising.
-                if (detailed && d > 0.0 && _FogBreakup > 0.0)
-                {
-                    float3 w = p / _FogWispTile;
-                    w.xz -= _FogWispPhase;
-                    w.y -= _FogBoil * 9.0;
-                    float wisp = tex3Dlod(_NoiseTex, float4(w, 0)).g;
-                    d = saturate(Remap(d, wisp * _FogBreakup, 1.0, 0.0, 1.0));
-                }
-
-                return d;
-            }
+            // (GroundAt, FogGround, InFogLayer and FogAt -- where the fog is and how dense -- are
+            // in CloudMedia.cginc: the lightning bolt is seen through the fog too.)
 
             // The light the city's lamps shed into the fog at p. The map is flat; the height it
             // loses comes back here, because its footprints are Gaussian and so separable: the
@@ -677,28 +492,32 @@ Shader "VolumetricClouds/CloudRaymarch"
                 if (tStart < 0.0 || tStart >= tEnd)
                     return float4(0, 0, 0, 1);
 
-                float steps = clamp(_FogSteps, 6.0, 40.0);
+                float steps = clamp(_FogSteps, 6.0, 64.0);
                 float len = tEnd - tStart;
 
                 // Fog glows around the sun: a strong forward lobe over a flat base.
                 float phase = 0.35 + 0.65 * min(HenyeyGreenstein(cosTheta, 0.65), 6.0);
-                float strength = _FogDensity * saturate(_FogAmount * 5.0);
+                float strength = FogStrength();
 
                 float transmittance = 1.0;
                 float3 light = 0;
                 float tPrev = tStart;
 
+                // 64: the Quality setting's 96^2 / 160 = 58 at most (CloudVolume.ApplyFog, 1.2.1; 40 before).
                 [loop]
-                for (int s = 0; s < 40; s++)
+                for (int s = 0; s < 64; s++)
                 {
                     if ((float)s >= steps || transmittance < 0.02)
                         break;
 
-                    // From inside, segments lengthen with distance: it is the fog within a few
-                    // hundred metres that has to be right. From outside the stretch is short
-                    // and every part of it matters equally.
+                    // Segments lengthen with distance from where the ray meets the fog: it is the
+                    // first few hundred metres of fog that are seen, the rest lies behind them.
+                    // (Until 1.2.1 a ray from OUTSIDE took even steps, "the stretch is short" --
+                    // but at a shallow angle it runs for kilometres, and dense fog stopped the
+                    // march after a few steps hundreds of metres long, each landing on a random
+                    // point of 85 m wisps: the grain.)
                     float f = ((float)s + 1.0) / steps;
-                    float tNext = tStart + len * (fromInside ? f * f : f);
+                    float tNext = tStart + len * f * f;
                     float segment = tNext - tPrev;
                     float t = tPrev + segment * jitter;
 
@@ -774,9 +593,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 float2 screenUV = i.screenPos.xy / i.screenPos.w;
                 float2 pixel = screenUV * _ScreenParams.xy;
-                float jitter = _BlueNoiseScale > 0.0
-                    ? tex2Dlod(_BlueNoiseTex, float4(pixel * _BlueNoiseScale, 0, 0)).a
-                    : Hash12(pixel);
+                float jitter = MarchJitter(pixel);
                 float cosTheta = dot(dir, _SunDir);
 
                 float4 clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta);

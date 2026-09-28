@@ -32,6 +32,9 @@ namespace VolumetricClouds.Sky
         /// <summary>True while the volumetric layer is actually drawing (the fog needs the pass).</summary>
         public static bool IsActive { get; private set; }
 
+        /// <summary>The cloud volume of this city, for <see cref="ShareMediaWith"/>.</summary>
+        private static CloudVolume _current;
+
         private CloudDensityField _field;
         private CloudShadowMap _shadowMap;
         private Camera _camera;
@@ -139,6 +142,9 @@ namespace VolumetricClouds.Sky
         private const float RainExtinction = 0.0006f;
         private const float RainMaxDistance = 14000f;
 
+        /// <summary>Snow's curtains are this much thicker than rain's at the same amount (winter maps, 1.2.1).</summary>
+        private const float SnowExtinction = 1.5f;
+
         /// <summary>Radiance the night glow adds to the very base of a cloud, at 100%.</summary>
         private const float NightGlowStrength = 0.03f;
 
@@ -166,6 +172,15 @@ namespace VolumetricClouds.Sky
         private float _frameWorst;
         private bool _loggedDecoupling;
 
+        /// <summary>How far the night colours are in, 0..1 (0 whenever they are off); for the detail line.</summary>
+        private float _nightColourShare;
+
+        private static readonly int IdSunCover = Shader.PropertyToID("_SunCover");
+
+        /// <summary>The cone round the sun where far clouds keep their cover (CloudMedia.cginc SunCover): 10 and 3 degrees.</summary>
+        private static readonly float SunCoverOuterCos = Mathf.Cos(10f * Mathf.Deg2Rad);
+        private static readonly float SunCoverInnerCos = Mathf.Cos(3f * Mathf.Deg2Rad);
+
         public void Initialise(CloudDensityField field)
         {
             _field = field;
@@ -182,6 +197,7 @@ namespace VolumetricClouds.Sky
             }
 
             _material = new Material(shader) { name = "VolumetricCloudsRaymarch" };
+            _current = this;
 
             _holder = new GameObject("VolumetricCloudsVolume");
             _mesh = BuildBox();
@@ -761,8 +777,15 @@ namespace VolumetricClouds.Sky
             // The player's grading, on the CLOUD's two lights only: the sunlit side and the
             // shaded side. A tint changes the hue, never the brightness, and white is exactly
             // (1, 1, 1) -- the shader gets bit for bit what it got before colours existed.
-            Color sunlitTint = TintOf(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor);
-            Color shadeTint = TintOf(Settings.CloudShadeColor, Settings.Defaults.ShadeColor);
+            // With "Different colours at night" (1.2.1) the night's two take over as the sun goes
+            // down, through the same twilight as the night's opacity and glow; off, the day's
+            // are used around the clock, exactly as before the switch.
+            float night = NightFactor(sun);
+            _nightColourShare = NightColours ? night : 0f;
+            Color sunlitTint = CloudTint.Blend(ColourOf(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor),
+                ColourOf(Settings.CloudMoonlitColor, Settings.Defaults.MoonlitColor), _nightColourShare);
+            Color shadeTint = CloudTint.Blend(ColourOf(Settings.CloudShadeColor, Settings.Defaults.ShadeColor),
+                ColourOf(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor), _nightColourShare);
 
             _material.SetVector(IdSunDir, sunDir.normalized);
             _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint));
@@ -772,17 +795,20 @@ namespace VolumetricClouds.Sky
             // the CLOUD's two colours: one picture, one light. (A cloud override at 20% with
             // another mod's rain at full is the one corner where that reads bright.) The cloud's
             // light, NOT its grading: rain shafts under pink clouds would read as a bug.
+            // Snow (winter maps, 1.2.1) hangs whiter and a little thicker than rain: flakes scatter
+            // far more of the light they are in, and a snowfall takes the view sooner than rain.
+            bool snow = CloudRain.IsSnow;
             float curtains = Settings.RainCurtains != null ? Mathf.Max(0f, Settings.RainCurtains.value) : 1f;
-            _material.SetFloat(IdRainShaftDensity, CloudRain.Active ? RainExtinction * curtains : 0f);
+            _material.SetFloat(IdRainShaftDensity, CloudRain.Active ? RainExtinction * curtains * (snow ? SnowExtinction : 1f) : 0f);
             _material.SetFloat(IdRainSteps, 20f);
             _material.SetFloat(IdRainMaxDistance, RainMaxDistance);
             _material.SetFloat(IdRainFloor, 0f);
             _material.SetFloat(IdRainFall, -CloudRain.FallOffset.y);
             _material.SetFloat(IdRainCurtainScale, CloudRain.CurtainScale);
-            _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * 0.6f);
-            _material.SetVector(IdRainSun, AsVector(cloudSun) * 0.12f);
+            _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * (snow ? 1f : 0.6f));
+            _material.SetVector(IdRainSun, AsVector(cloudSun) * (snow ? 0.3f : 0.12f));
 
-            ApplyNight(sun, shadeTint);
+            ApplyNight(night, shadeTint);
             ApplyFog(sun, lightAmbient, baseSun);
 
             if (!_loggedLighting)
@@ -851,7 +877,8 @@ namespace VolumetricClouds.Sky
                        " auto=" + auto +
                        " effective=" + brightness.ToString("F2") +
                        " overcastTerm=" + overcast.ToString("F2") +
-                       (auto ? " (cloud skips the overcast term; the fog keeps it)" : ""));
+                       (auto ? " (cloud skips the overcast term; the fog keeps it)" : "") +
+                       (NightColours ? " | night colours " + (_nightColourShare * 100f).ToString("F0") + "% in" : ""));
 
             float mean = _frameCount > 0 ? _frameTime / _frameCount : 0f;
 
@@ -896,15 +923,23 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
-        private void ApplyNight(Light sun, Color shadeTint)
+        private void ApplyNight(float night, Color shadeTint)
         {
-            float night = NightFactor(sun);
-
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             _material.SetFloat(IdNightOpacity, night * opacity);
-            // Where the night's opaque clouds end softly: the box's edge, pushed out as the reach
-            // grows from above the clouds.
-            _material.SetFloat(IdCloudExtent, _holder.transform.localScale.x * Reach / MaxDistance);
+
+            // Where the night's opaque clouds end softly: where the march ends (1.2.1). It was the
+            // edge of the box they are drawn on, a third of that (~10 km from the city), and past
+            // it the lowest few degrees of sky showed through the clouds -- with the game fog's
+            // horizon band on it: "it hides far away clouds" (GameHorizon takes the band off).
+            _material.SetFloat(IdCloudExtent, Reach);
+
+            // The sun's disc gets the same cover by day: from 10 degrees in, full within 3 (the
+            // sky's sun and its brightest glow). It fades out as the night comes in: _SunDir is
+            // the MOON's once the moon lights the clouds, and there "Clouds hide the stars at
+            // night" alone decides (a player at 60% would otherwise get a full-cover disc round
+            // the moon).
+            _material.SetVector(IdSunCover, new Vector4(SunCoverOuterCos, SunCoverInnerCos, 1f - night, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
@@ -919,10 +954,16 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdNightGlow, pale * (NightGlowStrength * glow * night));
         }
 
-        /// <summary>A colour setting as the multiplier it is on the light (Sky.CloudTint).</summary>
-        private static Color TintOf(ColorSetting setting, Color32 fallback)
+        /// <summary>A colour setting's value, or its default before the settings exist.</summary>
+        private static Color32 ColourOf(ColorSetting setting, Color32 fallback)
         {
-            return CloudTint.Of(setting != null ? setting.value : fallback);
+            return setting != null ? setting.value : fallback;
+        }
+
+        /// <summary>"Different colours at night" is on.</summary>
+        private static bool NightColours
+        {
+            get { return Settings.CloudNightColors != null && Settings.CloudNightColors.value; }
         }
 
         /// <summary>
@@ -988,9 +1029,16 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdFogBreakup, breakup * 0.8f);
 
             // Steps follow the Quality slider: the fog is the most expensive thing on screen
-            // when the camera is inside it, and that slider is the lever for weaker GPUs.
+            // when the camera is inside it, and that slider is the lever for weaker GPUs. 1.2.1
+            // (the author: "The volumetric fog is still too grainy"): they grow with the SQUARE
+            // of Quality, so the grain fix is paid for where there is headroom -- 58 at the High
+            // preset (29 before), 26 at Medium (19), 8 at Low (10: Low is no dearer than it was,
+            // and less grainy, the steps now crowding where the ray meets the fog). Low-end
+            // hardware: docs/FOG-PERFORMANCE-PLAN.md.
             float quality = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
-            _material.SetFloat(IdFogSteps, Mathf.Clamp(quality * 0.3f, 8f, 32f));
+            // Whole steps: the march's last one then ends exactly where the fog does, not a few
+            // per cent past it.
+            _material.SetFloat(IdFogSteps, Mathf.Clamp(Mathf.Round(quality * quality / 160f), 8f, 64f));
             _material.SetFloat(IdFogMaxDistance, 9000f);
 
             if (terrain != null)
@@ -1066,9 +1114,38 @@ namespace VolumetricClouds.Sky
             return mesh;
         }
 
+        /// <summary>
+        /// Puts the cloud pass's values on another material that is seen through the same air:
+        /// the lightning bolt (1.2.1), dimmed by the cloud, rain and fog IN FRONT of it and by
+        /// nothing behind (CloudMedia.cginc). Floats and vectors by copy; the textures one by one,
+        /// because Unity 5.6 copies only the textures a shader lists in its Properties block and
+        /// cannot even read the others back (probed in the 5.6 editor, 2026-09-28). Every value
+        /// the material had is replaced, so its own go on after this. False while there is no
+        /// cloud pass to share: none in this city yet, its noise not there, or the clouds hidden.
+        /// </summary>
+        public static bool ShareMediaWith(Material material)
+        {
+            CloudVolume volume = _current;
+            if (volume == null || material == null || volume._material == null || volume._noise == null || !IsActive)
+                return false;
+
+            material.CopyPropertiesFromMaterial(volume._material);
+            CloudShaderParams.Apply(material, volume._field, volume._noise);
+            material.SetTexture(IdBlueNoiseTex, volume._blueNoise);
+
+            // Without its map there is no fog: the cloud pass has written its amount as 0.
+            Texture terrain = TerrainHeightMap.Texture;
+            if (terrain != null)
+                material.SetTexture(IdTerrainTex, terrain);
+
+            return true;
+        }
+
         private void OnDestroy()
         {
             IsActive = false;
+            if (_current == this)
+                _current = null;
 
             if (_shadowMap != null)
             {

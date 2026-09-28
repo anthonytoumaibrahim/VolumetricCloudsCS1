@@ -117,5 +117,24 @@ Check "dark red = red (only hue counts)" (Exact ($tint::Of((C32 64 0 0)))) (Exac
 Check "pure blue: capped at 3x"   (Exact ($tint::Of((C32 0 0 255)))) "0 0 3"
 Check "pure red reads at 64%"     ("{0:F2}" -f (Lum $red)) "0.64"
 
+# ---- CloudTint.Blend: different colours at night (1.2.1) ---------------------------------------
+
+$white = C32 255 255 255
+$warm = C32 226 214 197      # the author's shaded side, #E2D6C5
+$sodium = C32 255 150 60     # an orange night
+function Blend($day, $night, [single]$t) { return $tint::Blend($day, $night, $t) }
+
+Check "white by day and night: EXACTLY no tint, mid-twilight" (Exact (Blend $white $white 0.37)) "1 1 1"
+Check "white by day and night: at every step" ((0..20 | ForEach-Object { Exact (Blend $white $white ([single]($_ / 20))) } | Sort-Object -Unique) -join "|") "1 1 1"
+Check "day (0) is the day's tint, bit for bit" (Exact (Blend $warm $sodium 0)) (Exact ($tint::Of($warm)))
+Check "night (1) is the night's tint, bit for bit" (Exact (Blend $warm $sodium 1)) (Exact ($tint::Of($sodium)))
+Check "past either end holds that end" ((Exact (Blend $warm $sodium -0.5)) + "|" + (Exact (Blend $warm $sodium 1.5))) ((Exact ($tint::Of($warm))) + "|" + (Exact ($tint::Of($sodium))))
+Check "NaN is the day" (Exact (Blend $warm $sodium ([single]::NaN))) (Exact ($tint::Of($warm)))
+Check "halfway keeps the brightness" ("{0:F5}" -f (Lum (Blend $warm $sodium 0.5))) "1.00000"
+$half = Blend $white $sodium 0.5
+$orangeTint = $tint::Of($sodium)
+Check "halfway is halfway (red)" ("{0:F5}" -f $half.r) ("{0:F5}" -f ((1.0 + $orangeTint.r) / 2))
+Check "a white night leaves the day's colour, then white" ((Exact (Blend $warm $white 0)) + "|" + (Exact (Blend $warm $white 1))) ((Exact ($tint::Of($warm))) + "|1 1 1")
+
 Write-Host ""
 if ($failed -eq 0) { Write-Host "all passed" } else { Write-Host "$failed FAILED"; exit 1 }
