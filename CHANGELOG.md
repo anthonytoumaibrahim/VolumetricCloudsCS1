@@ -5,6 +5,16 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.2.1 — unreleased
+
+### Fixed
+
+- Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own to the
+  game. Its button goes in the Unified UI bar when the Unified UI mod is enabled, or when
+  another mod already shows that bar; otherwise it is the mod's own button on the screen,
+  which can be dragged anywhere. If your button was in a Unified UI bar that only this mod
+  put there, it is now that on-screen button. Settings are unchanged.
+
 ## 1.2.0 — 2026-09-26
 
 A new cloud style, Cumulus, and much more detailed clouds. Saved cities keep their sky: the
