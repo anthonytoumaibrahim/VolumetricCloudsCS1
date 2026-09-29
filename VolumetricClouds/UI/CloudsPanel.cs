@@ -8,13 +8,14 @@ namespace VolumetricClouds.UI
     /// The in-game panel: what you set while looking at the sky.
     /// </summary>
     /// <remarks>
-    /// This is the ONLY place the sky is set (1.1.0). By default it has three tabs:
+    /// This is the ONLY place the sky is set (1.1.0). By default it has four tabs:
     ///   Now    -- every override in the mod, plus the two status lines. Photo mode.
     ///   Clouds -- the shape of the sky.
     ///   Fog    -- the fog, which is a cloud layer lying on the ground.
-    /// "Show advanced options in the in-game panel" (on the game's options page) adds four
-    /// more: Weather, Light, Rendering and Halos -- the rows whose Row.Options names them. A
-    /// row that is already on one of the three basic tabs is not repeated on an advanced one.
+    ///   Light  -- shadows and brightness (an advanced tab until 1.2.1).
+    /// "Show advanced options in the in-game panel" (on the game's options page) adds three
+    /// more: Weather, Rendering and Halos -- the rows whose Row.Options names them. A row
+    /// that is already on one of the basic tabs is not repeated on an advanced one.
     /// The mod itself (language, key, button, diagnostics, the resets) is on the options page
     /// (<see cref="OptionsUI"/>) alone: Row.Options == General.
     ///
@@ -38,11 +39,11 @@ namespace VolumetricClouds.UI
 
         private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
 
-        private static readonly PanelPage[] BasicTabs = { PanelPage.Now, PanelPage.Clouds, PanelPage.Fog };
+        private static readonly PanelPage[] BasicTabs = { PanelPage.Now, PanelPage.Clouds, PanelPage.Fog, PanelPage.Light };
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
-            OptionsPage.Weather, OptionsPage.Light, OptionsPage.Rendering, OptionsPage.Halos,
+            OptionsPage.Weather, OptionsPage.Rendering, OptionsPage.Halos,
         };
 
         /// <summary>One tab: a basic page, or an advanced one.</summary>

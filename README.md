@@ -52,7 +52,7 @@ and bring their own rain, lightning, fog and night sky with them.
 - **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
   building lights and vehicles, with separate control for lamps close to the camera. Also fixes
   the game bug that turns a halo into a solid box at negative fog values.
-- **One place to tune it** — an F4 panel with the sky's settings, and four advanced tabs for
+- **One place to tune it** — an F4 panel with the sky's settings, and three advanced tabs for
   the rest when you want them. One quality preset moves the expensive settings together.
 
 ## Requirements and installation
@@ -86,10 +86,10 @@ backups of the cities you care about.
    configuring.
 2. Press **F4** (rebindable), or the Unified UI button, to open the in-game panel.
 3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look,
-   the cloud colours included.
+   the cloud colours included. **Light** — the cloud shadows and how brightly the clouds are lit.
 4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
-   page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
-   the F4 panel. That page also has the quality preset (at the top; set to *Custom*, it shows
+   page in the game's **Options** screen: *Weather*, *Rendering* and *Halos* join the F4
+   panel. That page also has the quality preset (at the top; set to *Custom*, it shows
    its three settings under it), the language, the panel's key and the reset buttons.
 
 *Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for

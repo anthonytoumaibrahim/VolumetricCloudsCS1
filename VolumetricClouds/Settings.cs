@@ -562,8 +562,11 @@ namespace VolumetricClouds
 
             public const bool BrightnessAuto = true;
 
-            /// <summary>The curve's two ends, in the same units as <see cref="Brightness"/>.</summary>
-            public const float BrightnessClear = 3f;
+            /// <summary>
+            /// The curve's two ends, in the same units as <see cref="Brightness"/>. The clear end
+            /// was 300% until 1.2.1; the new default reaches only new installs and a Reset.
+            /// </summary>
+            public const float BrightnessClear = 1.5f;
             public const float BrightnessOvercast = 0.5f;
 
             /// <summary>1 = off. Only consulted when the brightness curve is off.</summary>

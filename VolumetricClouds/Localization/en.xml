@@ -320,7 +320,7 @@
   <String key="LightningStormScale.Label">Lightning in storms</String>
   <String key="LightningStormScale.Tooltip">How much lightning heavy rain brings.</String>
 
-  <!-- ==================== Advanced: Light ==================== -->
+  <!-- ==================== In-game panel: Light ==================== -->
 
   <String key="Group.Shadows">Shadows on the ground</String>
 
@@ -443,7 +443,7 @@
   <String key="ToggleKey.Tooltip">Click, then press a key.</String>
 
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
-  <String key="ShowAdvancedInPanel.Tooltip">Adds the Weather, Light, Rendering and Halos tabs.</String>
+  <String key="ShowAdvancedInPanel.Tooltip">Adds the Weather, Rendering and Halos tabs.</String>
 
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
   <String key="ShowInUnifiedUI.Tooltip">Puts the button in the Unified UI bar.</String>

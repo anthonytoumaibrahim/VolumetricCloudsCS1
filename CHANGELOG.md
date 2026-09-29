@@ -17,8 +17,10 @@ value, where you moved their clouds (none until you do); an older version of the
 as before. What changes for everyone with the update: on winter maps the mod now draws the
 snow and road snow follows the clouds (see *New: snow*); the sun no longer shines through the
 clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
-volumetric fog is less grainy (and costs more), and lightning bolts are no longer cut off by
-the clouds behind them.
+volumetric fog is less grainy (and costs more), lightning bolts are no longer cut off by
+the clouds behind them, and the Light tab is in the in-game panel without advanced options.
+Only a new install, or "Reset all settings", gets the new clear-sky cloud brightness of 150%
+(300% before): an existing settings file keeps its value.
 
 ### New: profiles
 
@@ -59,9 +61,8 @@ the clouds behind them.
 
 ### New: a different cloud brightness at night
 
-- "Brightness differs at night" on the Light tab (with advanced options on), under the cloud
-  brightness settings, gives the clouds a brightness of their own at night. Tick it and the
-  night's sliders appear under it: *At night: clear sky* and *At night: full overcast* with
+- "Brightness differs at night" on the Light tab, under the cloud brightness settings, gives
+  the clouds a brightness of their own at night. Tick it and the night's sliders appear under it: *At night: clear sky* and *At night: full overcast* with
   automatic brightness, *At night: fixed brightness* without. Through dusk and dawn the
   brightness changes gradually from the day's to the night's, as the night colours do.
 - Ticked for the first time, the night's sliders start at the day's values, so nothing changes
@@ -115,6 +116,12 @@ the clouds behind them.
   the fog on, High costs more than before, most of all with the camera down in it; Medium takes
   26 steps (19 before) and Low 8 (10 before), so a slower computer pays no more than it did.
   The Quality setting on the Rendering tab sets it.
+- The Light tab (cloud shadows, cloud brightness, the clouds at night) is now always in the
+  in-game panel, beside Now, Clouds and Fog. "Show advanced options in the in-game panel" adds
+  Weather, Rendering and Halos.
+- "Brightness: clear sky" on the Light tab starts at 150% (it was 300%), for new installs and
+  after "Reset all settings". If you run the mod already, your value is kept: set it on the
+  Light tab.
 
 ### Fixed
 

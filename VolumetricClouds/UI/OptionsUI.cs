@@ -17,7 +17,8 @@ namespace VolumetricClouds.UI
     /// <remarks>
     /// Until 1.1.0 this page had five tabs (Weather, Light, Rendering, Halos, General) and the
     /// panel borrowed them behind "Show advanced options". The author's call: one place to
-    /// change the sky, the panel. The four sky tabs are now the panel's advanced tabs only.
+    /// change the sky, the panel. The four sky tabs are now the panel's alone: Light a basic
+    /// tab since 1.2.1, the other three advanced.
     ///
     /// Two things about this page decide how it has to be written:
     ///

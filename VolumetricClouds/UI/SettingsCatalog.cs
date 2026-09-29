@@ -36,15 +36,18 @@ namespace VolumetricClouds.UI
         Text,
     }
 
-    /// <summary>Which tab of the in-game (F4) panel a row appears on. None = not in it.</summary>
-    public enum PanelPage { None, Now, Clouds, Fog }
+    /// <summary>
+    /// Which basic tab of the in-game (F4) panel a row appears on. None = not in it. Light was an
+    /// advanced tab until 1.2.1 (the author: it should show "even without advanced settings on").
+    /// </summary>
+    public enum PanelPage { None, Now, Clouds, Fog, Light }
 
     /// <summary>
     /// General = the game's mod options page (which has no tabs since 1.1.0). The others are
     /// the in-game panel's ADVANCED tabs, shown with "Show advanced options in the in-game
     /// panel". None = neither. (The name is from when the options page had all five as tabs.)
     /// </summary>
-    public enum OptionsPage { None, Weather, Light, Rendering, Halos, General }
+    public enum OptionsPage { None, Weather, Rendering, Halos, General }
 
     /// <summary>
     /// One setting, everything either UI needs to draw it, and its default.
@@ -386,8 +389,8 @@ namespace VolumetricClouds.UI
     /// Reset-to-defaults walks this list, so does VolumetricClouds.xml (a setting with no row
     /// is never saved), and so does a profile's file (its rows with Row.Profiled).
     ///
-    /// The split (1.1.0): everything about the SKY is in the panel -- its three basic tabs
-    /// (Row.Panel) and its four advanced ones (Row.Options other than General); the options
+    /// The split (1.1.0): everything about the SKY is in the panel -- its basic tabs (Row.Panel;
+    /// four since 1.2.1, Light) and its advanced ones (Row.Options other than General); the options
     /// page has only the mod itself (Row.Options == General). A row can have both fields (the
     /// fog switch is on the Fog tab and Rendering); the panel shows it on the basic tab only.
     ///
@@ -479,8 +482,8 @@ namespace VolumetricClouds.UI
 
             Log.Msg("settings catalog: " + Rows.Count + " rows | panel Now=" + CountForPanel(PanelPage.Now) +
                     " Clouds=" + CountForPanel(PanelPage.Clouds) + " Fog=" + CountForPanel(PanelPage.Fog) +
+                    " Light=" + CountForPanel(PanelPage.Light) +
                     " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
-                    " Light=" + CountForOptions(OptionsPage.Light) +
                     " Rendering=" + CountForOptions(OptionsPage.Rendering) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
                     " | options page=" + CountForOptions(OptionsPage.General) +
@@ -1626,13 +1629,16 @@ namespace VolumetricClouds.UI
             });
         }
 
-        /// <summary>Advanced tab Light. Shadows, the brightness curve, and the two night rows.</summary>
+        /// <summary>
+        /// F4 -> Light (an advanced tab until 1.2.1, now always shown). Shadows, the brightness
+        /// curve, and the two night rows.
+        /// </summary>
         private static void BuildLightOptions()
         {
             Add(new Row
             {
                 Kind = RowKind.Toggle,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Group = "Shadows",
                 Bool = Settings.CloudShadows,
                 DefaultBool = Settings.Defaults.CloudShadows,
@@ -1642,7 +1648,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudShadowDarkness,
                 DefaultFloat = Settings.Defaults.ShadowDarkness,
                 Min = 0f, Max = 95f, Step = 5f,
@@ -1652,7 +1658,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Value,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudShadowFullness,
                 DefaultFloat = Settings.Defaults.ShadowFullness,
                 Min = 0.5f, Max = 8f, Step = 0.25f,
@@ -1663,7 +1669,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Toggle,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Group = "Brightness",
                 Bool = Settings.CloudBrightnessAuto,
                 DefaultBool = Settings.Defaults.BrightnessAuto,
@@ -1673,7 +1679,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudBrightnessClear,
                 DefaultFloat = Settings.Defaults.BrightnessClear,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1683,7 +1689,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudBrightnessOvercast,
                 DefaultFloat = Settings.Defaults.BrightnessOvercast,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1693,7 +1699,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudBrightness,
                 DefaultFloat = Settings.Defaults.Brightness,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1703,7 +1709,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.MinIllumination,
                 DefaultFloat = Settings.Defaults.MinIllumination,
                 Min = 30f, Max = 100f, Step = 1f,
@@ -1720,7 +1726,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Toggle,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Bool = Settings.CloudNightBrightness,
                 DefaultBool = Settings.Defaults.NightBrightness,
                 OnTicked = StartNightBrightness,
@@ -1730,7 +1736,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudNightBrightnessClear,
                 DefaultFloat = Settings.Defaults.NightBrightnessClear,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1741,7 +1747,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudNightBrightnessOvercast,
                 DefaultFloat = Settings.Defaults.NightBrightnessOvercast,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1752,7 +1758,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudNightBrightnessFixed,
                 DefaultFloat = Settings.Defaults.NightBrightnessFixed,
                 Min = 5f, Max = 300f, Step = 5f,
@@ -1763,7 +1769,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudDensity,
                 DefaultFloat = Settings.Defaults.Density,
                 Min = 20f, Max = 300f, Step = 5f,
@@ -1772,7 +1778,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Group = "Night",
                 Float = Settings.CloudNightOpacity,
                 DefaultFloat = Settings.Defaults.NightOpacity,
@@ -1782,7 +1788,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Percent,
-                Options = OptionsPage.Light,
+                Panel = PanelPage.Light,
                 Float = Settings.NightGlow,
                 DefaultFloat = Settings.Defaults.NightGlow,
                 Min = 0f, Max = 300f, Step = 5f,
