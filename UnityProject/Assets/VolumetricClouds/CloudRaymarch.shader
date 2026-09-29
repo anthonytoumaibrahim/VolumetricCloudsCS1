@@ -3,7 +3,8 @@
 // Drawn on a box that follows the camera, so every pixel gets a fragment. Each fragment
 // intersects its view ray with the cloud slab [_CloudBottom, _CloudTop] and marches it, then
 // marches the rain hanging underneath: one pass, one view ray, one depth read, so the two
-// media composite correctly against each other and the scene.
+// media composite correctly against each other and the scene. (With the camera under the
+// cloud base the same pass is drawn twice, clouds and air apart: see _DrawPart.)
 //
 //   _WeatherTex : 2D tiling density field, the same one the shadow cookie is cut from.
 //                 Thresholded here with _Threshold/_Softness so coverage is one uniform.
@@ -44,6 +45,15 @@ Shader "VolumetricClouds/CloudRaymarch"
 
             float _Steps;
             float _UseDepth;
+
+            // Which part of the picture this draw makes (Sky/CloudVolume.cs, 1.3.0): 0 = all of it,
+            // 1 = the clouds alone, 2 = the air under them alone (rain, fog, the rainbow's arch).
+            // With the camera under the cloud base the clouds are drawn on their own BEFORE the
+            // city's see-through objects and the air after them, as two blends that make exactly
+            // Over(lower, clouds) below: power lines, halos and smoke are never behind a cloud from
+            // there, but drawn under the one pass they had the whole cloud behind them painted over
+            // them (the author: the clouds "blend" with the power lines).
+            float _DrawPart;
             float3 _SunColor;      // (_SunDir, towards the light, is in CloudMedia)
             float3 _AmbientColor;
 
@@ -718,7 +728,14 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float jitter = MarchJitter(pixel);
                 float cosTheta = dot(dir, _SunDir);
 
-                float4 clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta);
+                // A part left out of this draw is empty (no light, all passed through), which
+                // leaves the other one exactly as it is in the Over below.
+                bool drawClouds = _DrawPart < 1.5;
+                bool drawAir = _DrawPart < 0.5 || _DrawPart > 1.5;
+
+                float4 clouds = float4(0, 0, 0, 1);
+                if (drawClouds)
+                    clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta);
 
                 // The part of the ray under the cloud base: from the camera when it is below
                 // the base, otherwise from where the ray comes down through it.
@@ -735,11 +752,11 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 // The rainbow's arch: where this ray crosses it, before the marches, which say how
                 // much rain and fog stands in front of each crossing.
-                bool arch = _BowParams.z > 0.5;
+                bool arch = drawAir && _BowParams.z > 0.5;
                 float2 archT = arch ? ArchCrossings(origin, dir) : float2(-1.0, -1.0);
                 float2 rainToArch = 1.0;
 
-                if (_RainAmount > 0.001 && _RainShaftDensity > 0.0)
+                if (drawAir && _RainAmount > 0.001 && _RainShaftDensity > 0.0)
                     rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta, archT, rainToArch);
 
                 // MarchFog finds its own stretch of the ray, level fog or draped; all it needs is
@@ -747,7 +764,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float4 fog = float4(0, 0, 0, 1);
                 float2 fogToArch = 1.0;
                 bool cameraInFog = false;
-                if (_FogAmount > 0.001 && _FogDensity > 0.0)
+                if (drawAir && _FogAmount > 0.001 && _FogDensity > 0.0)
                 {
                     float camAbove = origin.y - FogGround(origin);
                     cameraInFog = InFogLayer(camAbove);

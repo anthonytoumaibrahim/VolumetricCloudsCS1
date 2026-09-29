@@ -10,17 +10,22 @@ namespace VolumetricClouds.Sky
     /// The stars are not part of the skybox: DayNightProperties.LateUpdate draws a separate
     /// mesh with the shader 'Hidden/DayNight/Stars'. Which render queue that shader sits in is
     /// asset data, not code, so it is read at runtime and logged rather than assumed. If it is
-    /// at or after the cloud pass (Transparent+100 = 3100) the stars are painted on top of the
-    /// clouds whatever the clouds' opacity, and the material's queue is pulled in front of
-    /// them; the original value is put back on unload. If it is already earlier, stars showing
-    /// through were purely the clouds' own transparency, which CloudRaymarch now closes at
-    /// night (_NightOpacity), and nothing is changed here.
+    /// at or after the cloud pass the stars are painted on top of the clouds whatever the
+    /// clouds' opacity, and the material's queue is pulled in front of them; the original value
+    /// is put back on unload. If it is already earlier, stars showing through were purely the
+    /// clouds' own transparency, which CloudRaymarch now closes at night (_NightOpacity), and
+    /// nothing is changed here. Since 1.3.0 the clouds are drawn at CloudVolume.EarlyQueue
+    /// (2520) whenever the camera is under their base, so that is the queue to be before (the
+    /// game's own stars: 2503, logged).
     /// </remarks>
     public class GameStars : MonoBehaviour
     {
-        /// <summary>The cloud pass is Transparent+100; the lightning bolt sits at +90.</summary>
-        private const int BehindClouds = 3080;
-        private const int CloudQueue = 3100;
+        /// <summary>
+        /// Still after the opaque range (2500), where the game keeps its stars: its fog effect runs
+        /// at the end of that range and paints the sky they are drawn over.
+        /// </summary>
+        private const int BehindClouds = 2505;
+        private const int CloudQueue = CloudVolume.EarlyQueue;
         private const float SearchInterval = 2f;
 
         private Material _stars;

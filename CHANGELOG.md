@@ -155,11 +155,17 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   too: seen from under the clouds, a channel could look cut off or as if it started behind the
   clouds. Bolts are now drawn after the clouds and dimmed only by the cloud, rain and fog in
   front of them. The glow of lightning inside the clouds is unchanged.
-- The sun no longer shines through distant clouds in the morning and evening: near the sun the
-  clouds keep their full cover into the distance, as they already did at night for the stars.
-  Nor does the sky's glow round a low sun: as the sun goes down that cover widens, from 10
-  degrees round it by day to 45 degrees at sunset and sunrise, so the sunset glow no longer
-  shows through the clouds in front of it. By day the clouds fade into the distance as before.
+- Power lines seen against a cloudy sky no longer fade into the clouds. The game draws its
+  power lines, the glow of street lamps, smoke and snowflakes see-through, and the clouds were
+  drawn after them and laid over them, the clouds behind them too. From under the clouds they
+  are now drawn over the clouds; the rain and fog in front of them still cover them as before.
+  From above the clouds, nothing changes.
+- The clouds block the sun: the sun and the bright glow round it no longer shine through the
+  clouds in front of them. The clouds fade into the distance by becoming see-through, and towards
+  the sun that let the sun itself through, even a thick cloud a few kilometres away. Now, wherever
+  the sky's glow round the sun is bright (how far depends on the map's sky: about 30 to 50
+  degrees round the sun on most maps), the clouds keep their full cover into the distance, as
+  they already did at night for the stars. Everywhere else they fade into the distance as before.
 - The game's fog draws a hazy band over the lowest part of the sky, which covered the distant
   clouds, most visibly at night. While the mod's clouds are shown ("Volumetric Weather" ticked)
   that band is taken off the sky; the game's fog on the ground and at the map's edge is

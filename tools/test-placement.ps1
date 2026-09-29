@@ -236,4 +236,32 @@ Check "never below the floor" ((Clap 12000) -eq [single]0.3 -and (Clap 1e9) -eq 
 Check "it only ever gets quieter with distance" ((Clap 1500) -gt (Clap 3000) -and (Clap 3000) -gt (Clap 6000))
 
 ""
+"=== SunCoverCone: how far round the sun the clouds block it (1.3.0) ==="
+# The cover follows the sky's glow round the sun (the game's Mie phase, g from the map): full where the
+# glow is 30% of its peak, none below 10%. Reference angles from the Henyey-Greenstein phase itself.
+$cone = $asm.GetType("VolumetricClouds.Sky.SunCoverCone")
+function ConeAngles([double]$g) {
+    $a = [object[]]@([single]$g, [single]0, [single]0)
+    [void]$cone.GetMethod("Angles", $flags).Invoke($null, $a)
+    return @([double]$a[1], [double]$a[2])
+}
+function GlowShare([double]$g, [double]$deg) {
+    $c = [Math]::Cos($deg * [Math]::PI / 180)
+    return [Math]::Pow((1 - $g) * (1 - $g) / (1 + $g * $g - 2 * $g * $c), 1.5)
+}
+foreach ($g in 0.5, 0.651, 0.76, 0.9) {
+    $ang = ConeAngles $g
+    "    g {0,-5}: full within {1,5:F1} deg, none beyond {2,5:F1} deg" -f $g, $ang[0], $ang[1]
+}
+$his = ConeAngles 0.651
+Check "his map (g 0.651): full within 28 deg, none beyond 49" (([math]::Abs($his[0] - 27.8) -lt 0.3) -and ([math]::Abs($his[1] - 48.8) -lt 0.3))
+$def = ConeAngles 0.76
+Check "the game's default (g 0.76): 17.6 and 30.5 deg" (([math]::Abs($def[0] - 17.6) -lt 0.3) -and ([math]::Abs($def[1] - 30.5) -lt 0.3))
+Check "the glow really is 30% / 10% of its peak there" (([math]::Abs((GlowShare 0.651 $his[0]) - 0.3) -lt 0.005) -and ([math]::Abs((GlowShare 0.651 $his[1]) - 0.1) -lt 0.005))
+$wide = ConeAngles 0.5; $narrow = ConeAngles 0.9
+Check "a wider glow (smaller g) gets a wider cover" (($wide[0] -gt $his[0]) -and ($narrow[1] -lt $def[1]))
+$odd = ConeAngles 0.02; $sharp = ConeAngles 0.999
+Check "any g gives a usable cone: 3..70 deg, at least 5 apart" (($odd[0] -ge 3) -and ($odd[1] -le 70) -and ($sharp[0] -ge 3) -and ($sharp[1] -ge $sharp[0] + 5))
+
+""
 if ($failed -eq 0) { "All checks passed." } else { "$failed check(s) FAILED."; exit 1 }

@@ -11,8 +11,9 @@
 [/list]
 [b]Fixed[/b]
 [list]
-[*]The sun and its glow no longer shine through distant clouds in the morning and evening.
+[*]The clouds block the sun: the sun and its glow no longer shine through the clouds in front of them.
 [*]Lightning bolts are no longer cut off by the clouds behind them.
+[*]Power lines, street lamp glow and smoke no longer fade into the clouds behind them.
 [*]The game's hazy band above the horizon no longer hides the distant clouds, and at night the clouds no longer fade out 10 km away.
 [*]Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own.
 [/list]

@@ -29,6 +29,29 @@ namespace VolumetricClouds.Sky
         private const float ReachPerMetreAbove = 25f;
         private const float MaxReach = 150000f;
 
+        /// <summary>
+        /// The cloud pass's own queue (the shader's Transparent+100): after everything see-through the
+        /// game draws; the lightning bolt and the rain streaks (+110) come after it.
+        /// </summary>
+        public const int LateQueue = 3100;
+
+        /// <summary>
+        /// The clouds' queue while the camera is under their base (<see cref="UpdateParts"/>, 1.3.0):
+        /// after the game's sky -- the aurora 2501, the painted clouds 2502, the stars 2503 (the
+        /// shaders' Queue tags, read out of the game's asset files, and the log) -- and before
+        /// everything see-through in the city: the halos 2990, decals and water 2999, the power lines
+        /// and smoke 3000 ('Custom/Net/Electricity': alpha-blended, no depth), particles 3001.
+        /// </summary>
+        public const int EarlyQueue = 2520;
+
+        /// <summary>
+        /// The clouds go early this far under their base and come back to the one draw within
+        /// <see cref="SplitLeave"/> of it, so a camera hovering at the base does not flip them every
+        /// frame. Anywhere under the base either way is right for the clouds and the air.
+        /// </summary>
+        private const float SplitEnter = 20f;
+        private const float SplitLeave = 5f;
+
         /// <summary>True while the volumetric layer is actually drawing (the fog needs the pass).</summary>
         public static bool IsActive { get; private set; }
 
@@ -92,6 +115,14 @@ namespace VolumetricClouds.Sky
         private CameraController _cameraController;
         private bool _lookedForController;
 
+        // The air under the clouds (rain, fog, the rainbow's arch) as a draw of its own while the
+        // camera is under the cloud base (UpdateParts): the same box and shader, _DrawPart 2, on a
+        // material that gets the cloud material's values every frame it is drawn.
+        private MeshRenderer _airRenderer;
+        private Material _airMaterial;
+        private bool _split;
+        private int _partsLogged = -1;
+
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
         private static readonly int IdUseDepth = Shader.PropertyToID("_UseDepth");
@@ -153,6 +184,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdBowParams = Shader.PropertyToID("_BowParams");
         private static readonly int IdBowSun = Shader.PropertyToID("_BowSun");
         private static readonly int IdBowArch = Shader.PropertyToID("_BowArch");
+        private static readonly int IdDrawPart = Shader.PropertyToID("_DrawPart");
+        private static readonly int IdCloudBottom = Shader.PropertyToID("_CloudBottom");
+        private static readonly int IdRainAmount = Shader.PropertyToID("_RainAmount");
 
         /// <summary>
         /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
@@ -197,17 +231,8 @@ namespace VolumetricClouds.Sky
 
         private static readonly int IdSunCover = Shader.PropertyToID("_SunCover");
 
-        /// <summary>
-        /// The cone round the sun where far clouds keep their cover (CloudMedia.cginc SunCover): from
-        /// 10 degrees, full within 3, by day; widening to 45 / 15 as the sun goes down between 25 and
-        /// 5 degrees (the sunset glow, see ApplyNight).
-        /// </summary>
-        private const float SunCoverOuter = 10f;
-        private const float SunCoverInner = 3f;
-        private const float SunCoverLowOuter = 45f;
-        private const float SunCoverLowInner = 15f;
-        private const float SunCoverDayElevation = 25f;
-        private const float SunCoverLowElevation = 5f;
+        /// <summary>The sky's glow the sun-cover cone was last worked out for (SunCoverCone), to log it once per change.</summary>
+        private float _sunCoverG = -1f;
 
         public void Initialise(CloudDensityField field)
         {
@@ -231,12 +256,27 @@ namespace VolumetricClouds.Sky
             _mesh = BuildBox();
             _holder.AddComponent<MeshFilter>().sharedMesh = _mesh;
 
+            _material.renderQueue = LateQueue;
             _renderer = _holder.AddComponent<MeshRenderer>();
             _renderer.sharedMaterial = _material;
             _renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _renderer.receiveShadows = false;
             _renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
             _renderer.enabled = false;
+
+            // The air under the clouds, drawn apart while the camera is under the cloud base
+            // (UpdateParts). A child, so it follows the box.
+            _airMaterial = new Material(shader) { name = "VolumetricCloudsAir" };
+            _airMaterial.renderQueue = LateQueue;
+            GameObject air = new GameObject("VolumetricCloudsAir");
+            air.transform.SetParent(_holder.transform, false);
+            air.AddComponent<MeshFilter>().sharedMesh = _mesh;
+            _airRenderer = air.AddComponent<MeshRenderer>();
+            _airRenderer.sharedMaterial = _airMaterial;
+            _airRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _airRenderer.receiveShadows = false;
+            _airRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            _airRenderer.enabled = false;
 
             _shadowMap = CloudShadowMap.TryCreate();
 
@@ -339,13 +379,17 @@ namespace VolumetricClouds.Sky
             _renderer.enabled = wanted;
             IsActive = wanted;
             if (!wanted)
+            {
+                _airRenderer.enabled = false;
                 return;
+            }
 
             // Keep the box around the camera and inside the far plane, corners included.
             _holder.transform.position = _camera.transform.position;
             _holder.transform.localScale = Vector3.one * (_camera.farClipPlane * 0.45f);
 
             UpdateMaterial();
+            UpdateParts();
         }
 
         /// <summary>
@@ -747,6 +791,71 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// Where the pass goes in the frame (1.3.0; the author: the clouds "blend" with the power
+        /// lines). The game draws its power lines, halos, smoke and particles see-through, without
+        /// depth, BEFORE the cloud pass, which stops only at depth: the whole cloud behind a wire was
+        /// painted over it. From under the cloud base nothing in the city is ever behind a cloud, so
+        /// there the clouds are drawn on their own at <see cref="EarlyQueue"/>, before all of it, and
+        /// the air under them -- rain, fog, the rainbow's arch, which those objects DO stand in --
+        /// stays at <see cref="LateQueue"/> as a second draw, only while there is any. The two blends
+        /// make exactly the one pass's Over(lower, clouds). At or above the base (clouds in front of
+        /// the city) it is the one draw as before.
+        /// </summary>
+        private void UpdateParts()
+        {
+            // What the shader compares the camera with: the value it was given.
+            float bottom = _material.GetFloat(IdCloudBottom);
+            float height = _camera.transform.position.y;
+            _split = height < bottom - (_split ? SplitLeave : SplitEnter);
+
+            // The shader's own tests for its rain, fog and arch, a hair lower, so a rounding can never
+            // leave any of them undrawn.
+            bool air = _split &&
+                       ((_material.GetFloat(IdRainAmount) > 0.0009f && _material.GetFloat(IdRainShaftDensity) > 0f) ||
+                        (_material.GetFloat(IdFogAmount) > 0.0009f && _material.GetFloat(IdFogDensity) > 0f) ||
+                        _material.GetVector(IdBowParams).z > 0.4f);
+
+            _material.renderQueue = _split ? EarlyQueue : LateQueue;
+            _material.SetFloat(IdDrawPart, _split ? 1f : 0f);
+
+            if (air)
+            {
+                // Every value the cloud pass has, then the textures one by one (Unity 5.6 copies only
+                // those in the shader's Properties block; see ShareMediaWith) and the lightning's
+                // arrays. The copy keeps this material's queue.
+                _airMaterial.CopyPropertiesFromMaterial(_material);
+                CloudShaderParams.Apply(_airMaterial, _field, _noise);
+                _airMaterial.SetTexture(IdBlueNoiseTex, _blueNoise);
+
+                Texture terrain = TerrainHeightMap.Texture;
+                if (terrain != null)
+                    _airMaterial.SetTexture(IdTerrainTex, terrain);
+                CloudShadowMap map = CloudShadowMap.Current;
+                if (map != null && map.Texture != null)
+                    _airMaterial.SetTexture(IdCloudShadowTex, map.Texture);
+                if (_rainbowTable != null)
+                    _airMaterial.SetTexture(IdBowTex, _rainbowTable);
+
+                CloudLightning.ApplyTo(_airMaterial);
+                _airMaterial.SetFloat(IdDrawPart, 2f);
+            }
+
+            _airRenderer.enabled = air;
+
+            int state = !_split ? 0 : air ? 2 : 1;
+            if (state != _partsLogged)
+            {
+                _partsLogged = state;
+                string where = " (camera " + height.ToString("F0") + " m, cloud base " + bottom.ToString("F0") + " m)";
+                Log.Msg(state == 0
+                    ? "cloud pass: one draw at queue " + LateQueue + ", after the see-through objects" + where
+                    : state == 1
+                        ? "cloud pass: clouds at queue " + EarlyQueue + ", before the city's see-through objects (power lines, halos, smoke); no rain, fog or rainbow to draw after them" + where
+                        : "cloud pass: clouds at queue " + EarlyQueue + ", before the city's see-through objects; rain, fog and rainbow a draw of their own at " + LateQueue + where);
+            }
+        }
+
+        /// <summary>
         /// The light of cloud detail or of the Cumulus style: the octaves (CloudDetail) or the four
         /// lobes (CloudStyle), how far the light steps reach, and the mip offset that makes a
         /// pixel's footprint pick the noise's mip level. Unused while neither is drawn (the
@@ -901,7 +1010,7 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * (snow ? 1f : 0.6f));
             _material.SetVector(IdRainSun, AsVector(cloudSun) * (snow ? 0.3f : 0.12f));
 
-            ApplyNight(night, shadeTint, sunElevation);
+            ApplyNight(night, shadeTint, properties != null ? properties.m_SunAnisotropyFactor : SunCoverCone.DefaultG);
             ApplyFog(lightAmbient, baseSun);
 
             // The cloud shadow map, as the air under the clouds reads it: the fog's sun shafts and
@@ -1035,7 +1144,7 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
-        private void ApplyNight(float night, Color shadeTint, float sunElevation)
+        private void ApplyNight(float night, Color shadeTint, float glowG)
         {
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             _material.SetFloat(IdNightOpacity, night * opacity);
@@ -1046,24 +1155,25 @@ namespace VolumetricClouds.Sky
             // horizon band on it: "it hides far away clouds" (GameHorizon takes the band off).
             _material.SetFloat(IdCloudExtent, Reach);
 
-            // The sun's disc gets the same cover by day: from 10 degrees in, full within 3 (the
-            // sky's sun and its brightest glow). It fades out as the night comes in: _SunDir is
+            // The sun gets the same cover by day: round it the clouds keep their full cover instead
+            // of fading see-through into the distance, because what they would let through there
+            // is the sun -- its disc and the sky's glow round it (the author: "like in real life:
+            // the clouds should block the sun"). How far round: wherever that glow is bright, from
+            // the game's own Mie phase for this map (SunCoverCone; g 0.651 on his map: full within
+            // 28 degrees, none beyond 49). It was 10 / 3 degrees, widened to 45 / 15 at sunset: a
+            // hard dark disc, the glare all round it. It fades out as the night comes in: _SunDir is
             // the MOON's once the moon lights the clouds, and there "Clouds hide the stars at
             // night" alone decides (a player at 60% would otherwise get a full-cover disc round
             // the moon).
-            //
-            // The cone widens as the sun goes down (1.3.0; the author: "the sun's mie scattering /
-            // halo around it is still visible even with clouds, it's like overlaying the clouds ...
-            // mostly visible during sunset"). The sky's glow round the sun is the game's Mie phase
-            // (DayNightProperties.m_SunAnisotropyFactor, g 0.76 by default: still 10% of its peak
-            // 30 deg out, 4% at 45), brightest against the darkening sky at sunset -- and with the
-            // sun on the horizon every cloud in front of it is far away and faded see-through (one
-            // 2 deg up, ~95%). By day (the sun 25 deg up or more) the cone is the 10 / 3 degrees it
-            // was, the look that is liked; with the sun 5 deg up or lower, 45 / 15.
-            float low = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunCoverDayElevation, SunCoverLowElevation, sunElevation));
-            float outer = Mathf.Lerp(SunCoverOuter, SunCoverLowOuter, low);
-            float inner = Mathf.Lerp(SunCoverInner, SunCoverLowInner, low);
+            float inner, outer;
+            SunCoverCone.Angles(glowG, out inner, out outer);
             _material.SetVector(IdSunCover, new Vector4(Mathf.Cos(outer * Mathf.Deg2Rad), Mathf.Cos(inner * Mathf.Deg2Rad), 1f - night, 0f));
+            if (!Mathf.Approximately(glowG, _sunCoverG))
+            {
+                _sunCoverG = glowG;
+                Log.Msg("sun cover: the clouds block the sun -- full cover within " + inner.ToString("F0") + " deg of it, none beyond " +
+                        outer.ToString("F0") + " deg (the sky's glow round the sun, g " + glowG.ToString("F3") + ")");
+            }
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
@@ -1335,6 +1445,8 @@ namespace VolumetricClouds.Sky
                 Destroy(_mesh);
             if (_material != null)
                 Destroy(_material);
+            if (_airMaterial != null)
+                Destroy(_airMaterial);
             if (_noise != null)
                 Destroy(_noise);
             if (_blueNoise != null)
