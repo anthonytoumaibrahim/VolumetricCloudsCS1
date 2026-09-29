@@ -71,6 +71,16 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// How much of the Classic layer Cumulus mixes in, 0..1 ("Classic layer", 1.2.1): the
+        /// layer is cut at this share of the cover (CloudShaderParams.LayerCoverage), so less of it
+        /// is fewer and smaller pieces of layer, never a paler one. 1 = as in 1.2.
+        /// </summary>
+        public static float LayerAmount
+        {
+            get { return Math.Max(0f, Math.Min(1f, Settings.CumulusLayer != null ? Settings.CumulusLayer.value : Settings.Defaults.CumulusLayer)); }
+        }
+
+        /// <summary>
         /// The noise's mip chain as Color32 (the value in every channel; the shader reads alpha),
         /// for the city's noise seed. Worker thread: Color32 is a plain struct. Null on failure,
         /// with the reason in <paramref name="error"/>.
@@ -406,7 +416,9 @@ namespace VolumetricClouds.Sky
 
         public static string Describe()
         {
-            return Name(Current);
+            return Current == Cumulus
+                ? Name(Current) + " (Classic layer " + (LayerAmount * 100f).ToString("F0", CultureInfo.InvariantCulture) + "%)"
+                : Name(Current);
         }
 
         /// <summary>The Cumulus style's shape, once, for the log.</summary>

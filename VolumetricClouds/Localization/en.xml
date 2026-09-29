@@ -141,6 +141,9 @@
   <String key="CloudStyle.Classic">Classic</String>
   <String key="CloudStyle.Cumulus">Cumulus</String>
 
+  <String key="CumulusLayer.Label">Classic layer</String>
+  <String key="CumulusLayer.Tooltip">How much of the Classic layer fills in among the heaps. 0%: heaps only.</String>
+
   <String key="CloudAltitude.Label">Cloud altitude</String>
   <String key="CloudAltitude.Tooltip">Height of the cloud base above sea level.</String>
 

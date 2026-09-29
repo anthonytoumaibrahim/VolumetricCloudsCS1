@@ -9,9 +9,10 @@ below; the mods list shows it after the mod's name, and the first line of
 
 Profiles, cloud colours and a cloud brightness of their own at night, snow on winter maps, and
 a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains
-eight lines: `Profile` (empty: no profile), the three night-colour settings and the four
+nine lines: `Profile` (empty: no profile), the three night-colour settings and the four
 night-brightness settings (both switched off, so the clouds keep the colours and the brightness
-you gave them, day and night). Saved cities keep their sky, and are saved with one more
+you gave them, day and night), and Cumulus's `CumulusLayer` (100%: Cumulus as in 1.2). Saved
+cities keep their sky, and are saved with one more
 value, where you moved their clouds (none until you do); an older version of the mod reads them
 as before. What changes for everyone with the update: on winter maps the mod now draws the
 snow and road snow follows the clouds (see *New: snow*); the sun no longer shines through the
@@ -68,6 +69,12 @@ the clouds behind them.
 - It starts switched off: the brightness settings are then used day and night, exactly as
   before. The brightness line on the Clouds tab shows the brightness in use, the night's at
   night.
+
+### New: the Classic layer in Cumulus
+
+- "Classic layer" on the Clouds tab, under the cloud style, shown while Cumulus is picked: how
+  much of the Classic cloud layer fills in among the Cumulus heaps. 100%, the default, is Cumulus
+  exactly as in 1.2; lower leaves fewer and smaller pieces of the layer, and 0% the heaps alone.
 
 ### New: snow on winter maps
 

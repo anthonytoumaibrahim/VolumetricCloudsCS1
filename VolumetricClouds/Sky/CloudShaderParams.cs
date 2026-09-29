@@ -84,6 +84,16 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// The cover the Classic LAYER is cut at (`_Threshold`): the cover in effect, times the
+        /// "Classic layer" share while Cumulus is drawn (1.2.1: 100% = as in 1.2, 0% = the heaps
+        /// alone). The heaps, the rain and lightning's cloud test keep the full cover.
+        /// </summary>
+        public static float LayerCoverage
+        {
+            get { return CloudStyle.Drawn ? Coverage * CloudStyle.LayerAmount : Coverage; }
+        }
+
+        /// <summary>
         /// The same, in 2% steps, for the CPU-built flat cookie, which rebuilds when the cover
         /// changes: it now drifts continuously with the weather.
         /// </summary>
@@ -105,7 +115,7 @@ namespace VolumetricClouds.Sky
             material.SetTexture(IdNoiseTex, noise);
             material.SetFloat(IdCloudBottom, bottom);
             material.SetFloat(IdCloudTop, bottom + LayerHeight);
-            material.SetFloat(IdThreshold, field.GetThreshold(Coverage));
+            material.SetFloat(IdThreshold, field.GetThreshold(LayerCoverage));
             material.SetFloat(IdSoftness, CloudDensityField.EdgeSoftness);
             material.SetFloat(IdWeatherTile, weatherTile);
             material.SetFloat(IdNoiseTile, NoiseTile);

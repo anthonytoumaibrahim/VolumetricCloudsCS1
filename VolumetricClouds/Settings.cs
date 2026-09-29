@@ -293,6 +293,14 @@ namespace VolumetricClouds
         /// </summary>
         public static IntSetting CloudStyle { get; private set; }
 
+        /// <summary>
+        /// Under Cumulus, how much of the Classic layer is mixed in among the heaps, 0..1 (1.2.1,
+        /// asked for: "For Cumulus we combined them with our classic style... Maybe we can give the
+        /// user the control for this too?"). The layer's share of the cover: 1 = the combination as
+        /// it shipped in 1.2 (the default, so nobody's sky changes), 0 = the heaps alone.
+        /// </summary>
+        public static FloatSetting CumulusLayer { get; private set; }
+
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
         public static FloatSetting CloudThickness { get; private set; }
 
@@ -514,6 +522,9 @@ namespace VolumetricClouds
             /// </summary>
             public const int CloudStyle = 0;
             public const int CloudStyleForOlderFiles = 0;
+
+            /// <summary>All of it: Cumulus as it shipped in 1.2 (a new row's default reaches every file).</summary>
+            public const float CumulusLayer = 1f;
 
             public const float Altitude = 750f;
             public const float Thickness = 400f;
@@ -782,6 +793,7 @@ namespace VolumetricClouds
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
                 CloudStyle = new IntSetting("CloudStyle", Defaults.CloudStyle);
+                CumulusLayer = new FloatSetting("CumulusLayer", Defaults.CumulusLayer);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudDetail = new FloatSetting("CloudDetail", Defaults.Detail);

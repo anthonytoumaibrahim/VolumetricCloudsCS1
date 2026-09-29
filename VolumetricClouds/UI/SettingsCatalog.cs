@@ -850,6 +850,11 @@ namespace VolumetricClouds.UI
             return Settings.NightBrightnessOn;
         }
 
+        private static bool CumulusPicked()
+        {
+            return CloudStyle.IsCumulus;
+        }
+
         /// <summary>
         /// "Brightness differs at night" ticked by the player (Row.OnTicked). A night still at its
         /// defaults -- never set, or reset -- starts at the day's current values, so ticking the box
@@ -1104,6 +1109,19 @@ namespace VolumetricClouds.UI
                 ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus" },
                 ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus },
                 AfterChange = State("cloud style", CloudStyle.Describe),
+            });
+
+            // Under Cumulus: how much of the Classic layer fills in among the heaps (1.2.1, asked
+            // for). 100% = as 1.2 shipped, the default; shown only while Cumulus is picked. No
+            // AfterChange (a slider's runs on every tick of a drag): the frame line carries it.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CumulusLayer,
+                DefaultFloat = Settings.Defaults.CumulusLayer,
+                Min = 0f, Max = 100f, Step = 5f,
+                Shown = CumulusPicked,
             });
 
             Add(new Row

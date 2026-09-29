@@ -898,7 +898,7 @@ namespace VolumetricClouds.Sky
                        Screen.width + "x" + Screen.height +
                        " | steps=" + MarchSteps.ToString("F0") +
                        " reach=" + (Reach / 1000f).ToString("F0") + "km" +
-                       " style=" + (CloudStyle.Drawn ? "Cumulus" : "Classic") +
+                       " style=" + (CloudStyle.Drawn ? "Cumulus(layer " + (CloudStyle.LayerAmount * 100f).ToString("F0") + "%)" : "Classic") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
