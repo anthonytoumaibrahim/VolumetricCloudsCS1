@@ -1,5 +1,5 @@
 [h1]Version 1.3: Profiles, Night Colors and Snow[/h1]
-Save your favorite skies as [b]profiles[/b] and switch between them from the list at the top of the in-game panel. Clouds can now have their own colors and brightness at night, and on winter maps the snow falls only under the clouds. Check the Change Notes to see all the changes.
+Save your favorite skies as [b]profiles[/b] and switch between them from the list at the top of the in-game panel. Check the Change Notes to see all the changes.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]
@@ -49,12 +49,6 @@ Based on player feedback, the clouds run great even on low-end PCs. And you can 
 Tested together with [b]AD Cloud Replacer[/b], [b]Render It![/b], [b]Theme Mixer[/b], [b]Play It![/b], [b]Fog Controller[/b] and more, with no conflicts.
 Works on Windows and Mac as of v1.1.1. Linux is supported too, but still experimental.
 [b]Removing the mod[/b] should not corrupt your saves: the game simply keeps the mod's small block of sky data, unread.
-
-[hr][/hr]
-[h1]Coming soon[/h1]
-[list]
-[*][b]More languages[/b]: English only for now. To help translate, copy [url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1/blob/master/VolumetricClouds/Localization/en.xml]en.xml[/url] (instructions inside) and post a link to it as a new discussion or a comment.
-[/list]
 
 [hr][/hr]
 [h1]Source code[/h1]

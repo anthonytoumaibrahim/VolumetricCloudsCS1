@@ -555,9 +555,9 @@
     \n
     - To share the sky, copy this file into the VolumetricCloudsProfiles folder of another
     computer. Rename the file to rename the profile.\n
-    - It holds every setting of the sky. The settings that describe the computer (quality,
-    language, keys, the button) are left out on purpose, and so is a city's cloud pattern, which
-    is kept in the city's save.\n
+    - It holds every setting of the sky except the Now tab's, which are the weather of the moment.
+    The settings that describe the computer (quality, language, keys, the button) are left out on
+    purpose, and so is a city's cloud pattern, which is kept in the city's save.\n
     - A setting missing from this file goes back to its default when the profile is picked.\n
     - The rules of VolumetricClouds.xml apply here too: a dot for decimals, percentages written
     the way the slider shows them, a value out of range pulled back into it.\n

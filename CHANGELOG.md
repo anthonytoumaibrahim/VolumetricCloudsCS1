@@ -35,11 +35,12 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   the bar says *Unsaved changes*, and picking another profile asks first, since those changes
   would be lost. Pick "(no profile)" to go on without one: the sky stays as it is.
 - **-** deletes the picked profile's file, after asking. The sky stays as it is.
-- A profile holds every setting of the sky: every tab of the panel, the colours and the
-  switches. It does not hold the settings that describe the computer (the quality settings on
-  the mod's options page, the language, the keys, the button), so a profile from a faster computer
-  never slows yours down. Nor does it hold a city's cloud pattern, which stays in the city's
-  save.
+- A profile holds every setting of the sky: every tab of the panel but Now, the colours and the
+  switches. The Now tab's overrides are the weather of the moment, so picking a profile leaves
+  them as they are. A profile does not hold the settings that describe the computer either (the
+  quality settings on the mod's options page, the language, the keys, the button), so a profile
+  from a faster computer never slows yours down. Nor does it hold a city's cloud pattern, which
+  stays in the city's save.
 - Each profile is a file of its own, named after it, in the `VolumetricCloudsProfiles` folder
   beside `VolumetricClouds.xml`: `%LOCALAPPDATA%\Colossal Order\Cities_Skylines\` on Windows,
   `~/Library/Application Support/Colossal Order/Cities_Skylines/` on a Mac,

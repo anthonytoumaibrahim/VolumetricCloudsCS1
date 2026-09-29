@@ -40,7 +40,16 @@ namespace VolumetricClouds.Sky
     /// original would miss. The copies are private fields, read by reflection every time (the
     /// component makes new ones whenever it is enabled again).
     ///
-    /// Nothing of the game's is modified or destroyed; restoring is putting two things back.
+    /// NEVER FIGHT ANOTHER MOD (1.3.0, the author: "I just want to make sure that the user's game
+    /// doesn't crash with both mods"). Only what this class changed is ever changed back, and
+    /// only while it is still as we left it. In normal play the game itself never switches these
+    /// renderers on or off or swaps the shell's material (IL: only the developer UI does), so a
+    /// renderer switched back on, or a shell given another material, is another mod's wish: that
+    /// one is left exactly as it is for the rest of the city -- not switched off again, not
+    /// scaled, not restored -- and the log says so once, naming no mod. Re-applying every frame
+    /// against a mod that did the same would switch a renderer on and off every frame, and each
+    /// switch rebuilds and destroys its mesh and materials (its OnEnable / OnDisable): a stutter
+    /// that never ends. Any error hands the renderers back to the game for the city.
     /// </remarks>
     public class GameRain : MonoBehaviour
     {
@@ -60,14 +69,24 @@ namespace VolumetricClouds.Sky
         private static bool _copiesLooked;
 
         private RainProperties[] _shells;
-        private Material[] _shellMaterials;
         private RainParticleProperties[] _particles;
-        private bool[] _particlesEnabled;
+
+        /// <summary>We swapped our material into this shell, and <see cref="_shellOriginals"/> holds what was there.</summary>
+        private bool[] _shellHeld;
+        private Material[] _shellOriginals;
+
+        /// <summary>We switched this particle renderer off, and it is still off as far as we know.</summary>
+        private bool[] _heldOff;
+
+        /// <summary>Something else has taken this one over: never touched again in this city.</summary>
+        private bool[] _shellLeft;
+        private bool[] _particlesLeft;
 
         private Material _invisible;
-        private bool _silenced;
+        private bool _loggedSilence;
         private bool _searched;
         private float _nextSearch;
+        private bool _failed;
 
         private Camera _camera;
         private bool _scalingSnow;
@@ -86,15 +105,25 @@ namespace VolumetricClouds.Sky
 
         private void LateUpdate()
         {
-            if (!_searched && !TryFind())
+            if (_failed)
                 return;
 
-            if (CloudRain.Active)
-                Silence();
-            else
-                Restore();
+            try
+            {
+                if (!_searched && !TryFind())
+                    return;
 
-            UpdateSnow();
+                if (CloudRain.Active)
+                    Silence();
+                else
+                    Restore();
+
+                UpdateSnow();
+            }
+            catch (Exception e)
+            {
+                Fail(e);
+            }
         }
 
         private bool TryFind()
@@ -110,8 +139,11 @@ namespace VolumetricClouds.Sky
                 return false;
 
             _searched = true;
-            _shellMaterials = new Material[_shells.Length];
-            _particlesEnabled = new bool[_particles.Length];
+            _shellHeld = new bool[_shells.Length];
+            _shellOriginals = new Material[_shells.Length];
+            _shellLeft = new bool[_shells.Length];
+            _heldOff = new bool[_particles.Length];
+            _particlesLeft = new bool[_particles.Length];
 
             foreach (RainProperties shell in _shells)
             {
@@ -143,67 +175,140 @@ namespace VolumetricClouds.Sky
                 _invisible = new Material(shader) { name = "VolumetricCloudsInvisible" };
             }
 
-            if (!_silenced)
+            if (!_loggedSilence)
             {
-                for (int i = 0; i < _shells.Length; i++)
-                    _shellMaterials[i] = _shells[i] != null ? _shells[i].m_RainMaterial : null;
-                for (int i = 0; i < _particles.Length; i++)
-                    _particlesEnabled[i] = _particles[i] != null && _particles[i].enabled;
-
-                _silenced = true;
+                _loggedSilence = true;
                 Log.Msg(CloudRain.IsSnow
                     ? "game snow: its snowflakes kept, shown only where it snows; its rain shell silenced (" + _shells.Length + ")"
                     : "game rain: silenced (" + _shells.Length + " shell, " + _particles.Length +
                       " particle renderer); lightning and thunder left running");
             }
 
-            // Every frame: cheap, and it holds if anything puts the originals back.
             for (int i = 0; i < _shells.Length; i++)
             {
-                if (_shells[i] != null && _shells[i].m_RainMaterial != _invisible)
-                    _shells[i].m_RainMaterial = _invisible;
+                RainProperties shell = _shells[i];
+                if (shell == null || _shellLeft[i])
+                    continue;
+
+                if (!_shellHeld[i])
+                {
+                    // Ours goes in, and what was there is kept to put back.
+                    _shellOriginals[i] = shell.m_RainMaterial;
+                    shell.m_RainMaterial = _invisible;
+                    _shellHeld[i] = true;
+                }
+                else if (shell.m_RainMaterial != _invisible)
+                {
+                    // Someone else put a material in since: theirs stays, and so does the slot.
+                    _shellLeft[i] = true;
+                    _shellHeld[i] = false;
+                    _shellOriginals[i] = null;
+                    Log.Msg("game rain: the rain shell on '" + shell.gameObject.name + "' was given another material by " +
+                            "something else; it is left as it is for this city");
+                }
             }
 
             for (int i = 0; i < _particles.Length; i++)
             {
                 RainParticleProperties particles = _particles[i];
-                if (particles == null)
+                if (particles == null || _particlesLeft[i])
                     continue;
 
-                // Snow: its own flakes stay (scaled in ScaleSnow); one switched off here while it
-                // rained comes back. Rain: switched off.
                 if (CloudRain.IsSnow)
                 {
-                    if (_particlesEnabled[i] && !particles.enabled)
-                        particles.enabled = true;
+                    // Snow: the game's flakes stay (scaled in ScaleSnow). One WE switched off while
+                    // it rained comes back; one switched off by anything else stays off.
+                    if (_heldOff[i])
+                    {
+                        _heldOff[i] = false;
+                        if (!particles.enabled)
+                            particles.enabled = true;
+                    }
+                }
+                else if (_heldOff[i])
+                {
+                    if (particles.enabled)
+                    {
+                        // Switched back on by something else: it wants the game's rain renderer.
+                        _heldOff[i] = false;
+                        _particlesLeft[i] = true;
+                        Log.Msg("game rain: the game's rain renderer on '" + particles.gameObject.name + "' was switched " +
+                                "back on by something else; it is left as it is for this city (our rain still falls " +
+                                "under the clouds)");
+                    }
                 }
                 else if (particles.enabled)
                 {
                     particles.enabled = false;
+                    _heldOff[i] = true;
                 }
             }
         }
 
+        /// <summary>Puts back what we changed, where it is still as we left it.</summary>
         private void Restore()
         {
-            if (!_silenced)
-                return;
+            bool restored = false;
 
-            _silenced = false;
-
-            for (int i = 0; i < _shells.Length; i++)
+            if (_shells != null)
             {
-                if (_shells[i] != null && _shellMaterials[i] != null)
-                    _shells[i].m_RainMaterial = _shellMaterials[i];
+                for (int i = 0; i < _shells.Length; i++)
+                {
+                    if (!_shellHeld[i])
+                        continue;
+
+                    RainProperties shell = _shells[i];
+                    if (shell != null && shell.m_RainMaterial == _invisible)
+                        shell.m_RainMaterial = _shellOriginals[i];
+
+                    _shellHeld[i] = false;
+                    _shellOriginals[i] = null;
+                    restored = true;
+                }
             }
 
-            for (int i = 0; i < _particles.Length; i++)
+            if (_particles != null)
             {
-                if (_particles[i] != null)
-                    _particles[i].enabled = _particlesEnabled[i];
+                for (int i = 0; i < _particles.Length; i++)
+                {
+                    if (!_heldOff[i])
+                        continue;
+
+                    RainParticleProperties particles = _particles[i];
+                    if (particles != null && !particles.enabled)
+                        particles.enabled = true;
+
+                    _heldOff[i] = false;
+                    restored = true;
+                }
             }
 
-            Log.Msg("game rain: restored");
+            if (restored)
+            {
+                _loggedSilence = false;
+                Log.Msg("game rain: restored");
+            }
+        }
+
+        /// <summary>
+        /// Anything unexpected: the game's renderers are handed back for the rest of the city, and
+        /// our own rain keeps falling under the clouds. Once.
+        /// </summary>
+        private void Fail(Exception e)
+        {
+            _failed = true;
+            _scalingSnow = false;
+            Log.Error("game rain: an error while handling the game's rain renderers; they are handed back to the game " +
+                      "for this city", e);
+
+            try
+            {
+                Restore();
+            }
+            catch (Exception again)
+            {
+                Log.Error("game rain: handing the game's rain renderers back failed too", again);
+            }
         }
 
         /// <summary>How much of the game's snow shows: how much falls where the camera is, eased.</summary>
@@ -249,7 +354,7 @@ namespace VolumetricClouds.Sky
         /// <summary>
         /// Camera.onPreCull, for every camera: the game's snow intensity, times how much of it shows.
         /// Set again for each camera, since one rendered from inside a LateUpdate would come before
-        /// the game's own value is written.
+        /// the game's own value is written. Never a renderer something else has taken over.
         /// </summary>
         private void ScaleSnow(Camera camera)
         {
@@ -262,7 +367,7 @@ namespace VolumetricClouds.Sky
                 for (int i = 0; i < _particles.Length; i++)
                 {
                     RainParticleProperties particles = _particles[i];
-                    if (particles == null || !particles.enabled)
+                    if (particles == null || !particles.enabled || _particlesLeft[i])
                         continue;
 
                     float intensity = Mathf.Lerp(0f, particles.m_MaxRainIntensity, particles.m_RainControl) * _snowShown;
@@ -338,7 +443,15 @@ namespace VolumetricClouds.Sky
                 Camera.onPreCull -= ScaleSnow;
 
             _scalingSnow = false;
-            Restore();
+
+            try
+            {
+                Restore();
+            }
+            catch (Exception e)
+            {
+                Log.Error("game rain: could not hand the game's rain renderers back on unload", e);
+            }
 
             if (_invisible != null)
                 Destroy(_invisible);

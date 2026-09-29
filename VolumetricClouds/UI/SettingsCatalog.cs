@@ -168,9 +168,10 @@ namespace VolumetricClouds.UI
         public Func<bool> Enabled;
 
         /// <summary>
-        /// Carried by a profile (1.3.0). False only for the machine (rendering quality) and
-        /// housekeeping: does the row describe the sky, or the computer (invariant 11)? A profile
-        /// posted in the Workshop comments must never set someone else's step count.
+        /// Carried by a profile (1.3.0). False for the machine (rendering quality) and housekeeping
+        /// -- does the row describe the sky, or the computer (invariant 11)? A profile posted in the
+        /// Workshop comments must never set someone else's step count -- and for the Now tab: the
+        /// weather of the moment, not a look (the author's call).
         /// </summary>
         public bool Profiled = true;
 
@@ -968,7 +969,9 @@ namespace VolumetricClouds.UI
         /// <summary>
         /// F4 -> Now. The director's tab: both status lines and every override in the mod,
         /// because those are the things you set while looking at the sky and unset an hour
-        /// later. Nothing here is a look.
+        /// later. Nothing here is a look -- so nothing here is in a profile either (1.3.0, the
+        /// author: "let's not save anything under Now to the profiles"): picking one leaves the
+        /// weather of the moment as it is, and moving these never makes a profile "unsaved".
         /// </summary>
         private static void BuildNow()
         {
@@ -996,6 +999,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Now,
                 Bool = Settings.CoverageOverride,
                 DefaultBool = Settings.Defaults.CoverageOverride,
+                Profiled = false,
                 AfterChange = State("ignore the game's weather", OnOff(Settings.CoverageOverride)),
             });
 
@@ -1006,6 +1010,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.Coverage,
                 DefaultFloat = Settings.Defaults.Coverage,
                 Min = 0f, Max = 100f, Step = 1f,
+                Profiled = false,
                 Enabled = CoverageOverridden,
             });
 
@@ -1017,6 +1022,7 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.WindSpeed,
                 Min = 0f, Max = 5f, Step = 0.1f,
                 Format = Times,
+                Profiled = false,
             });
 
             Add(new Row
@@ -1034,6 +1040,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Now,
                 Bool = Settings.FogOverride,
                 DefaultBool = Settings.Defaults.FogOverride,
+                Profiled = false,
                 Enabled = FogOn,
                 AfterChange = State("override fog", OnOff(Settings.FogOverride)),
             });
@@ -1045,6 +1052,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.FogAmount,
                 DefaultFloat = Settings.Defaults.FogAmount,
                 Min = 0f, Max = 100f, Step = 1f,
+                Profiled = false,
                 Enabled = FogOverridden,
             });
 
@@ -1054,6 +1062,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Now,
                 Bool = Settings.LightningOverride,
                 DefaultBool = Settings.Defaults.LightningOverride,
+                Profiled = false,
                 Enabled = LightningOn,
                 AfterChange = State("lightning activity override", OnOff(Settings.LightningOverride)),
             });
@@ -1066,6 +1075,7 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.LightningActivity,
                 Min = 0f, Max = 400f, Step = 5f,
                 Format = ActivityRate,
+                Profiled = false,
                 Enabled = () => LightningOn() && LightningOverridden(),
             });
 
