@@ -135,6 +135,18 @@ namespace VolumetricClouds
         /// </summary>
         public static BoolSetting RainLocalised { get; private set; }
 
+        /// <summary>
+        /// How strong the rainbows are (1.3.0, Sky.Rainbow): 1 = as in nature, up to 2. 0 = none,
+        /// and nothing of them runs.
+        /// </summary>
+        public static FloatSetting Rainbows { get; private set; }
+
+        /// <summary>
+        /// The share of rains that bring rainbows at all, 0..1 (1.3.0, the Now tab). 1 = nature:
+        /// every rain, wherever the sun shines on it.
+        /// </summary>
+        public static FloatSetting RainbowChance { get; private set; }
+
         /// <summary>Lightning lights the clouds and the rain from inside, and thunder gets our storm flashes.</summary>
         public static BoolSetting LightningEnabled { get; private set; }
 
@@ -626,6 +638,12 @@ namespace VolumetricClouds
             public const float RainFallSpeed = 1f;
             public const bool RainLocalised = true;
 
+            // ---- rainbows (1.3.0) ----
+            // ON for everyone, new rows reaching every settings file (the author: "Default on, as
+            // long as it's light on performance"), at nature's strength and chance.
+            public const float Rainbows = 1f;
+            public const float RainbowChance = 1f;
+
             // ---- lightning ----
             public const bool LightningEnabled = true;
             public const bool LightningReplaceBolt = true;
@@ -740,6 +758,8 @@ namespace VolumetricClouds
                 RainStreakColor = new ColorSetting("RainStreakColor", Defaults.RainStreakColor);
                 RainFallSpeed = new FloatSetting("RainFallSpeed", Defaults.RainFallSpeed);
                 RainLocalised = new BoolSetting("RainLocalised", Defaults.RainLocalised);
+                Rainbows = new FloatSetting("Rainbows", Defaults.Rainbows);
+                RainbowChance = new FloatSetting("RainbowChance", Defaults.RainbowChance);
 
                 LightningEnabled = new BoolSetting("LightningEnabled", Defaults.LightningEnabled);
                 LightningReplaceBolt = new BoolSetting("LightningReplaceBolt", Defaults.LightningReplaceBolt);

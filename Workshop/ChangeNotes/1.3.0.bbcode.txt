@@ -2,6 +2,7 @@
 [b]New[/b]
 [list]
 [*][b]Profiles[/b]: save whole skies under a name and switch between them from the list at the top of the in-game panel.
+[*][b]Rainbows[/b]: an arch standing in a sunlit shower near where you look. Strength on the Weather tab, a chance per rain on the Now tab.
 [*][b]Night colours[/b]: the clouds can have colours of their own at night. Off by default, on the Clouds tab.
 [*][b]Night brightness[/b]: the clouds can have a brightness of their own at night. Off by default, on the Light tab.
 [*][b]Snow[/b]: on winter maps the snow now falls only under the clouds, with the game's own snowflakes, and road snow follows it.
@@ -10,7 +11,7 @@
 [/list]
 [b]Fixed[/b]
 [list]
-[*]The sun no longer shines through distant clouds in the morning and evening.
+[*]The sun and its glow no longer shine through distant clouds in the morning and evening.
 [*]Lightning bolts are no longer cut off by the clouds behind them.
 [*]The game's hazy band above the horizon no longer hides the distant clouds, and at night the clouds no longer fade out 10 km away.
 [*]Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own.

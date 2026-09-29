@@ -78,6 +78,18 @@ Shader "VolumetricClouds/CloudRaymarch"
             float _ShadowSize;
             float _ShadowDarkness;
 
+            // The rainbow (Sky/Rainbow.cs, Sky/RainbowTable.cs, 1.3.0): its colours by the angle from
+            // the point opposite the sun, one row per colour (R, G, B, an empty fourth), the value
+            // in every channel of a LINEAR texture and read from alpha, never sRGB-decoded.
+            sampler2D _BowTex;
+            float4 _BowParams;     // x = the table's width per radian, y = what 1.0 in it stands for,
+                                   // z = 1 while a bow can show (0: nothing of it runs),
+                                   // w = the height of the ground the arch stands on
+            float3 _BowSun;        // the cloud's sun, untinted like the rain's, x the Rainbows setting
+                                   // x how far the arch is in
+            float4 _BowArch;       // the arch (Sky/RainbowArch.cs): xyz = the spot it is seen from,
+                                   // w = how far from it it stands
+
             struct v2f
             {
                 float4 pos : SV_POSITION;
@@ -204,6 +216,95 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float2 uv = float2(dot(rel, _ShadowRight), dot(rel, _ShadowUp)) / _ShadowSize + 0.5;
                 float lit = tex2Dlod(_CloudShadowTex, float4(uv, 0, 0)).r;
                 return saturate((lit - (1.0 - _ShadowDarkness)) / max(_ShadowDarkness, 0.01));
+            }
+
+            // SunShaft for the rainbow, which is only drawn with the map there: nothing where the
+            // map has no answer. Past its tile (26 km round the map's centre) the lookup would wrap
+            // onto the far side of the city and light a drop that is in shadow, or darken a lit one.
+            float BowShaft(float3 p)
+            {
+                float3 rel = p - _ShadowOrigin;
+                float2 uv = float2(dot(rel, _ShadowRight), dot(rel, _ShadowUp)) / _ShadowSize + 0.5;
+                float2 inside = saturate((0.5 - abs(uv - 0.5)) * 40.0);
+                float lit = tex2Dlod(_CloudShadowTex, float4(uv, 0, 0)).r;
+                return saturate((lit - (1.0 - _ShadowDarkness)) / max(_ShadowDarkness, 0.01)) * inside.x * inside.y;
+            }
+
+            // The rainbow's colours at an angle from the point opposite the sun (a brighter sky inside
+            // the bow, violet to red at 40.6-42.5 degrees, the dark band, the reversed secondary at
+            // 50-53.5), for a direction at cosTheta to the sun, times the light. Nothing beyond the table.
+            float3 BowColour(float cosTheta)
+            {
+                float3 colour = 0;
+                float u = acos(clamp(-cosTheta, -1.0, 1.0)) * _BowParams.x;
+                if (u < 1.0)
+                {
+                    colour = float3(tex2Dlod(_BowTex, float4(u, 0.125, 0, 0)).a,
+                                    tex2Dlod(_BowTex, float4(u, 0.375, 0, 0)).a,
+                                    tex2Dlod(_BowTex, float4(u, 0.625, 0, 0)).a) * (_BowParams.y * _BowSun);
+                }
+
+                return colour;
+            }
+
+            // THE RAINBOW ARCH (Sky/Rainbow.cs, Sky/RainbowArch.cs, 1.3.0): the bow a spot on the ground
+            // sees, drawn on a thin shell round that spot, so it stands fixed in the world and stays
+            // sharp from every camera. (A bow per camera followed the camera -- "on the camera lens";
+            // one pinned inside the rain smeared from anywhere but the spot.) Where this ray crosses
+            // the shell: two distances, -1 for none.
+            float2 ArchCrossings(float3 origin, float3 dir)
+            {
+                float3 l = origin - _BowArch.xyz;
+                float b = dot(l, dir);
+                float c = dot(l, l) - _BowArch.w * _BowArch.w;
+                float disc = b * b - c;
+                float2 t = -1.0;
+                if (disc > 0.0)
+                {
+                    float root = sqrt(disc);
+                    t = float2(-b - root, -b + root);
+                }
+
+                return t;
+            }
+
+            // The arch's light at a crossing t (before tEnd, where the scene or the rain ends): its
+            // colour at that point's angle from the spot's antisolar axis, times what the spot sees
+            // along its line of sight through it -- rain (the curtains' own unevenness and distance
+            // fade) the sun reaches, read at four depths round the shell (RainbowArch.Depths) between
+            // the arch's ground (_BowParams.w) and the cloud base -- fading out as the camera goes
+            // round behind it. Read at the shell alone, it was cut off sharp along the edge of every
+            // cloud shadow crossing it ("the rainbow is rendering 'behind' some clouds").
+            float3 ArchLight(float3 origin, float3 dir, float t, float tEnd)
+            {
+                float3 light = 0;
+                if (t > 0.0 && t < tEnd)
+                {
+                    float3 p = origin + dir * t;
+                    float3 v = (p - _BowArch.xyz) / _BowArch.w;
+                    float3 colour = BowColour(dot(v, _SunDir));
+                    if (max(colour.r, max(colour.g, colour.b)) > 1e-6)
+                    {
+                        float lit = 0.0;
+                        float count = 0.0;
+                        [unroll]
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float3 q = _BowArch.xyz + v * (_BowArch.w * (0.6 + (float)k * (0.8 / 3.0)));
+                            if (q.y > _BowParams.w && q.y < _CloudBottom)
+                            {
+                                count += 1.0;
+                                float rain = RainSigma(q, t) / max(_RainShaftDensity * _RainAmount, 1e-9);
+                                lit += BowShaft(q) * min(rain, 1.5);
+                            }
+                        }
+
+                        float see = smoothstep(0.0, 0.5, dot(dir, v));
+                        light = colour * (see * lit / max(count, 1.0));
+                    }
+                }
+
+                return light;
             }
 
             // The cloud slab between tEnter and tExit. Returns premultiplied light in rgb and
@@ -334,8 +435,12 @@ Shader "VolumetricClouds/CloudRaymarch"
 
             // Rain hanging under the clouds: the grey curtains seen from a distance, and the
             // loss of visibility from inside a shower. Same return convention as MarchClouds.
-            float4 MarchRain(float3 origin, float3 dir, float tStart, float tEnd, float jitter, float cosTheta)
+            // `archT` (1.3.0): where the ray crosses the rainbow's arch (-1: not); `toArch` comes back
+            // with what the rain leaves of the view up to each crossing -- the rain in front of the
+            // arch dims it.
+            float4 MarchRain(float3 origin, float3 dir, float tStart, float tEnd, float jitter, float cosTheta, float2 archT, out float2 toArch)
             {
+                toArch = 1.0;
                 if (tEnd <= tStart)
                     return float4(0, 0, 0, 1);
 
@@ -376,6 +481,10 @@ Shader "VolumetricClouds/CloudRaymarch"
                             lit += Lightning(p) * 0.6;
 
                         float stepT = exp(-sigma * segment);
+
+                        // The rain before the arch: up to each crossing, or all of this step.
+                        toArch = archT > tPrev ? transmittance * exp(-sigma * min(archT - tPrev, segment)) : toArch;
+
                         light += transmittance * lit * (1.0 - stepT);
                         transmittance *= stepT;
                     }
@@ -383,6 +492,8 @@ Shader "VolumetricClouds/CloudRaymarch"
                     tPrev = tNext;
                 }
 
+                // The march stopped, or the rain ended, before a crossing: all of it is in front.
+                toArch = archT >= tPrev ? transmittance : toArch;
                 return float4(light, transmittance);
             }
 
@@ -431,8 +542,13 @@ Shader "VolumetricClouds/CloudRaymarch"
             // in the last stretch before the ground; from inside the fog it starts at the camera.
             //
             // `camAbove` is the camera's height over FogGround(origin), which frag already has.
-            float4 MarchFog(float3 origin, float3 dir, float tEnd, float camAbove, float jitter, float cosTheta)
+            //
+            // `toArch` (1.3.0): what the fog leaves of the view up to each of the rainbow arch's
+            // crossings `archT` -- which frag dims the arch by, so a fog bank in front of a shower
+            // hides its rainbow (the author: "make sure the rainbow isn't 'over' the fog").
+            float4 MarchFog(float3 origin, float3 dir, float tEnd, float camAbove, float jitter, float cosTheta, float2 archT, out float2 toArch)
             {
+                toArch = 1.0;
                 if (tEnd <= 0.0)
                     return float4(0, 0, 0, 1);
 
@@ -549,6 +665,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (_VCLampParams.z > 0.5 && t < _VCLampParams.w)
                             lit += LampLight(origin, dir, tPrev, segment, jitter);
 
+                        // The fog before the arch: up to each crossing, or all of this step.
+                        toArch = archT > tPrev ? transmittance * exp(-sigma * min(archT - tPrev, segment)) : toArch;
+
                         float stepT = exp(-sigma * segment);
                         light += transmittance * lit * (1.0 - stepT);
                         transmittance *= stepT;
@@ -556,6 +675,9 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     tPrev = tNext;
                 }
+
+                // The march stopped, or the fog ended, before a crossing: all of it is in front.
+                toArch = archT >= tPrev ? transmittance : toArch;
 
                 return float4(light, transmittance);
             }
@@ -602,22 +724,28 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // the base, otherwise from where the ray comes down through it.
                 float4 rain = float4(0, 0, 0, 1);
                 bool cameraBelowBase = origin.y < _CloudBottom;
+                float rStart = cameraBelowBase ? 0.0 : (dir.y < 0.0 ? tA : 1e9);
+                float rEnd = (cameraBelowBase && dir.y > 0.0) ? tA : 1e9;
+
+                // With depth occlusion off there is no ground to stop at; use sea level.
+                if (dir.y < 0.0)
+                    rEnd = min(rEnd, (_RainFloor - origin.y) / dy);
+
+                rEnd = min(rEnd, min(sceneDist, _RainMaxDistance));
+
+                // The rainbow's arch: where this ray crosses it, before the marches, which say how
+                // much rain and fog stands in front of each crossing.
+                bool arch = _BowParams.z > 0.5;
+                float2 archT = arch ? ArchCrossings(origin, dir) : float2(-1.0, -1.0);
+                float2 rainToArch = 1.0;
+
                 if (_RainAmount > 0.001 && _RainShaftDensity > 0.0)
-                {
-                    float rStart = cameraBelowBase ? 0.0 : (dir.y < 0.0 ? tA : 1e9);
-                    float rEnd = (cameraBelowBase && dir.y > 0.0) ? tA : 1e9;
-
-                    // With depth occlusion off there is no ground to stop at; use sea level.
-                    if (dir.y < 0.0)
-                        rEnd = min(rEnd, (_RainFloor - origin.y) / dy);
-
-                    rEnd = min(rEnd, min(sceneDist, _RainMaxDistance));
-                    rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta);
-                }
+                    rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta, archT, rainToArch);
 
                 // MarchFog finds its own stretch of the ray, level fog or draped; all it needs is
-                // where the ray ends.
+                // where the ray ends (and where the arch is, to say how much fog is in front of it).
                 float4 fog = float4(0, 0, 0, 1);
+                float2 fogToArch = 1.0;
                 bool cameraInFog = false;
                 if (_FogAmount > 0.001 && _FogDensity > 0.0)
                 {
@@ -636,7 +764,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (dir.y < 0.0)
                             fEnd = min(fEnd, (_FogFloor - origin.y) / dy);
 
-                        fog = MarchFog(origin, dir, fEnd, camAbove, jitter, cosTheta);
+                        fog = MarchFog(origin, dir, fEnd, camAbove, jitter, cosTheta, archT, fogToArch);
                     }
                 }
 
@@ -645,6 +773,18 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // are marched apart (each needs its samples in a different place) and layered
                 // by whichever the camera is inside, which is what dominates the view there.
                 float4 lower = cameraInFog ? Over(fog, rain) : Over(rain, fog);
+
+                // The arch stands in the rain but is layered apart from it: dimmed by exactly the rain
+                // and fog in front of it (1.3.0; the author: "make sure the rainbow isn't 'over' the
+                // fog but rather behind it"). With the rain it would go over a fog bank standing
+                // between the camera and the shower whenever the camera is out of the fog.
+                if (arch)
+                {
+                    float2 inFront = rainToArch * fogToArch;
+                    lower.rgb += ArchLight(origin, dir, archT.x, rEnd) * inFront.x
+                               + ArchLight(origin, dir, archT.y, rEnd) * inFront.y;
+                }
+
                 float4 result = cameraBelowBase ? Over(lower, clouds) : Over(clouds, lower);
 
                 return float4(result.rgb, 1.0 - result.a);

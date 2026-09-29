@@ -174,6 +174,9 @@ namespace VolumetricClouds.Sky
             // After the cover and the wind: where it rains is derived from both.
             CloudRain.Advance(_field, RainDrops.ShadersAvailable, Time.deltaTime, simulationRate);
 
+            // A new rain rolls its dice for rainbows (Rainbow Chance).
+            Rainbow.Advance();
+
             // The fog is drawn by the volumetric cloud pass, so it needs that pass running.
             CloudFog.Advance(Time.deltaTime, CloudVolume.IsActive, CloudWeather.WindDirection, simulationRate);
 
@@ -247,6 +250,7 @@ namespace VolumetricClouds.Sky
         {
             // The sound-and-wet-roads patch outlives the city; hand the game its rain back.
             CloudRain.Clear();
+            Rainbow.Clear();
 
             // No city, no sky to save: an editor saving a map after this must not write the
             // city's sky into it.

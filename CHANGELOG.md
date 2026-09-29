@@ -7,16 +7,18 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.3.0 — unreleased
 
-Profiles, cloud colours and a cloud brightness of their own at night, snow on winter maps, and
-a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains
-nine lines: `Profile` (empty: no profile), the three night-colour settings and the four
+Profiles, rainbows, cloud colours and a cloud brightness of their own at night, snow on winter
+maps, and a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file
+gains eleven lines: `Profile` (empty: no profile), the three night-colour settings and the four
 night-brightness settings (both switched off, so the clouds keep the colours and the brightness
-you gave them, day and night), and Cumulus's `CumulusLayer` (100%: Cumulus as in 1.2). Saved
+you gave them, day and night), Cumulus's `CumulusLayer` (100%: Cumulus as in 1.2), and
+`Rainbows` and `RainbowChance` (both 100%: rainbows as in nature). Saved
 cities keep their sky, and are saved with one more
 value, where you moved their clouds (none until you do); an older version of the mod reads them
-as before. What changes for everyone with the update: on winter maps the snow falls only under
-the clouds and road snow follows it (see *New: snow*); the sun no longer shines through the
-clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
+as before. What changes for everyone with the update: rainbows appear where the sun shines on
+the rain (see *New: rainbows*); on winter maps the snow falls only under
+the clouds and road snow follows it (see *New: snow*); the sun and its sunset glow no longer
+shine through the clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
 volumetric fog is less grainy (and costs more), lightning bolts are no longer cut off by
 the clouds behind them, the Light tab is in the in-game panel without advanced options, and
 the Rendering tab's settings are on the mod's options page instead.
@@ -52,6 +54,26 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   read (or you press Save), and the log says why.
 - "Reset all settings" lets go of the picked profile first and never changes a profile. Your
   profiles are kept, and picking one brings its sky back.
+
+### New: rainbows
+
+- When the sun shines on a shower, a rainbow stands in it: an arch near where you are looking,
+  its feet on the ground and its top just under the clouds, violet inside to red outside, the sky
+  a little brighter within it, and a fainter second bow further out with its colours reversed.
+  It leans back away from the sun, the more so the higher the sun is. It stays where it is while
+  you look around, zoom and circle it. It shows only where it passes through rain in sunshine,
+  breaks where the rain behind it is in the shade, and fades out if you go round behind it. When
+  you move far away, or the shower drifts out of it, it fades and a new one forms where you are
+  looking, if there is sunlit rain there. One at a time. None with the sun more than 60 degrees
+  up. Rain or fog in front of it hides it.
+- "Rainbows" on the Weather tab (with advanced options on) sets how strong they are: 100%, the
+  default, is as in nature, 200% more vivid; 0% switches them off, and nothing of them is drawn.
+- "Rainbow chance" on the Now tab is the share of rains that bring rainbows at all: each rain
+  rolls its dice when it starts. 100%, the default, is nature, where every rain the sun shines on
+  has one.
+- Rainbows need the mod's rain and the cloud shadows (the shadows are how the mod knows where the
+  sun reaches the rain). There are none in snow, at night, or by moonlight. The game keeps a
+  rainbow in its weather but never draws one; the mod does not read it.
 
 ### New: different cloud colours at night
 
@@ -135,6 +157,9 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   front of them. The glow of lightning inside the clouds is unchanged.
 - The sun no longer shines through distant clouds in the morning and evening: near the sun the
   clouds keep their full cover into the distance, as they already did at night for the stars.
+  Nor does the sky's glow round a low sun: as the sun goes down that cover widens, from 10
+  degrees round it by day to 45 degrees at sunset and sunrise, so the sunset glow no longer
+  shows through the clouds in front of it. By day the clouds fade into the distance as before.
 - The game's fog draws a hazy band over the lowest part of the sky, which covered the distant
   clouds, most visibly at night. While the mod's clouds are shown ("Volumetric Weather" ticked)
   that band is taken off the sky; the game's fog on the ground and at the map's edge is

@@ -30,6 +30,11 @@ and bring their own rain, lightning, fog and night sky with them.
   of falling everywhere at once. On winter maps (1.3.0) the snow does the same: whiter curtains,
   the game's own snowflakes near the camera only where it is snowing, and road snow that builds
   up only there.
+- **Rainbows** (1.3.0) — an arch standing in a sunlit shower near where you look, fixed in the
+  world while you look around it: feet on the ground, top under the clouds, the fainter second
+  bow outside, shown only where it passes through rain in sunshine.
+  Colours from the physics of a raindrop (Airy's theory, per wavelength and drop size). Strength
+  on the Weather tab, a chance per rain on the Now tab.
 - **Lightning** — flashes light the clouds and rain from inside, the bolt is redrawn, and
   thunder arrives after a speed-of-sound delay. Storm lightning is visual-only and never starts
   a fire; the game's own strikes are left untouched.
@@ -173,7 +178,10 @@ own rarely identifies the cause.
    winter maps road snow, which the game keeps as road wetness.
 6. **Rain, lightning and fog share the cloud pass** and composite front to back. Fog is a level
    slab above the map's sea level, or follows the ground through a 256² height texture, and is lit through the cloud shadow map — that is where
-   the sun shafts come from.
+   the sun shafts come from. The rainbow is an arch on a thin shell round a spot on the ground
+   (`Sky/RainbowArch.cs`), coloured by each point's angle from that spot's antisolar axis
+   (`Sky/RainbowTable.cs`), lit only where the same shadow map says the sun reaches the rain there,
+   and dimmed by the rain and fog in front of it.
 7. **Halos are a shader replacement**, swapped into the batched light layers and the
    dynamic-light slot each frame. The game's own materials are never modified.
 

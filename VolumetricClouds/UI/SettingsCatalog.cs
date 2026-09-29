@@ -825,6 +825,12 @@ namespace VolumetricClouds.UI
             return Settings.RainEnabled == null || Settings.RainEnabled.value;
         }
 
+        /// <summary>Rainbows are drawn in our rain, lit where the cloud shadows say the sun reaches it.</summary>
+        private static bool RainbowsPossible()
+        {
+            return RainOn() && ShadowsOn();
+        }
+
         private static bool HalosOn()
         {
             return Settings.HaloEnabled != null && Settings.HaloEnabled.value;
@@ -1087,6 +1093,20 @@ namespace VolumetricClouds.UI
                 OnClick = CloudLightning.RequestTest,
                 Enabled = LightningOn,
                 Profiled = false,
+            });
+
+            // 1.3.0 (the author: "Rainbow chance should be in the Now tab ... default the value to
+            // whatever is most like real life"): the share of rains that bring rainbows at all
+            // (Sky.Rainbow). 100% is nature. Now-tab, so not in a profile.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Now,
+                Float = Settings.RainbowChance,
+                DefaultFloat = Settings.Defaults.RainbowChance,
+                Min = 0f, Max = 100f, Step = 5f,
+                Profiled = false,
+                Enabled = () => RainbowsPossible() && Sky.Rainbow.Amount > 0f,
             });
         }
 
@@ -1578,6 +1598,18 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.RainFallSpeed,
                 Min = 25f, Max = 300f, Step = 5f,
                 Enabled = RainOn,
+            });
+
+            // 1.3.0: the rainbows' strength, 100% = nature ("B is perfect!"), 200% more vivid than
+            // nature; 0% switches them off (Sky.Rainbow). They need our rain and the cloud shadows.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Weather,
+                Float = Settings.Rainbows,
+                DefaultFloat = Settings.Defaults.Rainbows,
+                Min = 0f, Max = 200f, Step = 5f,
+                Enabled = RainbowsPossible,
             });
 
             Add(new Row

@@ -1,4 +1,4 @@
-[h1]Version 1.3: Profiles, Night Colors and Snow[/h1]
+[h1]Version 1.3: Profiles, Rainbows, Night Colors and Snow[/h1]
 Save your favorite skies as [b]profiles[/b] and switch between them from the list at the top of the in-game panel. Check the Change Notes to see all the changes.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
@@ -26,6 +26,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Cloud detail[/b] (new in v1.2): crisp edges, puffy shapes, and real light and shade
 [*][b]Follows the game's weather[/b], or you can set it yourself
 [*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning lights them up from inside. On winter maps it snows instead (new in v1.3)
+[*][b]Rainbows[/b] (new in v1.3)
 [*][b]Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
 [*][b]Cloud and fog colors[/b], with different cloud colors at night if you want them
 [*][b]Profiles[/b] (new in v1.3): save your favorite skies and switch between them

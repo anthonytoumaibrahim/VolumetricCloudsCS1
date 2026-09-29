@@ -82,6 +82,16 @@ namespace VolumetricClouds.Sky
         private Texture2D _blueNoise;
         private string _blueNoiseError;
 
+        // The rainbow's colours (RainbowTable): made on the load's worker thread (once per session),
+        // uploaded with the noise. Null: no rainbows, and the log says why. The error is written by
+        // the worker before _noiseBytes (volatile), read after.
+        private Texture2D _rainbowTable;
+        private string _rainbowError;
+
+        // The game's camera, for where it looks (the rainbow's arch stands there).
+        private CameraController _cameraController;
+        private bool _lookedForController;
+
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
         private static readonly int IdUseDepth = Shader.PropertyToID("_UseDepth");
@@ -139,6 +149,10 @@ namespace VolumetricClouds.Sky
         private static readonly int IdCumulusLight = Shader.PropertyToID("_CumulusLight");
         private static readonly int IdCumulusLobes = Shader.PropertyToID("_CumulusLobes");
         private static readonly int IdCumulusLobeG = Shader.PropertyToID("_CumulusLobeG");
+        private static readonly int IdBowTex = Shader.PropertyToID("_BowTex");
+        private static readonly int IdBowParams = Shader.PropertyToID("_BowParams");
+        private static readonly int IdBowSun = Shader.PropertyToID("_BowSun");
+        private static readonly int IdBowArch = Shader.PropertyToID("_BowArch");
 
         /// <summary>
         /// Extinction per metre inside full-strength rain, at 100% on the slider. Real
@@ -183,9 +197,17 @@ namespace VolumetricClouds.Sky
 
         private static readonly int IdSunCover = Shader.PropertyToID("_SunCover");
 
-        /// <summary>The cone round the sun where far clouds keep their cover (CloudMedia.cginc SunCover): 10 and 3 degrees.</summary>
-        private static readonly float SunCoverOuterCos = Mathf.Cos(10f * Mathf.Deg2Rad);
-        private static readonly float SunCoverInnerCos = Mathf.Cos(3f * Mathf.Deg2Rad);
+        /// <summary>
+        /// The cone round the sun where far clouds keep their cover (CloudMedia.cginc SunCover): from
+        /// 10 degrees, full within 3, by day; widening to 45 / 15 as the sun goes down between 25 and
+        /// 5 degrees (the sunset glow, see ApplyNight).
+        /// </summary>
+        private const float SunCoverOuter = 10f;
+        private const float SunCoverInner = 3f;
+        private const float SunCoverLowOuter = 45f;
+        private const float SunCoverLowInner = 15f;
+        private const float SunCoverDayElevation = 25f;
+        private const float SunCoverLowElevation = 5f;
 
         public void Initialise(CloudDensityField field)
         {
@@ -259,6 +281,17 @@ namespace VolumetricClouds.Sky
                 catch (Exception e)
                 {
                     _blueNoiseError = e.GetType().Name + ": " + e.Message;
+                }
+
+                // The rainbow's colours: made the first time, kept for the session.
+                try
+                {
+                    if (RainbowTable.Bytes == null)
+                        _rainbowError = "no table";
+                }
+                catch (Exception e)
+                {
+                    _rainbowError = e.GetType().Name + ": " + e.Message;
                 }
 
                 // Last: the main thread takes them once it sees this.
@@ -360,6 +393,7 @@ namespace VolumetricClouds.Sky
             _detailLevels = null;
 
             UploadBlueNoise();
+            UploadRainbowTable();
 
             // Made with it when the style was Cumulus at load: in the same frame.
             UpdateCumulus();
@@ -414,6 +448,54 @@ namespace VolumetricClouds.Sky
 
             Log.Msg("jitter: blue noise " + BlueNoise.Size + "^2 for the clouds', rain's and fog's steps (made in " +
                     BlueNoise.Milliseconds + " ms, once per session)");
+        }
+
+        /// <summary>
+        /// The rainbow's colours (RainbowTable), made by the worker: ARGB32, LINEAR, one row per
+        /// colour with the value in every channel (the shader reads alpha), filtered along the angle,
+        /// clamped at the ends -- the blue noise's format, so no engine call the mod has not made.
+        /// Without it there are no rainbows, and the log says why.
+        /// </summary>
+        private void UploadRainbowTable()
+        {
+            if (_rainbowError != null)
+            {
+                Log.Warn("rainbow: its colour table could not be made (" + _rainbowError + "); no rainbows");
+                return;
+            }
+
+            try
+            {
+                byte[] bytes = RainbowTable.Bytes;
+                Color32[] pixels = new Color32[bytes.Length];
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    byte v = bytes[i];
+                    pixels[i] = new Color32(v, v, v, v);
+                }
+
+                _rainbowTable = new Texture2D(RainbowTable.Size, RainbowTable.Rows, TextureFormat.ARGB32, false, true)
+                {
+                    name = "VolumetricCloudsRainbow",
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear,
+                    anisoLevel = 0,
+                };
+                _rainbowTable.SetPixels32(pixels);
+                _rainbowTable.Apply(false);
+            }
+            catch (Exception e)
+            {
+                if (_rainbowTable != null)
+                    Destroy(_rainbowTable);
+                _rainbowTable = null;
+                Log.Warn("rainbow: its colour table could not be uploaded (" + e.GetType().Name + ": " + e.Message + "); no rainbows");
+                return;
+            }
+
+            Log.Msg("rainbow: colour table " + RainbowTable.Size + "x" + RainbowTable.Rows + " over " + RainbowTable.MaxAngle +
+                    " deg round the antisolar point, 255 = " + RainbowTable.Scale.ToString("F3") + " (made in " +
+                    RainbowTable.Milliseconds + " ms, once per session)");
         }
 
         /// <summary>
@@ -749,6 +831,7 @@ namespace VolumetricClouds.Sky
             // at night", 1.3.0) and its colours below, through one twilight.
             float night = NightFactor(sun);
             Night = night;
+            float sunElevation = SunElevation(sun);
 
             float coverage = CloudShaderParams.Coverage;
             bool auto = Settings.BrightnessAuto;
@@ -818,15 +901,27 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * (snow ? 1f : 0.6f));
             _material.SetVector(IdRainSun, AsVector(cloudSun) * (snow ? 0.3f : 0.12f));
 
-            ApplyNight(night, shadeTint);
-            ApplyFog(sun, lightAmbient, baseSun);
+            ApplyNight(night, shadeTint, sunElevation);
+            ApplyFog(lightAmbient, baseSun);
+
+            // The cloud shadow map, as the air under the clouds reads it: the fog's sun shafts and
+            // the rainbow's "is this drop in the sun" (1.3.0; until then only the fog's, so it was
+            // set only while the fog was on). Uploaded whenever either wants it.
+            CloudShadowMap map = CloudShadowMap.Current;
+            bool shadowMap = Settings.ShadowsCast && sun != null && map != null && map.IsReady && map.Texture != null;
+            bool bow = ApplyRainbow(sun, key, cloudSun, shadowMap, sunElevation);
+            ApplyShadowLookup(sun, map, shadowMap && (CloudFog.Active || bow));
 
             if (!_loggedLighting)
             {
                 _loggedLighting = true;
                 Log.Msg("cloud lighting key='" + (key == null ? "none" : key.name) + "' intensity=" +
                         (key == null ? 0f : key.intensity) + " sunColor=" + cloudSun +
-                        " ambientMode=" + RenderSettings.ambientMode + " ambient=" + cloudAmbient);
+                        " ambientMode=" + RenderSettings.ambientMode + " ambient=" + cloudAmbient +
+                        (properties != null
+                            ? " | sky: mie=" + properties.m_MieScattering + " sunGlow g=" + properties.m_SunAnisotropyFactor +
+                              " sunSize=" + properties.m_SunSize
+                            : ""));
             }
 
             if (!_loggedDecoupling && lightSun.maxColorComponent > 0.001f)
@@ -902,6 +997,7 @@ namespace VolumetricClouds.Sky
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
+                       " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
                        " clouds=" + IsActive);
         }
@@ -929,12 +1025,17 @@ namespace VolumetricClouds.Sky
             if (sun == null)
                 return 0f;
 
-            float elevation = -Mathf.Asin(Mathf.Clamp(sun.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
-            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2f, -8f, elevation));
+            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2f, -8f, SunElevation(sun)));
+        }
+
+        /// <summary>The sun's height over the horizon, degrees; -90 without a sun.</summary>
+        private static float SunElevation(Light sun)
+        {
+            return sun != null ? -Mathf.Asin(Mathf.Clamp(sun.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg : -90f;
         }
 
         /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
-        private void ApplyNight(float night, Color shadeTint)
+        private void ApplyNight(float night, Color shadeTint, float sunElevation)
         {
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             _material.SetFloat(IdNightOpacity, night * opacity);
@@ -950,7 +1051,19 @@ namespace VolumetricClouds.Sky
             // the MOON's once the moon lights the clouds, and there "Clouds hide the stars at
             // night" alone decides (a player at 60% would otherwise get a full-cover disc round
             // the moon).
-            _material.SetVector(IdSunCover, new Vector4(SunCoverOuterCos, SunCoverInnerCos, 1f - night, 0f));
+            //
+            // The cone widens as the sun goes down (1.3.0; the author: "the sun's mie scattering /
+            // halo around it is still visible even with clouds, it's like overlaying the clouds ...
+            // mostly visible during sunset"). The sky's glow round the sun is the game's Mie phase
+            // (DayNightProperties.m_SunAnisotropyFactor, g 0.76 by default: still 10% of its peak
+            // 30 deg out, 4% at 45), brightest against the darkening sky at sunset -- and with the
+            // sun on the horizon every cloud in front of it is far away and faded see-through (one
+            // 2 deg up, ~95%). By day (the sun 25 deg up or more) the cone is the 10 / 3 degrees it
+            // was, the look that is liked; with the sun 5 deg up or lower, 45 / 15.
+            float low = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SunCoverDayElevation, SunCoverLowElevation, sunElevation));
+            float outer = Mathf.Lerp(SunCoverOuter, SunCoverLowOuter, low);
+            float inner = Mathf.Lerp(SunCoverInner, SunCoverLowInner, low);
+            _material.SetVector(IdSunCover, new Vector4(Mathf.Cos(outer * Mathf.Deg2Rad), Mathf.Cos(inner * Mathf.Deg2Rad), 1f - night, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
@@ -978,11 +1091,9 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The fog layer and the shadow map it is lit through. The sun's OWN transform is used
-        /// for the lookup whatever is lighting the clouds: the shadow map is always rendered
-        /// along the sun, and at night it is simply white.
+        /// The fog layer. (The shadow map it is lit through: <see cref="ApplyShadowLookup"/>.)
         /// </summary>
-        private void ApplyFog(Light sun, Color lightAmbient, Color baseSun)
+        private void ApplyFog(Color lightAmbient, Color baseSun)
         {
             // Off means nothing runs. The shader's guard is a uniform branch, so writing zero
             // here really is the whole cost of the feature when it is switched off -- no
@@ -991,7 +1102,6 @@ namespace VolumetricClouds.Sky
             {
                 _material.SetFloat(IdFogAmount, 0f);
                 _material.SetFloat(IdFogDensity, 0f);
-                _material.SetFloat(IdShadowAvailable, 0f);
                 return;
             }
 
@@ -1082,21 +1192,75 @@ namespace VolumetricClouds.Sky
 
             _material.SetVector(IdFogAmbient, new Vector4(fogAmbient.r * lean.r, fogAmbient.g * lean.g, fogAmbient.b * lean.b, 0f) * 1.3f);
             _material.SetVector(IdFogSun, new Vector4(fogSun.r * lean.r, fogSun.g * lean.g, fogSun.b * lean.b, 0f) * 0.7f);
+        }
 
-            CloudShadowMap map = CloudShadowMap.Current;
-            bool shadows = Settings.ShadowsCast;
-            bool available = shadows && sun != null && map != null && map.IsReady && map.Texture != null;
+        /// <summary>
+        /// The cloud shadow map for the fog's sun shafts and the rainbow, or none. The sun's OWN
+        /// transform is used for the lookup whatever is lighting the clouds: the shadow map is
+        /// always rendered along the sun, and at night it is simply white.
+        /// </summary>
+        private void ApplyShadowLookup(Light sun, CloudShadowMap map, bool wanted)
+        {
+            _material.SetFloat(IdShadowAvailable, wanted ? 1f : 0f);
+            if (!wanted)
+                return;
 
-            _material.SetFloat(IdShadowAvailable, available ? 1f : 0f);
-            if (available)
+            _material.SetTexture(IdCloudShadowTex, map.Texture);
+            _material.SetVector(IdShadowOrigin, CloudShadowMap.Anchor);
+            _material.SetVector(IdShadowRight, sun.transform.right);
+            _material.SetVector(IdShadowUp, sun.transform.up);
+            _material.SetFloat(IdShadowSize, CloudShadowMap.CookieSize);
+            _material.SetFloat(IdShadowDarkness, CloudShadowMap.ShadowDepth(CloudShaderParams.Coverage));
+        }
+
+        /// <summary>
+        /// The rainbow (Sky.Rainbow): its colour table, how far round the antisolar point it reaches,
+        /// and the light it is lit by -- the CLOUD's sun, untinted, like the rain it is part of (the
+        /// rain is drawn in the cloud pass and reads as part of the cloud), times the Rainbows
+        /// setting. A zero strength switches the shader's bow off (a uniform branch: nothing runs).
+        /// True while a bow can show.
+        /// </summary>
+        private bool ApplyRainbow(Light sun, Light key, Color cloudSun, bool shadowMap, float elevation)
+        {
+            float strength = Rainbow.Strength(elevation, sun != null && key == sun, shadowMap, _rainbowTable != null);
+
+            // One arch at a time, standing where the camera looks (Rainbow.UpdateArch).
+            Vector3 toSun = sun != null ? -sun.transform.forward : Vector3.up;
+            Rainbow.UpdateArch(_field, LookAt(), toSun.normalized, elevation, strength, Time.deltaTime);
+            float shown = strength * Rainbow.ArchShown;
+            bool on = shown > 0f;
+
+            _material.SetVector(IdBowParams, new Vector4(1f / (RainbowTable.MaxAngle * Mathf.Deg2Rad), RainbowTable.Scale, on ? 1f : 0f,
+                                                         Rainbow.ArchCentre.y));
+            _material.SetVector(IdBowSun, AsVector(cloudSun) * (shown * Rainbow.ArchGain));
+            Vector3 spot = Rainbow.ArchSpot;
+            _material.SetVector(IdBowArch, new Vector4(spot.x, spot.y, spot.z, Mathf.Max(Rainbow.ArchRadius, 1f)));
+            if (on)
+                _material.SetTexture(IdBowTex, _rainbowTable);
+
+            return on;
+        }
+
+        /// <summary>
+        /// Where the camera looks: the point the game's camera orbits (CameraController.m_currentPosition,
+        /// IL: UpdateTransform places the camera round it), else 1.5 km ahead of the camera.
+        /// </summary>
+        private Vector3 LookAt()
+        {
+            if (_cameraController == null && !_lookedForController && _camera != null)
             {
-                _material.SetTexture(IdCloudShadowTex, map.Texture);
-                _material.SetVector(IdShadowOrigin, CloudShadowMap.Anchor);
-                _material.SetVector(IdShadowRight, sun.transform.right);
-                _material.SetVector(IdShadowUp, sun.transform.up);
-                _material.SetFloat(IdShadowSize, CloudShadowMap.CookieSize);
-                _material.SetFloat(IdShadowDarkness, CloudShadowMap.ShadowDepth(CloudShaderParams.Coverage));
+                _lookedForController = true;
+                _cameraController = _camera.GetComponent<CameraController>();
+                if (_cameraController == null)
+                    _cameraController = FindObjectOfType<CameraController>();
+                Log.Msg("rainbow: arches stand where the camera looks -- " +
+                        (_cameraController != null ? "the game camera's look-at point" : "no CameraController found, 1.5 km ahead of the camera"));
             }
+
+            if (_cameraController != null)
+                return _cameraController.m_currentPosition;
+
+            return _camera != null ? _camera.transform.position + _camera.transform.forward * 1500f : Vector3.zero;
         }
 
         /// <summary>Unit cube; culling is off in the shader, so winding doesn't matter.</summary>
@@ -1175,6 +1339,8 @@ namespace VolumetricClouds.Sky
                 Destroy(_noise);
             if (_blueNoise != null)
                 Destroy(_blueNoise);
+            if (_rainbowTable != null)
+                Destroy(_rainbowTable);
 
             if (_detail != null)
             {

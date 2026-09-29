@@ -142,6 +142,9 @@
   <String key="TestLightning.Label">Test lightning (visual only, in front of the camera)</String>
   <String key="TestLightning.Tooltip">Shows one strike, even while paused.</String>
 
+  <String key="RainbowChance.Label">Rainbow chance</String>
+  <String key="RainbowChance.Tooltip">How many rains bring rainbows. 100% is nature: every rain the sun shines on.</String>
+
   <!-- ==================== In-game panel: Clouds ==================== -->
 
   <String key="CloudsVisible.Label">Volumetric Weather</String>
@@ -313,6 +316,9 @@
 
   <String key="RainFallSpeed.Label">Rain fall speed</String>
   <String key="RainFallSpeed.Tooltip">How fast the rain or snow falls.</String>
+
+  <String key="Rainbows.Label">Rainbows</String>
+  <String key="Rainbows.Tooltip">An arch in a sunlit shower near where you look. 100% is nature. Needs cloud shadows.</String>
 
   <String key="RainLocalised.Label">Rain sound, wet roads and road snow follow the clouds</String>
   <String key="RainLocalised.Tooltip">Only where it is actually raining or snowing.</String>
