@@ -26,8 +26,8 @@ namespace VolumetricClouds
     /// Normal". He asked for a Save button.)
     ///
     /// Picking one puts ALL its values in (a value it lacks goes back to its default: a profile is
-    /// a complete sky), the fog switch included and without the fog's question: the player's own
-    /// click on a sky they saved or chose, like "Reset all" (invariant 12).
+    /// a complete sky), the fog switch included: the player's own click on a sky they saved or
+    /// chose, like "Reset all" (invariant 12).
     ///
     /// Each profile is VolumetricCloudsProfiles\&lt;name&gt;.xml beside the settings file, in the
     /// settings file's own format: a player can send one to a friend, write one by hand, or drop

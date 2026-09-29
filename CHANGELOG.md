@@ -20,8 +20,9 @@ the rain (see *New: rainbows*); on winter maps the snow falls only under
 the clouds and road snow follows it (see *New: snow*); the sun and its sunset glow no longer
 shine through the clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
 volumetric fog is less grainy (and costs more), lightning bolts are no longer cut off by
-the clouds behind them, the Light tab is in the in-game panel without advanced options, and
-the Rendering tab's settings are on the mod's options page instead.
+the clouds behind them, the Light tab is in the in-game panel without advanced options, the
+Rendering tab's settings are on the mod's options page instead, and switching the volumetric
+fog on no longer shows a warning popup.
 Only a new install, or "Reset all settings", gets the new clear-sky cloud brightness of 150%
 (300% before): an existing settings file keeps its value.
 
@@ -177,6 +178,11 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   another mod already shows that bar; otherwise it is the mod's own button on the screen,
   which can be dragged anywhere. If your button was in a Unified UI bar that only this mod
   put there, it is now that on-screen button. Settings are unchanged.
+
+### Removed
+
+- The warning popup when switching "Volumetric fog" on. The switch still says how heavy the
+  fog is, and the warning under it stays.
 
 ## 1.2.0 — 2026-09-26
 

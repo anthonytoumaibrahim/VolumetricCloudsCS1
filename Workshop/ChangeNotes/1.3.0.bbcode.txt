@@ -26,4 +26,5 @@
 [b]Removed[/b]
 [list]
 [*]The [i]Rendering[/i] tab: its settings are now at the top of the mod's options page (Esc, Options, Volumetric Weather).
+[*]The warning popup when switching [i]Volumetric fog[/i] on.
 [/list]

@@ -98,8 +98,8 @@ backups of the cities you care about.
    also has the quality preset (at the top; set to *Custom*, it shows its three settings under
    it), how the clouds are drawn, the language, the panel's key and the reset buttons.
 
-*Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for
-confirmation first). *Reset all settings to defaults* (on the mod's options page) restores
+*Volumetric fog* and *Light halos* are off until you turn them on. *Reset all settings to
+defaults* (on the mod's options page) restores
 everything, including turning volumetric fog and *Show advanced options in the in-game panel*
 off.
 

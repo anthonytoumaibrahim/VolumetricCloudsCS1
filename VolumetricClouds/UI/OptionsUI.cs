@@ -534,8 +534,7 @@ namespace VolumetricClouds.UI
                             control.Readout.text = row.Label + ": " + row.FormatDisplay(display);
                     }
 
-                    if (control.Check != null && row.Bool != null && !row.Pending
-                        && control.Check.isChecked != row.Bool.value)
+                    if (control.Check != null && row.Bool != null && control.Check.isChecked != row.Bool.value)
                     {
                         control.Check.isChecked = row.Bool.value;
                         touched++;

@@ -244,10 +244,7 @@ namespace VolumetricClouds.UI
                         }
                     }
 
-                    // Not while its confirmation is open: the value is still the old one, and
-                    // this would untick the box the player has just ticked.
-                    if (control.Check != null && row.Bool != null && !row.Pending
-                        && control.Check.isChecked != row.Bool.value)
+                    if (control.Check != null && row.Bool != null && control.Check.isChecked != row.Bool.value)
                     {
                         control.Check.isChecked = row.Bool.value;
                         touched++;

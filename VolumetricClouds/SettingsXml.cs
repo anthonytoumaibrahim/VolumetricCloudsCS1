@@ -1143,9 +1143,6 @@ namespace VolumetricClouds
                 text = Localization.Get("File.Key", label, SettingsXmlFormat.FormatKey(row.DefaultKey));
             }
 
-            if (row.Confirm)
-                text += " " + Localization.Get("File.Confirm");
-
             if (row.HasNote)
                 text += " " + row.Note;
 

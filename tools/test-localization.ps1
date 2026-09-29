@@ -6,7 +6,7 @@
 # test-reporter.ps1 does it) and reads the real Localization\*.xml. Then:
 #   - every file parses, with no key written twice and every {n} well-formed;
 #   - English has every key the code asks for: the rows of SettingsCatalog.cs (Label, Tooltip,
-#     Note, Confirm, Group, choice names -- read from the source, as the in-game check reads
+#     Note, Group, choice names -- read from the source, as the in-game check reads
 #     them from the built rows), the tab names, and every key-shaped string literal in *.cs;
 #   - English has no key nothing asks for (dead text a translator would translate for nothing);
 #   - a translation has no key English lacks, and says which English keys it has not done yet;
@@ -62,7 +62,6 @@ foreach ($b in $blocks) {
         if ($shown) { [void]$needed.Add("$name.Tooltip") }
     }
     if ($b -match 'HasNote = true') { [void]$needed.Add("$name.Note") }
-    if ($b -match 'Confirm = true') { [void]$needed.Add("$name.Confirm") }
     if ($b -match 'Group = "(\w+)"') { [void]$needed.Add("Group." + $Matches[1]) }
     if ($b -match 'ChoiceKeys = new\[\] \{([^}]*)\}') {
         foreach ($k in [regex]::Matches($Matches[1], '"([^"]+)"')) { [void]$needed.Add($k.Groups[1].Value) }
@@ -105,7 +104,7 @@ foreach ($key in $en.Table.Keys) {
 Check "every English text is non-empty with well-formed {n}" ($bad -join "; ") ""
 
 Check "a wrapped tooltip is one line" ($en.Table["FollowTheGame.Tooltip"] -match "`n") "False"
-Check "\n is a real break, no stray spaces" ($en.Table["FogEnabled.Confirm"] -match "frame rate, most of all with the camera down in it\.`n`nThe game's own fog") "True"
+Check "\n is a real break, no stray spaces" ($en.Table["Profiles.Confirm.Remove"] -match "^Delete the profile '\{0\}'\?`n`nOnly its file is removed") "True"
 $header = $en.Table["File.Header"] -split "`n"
 Check "the settings file header: 11 lines, blank second line" ("" + $header.Count + "," + ($header[1] -eq "")) "11,True"
 Check "status lines keep their double spaces" ($en.Table["Status.Fog.Following"] -match "  ->  ") "True"

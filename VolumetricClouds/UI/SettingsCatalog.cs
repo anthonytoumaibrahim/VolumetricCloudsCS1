@@ -82,11 +82,6 @@ namespace VolumetricClouds.UI
         public bool HasNote;
 
         /// <summary>
-        /// Toggles: ask "&lt;Name&gt;.Confirm" before switching ON. Never asked when switching off.
-        /// </summary>
-        public bool Confirm;
-
-        /// <summary>
         /// On the game's options page: shown there only while this says so (1.3.0: the three rows
         /// the quality preset sets, under Custom only -- the author: "It's not understandable what
         /// is Custom without them"). Null: always.
@@ -176,12 +171,6 @@ namespace VolumetricClouds.UI
         public bool Profiled = true;
 
         /// <summary>
-        /// True while this row's confirmation dialog is open. The stored value is still the old
-        /// one at that point, so a refresh would untick the box the player just ticked.
-        /// </summary>
-        public bool Pending;
-
-        /// <summary>
         /// The name this row is stored under in VolumetricClouds.xml, the log and a profile's
         /// file, and its key in the language files.
         /// </summary>
@@ -215,12 +204,6 @@ namespace VolumetricClouds.UI
         public string Note
         {
             get { return HasNote ? Localization.Get(Name + ".Note") : null; }
-        }
-
-        /// <summary>The question asked before switching ON; null when there is none.</summary>
-        public string ConfirmOn
-        {
-            get { return Confirm ? Localization.Get(Name + ".Confirm") : null; }
         }
 
         /// <summary>Null unless a group starts here.</summary>
@@ -270,9 +253,6 @@ namespace VolumetricClouds.UI
 
             if (HasNote)
                 yield return Name + ".Note";
-
-            if (Confirm)
-                yield return Name + ".Confirm";
 
             if (Group != null)
                 yield return "Group." + Group;
@@ -553,47 +533,14 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// Stores a checkbox, asking first where the row says to ask. The question is only ever
-        /// put when switching ON -- nobody has to justify turning something off -- and the
-        /// answer lands back in both UIs, which is what puts a refused checkbox back.
+        /// Stores a checkbox the player clicked, in either UI. No switch asks first: until 1.3.0
+        /// the volumetric fog did, and the warning beside it says the same.
         /// </summary>
         public static void ApplyToggle(Row row, bool value)
         {
             if (row.Bool == null)
                 return;
 
-            if (!value || !row.Confirm)
-            {
-                Settle(row, value);
-                return;
-            }
-
-            try
-            {
-                // Until the answer comes the stored value is still "off", and the panel
-                // re-reads its controls four times a second: without this flag the box the
-                // player just ticked unticks itself behind the dialog.
-                row.Pending = true;
-
-                ConfirmPanel.ShowModal(Mod.DisplayName,row.ConfirmOn,
-                    (component, result) =>
-                    {
-                        row.Pending = false;
-                        Settle(row, result == 1);
-                    });
-            }
-            catch (Exception e)
-            {
-                // If the dialog cannot be shown, do what the player asked and say so. A
-                // checkbox that silently refuses to tick reads as a broken mod.
-                row.Pending = false;
-                Log.Warn("Could not show the confirmation for '" + row.Name + "': " + e.Message);
-                Settle(row, value);
-            }
-        }
-
-        private static void Settle(Row row, bool value)
-        {
             bool ticked = value && !row.Bool.value;
             row.Bool.value = value;
 
@@ -1301,13 +1248,13 @@ namespace VolumetricClouds.UI
                 Kind = RowKind.Toggle,
                 Panel = PanelPage.Fog,
                 HasNote = true,
-                Confirm = true,
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
                 // Only the player's own click turns this off, never an update. "Reset all
                 // settings" does, since 1.1.0 -- it is his click, and asks first. So does picking
-                // a profile that has it off (1.3.0): also his click, on a sky he saved or chose,
-                // and it asks nothing, like a value typed into the settings file.
+                // a profile that has it off (1.3.0): also his click, on a sky he saved or chose.
+                // Switching it on asks nothing since 1.3.0 (the author: "there's already enough
+                // warnings for it" -- the label and the note).
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 

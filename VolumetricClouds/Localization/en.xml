@@ -224,12 +224,6 @@
     WARNING: This setting will significantly impact performance. Only recommended for users
     with powerful hardware.
   </String>
-  <String key="FogEnabled.Confirm">
-    Volumetric fog is by far the heaviest thing this mod draws and can cost a large part of
-    your frame rate, most of all with the camera down in it.\n\n
-    The game's own fog keeps working if you leave this off.\n\n
-    Turn it on?
-  </String>
 
   <String key="FogLampsEnabled.Label">Fog lit by the city's lights</String>
   <String key="FogLampsEnabled.Tooltip">Fog glows around lights at night.</String>
@@ -550,7 +544,6 @@
   <String key="File.Key">{0}. A key such as F4 or Ctrl+Shift+C, or None; default {1}.</String>
   <String key="File.Colour">{0}. A colour, #RRGGBB (255, 192, 203 is read too); default {1}.</String>
   <String key="File.Text">{0}.</String>
-  <String key="File.Confirm">Switching it on here skips the question the game asks first.</String>
 
   <!-- The header of a profile's file (VolumetricCloudsProfiles\<name>.xml): one line per \n. -->
   <String key="File.ProfileHeader">
