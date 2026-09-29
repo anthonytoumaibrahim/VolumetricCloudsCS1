@@ -8,17 +8,18 @@ using UnityEngine;
 namespace VolumetricClouds.UI
 {
     /// <summary>
-    /// The mod's page in the game's own options: the mod itself (language, the panel's key and
-    /// its advanced tabs, the button, diagnostics, the resets) and, first, the quality preset
-    /// (1.2.1, Row.OnOptionsPage: found without the advanced tabs), with the three rows it sets
-    /// under it while it reads Custom (Row.OptionsPageShown). Every setting of the SKY is in
-    /// the in-game panel (<see cref="CloudsPanel"/>), where it can be judged against the sky.
+    /// The mod's page in the game's own options: first how the clouds are drawn -- the quality
+    /// preset, with the three rows it sets under it while it reads Custom (Row.OptionsPageShown),
+    /// and depth occlusion; the in-game panel's Rendering tab until 1.3.0 -- then the mod itself
+    /// (language, the panel's key and its advanced tabs, the button, diagnostics, the resets).
+    /// Every setting of the SKY is in the in-game panel (<see cref="CloudsPanel"/>), where it can
+    /// be judged against the sky; what the computer can afford is here.
     /// </summary>
     /// <remarks>
     /// Until 1.1.0 this page had five tabs (Weather, Light, Rendering, Halos, General) and the
     /// panel borrowed them behind "Show advanced options". The author's call: one place to
-    /// change the sky, the panel. The four sky tabs are now the panel's alone: Light a basic
-    /// tab since 1.2.1, the other three advanced.
+    /// change the sky, the panel. The sky tabs are now the panel's alone: Light a basic tab since
+    /// 1.3.0, Weather and Halos advanced; Rendering came back here in 1.3.0.
     ///
     /// Two things about this page decide how it has to be written:
     ///
@@ -148,11 +149,9 @@ namespace VolumetricClouds.UI
 
             foreach (Row row in SettingsCatalog.Rows)
             {
-                // The page's own rows, and on the options page those that ask to be there too
-                // (1.2.1: the quality preset, and the three rows it sets, built here always and
-                // shown under Custom by RefreshShown).
-                bool shown = which == OptionsPage.General ? SettingsCatalog.IsOnOptionsPage(row) : row.Options == which;
-                if (!shown)
+                // The page's own rows (the quality preset's three are built always and shown
+                // under Custom by RefreshShown).
+                if (row.Options != which)
                     continue;
 
                 if (row.Group != null)

@@ -29,7 +29,7 @@ namespace VolumetricClouds.Sky
         private static double _x;
         private static double _z;
 
-        // CLOUD POSITION (1.2.1; asked for: "more control over the position of the clouds ...
+        // CLOUD POSITION (1.3.0; asked for: "more control over the position of the clouds ...
         // edit the X and Y values", "for advanced settings"): the player's shift of this city's
         // whole sky, in metres, on top of the drift. Kept in the city's save (SkyState version
         // 2), never in the settings: every city's pattern is its own.

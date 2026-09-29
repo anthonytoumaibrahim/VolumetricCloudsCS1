@@ -117,7 +117,7 @@ Check "dark red = red (only hue counts)" (Exact ($tint::Of((C32 64 0 0)))) (Exac
 Check "pure blue: capped at 3x"   (Exact ($tint::Of((C32 0 0 255)))) "0 0 3"
 Check "pure red reads at 64%"     ("{0:F2}" -f (Lum $red)) "0.64"
 
-# ---- CloudTint.Blend: different colours at night (1.2.1) ---------------------------------------
+# ---- CloudTint.Blend: different colours at night (1.3.0) ---------------------------------------
 
 $white = C32 255 255 255
 $warm = C32 226 214 197      # the author's shaded side, #E2D6C5

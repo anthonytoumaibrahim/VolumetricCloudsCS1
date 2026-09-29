@@ -59,7 +59,6 @@
   <String key="Tab.Fog">Fog</String>
   <String key="Tab.Weather">Weather</String>
   <String key="Tab.Light">Light</String>
-  <String key="Tab.Rendering">Rendering</String>
   <String key="Tab.Halos">Halos</String>
   <String key="Tab.General">General</String>
 
@@ -69,17 +68,29 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">Profile</String>
-  <String key="Profiles.Tooltip">Saved skies. Changes save into the one picked.</String>
+  <String key="Profiles.Tooltip">Saved skies. Pick one to switch to it.</String>
   <String key="Profiles.None">(no profile)</String>
   <String key="Profiles.Fallback.Tooltip">Click for the next profile.</String>
   <String key="Profiles.Field.Tooltip">The new profile's name.</String>
+  <String key="Profiles.Save">Save</String>
+  <String key="Profiles.Save.Tooltip">Save the sky into the picked profile.</String>
   <String key="Profiles.Add.Tooltip">Save the sky as it is now as a new profile.</String>
   <String key="Profiles.Remove.Tooltip">Delete the picked profile.</String>
   <String key="Profiles.NewName">Profile {0}</String>
   <String key="Profiles.Naming">Type a name. Enter saves, Esc cancels.</String>
-  <String key="Profiles.Added">Saved. Your changes now go into it.</String>
-  <String key="Profiles.Unreadable">That profile's file cannot be read. The log says why.</String>
-  <String key="Profiles.Failed">That did not work. The log says why.</String>
+  <String key="Profiles.Added">Saved as a new profile.</String>
+  <String key="Profiles.Saved">Saved.</String>
+  <String key="Profiles.Unsaved">Unsaved changes</String>
+  <String key="Profiles.Unreadable">Its file cannot be read. See the log.</String>
+  <String key="Profiles.Failed">That did not work. See the log.</String>
+  <String key="Profiles.Confirm.Discard">
+    Your changes to '{0}' are not saved.\n\n
+    Pick '{1}' anyway? The changes will be lost. To keep them, click No and press Save first.
+  </String>
+  <String key="Profiles.Confirm.Replace">
+    The sky you have now is not saved in a profile.\n\n
+    Pick '{0}' anyway? Your sky will be replaced. To keep it, click No and save it first.
+  </String>
   <String key="Profiles.Confirm.Remove">
     Delete the profile '{0}'?\n\n
     Only its file is removed: the sky stays as it is now.
@@ -283,22 +294,22 @@
   <String key="RainCurtains.Tooltip">How thick the rain or snow looks from afar.</String>
 
   <String key="RainStreaks.Label">Rain streaks near camera</String>
-  <String key="RainStreaks.Tooltip">How many raindrops or snowflakes fall past the camera.</String>
+  <String key="RainStreaks.Tooltip">How many raindrops fall past the camera.</String>
 
   <String key="RainStreakHeight.Label">Streaks fade out above</String>
-  <String key="RainStreakHeight.Tooltip">Camera height where nearby raindrops fade out. Snowflakes go 2.5 times higher.</String>
+  <String key="RainStreakHeight.Tooltip">Camera height where nearby raindrops fade out.</String>
 
   <String key="RainStreakLength.Label">Streak length</String>
-  <String key="RainStreakLength.Tooltip">How long each streak is. Snowflakes are round.</String>
+  <String key="RainStreakLength.Tooltip">How long each streak is.</String>
 
   <String key="RainStreakWidth.Label">Streak width</String>
-  <String key="RainStreakWidth.Tooltip">How thick each streak, or how big each snowflake, is.</String>
+  <String key="RainStreakWidth.Tooltip">How thick each streak is.</String>
 
   <String key="RainStreakOpacity.Label">Streak brightness</String>
-  <String key="RainStreakOpacity.Tooltip">How visible the streaks or snowflakes are.</String>
+  <String key="RainStreakOpacity.Tooltip">How visible the streaks are.</String>
 
   <String key="RainStreakColor.Label">Streak colour</String>
-  <String key="RainStreakColor.Tooltip">Colour of the streaks or snowflakes.</String>
+  <String key="RainStreakColor.Tooltip">Colour of the streaks.</String>
 
   <String key="RainFallSpeed.Label">Rain fall speed</String>
   <String key="RainFallSpeed.Tooltip">How fast the rain or snow falls.</String>
@@ -373,31 +384,6 @@
   <String key="NightGlow.Label">Glow under the clouds at night</String>
   <String key="NightGlow.Tooltip">A soft glow, like city light.</String>
 
-  <!-- ==================== Advanced: Rendering ==================== -->
-
-  <String key="Group.Performance">Performance</String>
-
-  <String key="QualityPreset.Label">Quality preset</String>
-  <String key="QualityPreset.Tooltip">Clouds, fog and shadow quality. Lower is faster.</String>
-  <String key="QualityPreset.Low">Low</String>
-  <String key="QualityPreset.Medium">Medium</String>
-  <String key="QualityPreset.High">High</String>
-  <String key="QualityPreset.Custom">Custom</String>
-
-  <String key="CloudQuality.Label">Quality (raymarch steps)</String>
-  <String key="CloudQuality.Tooltip">Detail of clouds and fog. Lower is faster.</String>
-
-  <String key="ShadowMapResolution.Label">Cloud shadow resolution</String>
-  <String key="ShadowMapResolution.Tooltip">Shadow sharpness. Lower is faster.</String>
-
-  <String key="ShadowMapRate.Label">Cloud shadow updates</String>
-  <String key="ShadowMapRate.Tooltip">Updates per second. Lower is faster.</String>
-
-  <String key="Group.Drawing">How the clouds are drawn</String>
-
-  <String key="CloudDepthOcclusion.Label">Buildings and terrain hide clouds behind them</String>
-  <String key="CloudDepthOcclusion.Tooltip">Turn off only if cloud edges look wrong.</String>
-
   <!-- ==================== Advanced: Halos ==================== -->
 
   <String key="Group.Halos">Street and building light halos</String>
@@ -430,6 +416,31 @@
 
   <!-- ==================== The game's options page ==================== -->
 
+  <!-- Quality and drawing come first (the in-game panel's Rendering tab until 1.3.0). -->
+
+  <String key="Group.Performance">Performance</String>
+
+  <String key="QualityPreset.Label">Quality preset</String>
+  <String key="QualityPreset.Tooltip">Clouds, fog and shadow quality. Lower is faster.</String>
+  <String key="QualityPreset.Low">Low</String>
+  <String key="QualityPreset.Medium">Medium</String>
+  <String key="QualityPreset.High">High</String>
+  <String key="QualityPreset.Custom">Custom</String>
+
+  <String key="CloudQuality.Label">Quality (raymarch steps)</String>
+  <String key="CloudQuality.Tooltip">Detail of clouds and fog. Lower is faster.</String>
+
+  <String key="ShadowMapResolution.Label">Cloud shadow resolution</String>
+  <String key="ShadowMapResolution.Tooltip">Shadow sharpness. Lower is faster.</String>
+
+  <String key="ShadowMapRate.Label">Cloud shadow updates</String>
+  <String key="ShadowMapRate.Tooltip">Updates per second. Lower is faster.</String>
+
+  <String key="Group.Drawing">How the clouds are drawn</String>
+
+  <String key="CloudDepthOcclusion.Label">Buildings and terrain hide clouds behind them</String>
+  <String key="CloudDepthOcclusion.Tooltip">Turn off only if cloud edges look wrong.</String>
+
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Language</String>
 
@@ -443,7 +454,7 @@
   <String key="ToggleKey.Tooltip">Click, then press a key.</String>
 
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
-  <String key="ShowAdvancedInPanel.Tooltip">Adds the Weather, Rendering and Halos tabs.</String>
+  <String key="ShowAdvancedInPanel.Tooltip">Adds the Weather and Halos tabs.</String>
 
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
   <String key="ShowInUnifiedUI.Tooltip">Puts the button in the Unified UI bar.</String>
@@ -479,8 +490,7 @@
   <!-- Read only in the settings file, as the comment on <Profile>. -->
   <String key="Profile.Label">Current profile: the one picked at the top of the in-game panel, empty for none</String>
   <String key="Profile.Note">
-    While one is picked, every change is saved into its file in the VolumetricCloudsProfiles
-    folder as well.
+    Its file in the VolumetricCloudsProfiles folder changes only when you press Save in the panel.
   </String>
 
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
@@ -540,8 +550,8 @@
   <String key="File.ProfileHeader">
     Volumetric Weather profile: a whole sky, saved under the name of this file.\n
     \n
-    Pick it at the top of the mod's in-game panel. While it is picked, every change you make in
-    the game is saved into this file too.\n
+    Pick it at the top of the mod's in-game panel. The panel's Save button writes the sky you
+    have into this file; nothing else in the game changes it.\n
     \n
     - To share the sky, copy this file into the VolumetricCloudsProfiles folder of another
     computer. Rename the file to rename the profile.\n
@@ -551,8 +561,9 @@
     - A setting missing from this file goes back to its default when the profile is picked.\n
     - The rules of VolumetricClouds.xml apply here too: a dot for decimals, percentages written
     the way the slider shows them, a value out of range pulled back into it.\n
-    - You can edit this file while the game is running: the mod reads it again within a second
-    of it being saved. If it cannot be read at all, the mod leaves it alone and says so in the log.
+    - You can edit this file while the game is running. If it is the picked profile, the mod puts
+    your edit in within a second of it being saved; otherwise the edit is used when you pick it.
+    If it cannot be read at all, the mod leaves it alone and says so in the log.
   </String>
 
 </Language>

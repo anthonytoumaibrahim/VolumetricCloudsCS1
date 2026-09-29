@@ -84,7 +84,7 @@ namespace VolumetricClouds
                               " shade=" + Hex(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor)
                             : " (the same at night)") +
                         " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor) +
-                        // Like the grading: it changes the picture, and the night's (1.2.1) is a switch.
+                        // Like the grading: it changes the picture, and the night's (1.3.0) is a switch.
                         " | brightness: " + Brightness() +
                         // Which saved sky is being edited, if any: a slider moved goes into it.
                         " | profile=" + Profiles.Describe());

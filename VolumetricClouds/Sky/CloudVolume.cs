@@ -148,7 +148,7 @@ namespace VolumetricClouds.Sky
         private const float RainExtinction = 0.0006f;
         private const float RainMaxDistance = 14000f;
 
-        /// <summary>Snow's curtains are this much thicker than rain's at the same amount (winter maps, 1.2.1).</summary>
+        /// <summary>Snow's curtains are this much thicker than rain's at the same amount (winter maps, 1.3.0).</summary>
         private const float SnowExtinction = 1.5f;
 
         /// <summary>Radiance the night glow adds to the very base of a cloud, at 100%.</summary>
@@ -746,7 +746,7 @@ namespace VolumetricClouds.Sky
             }
 
             // 0 by day, 1 at night: what brings in the night's brightness (with "Brightness differs
-            // at night", 1.2.1) and its colours below, through one twilight.
+            // at night", 1.3.0) and its colours below, through one twilight.
             float night = NightFactor(sun);
             Night = night;
 
@@ -788,7 +788,7 @@ namespace VolumetricClouds.Sky
             // The player's grading, on the CLOUD's two lights only: the sunlit side and the
             // shaded side. A tint changes the hue, never the brightness, and white is exactly
             // (1, 1, 1) -- the shader gets bit for bit what it got before colours existed.
-            // With "Different colours at night" (1.2.1) the night's two take over as the sun goes
+            // With "Different colours at night" (1.3.0) the night's two take over as the sun goes
             // down, through the same twilight as the night's opacity and glow; off, the day's
             // are used around the clock, exactly as before the switch.
             _nightColourShare = NightColours ? night : 0f;
@@ -805,7 +805,7 @@ namespace VolumetricClouds.Sky
             // the CLOUD's two colours: one picture, one light. (A cloud override at 20% with
             // another mod's rain at full is the one corner where that reads bright.) The cloud's
             // light, NOT its grading: rain shafts under pink clouds would read as a bug.
-            // Snow (winter maps, 1.2.1) hangs whiter and a little thicker than rain: flakes scatter
+            // Snow (winter maps, 1.3.0) hangs whiter and a little thicker than rain: flakes scatter
             // far more of the light they are in, and a snowfall takes the view sooner than rain.
             bool snow = CloudRain.IsSnow;
             float curtains = Settings.RainCurtains != null ? Mathf.Max(0f, Settings.RainCurtains.value) : 1f;
@@ -939,7 +939,7 @@ namespace VolumetricClouds.Sky
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             _material.SetFloat(IdNightOpacity, night * opacity);
 
-            // Where the night's opaque clouds end softly: where the march ends (1.2.1). It was the
+            // Where the night's opaque clouds end softly: where the march ends (1.3.0). It was the
             // edge of the box they are drawn on, a third of that (~10 km from the city), and past
             // it the lowest few degrees of sky showed through the clouds -- with the game fog's
             // horizon band on it: "it hides far away clouds" (GameHorizon takes the band off).
@@ -1040,7 +1040,7 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdFogBreakup, breakup * 0.8f);
 
             // Steps follow the Quality slider: the fog is the most expensive thing on screen
-            // when the camera is inside it, and that slider is the lever for weaker GPUs. 1.2.1
+            // when the camera is inside it, and that slider is the lever for weaker GPUs. 1.3.0
             // (the author: "The volumetric fog is still too grainy"): they grow with the SQUARE
             // of Quality, so the grain fix is paid for where there is headroom -- 58 at the High
             // preset (29 before), 26 at Medium (19), 8 at Low (10: Low is no dearer than it was,
@@ -1127,7 +1127,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Puts the cloud pass's values on another material that is seen through the same air:
-        /// the lightning bolt (1.2.1), dimmed by the cloud, rain and fog IN FRONT of it and by
+        /// the lightning bolt (1.3.0), dimmed by the cloud, rain and fog IN FRONT of it and by
         /// nothing behind (CloudMedia.cginc). Floats and vectors by copy; the textures one by one,
         /// because Unity 5.6 copies only the textures a shader lists in its Properties block and
         /// cannot even read the others back (probed in the 5.6 editor, 2026-09-28). Every value

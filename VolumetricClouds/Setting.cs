@@ -158,7 +158,7 @@ namespace VolumetricClouds
     }
 
     /// <summary>
-    /// A line of text, stored trimmed and never null (1.2.1: the name of the profile picked at the
+    /// A line of text, stored trimmed and never null (1.3.0: the name of the profile picked at the
     /// top of the in-game panel). Neither UI draws one; what it means is its user's business.
     /// </summary>
     public sealed class StringSetting : Setting

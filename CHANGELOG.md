@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.2.1 — unreleased
+## 1.3.0 — unreleased
 
 Profiles, cloud colours and a cloud brightness of their own at night, snow on winter maps, and
 a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains
@@ -14,29 +14,30 @@ night-brightness settings (both switched off, so the clouds keep the colours and
 you gave them, day and night), and Cumulus's `CumulusLayer` (100%: Cumulus as in 1.2). Saved
 cities keep their sky, and are saved with one more
 value, where you moved their clouds (none until you do); an older version of the mod reads them
-as before. What changes for everyone with the update: on winter maps the mod now draws the
-snow and road snow follows the clouds (see *New: snow*); the sun no longer shines through the
+as before. What changes for everyone with the update: on winter maps the snow falls only under
+the clouds and road snow follows it (see *New: snow*); the sun no longer shines through the
 clouds, the game's hazy band above the horizon is gone while the mod's clouds are shown, the
 volumetric fog is less grainy (and costs more), lightning bolts are no longer cut off by
-the clouds behind them, and the Light tab is in the in-game panel without advanced options.
+the clouds behind them, the Light tab is in the in-game panel without advanced options, and
+the Rendering tab's settings are on the mod's options page instead.
 Only a new install, or "Reset all settings", gets the new clear-sky cloud brightness of 150%
 (300% before): an existing settings file keeps its value.
 
 ### New: profiles
 
 - Save a whole sky under a name and switch between skies with one click. The list is at the
-  top of the in-game panel, above the tabs, with a **+** and a **-** button beside it.
+  top of the in-game panel, above the tabs, with **Save**, **+** and **-** beside it.
 - **+** saves the sky as it is now as a new profile: type a name and press Enter (Escape
   cancels). The new profile is then the picked one.
-- While a profile is picked, every change you make in the panel is saved into it as well, so
-  there is no Save button and nothing to forget. Pick "(no profile)" to go on without one: the
-  sky stays as it is, and the profile stays as it was.
-- Picking a profile puts its whole sky in, the volumetric fog switch included, without asking.
-  A setting the profile does not have goes back to its default.
+- Picking a profile puts its whole sky in, the volumetric fog switch included. A setting the
+  profile does not have goes back to its default.
+- What you change after that is not saved into the profile until you press **Save**. Until then
+  the bar says *Unsaved changes*, and picking another profile asks first, since those changes
+  would be lost. Pick "(no profile)" to go on without one: the sky stays as it is.
 - **-** deletes the picked profile's file, after asking. The sky stays as it is.
 - A profile holds every setting of the sky: every tab of the panel, the colours and the
-  switches. It does not hold the settings that describe the computer (the Rendering tab's
-  quality settings, the language, the keys, the button), so a profile from a faster computer
+  switches. It does not hold the settings that describe the computer (the quality settings on
+  the mod's options page, the language, the keys, the button), so a profile from a faster computer
   never slows yours down. Nor does it hold a city's cloud pattern, which stays in the city's
   save.
 - Each profile is a file of its own, named after it, in the `VolumetricCloudsProfiles` folder
@@ -45,9 +46,10 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   `~/.local/share/Colossal Order/Cities_Skylines/` on Linux. Copy one to share a sky, rename one
   to rename it, or drop one in with the game running: the list is read each time it opens.
 - Profiles are written like `VolumetricClouds.xml` and can be edited by hand, even with the
-  game running. A file that cannot be read never breaks anything: the sky keeps running, the
-  file is left alone until it can be read, and the log says why.
-- "Reset all settings" lets go of the picked profile first, so it never resets a profile. Your
+  game running: an edit of the picked profile is put in within a second. A file that cannot be
+  read never breaks anything: the sky keeps running, the file is left alone until it can be
+  read (or you press Save), and the log says why.
+- "Reset all settings" lets go of the picked profile first and never changes a profile. Your
   profiles are kept, and picking one brings its sky back.
 
 ### New: different cloud colours at night
@@ -79,20 +81,18 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
 
 ### New: snow on winter maps
 
-- On a winter map (the Snowfall DLC) the mod now draws the snow, as it draws the rain on other
-  maps: snowfall only under the clouds it falls from, whiter curtains hanging from them in the
-  distance, and near the camera round, soft snowflakes that fall slowly and drift from side to
-  side. Until now the mod stood down on winter maps and the game drew its own snow everywhere.
-- The snowflakes are seen from much higher up than rain streaks: up to 2.5 times the height set
-  by "Streaks fade out above" (1250 m by default), since from a city view the flakes are what
-  shows the snow.
+- On a winter map (the Snowfall DLC) the snow now falls only under the clouds, as the rain does
+  on other maps: whiter curtains hang from the snowing clouds in the distance, and near the
+  camera the game's own snowflakes fall wherever it is snowing and stop where it is not. Above
+  the clouds' base there are none. Until now the mod stood down on winter maps and the game's
+  snow fell everywhere.
 - Road snow follows the clouds: it builds up only where it is snowing, as roads only get wet
   where it rains. This is the existing "Rain sound, wet roads and road snow follow the clouds"
   switch (the Weather tab, with advanced options on), which is on by default; switch it off for
   the game's own snow on every road at once.
-- The rain settings work for the snow too: "Replace the game's rain and snow" switches it all
-  off, "Streak width" sets the size of the snowflakes, and the streak brightness and colour and
-  the fall speed apply to them.
+- "Replace the game's rain and snow" switched off gives the game's snow everywhere, as before.
+  The curtains follow "Rain curtains under clouds" and the fall speed; the streak settings are
+  for rain only.
 
 ### New: cloud position
 
@@ -105,20 +105,21 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
 
 ### Changed
 
-- The Quality preset is now also on the mod's options page (Esc, Options, then Volumetric
-  Weather under the mods' settings), at the top, so it can be found without switching on the
-  in-game panel's advanced options. It sets the clouds', the fog's and the shadows' quality, as
-  before, and is still on the Rendering tab too. Pick *Custom* there and the three settings it
-  moves (the raymarch quality, the cloud shadows' resolution and their updates per second)
-  appear under it, to set one by one.
+- The in-game panel's Rendering tab is gone: its settings are on the mod's options page (Esc,
+  Options, then Volumetric Weather under the mods' settings), at the top, where they can be
+  found without switching on advanced options. The Quality preset sets the clouds', the fog's
+  and the shadows' quality, as before; pick *Custom* and the three settings it moves (the
+  raymarch quality, the cloud shadows' resolution and their updates per second) appear under it,
+  to set one by one. "Buildings and terrain hide clouds behind them" follows, under "How the
+  clouds are drawn". Your values are kept.
 - The volumetric fog is much less grainy: its steps now crowd where the view enters the fog,
   which is the part you see, and at the High quality preset it takes twice as many (58). With
   the fog on, High costs more than before, most of all with the camera down in it; Medium takes
   26 steps (19 before) and Low 8 (10 before), so a slower computer pays no more than it did.
-  The Quality setting on the Rendering tab sets it.
+  The quality preset sets it (or, under *Custom*, the Quality setting).
 - The Light tab (cloud shadows, cloud brightness, the clouds at night) is now always in the
   in-game panel, beside Now, Clouds and Fog. "Show advanced options in the in-game panel" adds
-  Weather, Rendering and Halos.
+  Weather and Halos.
 - "Brightness: clear sky" on the Light tab starts at 150% (it was 300%), for new installs and
   after "Reset all settings". If you run the mod already, your value is kept: set it on the
   Light tab.

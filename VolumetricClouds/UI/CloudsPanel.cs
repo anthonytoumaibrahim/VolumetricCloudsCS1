@@ -12,22 +12,23 @@ namespace VolumetricClouds.UI
     ///   Now    -- every override in the mod, plus the two status lines. Photo mode.
     ///   Clouds -- the shape of the sky.
     ///   Fog    -- the fog, which is a cloud layer lying on the ground.
-    ///   Light  -- shadows and brightness (an advanced tab until 1.2.1).
-    /// "Show advanced options in the in-game panel" (on the game's options page) adds three
-    /// more: Weather, Rendering and Halos -- the rows whose Row.Options names them. A row
-    /// that is already on one of the basic tabs is not repeated on an advanced one.
-    /// The mod itself (language, key, button, diagnostics, the resets) is on the options page
+    ///   Light  -- shadows and brightness (an advanced tab until 1.3.0).
+    /// "Show advanced options in the in-game panel" (on the game's options page) adds two
+    /// more: Weather and Halos -- the rows whose Row.Options names them. A row that is already
+    /// on one of the basic tabs is not repeated on an advanced one. (A third, Rendering, went in
+    /// 1.3.0: its rows are on the options page.) The mod itself and what the computer can
+    /// afford (quality, language, key, button, diagnostics, the resets) are on the options page
     /// (<see cref="OptionsUI"/>) alone: Row.Options == General.
     ///
     /// Both UIs are drawn from <see cref="SettingsCatalog"/>, so where a row lives is a
     /// one-word edit rather than a second copy of the row.
     ///
-    /// Under the title, on every tab: the profile bar (1.2.1, <see cref="ProfileBar"/>).
+    /// Under the title, on every tab: the profile bar (1.3.0, <see cref="ProfileBar"/>).
     /// </remarks>
     public class CloudsPanel : UIPanel
     {
         private const float BasicWidth = 600f;
-        private const float AdvancedWidth = 680f;   // seven tabs; "Rendering" is the widest label
+        private const float AdvancedWidth = 680f;   // was for seven tabs; Weather and Halos are laid out at it
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float BarHeight = ProfileBar.Height;
@@ -43,7 +44,7 @@ namespace VolumetricClouds.UI
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
-            OptionsPage.Weather, OptionsPage.Rendering, OptionsPage.Halos,
+            OptionsPage.Weather, OptionsPage.Halos,
         };
 
         /// <summary>One tab: a basic page, or an advanced one.</summary>
@@ -113,7 +114,7 @@ namespace VolumetricClouds.UI
         /// <summary>
         /// One stretch of a page: a group heading, or a row with its note -- every component the
         /// builders put on the page for it, so a row can be hidden and everything under it moved
-        /// up as a whole (Row.Shown, 1.2.1). Rows sit at fixed heights on their page; nothing
+        /// up as a whole (Row.Shown, 1.3.0). Rows sit at fixed heights on their page; nothing
         /// lays them out but <see cref="Relayout"/>.
         /// </summary>
         private class Item
@@ -275,7 +276,7 @@ namespace VolumetricClouds.UI
 
         /// <summary>
         /// Hides the rows whose Row.Shown says so and closes their page up under them, or opens it
-        /// again (1.2.1). Runs with every refresh, but a page is laid out again only when one of
+        /// again (1.3.0). Runs with every refresh, but a page is laid out again only when one of
         /// its rows has actually changed.
         /// </summary>
         private void RefreshShown()
@@ -440,7 +441,7 @@ namespace VolumetricClouds.UI
             }
             catch (System.Exception e)
             {
-                // The panel works without it; the sliders still save into a picked profile.
+                // The panel works without it: the sky still saves into the settings file.
                 _bar = null;
                 Log.Error("panel: the profile bar could not be built", e);
             }

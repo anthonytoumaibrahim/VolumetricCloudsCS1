@@ -268,7 +268,7 @@ Check "cloud position exact" "$($t.ShiftX.ToString('R'))|$($t.ShiftZ.ToString('R
 $v1 = [byte[]]$bytes[0..60]
 $v1[0] = 1
 $r = Read $v1
-Check "a version-1 record (every save before 1.2.1) still reads" $r.Ok "True"
+Check "a version-1 record (every save before 1.3.0) still reads" $r.Ok "True"
 Check "...with no note" ($r.Note -eq $null) "True"
 Check "...the same sky" "$($r.State.FieldSeed)/$($r.State.WindX.ToString('R'))/$($r.State.RainFallZ)" "12345/$($s.WindX.ToString('R'))/0.75"
 Check "...and no cloud position" "$($r.State.ShiftX)|$($r.State.ShiftZ)" "0|0"

@@ -71,7 +71,7 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// How much of the Classic layer Cumulus mixes in, 0..1 ("Classic layer", 1.2.1): the
+        /// How much of the Classic layer Cumulus mixes in, 0..1 ("Classic layer", 1.3.0): the
         /// layer is cut at this share of the cover (CloudShaderParams.LayerCoverage), so less of it
         /// is fewer and smaller pieces of layer, never a paler one. 1 = as in 1.2.
         /// </summary>

@@ -6,22 +6,27 @@ using UnityEngine;
 namespace VolumetricClouds.UI
 {
     /// <summary>
-    /// The profile bar of the in-game panel (1.2.1), under the title and above the tabs, so it is
+    /// The profile bar of the in-game panel (1.3.0), under the title and above the tabs, so it is
     /// there on every tab:
-    ///   Profile  [ Storm             v ]  [+] [-]   a short message
+    ///   Profile  [ Storm           v ]  [Save] [+] [-]   a short message
     /// </summary>
     /// <remarks>
     /// The author's design (2026-09-24): no Profiles tab ("we already have what seems as too many
     /// tabs"), a dropdown at the top left with + and - beside it, "- disabled if no profiles
-    /// exist" -- "basically mirror RenderIt". The dropdown is Render It!'s own recipe
-    /// (<see cref="UIBuilder.AddDropDown"/>); should its sprites ever be missing, a button that
-    /// shows the picked profile and moves to the next one on each click takes its place.
+    /// exist" -- "basically mirror RenderIt". Save came with his first test (2026-09-29): a profile
+    /// is a saved sky, and Save writes the sky into the picked one (<see cref="Profiles"/>). The
+    /// dropdown is Render It!'s own recipe (<see cref="UIBuilder.AddDropDown"/>); should its
+    /// sprites ever be missing, a button that shows the picked profile and moves to the next one
+    /// on each click takes its place.
     ///
-    /// Picking asks nothing: it is what you do ten times while comparing skies. "-" asks, since it
-    /// deletes a file. "+" swaps the dropdown for a name field: Enter or a click elsewhere saves,
-    /// Escape cancels, and a name that cannot be used turns red and the bar says why. While the
-    /// field is open both buttons are off: a click on either would first take the field's focus
-    /// (submitting it) and then act, and the order of those two is not ours to rely on.
+    /// Picking asks nothing -- it is what you do ten times while comparing skies -- unless the sky
+    /// has changes not saved anywhere, which the pick would throw away: then it asks first. Save
+    /// is lit only while there is something to save, and the message says "Unsaved changes"
+    /// meanwhile. "-" asks, since it deletes a file. "+" swaps the dropdown for a name field:
+    /// Enter or a click elsewhere saves, Escape cancels, and a name that cannot be used turns red
+    /// and the bar says why. While the field is open the buttons are off: a click on one would
+    /// first take the field's focus (submitting it) and then act, and the order of those two is
+    /// not ours to rely on.
     ///
     /// The folder is listed when the bar is built, just before the list opens (so a file dropped
     /// in with the game running is there), and after anything that adds or removes one -- never
@@ -31,15 +36,16 @@ namespace VolumetricClouds.UI
     {
         public const float Height = 38f;
 
-        private const float LabelWidth = 62f;
-        private const float DropWidth = 240f;
+        private const float LabelWidth = 58f;
+        private const float DropWidth = 230f;
         private const float ControlHeight = 30f;
-        private const float ButtonWidth = 30f;
+        private const float SaveWidth = 50f;
+        private const float ButtonWidth = 28f;
         private const float Gap = 6f;
         private const int VisibleItems = 12;
 
         /// <summary>A longer name is cut in the dropdown, which is a fixed width (the author's call).</summary>
-        private const int ShownCharacters = 30;
+        private const int ShownCharacters = 28;
 
         private const float MessageShownFor = 5f;
         private const float InvalidShownFor = 3f;
@@ -49,6 +55,7 @@ namespace VolumetricClouds.UI
         private readonly UIDropDown _drop;
         private readonly UIButton _cycle;
         private readonly UITextField _field;
+        private readonly UIButton _save;
         private readonly UIButton _add;
         private readonly UIButton _remove;
         private readonly UILabel _message;
@@ -127,6 +134,12 @@ namespace VolumetricClouds.UI
             _field.eventTextCancelled += (component, text) => StopNaming(null);
 
             left += DropWidth + Gap;
+            _save = UIBuilder.AddButton(parent, Localization.Get("Profiles.Save"), new Vector2(SaveWidth, ControlHeight), new Vector3(left, y + 4f));
+            _save.canFocus = false;
+            _save.tooltip = Localization.Get("Profiles.Save.Tooltip");
+            _save.eventClick += (component, e) => SaveClicked();
+
+            left += SaveWidth + 4f;
             _add = UIBuilder.AddButton(parent, "+", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _add.textScale = 1.1f;
             _add.canFocus = false;
@@ -180,7 +193,8 @@ namespace VolumetricClouds.UI
             int index = IndexOf(picked);
 
             // Picked some other way -- a hand edit, a reset, a file gone -- or new since the list
-            // was read; or a pick that did not work, which goes back to the one in force.
+            // was read; or a pick that did not work or waits for an answer, which shows the one in
+            // force meanwhile.
             if ((index < 0 || _resync) && !ListOpen)
             {
                 _resync = false;
@@ -191,8 +205,8 @@ namespace VolumetricClouds.UI
             if (index >= 0 && !ListOpen)
                 ShowPick(index);
 
-            _add.isEnabled = !_naming;
-            _remove.isEnabled = !_naming && picked.Length > 0;
+            bool unsaved = picked.Length > 0 && Profiles.HasUnsavedChanges;
+            RefreshButtons(unsaved);
 
             float now = Time.realtimeSinceStartup;
             if (_invalidUntil >= 0f && now > _invalidUntil)
@@ -207,10 +221,14 @@ namespace VolumetricClouds.UI
                 _message.text = string.Empty;
             }
 
-            // What lasts while it is so: a picked profile whose file cannot be read.
+            // What lasts while it is so: a picked profile whose file cannot be read, or one the
+            // sky has moved away from.
             if (_messageUntil < 0f && !_naming)
             {
-                string lasting = Profiles.State == Profiles.Status.Unreadable ? Localization.Get("Profiles.Unreadable") : string.Empty;
+                string lasting = Profiles.State == Profiles.Status.Unreadable ? Localization.Get("Profiles.Unreadable")
+                    : unsaved ? Localization.Get("Profiles.Unsaved")
+                    : string.Empty;
+
                 if (lasting != _lasting)
                 {
                     _lasting = lasting;
@@ -218,6 +236,13 @@ namespace VolumetricClouds.UI
                     _message.text = lasting;
                 }
             }
+        }
+
+        private void RefreshButtons(bool unsaved)
+        {
+            _save.isEnabled = !_naming && unsaved;
+            _add.isEnabled = !_naming;
+            _remove.isEnabled = !_naming && Profiles.Selected.Length > 0;
         }
 
         // ---- the list --------------------------------------------------------------------------
@@ -321,19 +346,67 @@ namespace VolumetricClouds.UI
                     return;
                 }
 
-                // Nothing changed when it fails; the list shows the pick in force again at the next
-                // refresh (not here: this runs inside the list's own click, and re-listing closes it).
-                if (!Profiles.Select(name))
+                // The list shows the pick in force again at the next refresh -- not here: this runs
+                // inside the list's own click, and re-listing closes it.
+                _resync = true;
+
+                // Picking puts the profile's sky in: ask first when that throws away changes kept
+                // nowhere else.
+                if (Profiles.HasUnsavedChanges)
                 {
-                    Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
-                    _resync = true;
+                    AskBeforePicking(name, picked);
+                    return;
                 }
+
+                PickNow(name);
             }
             catch (Exception e)
             {
                 Log.Error("profile bar: picking an entry failed", e);
                 _resync = true;
             }
+        }
+
+        private void AskBeforePicking(string name, string picked)
+        {
+            string question = picked.Length > 0
+                ? Localization.Get("Profiles.Confirm.Discard", picked, name)
+                : Localization.Get("Profiles.Confirm.Replace", name);
+
+            try
+            {
+                ConfirmPanel.ShowModal(Mod.DisplayName, question, (component, result) =>
+                {
+                    if (result != 1)
+                    {
+                        Log.Msg("profile: picking '" + name + "' cancelled; the sky keeps its changes");
+                        return;
+                    }
+
+                    try
+                    {
+                        PickNow(name);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error("profile bar: picking '" + name + "' failed", e);
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                // Nothing is thrown away without an answer.
+                Log.Error("Could not ask before picking the profile, so it was not picked.", e);
+            }
+        }
+
+        /// <summary>Nothing changed when it fails, and the bar says so.</summary>
+        private void PickNow(string name)
+        {
+            if (!Profiles.Select(name))
+                Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
+
+            _resync = true;
         }
 
         /// <summary>The stand-in for the dropdown: each click picks the next entry.</summary>
@@ -346,6 +419,28 @@ namespace VolumetricClouds.UI
             int next = (Mathf.Max(0, IndexOf(Profiles.Selected)) + 1) % _entries.Count;
             Picked(next);
             Relist();
+        }
+
+        // ---- Save ------------------------------------------------------------------------------
+
+        private void SaveClicked()
+        {
+            if (_naming || Profiles.Selected.Length == 0)
+                return;
+
+            try
+            {
+                if (Profiles.SaveSelected())
+                    Say(Localization.Get("Profiles.Saved"), UIBuilder.StatusColour);
+                else
+                    Say(Localization.Get("Profiles.Failed"), UIBuilder.WarningColour);
+
+                RefreshButtons(Profiles.HasUnsavedChanges);
+            }
+            catch (Exception e)
+            {
+                Log.Error("profile bar: saving the profile failed", e);
+            }
         }
 
         // ---- + ---------------------------------------------------------------------------------
@@ -363,8 +458,7 @@ namespace VolumetricClouds.UI
                 else
                     _cycle.Hide();
 
-                _add.isEnabled = false;
-                _remove.isEnabled = false;
+                RefreshButtons(false);
 
                 _field.text = ProfileName.NextFree(Profiles.List(), Localization.Get("Profiles.NewName"));
                 _field.textColor = UIBuilder.TextFieldColour;
@@ -433,8 +527,7 @@ namespace VolumetricClouds.UI
             else if (_cycle != null)
                 _cycle.Show();
 
-            _add.isEnabled = true;
-            _remove.isEnabled = Profiles.Selected.Length > 0;
+            RefreshButtons(Profiles.Selected.Length > 0 && Profiles.HasUnsavedChanges);
 
             if (message != null)
                 Say(message, UIBuilder.StatusColour);

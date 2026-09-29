@@ -42,9 +42,10 @@ namespace VolumetricClouds
     /// afternoon of tuning with one bracket missing, and writing the defaults over it would
     /// also switch off the fog, which only the player's own click may do (invariant 12).
     ///
-    /// PROFILES (1.2.1): while one is picked, its file is written in the same save, from the
+    /// PROFILES (1.3.0): a profile's file is written only by the panel's "+" and "Save", from the
     /// same walk of the catalog, with only the rows a profile carries (<see cref="Profiles"/>).
-    /// This file stays the whole truth either way: it gains one element, &lt;Profile&gt;.
+    /// This file stays the whole truth of the sky, unsaved changes included: it gains one
+    /// element, &lt;Profile&gt;, the pick.
     /// </remarks>
     public static class SettingsXml
     {
@@ -158,8 +159,7 @@ namespace VolumetricClouds
                 Log.Error("settings: could not load " + Path + "; running on the defaults", e);
             }
 
-            // The picked profile's file on top of this one: after it, so that nothing above has
-            // written the profile before it was read (Profiles never writes before this).
+            // The picked profile's file, READ (never applied): does the sky still match it?
             Profiles.Startup();
 
             _savedKey = CurrentKey();
@@ -334,11 +334,6 @@ namespace VolumetricClouds
             // every value it might then replace.
             RunAfterChange(changed, "the file");
 
-            // A picked profile follows a hand edit of this file at once: a quit before the next
-            // change would otherwise leave the profile behind, and it is read on top of this file
-            // at the next start.
-            Profiles.Save();
-
             _savedKey = CurrentKey();
             SettingsCatalog.RefreshAllUIs();
         }
@@ -368,28 +363,10 @@ namespace VolumetricClouds
         // ---- saving ---------------------------------------------------------------------------
 
         /// <summary>
-        /// Writes the file now, if what it would hold differs from what is there -- and the picked
-        /// profile's file with it (Profiles.Save).
+        /// Writes the file now, if what it would hold differs from what is there. Never a
+        /// profile's file: those are written by "+" and "Save" alone (<see cref="Profiles"/>).
         /// </summary>
         public static void SaveNow()
-        {
-            _dirty = false;
-            _seenStamp = _changeStamp;
-
-            if (!Settings.IsInitialised)
-                return;
-
-            SaveLive();
-
-            // Even when this file cannot be read and is left alone: the profile's file can be.
-            Profiles.Save();
-        }
-
-        /// <summary>
-        /// This file alone: after a hand edit of the picked profile's file, whose own text is left
-        /// as the player wrote it until the next change (as this file's is after a hand edit).
-        /// </summary>
-        internal static void SaveLiveOnly()
         {
             _dirty = false;
             _seenStamp = _changeStamp;
@@ -546,15 +523,78 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// Takes a profile's values: only the rows a profile carries, and a name that belongs to
-        /// any other row is named in the log and left alone. <paramref name="missingMeansDefault"/>:
-        /// a profile is a complete sky when it is picked, so a value it lacks goes back to its
-        /// default; a hand edit of the picked profile's file, and its read at startup, leave a
-        /// missing value as it is. Null (and why) if the text is not a settings file.
+        /// The sky as a profile holds it: each row a profile carries, by name, with its value as
+        /// the file writes it. What "unsaved changes" compares (<see cref="Profiles"/>): values,
+        /// never the text, whose comments follow the language and the version.
         /// </summary>
-        internal static ReadResult ReadProfile(string text, out string error, bool missingMeansDefault, List<Row> changedRows)
+        internal static Dictionary<string, string> ProfileValues()
         {
-            return Read(text, out error, IsProfiled, missingMeansDefault, false, changedRows);
+            var values = new Dictionary<string, string>();
+            var seen = new HashSet<object>();
+
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting == null || !seen.Add(setting) || !row.Profiled)
+                    continue;
+
+                values[row.Name] = ValueText(row);
+            }
+
+            return values;
+        }
+
+        /// <summary>
+        /// What picking a profile of this text would put in, as <see cref="ProfileValues"/> gives
+        /// it, worked out without changing the sky: the values are taken the way a pick takes them,
+        /// read back, and put back in the same call. Nothing sees them in between: the settings
+        /// are read on the main thread, and the simulation thread reads snapshots made there
+        /// (CloudRain). Null (and why) if the text is not a settings file.
+        /// </summary>
+        internal static Dictionary<string, string> ProfileValuesOf(string text, out string error)
+        {
+            var held = new List<KeyValuePair<Row, object>>();
+            var seen = new HashSet<object>();
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting != null && seen.Add(setting) && row.Profiled)
+                    held.Add(new KeyValuePair<Row, object>(row, RawValue(row)));
+            }
+
+            try
+            {
+                if (Read(text, out error, IsProfiled, true, false, null) == null)
+                    return null;
+
+                return ProfileValues();
+            }
+            finally
+            {
+                // Read clears _loading when it is done: set again, so putting the values back
+                // is no change to save.
+                _loading = true;
+                try
+                {
+                    foreach (KeyValuePair<Row, object> pair in held)
+                        SetRawValue(pair.Key, pair.Value);
+                }
+                finally
+                {
+                    _loading = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Takes a profile's values: only the rows a profile carries, and a name that belongs to
+        /// any other row is named in the log and left alone. A profile is a complete sky, so a
+        /// value it lacks goes back to its default. Null (and why) if the text is not a settings
+        /// file.
+        /// </summary>
+        internal static ReadResult ReadProfile(string text, out string error, List<Row> changedRows)
+        {
+            return Read(text, out error, IsProfiled, true, false, changedRows);
         }
 
         // ---- applying values ------------------------------------------------------------------
@@ -990,6 +1030,30 @@ namespace VolumetricClouds
             if (row.Colour != null) return row.Colour;
             if (row.Text != null) return row.Text;
             return null;
+        }
+
+        /// <summary>A row's setting as it is held, to be put back with <see cref="SetRawValue"/>. Null for a key: never in a profile.</summary>
+        private static object RawValue(Row row)
+        {
+            if (row.Float != null) return row.Float.value;
+            if (row.Bool != null) return row.Bool.value;
+            if (row.Int != null) return row.Int.value;
+            if (row.Key != null) return null;
+            if (row.Colour != null) return row.Colour.value;
+            if (row.Text != null) return row.Text.value;
+            return null;
+        }
+
+        private static void SetRawValue(Row row, object value)
+        {
+            if (value == null)
+                return;
+
+            if (row.Float != null) row.Float.value = (float)value;
+            else if (row.Bool != null) row.Bool.value = (bool)value;
+            else if (row.Int != null) row.Int.value = (int)value;
+            else if (row.Colour != null) row.Colour.value = (Color32)value;
+            else if (row.Text != null) row.Text.value = (string)value;
         }
 
         private static string LegacyKeyOf(Row row)

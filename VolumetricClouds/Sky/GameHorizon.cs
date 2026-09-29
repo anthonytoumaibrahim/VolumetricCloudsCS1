@@ -3,7 +3,7 @@ using UnityEngine;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// Takes the game fog's HORIZON BAND off the sky while our clouds are drawn (1.2.1; the author:
+    /// Takes the game fog's HORIZON BAND off the sky while our clouds are drawn (1.3.0; the author:
     /// "the blue sky horizon is still there, it's visible especially at night, it hides far away
     /// clouds. Let's remove it as long as the user has our mod turned on"). Handed back when the
     /// clouds are hidden ("Volumetric Weather" unticked) and when the city closes.

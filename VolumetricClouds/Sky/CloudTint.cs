@@ -48,7 +48,7 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The tint at a time of day (1.2.1, "Different colours at night"): the day's colour at
+        /// The tint at a time of day (1.3.0, "Different colours at night"): the day's colour at
         /// <paramref name="night"/> 0, the night's at 1, and between them through the twilight
         /// (CloudVolume's night factor, from the sun's elevation). Both ends go through
         /// <see cref="Of"/> first and the multipliers are blended, which keeps the brightness:

@@ -200,7 +200,7 @@ Check "it is monotone from one end to the other" ((Brightness 2.0 0.5 0.3) -gt (
 Check "equal ends are a flat line (auto then does nothing, as it should)" ([math]::Abs((Brightness 0.25 0.25 0.6) - 0.25) -lt 1e-6)
 
 ""
-"=== Settings.DayAndNight: the night's brightness through the twilight (1.2.1) ==="
+"=== Settings.DayAndNight: the night's brightness through the twilight (1.3.0) ==="
 $blend = $asm.GetType("VolumetricClouds.Settings").GetMethod("DayAndNight", $flags)
 function DayNight([double]$day, [double]$atNight, [double]$night) {
     return [single]$blend.Invoke($null, [object[]]@([single]$day, [single]$atNight, [single]$night))

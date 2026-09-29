@@ -4,7 +4,7 @@ using System.Threading;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// THE CIRRUS PATTERN (1.2.1 plan, pictures first): the tiling 2D texture the cirrus layer is
+    /// THE CIRRUS PATTERN (a later update's plan, pictures first; nothing in the mod uses it yet): the tiling 2D texture the cirrus layer is
     /// drawn from, the way Horizon Zero Dawn draws its "high altitude 2D alto and cirro class clouds
     /// above 4000 meters" as tiling, scrolling textures above its volumetric clouds (Schneider,
     /// SIGGRAPH 2015, slide 73 and notes 86-87). Theirs were photographs; this is made from the

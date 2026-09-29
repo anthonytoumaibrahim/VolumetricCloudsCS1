@@ -33,7 +33,7 @@ namespace VolumetricClouds.Sky
         /// <summary>Bytes in a version-1 record: 1 + 2 x 4 + 4 x 8 + 5 x 4.</summary>
         public const int Version1Length = 61;
 
-        /// <summary>Bytes in a version-2 record (1.2.1): version 1's, then the cloud position, 2 x 8.</summary>
+        /// <summary>Bytes in a version-2 record (1.3.0): version 1's, then the cloud position, 2 x 8.</summary>
         public const int Version2Length = 77;
 
         public int FieldSeed;
@@ -66,7 +66,7 @@ namespace VolumetricClouds.Sky
         public float RainFallZ;
 
         /// <summary>
-        /// Version 2 (1.2.1): the player's shift of this city's clouds, metres along x and z
+        /// Version 2 (1.3.0): the player's shift of this city's clouds, metres along x and z
         /// (CloudWind.ShiftX / ShiftZ, "Cloud position" on the Weather tab). 0 in a version-1
         /// record. An older mod reads the record's version-1 part, draws the clouds unshifted,
         /// and its next save writes a version-1 record: the shift is lost, nothing else.

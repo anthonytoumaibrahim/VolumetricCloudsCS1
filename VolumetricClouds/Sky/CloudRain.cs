@@ -28,14 +28,8 @@ namespace VolumetricClouds.Sky
         /// <summary>Terminal velocity of a raindrop, m/s.</summary>
         private const float FallSpeed = 10f;
 
-        /// <summary>A snowflake's, m/s (1.2.1, winter maps): about a metre a second, too slow to streak.</summary>
+        /// <summary>A snowflake's, m/s (1.3.0, winter maps): about a metre a second. Moves the snow curtains.</summary>
         private const float SnowFallSpeed = 1.2f;
-
-        /// <summary>
-        /// Metres a flake falls in one sway from side to side. The fall wraps every
-        /// <see cref="WrapDistance"/>, a whole number of these (2100), so the sway never jumps.
-        /// </summary>
-        private const float SwayFall = 2.4f;
 
         /// <summary>
         /// Horizontal size of the rain curtains' noise pattern, and how much taller than wide
@@ -64,23 +58,27 @@ namespace VolumetricClouds.Sky
             public float RainCoverage;
         }
 
+        /// <summary>For the simulation thread (sound, road wetness): null while localisation is off.</summary>
         private static volatile Snapshot _snapshot;
+
+        /// <summary>For what is drawn, whatever the localisation switch says: null with no rain of ours.</summary>
+        private static Snapshot _onScreen;
+
         private static readonly AmountReporter Reporter = new AmountReporter();
 
         /// <summary>True while our rain replaces the game's.</summary>
         public static bool Active { get; private set; }
 
         /// <summary>
-        /// True on winter maps, where the game's "rain" is snow. Since 1.2.1 ours snows there, just
-        /// as it rains elsewhere (flakes instead of streaks, RainDrops; whiter curtains,
-        /// CloudVolume), and road snow -- which the game keeps as road wetness -- follows the clouds
-        /// through the same patch as wet roads (asked for: "They should work just as well as rain
-        /// does"). Until then ours stood down and the game kept its snow.
+        /// True on winter maps, where the game's "rain" is snow. Since 1.3.0 the snow, too, falls
+        /// only under the clouds: whiter curtains in the distance (CloudVolume), the GAME's own
+        /// snowflakes near the camera shown only where it snows (GameRain -- the author liked them
+        /// better than ours: "I like the vanilla game's snow better"), and road snow -- which the
+        /// game keeps as road wetness -- following the clouds through the same patch as wet roads
+        /// ("They should work just as well as rain does"). Until then ours stood down on winter
+        /// maps and the game snowed everywhere.
         /// </summary>
         public static bool IsSnow { get; private set; }
-
-        /// <summary>The flakes' drift from side to side, in radians: moves only as the snow falls.</summary>
-        public static float SwayPhase { get; private set; }
 
         /// <summary>The game's rain, 0..1, or 0 when our rain is off.</summary>
         public static float Amount { get; private set; }
@@ -108,7 +106,7 @@ namespace VolumetricClouds.Sky
             bool wanted = Settings.RainEnabled == null || Settings.RainEnabled.value;
             bool cloudsShowing = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
 
-            // On winter maps the game's "rain" is snow: ours snows there (1.2.1), with its own look.
+            // On winter maps the game's "rain" is snow: it falls under the clouds too (1.3.0).
             bool wasSnow = IsSnow;
             IsSnow = Singleton<WeatherManager>.exists
                   && Singleton<WeatherManager>.instance.m_properties != null
@@ -116,7 +114,8 @@ namespace VolumetricClouds.Sky
 
             if (IsSnow != wasSnow)
                 Log.Msg(IsSnow
-                    ? "snow: a winter map -- OUR snow falls under the clouds in place of the game's, and road snow follows it"
+                    ? "snow: a winter map -- the snow falls only under the clouds: the game's own snowflakes near the camera " +
+                      "where it snows, our curtains in the distance, and road snow follows it"
                     : "rain: not a winter map");
 
             Active = wanted && cloudsShowing && shadersAvailable && field != null;
@@ -144,16 +143,13 @@ namespace VolumetricClouds.Sky
                                      -Mathf.Repeat(-fallen.y, WrapDistance),
                                      Mathf.Repeat(fallen.z, WrapDistance));
 
-            // One sway per SwayFall metres fallen: continuous across the wrap (a whole number of them).
-            SwayPhase = (float)(Frac(-FallOffset.y / SwayFall) * 2.0 * System.Math.PI);
-
-            bool localised = Active && Amount > 0f
-                          && (Settings.RainLocalised == null || Settings.RainLocalised.value);
+            bool raining = Active && Amount > 0f;
+            bool localised = raining && (Settings.RainLocalised == null || Settings.RainLocalised.value);
 
             float tile = Mathf.Max(500f, Value(Settings.WeatherTileSize, Settings.Defaults.WeatherTileSize));
             Vector2 phase = CloudWind.WeatherPhase(tile);
 
-            _snapshot = !localised ? null : new Snapshot
+            Snapshot now = !raining ? null : new Snapshot
             {
                 Field = field,
                 Tile = tile,
@@ -164,6 +160,9 @@ namespace VolumetricClouds.Sky
                 CloudBottom = Value(Settings.CloudAltitude, Settings.Defaults.Altitude),
                 RainCoverage = RainCoverage,
             };
+
+            _onScreen = now;
+            _snapshot = localised ? now : null;
         }
 
         /// <summary>
@@ -174,9 +173,28 @@ namespace VolumetricClouds.Sky
         public static float LocalRain(Vector3 position)
         {
             Snapshot s = _snapshot;
-            if (s == null)
-                return 1f;
+            return s == null ? 1f : Sample(s, position);
+        }
 
+        /// <summary>
+        /// The same mask for what is DRAWN, whatever "Rain sound, wet roads and road snow follow
+        /// the clouds" says: 0 in a clearing, 1 under a raining cloud, 0 with no rain of ours.
+        /// Main thread (the game's snowflakes near the camera, GameRain).
+        /// </summary>
+        public static float OnScreen(Vector3 position)
+        {
+            Snapshot s = _onScreen;
+            return s == null ? 0f : Sample(s, position);
+        }
+
+        /// <summary>The cloud base, world metres: no rain or snow is made above it.</summary>
+        public static float CloudBottom
+        {
+            get { return Value(Settings.CloudAltitude, Settings.Defaults.Altitude); }
+        }
+
+        private static float Sample(Snapshot s, Vector3 position)
+        {
             float below = Mathf.Max(0f, s.CloudBottom - position.y);
             float x = position.x - s.SlantX * below;
             float z = position.z - s.SlantZ * below;
@@ -219,6 +237,7 @@ namespace VolumetricClouds.Sky
         public static void Clear()
         {
             _snapshot = null;
+            _onScreen = null;
             Active = false;
             Amount = 0f;
             Reporter.Reset();
@@ -227,11 +246,6 @@ namespace VolumetricClouds.Sky
         private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? setting.value : fallback;
-        }
-
-        private static double Frac(double value)
-        {
-            return value - System.Math.Floor(value);
         }
     }
 }

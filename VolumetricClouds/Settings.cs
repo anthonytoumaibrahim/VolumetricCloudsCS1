@@ -72,10 +72,10 @@ namespace VolumetricClouds
         public static IntSetting Language { get; private set; }
 
         /// <summary>
-        /// PROFILES (1.2.1): the name of the profile picked at the top of the in-game panel, empty
-        /// for none. While one is picked, its file (VolumetricCloudsProfiles\&lt;name&gt;.xml) is
-        /// written together with VolumetricClouds.xml (see <see cref="Profiles"/>). Never part of
-        /// a profile: it names one.
+        /// PROFILES (1.3.0): the name of the profile picked at the top of the in-game panel, empty
+        /// for none. Its file (VolumetricCloudsProfiles\&lt;name&gt;.xml) is written only by the
+        /// panel's "+" and "Save" (see <see cref="Profiles"/>). Never part of a profile: it names
+        /// one.
         /// </summary>
         public static StringSetting CurrentProfile { get; private set; }
 
@@ -100,7 +100,7 @@ namespace VolumetricClouds
         /// <summary>
         /// Replace the game's camera-locked rain with ours: curtains under the clouds and
         /// world-anchored streaks near the camera, both only where it is raining. On a winter
-        /// map the game's rain is snow, and so is ours (1.2.1): flakes, whiter curtains.
+        /// map the game's rain is snow, and so is ours (1.3.0): flakes, whiter curtains.
         /// </summary>
         public static BoolSetting RainEnabled { get; private set; }
 
@@ -130,7 +130,7 @@ namespace VolumetricClouds
 
         /// <summary>
         /// The rain sound and wet roads follow the clouds too -- and on a winter map road snow,
-        /// which the game keeps as road wetness (1.2.1). The one setting that changes what the
+        /// which the game keeps as road wetness (1.3.0). The one setting that changes what the
         /// simulation sees (see SampleRainIntensityPatch).
         /// </summary>
         public static BoolSetting RainLocalised { get; private set; }
@@ -294,7 +294,7 @@ namespace VolumetricClouds
         public static IntSetting CloudStyle { get; private set; }
 
         /// <summary>
-        /// Under Cumulus, how much of the Classic layer is mixed in among the heaps, 0..1 (1.2.1,
+        /// Under Cumulus, how much of the Classic layer is mixed in among the heaps, 0..1 (1.3.0,
         /// asked for: "For Cumulus we combined them with our classic style... Maybe we can give the
         /// user the control for this too?"). The layer's share of the cover: 1 = the combination as
         /// it shipped in 1.2 (the default, so nobody's sky changes), 0 = the heaps alone.
@@ -346,7 +346,7 @@ namespace VolumetricClouds
         public static ColorSetting CloudShadeColor { get; private set; }
 
         /// <summary>
-        /// DIFFERENT COLOURS AT NIGHT (1.2.1): on, the clouds take <see cref="CloudMoonlitColor"/>
+        /// DIFFERENT COLOURS AT NIGHT (1.3.0): on, the clouds take <see cref="CloudMoonlitColor"/>
         /// and <see cref="CloudNightShadeColor"/> at night, blended in through the twilight; off
         /// (the default, so an update changes no one's clouds), the two colours above are used day
         /// and night, exactly as before the switch existed.
@@ -400,7 +400,7 @@ namespace VolumetricClouds
         public static FloatSetting MinIllumination { get; private set; }
 
         /// <summary>
-        /// BRIGHTNESS DIFFERS AT NIGHT (1.2.1, asked for: "separate brightness sliders from day and
+        /// BRIGHTNESS DIFFERS AT NIGHT (1.3.0, asked for: "separate brightness sliders from day and
         /// night", optional): on, the clouds take the night's brightness below at night, blended in
         /// through the same twilight as the night colours; off (the default, so an update changes
         /// no one's clouds), the brightness above is used day and night, exactly as before.
@@ -564,7 +564,7 @@ namespace VolumetricClouds
 
             /// <summary>
             /// The curve's two ends, in the same units as <see cref="Brightness"/>. The clear end
-            /// was 300% until 1.2.1; the new default reaches only new installs and a Reset.
+            /// was 300% until 1.3.0; the new default reaches only new installs and a Reset.
             /// </summary>
             public const float BrightnessClear = 1.5f;
             public const float BrightnessOvercast = 0.5f;

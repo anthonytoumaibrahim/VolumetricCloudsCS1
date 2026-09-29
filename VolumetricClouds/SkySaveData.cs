@@ -13,7 +13,7 @@ namespace VolumetricClouds
     /// Safe with the mod removed (read from IL, 2026-09-21): the save keeps mod data in
     /// SimulationManager.m_serializableDataStorage, a dictionary of name -> bytes that
     /// SimulationManager.Data reads back whole and writes out whole, with no idea whose each
-    /// entry is. Without the mod our 77 bytes (61 before 1.2.1) are simply carried along;
+    /// entry is. Without the mod our 77 bytes (61 before 1.3.0) are simply carried along;
     /// nothing of the game's own data is ever touched.
     ///
     /// THREADS. OnSaveData runs on the SIMULATION thread (LoadingManager.SaveLevelCoroutine

@@ -85,7 +85,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The cover the Classic LAYER is cut at (`_Threshold`): the cover in effect, times the
-        /// "Classic layer" share while Cumulus is drawn (1.2.1: 100% = as in 1.2, 0% = the heaps
+        /// "Classic layer" share while Cumulus is drawn (1.3.0: 100% = as in 1.2, 0% = the heaps
         /// alone). The heaps, the rain and lightning's cloud test keep the full cover.
         /// </summary>
         public static float LayerCoverage

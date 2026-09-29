@@ -27,8 +27,9 @@ and bring their own rain, lightning, fog and night sky with them.
   overridden from the in-game panel, and one button hands control back to the game.
 - **Rain that belongs to the clouds** — curtains hang under the clouds that are actually
   raining, streaks fall near the camera, and rain sound and wet roads follow the clouds instead
-  of falling everywhere at once. On winter maps (1.2.1) it snows instead: whiter curtains, soft
-  drifting flakes near the camera, and road snow that builds up only where it is snowing.
+  of falling everywhere at once. On winter maps (1.3.0) the snow does the same: whiter curtains,
+  the game's own snowflakes near the camera only where it is snowing, and road snow that builds
+  up only there.
 - **Lightning** — flashes light the clouds and rain from inside, the bolt is redrawn, and
   thunder arrives after a speed-of-sound delay. Storm lightning is visual-only and never starts
   a fire; the game's own strikes are left untouched.
@@ -37,15 +38,15 @@ and bring their own rain, lightning, fog and night sky with them.
   bottom up, or only above a height you choose. At night it glows round street lamps, building
   lights and headlights. Off by default.
 - **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
-  Since 1.2.1 they can have a brightness of their own at night, blended in through dusk and
+  Since 1.3.0 they can have a brightness of their own at night, blended in through dusk and
   dawn (*Brightness differs at night*, on the Light tab).
 - **Cloud colours** — tint the sunlit side and the shaded side of the clouds separately: warm
   tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
   hue changes, never the brightness; white, the default, leaves the clouds as they are. The
   game's own colour picker, a field for `#FFC0CB` or `255, 192, 203`, Copy, Paste and a reset.
-  Since 1.2.1 the clouds can have a second pair of colours for the night, blended in through
+  Since 1.3.0 the clouds can have a second pair of colours for the night, blended in through
   dusk and dawn. The volumetric fog has a colour of its own, the same way.
-- **Profiles** (1.2.1) — save the whole sky under a name and switch between skies from the list
+- **Profiles** (1.3.0) — save the whole sky under a name and switch between skies from the list
   at the top of the in-game panel. Each profile is a plain XML file in a
   `VolumetricCloudsProfiles` folder beside the settings file, easy to share; the settings that
   describe your computer (quality, language, keys) are never part of one.
@@ -73,7 +74,7 @@ The mod runs in a loaded city — new game or load game — not in the editors, 
 starting a scenario.
 
 It keeps a small record of each city's sky in the savegame (77 bytes under its own key, 61
-before 1.2.1: the cloud pattern, how far the wind has carried it, and where you moved the
+before 1.3.0: the cloud pattern, how far the wind has carried it, and where you moved the
 clouds), so a city looks the same when you come back. Nothing of the game's own data is written. Removing the mod should not corrupt a save:
 the game keeps mod data as opaque key/value pairs, loads the save the same way without the
 mod, and writes the record back unread on the next save. That said, the mod is provided as-is
@@ -88,9 +89,9 @@ backups of the cities you care about.
 3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look,
    the cloud colours included. **Light** — the cloud shadows and how brightly the clouds are lit.
 4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
-   page in the game's **Options** screen: *Weather*, *Rendering* and *Halos* join the F4
-   panel. That page also has the quality preset (at the top; set to *Custom*, it shows
-   its three settings under it), the language, the panel's key and the reset buttons.
+   page in the game's **Options** screen: *Weather* and *Halos* join the F4 panel. That page
+   also has the quality preset (at the top; set to *Custom*, it shows its three settings under
+   it), how the clouds are drawn, the language, the panel's key and the reset buttons.
 
 *Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for
 confirmation first). *Reset all settings to defaults* (on the mod's options page) restores
@@ -100,7 +101,7 @@ off.
 ## Compatibility
 
 - **Render It!, Theme Mixer** — no conflict; the mod never writes the sun's intensity. While
-  the clouds are shown, the game fog's horizon band is kept off the sky (1.2.1); whatever value
+  the clouds are shown, the game fog's horizon band is kept off the sky (1.3.0); whatever value
   Render It! gives it comes back when they are hidden.
 - **Play It!** — its rain, fog and cloud sliders drive this mod's sky.
 - **Cloud replacer mods** — the game's painted sky layer is left alone. Only the rain-cloud
@@ -122,11 +123,9 @@ with the fog on: expect a lower frame rate on a Mac than on a Windows PC. Cloud 
 Cumulus style (1.2) cost more wherever there is cloud; *Cloud detail* at 0% with the *Classic*
 style costs what 1.1 did. Volumetric fog is by far
 the most expensive feature, which is why it is opt-in. The *Quality preset*, at the top of the
-mod's options page (and on the in-game panel's Rendering tab), sets the clouds', the fog's and
-the shadows' quality together; the raymarch quality slider and the shadow map's resolution and
-update rate are the finer levers if frames are tight (under the preset on the options page
-when it is set to *Custom*, and on the Rendering tab, shown with *Show advanced options in the
-in-game panel*).
+mod's options page, sets the clouds', the fog's and the shadows' quality together; the
+raymarch quality slider and the shadow map's resolution and update rate are the finer levers if
+frames are tight (under the preset when it is set to *Custom*).
 
 ## Known limitations
 

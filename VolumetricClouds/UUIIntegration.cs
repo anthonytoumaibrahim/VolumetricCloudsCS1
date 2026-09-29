@@ -13,7 +13,7 @@ namespace VolumetricClouds
     /// what puts a Unified UI panel on screen: RegisterCustomButton goes to MainPanel.Instance
     /// of the newest UnifiedUILib loaded by any mod, and that getter CREATES the library's own
     /// floating panel when the Unified UI mod is not enabled and no mod has made one yet. Until
-    /// 1.2.1 we registered regardless, so a player with neither the mod nor another mod using
+    /// 1.3.0 we registered regardless, so a player with neither the mod nor another mod using
     /// the library got that panel from us. Now we register only when the panel is there
     /// anyway: the Unified UI mod is enabled, or another mod has already made the library's
     /// panel (then we join it, rather than being the one button outside it). Otherwise the

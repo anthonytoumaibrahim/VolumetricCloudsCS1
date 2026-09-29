@@ -38,7 +38,7 @@ namespace VolumetricClouds.UI
 
     /// <summary>
     /// Which basic tab of the in-game (F4) panel a row appears on. None = not in it. Light was an
-    /// advanced tab until 1.2.1 (the author: it should show "even without advanced settings on").
+    /// advanced tab until 1.3.0 (the author: it should show "even without advanced settings on").
     /// </summary>
     public enum PanelPage { None, Now, Clouds, Fog, Light }
 
@@ -46,8 +46,11 @@ namespace VolumetricClouds.UI
     /// General = the game's mod options page (which has no tabs since 1.1.0). The others are
     /// the in-game panel's ADVANCED tabs, shown with "Show advanced options in the in-game
     /// panel". None = neither. (The name is from when the options page had all five as tabs.)
+    /// There was a Rendering tab until 1.3.0: its rows -- the quality preset and its three, and
+    /// depth occlusion -- are the options page's now (the author: "its settings are now in the
+    /// pause menu"). A code-only name: nothing stored says which page a row is on.
     /// </summary>
-    public enum OptionsPage { None, Weather, Rendering, Halos, General }
+    public enum OptionsPage { None, Weather, Halos, General }
 
     /// <summary>
     /// One setting, everything either UI needs to draw it, and its default.
@@ -84,21 +87,14 @@ namespace VolumetricClouds.UI
         public bool Confirm;
 
         /// <summary>
-        /// ALSO on the game's options page, beside the page <see cref="Options"/> names (1.2.1, the
-        /// author: the quality preset there too, "so users will notice it first without having to
-        /// toggle advanced options"). In catalog order, like every row there.
-        /// </summary>
-        public bool OnOptionsPage;
-
-        /// <summary>
-        /// With <see cref="OnOptionsPage"/>: shown there only while this says so (1.2.1: the three
-        /// rows the quality preset sets, under Custom only -- the author: "It's not understandable
-        /// what is Custom without them"). Null: always. The panel's tab shows the row regardless.
+        /// On the game's options page: shown there only while this says so (1.3.0: the three rows
+        /// the quality preset sets, under Custom only -- the author: "It's not understandable what
+        /// is Custom without them"). Null: always.
         /// </summary>
         public Func<bool> OptionsPageShown;
 
         /// <summary>
-        /// Drawn only while this says so, in either UI, taking no room while hidden (1.2.1: the
+        /// Drawn only while this says so, in either UI, taking no room while hidden (1.3.0: the
         /// night's brightness rows, while "Brightness differs at night" is ticked -- the author:
         /// "and then show these"). Null: always. <see cref="Enabled"/> greys a row out instead;
         /// a row can have both.
@@ -108,7 +104,7 @@ namespace VolumetricClouds.UI
         /// <summary>
         /// Toggles: runs when the PLAYER ticks the box in either UI, after the value is stored and
         /// before it is saved -- never for a hand edit of the file, a profile or a reset, which set
-        /// every value they mean. (1.2.1: the night's brightness starts at the day's.)
+        /// every value they mean. (1.3.0: the night's brightness starts at the day's.)
         /// </summary>
         public Action OnTicked;
 
@@ -145,7 +141,7 @@ namespace VolumetricClouds.UI
         public int[] ChoiceValues;
 
         /// <summary>
-        /// A slider over a value that is NOT a setting (1.2.1: this city's cloud position, kept in
+        /// A slider over a value that is NOT a setting (1.3.0: this city's cloud position, kept in
         /// its save): read and written through these, never saved to VolumetricClouds.xml, never
         /// reset, never in a profile -- the row has no setting, and everything that walks the
         /// catalog for settings passes it by.
@@ -172,7 +168,7 @@ namespace VolumetricClouds.UI
         public Func<bool> Enabled;
 
         /// <summary>
-        /// Carried by a profile (1.2.1). False only for the machine (rendering quality) and
+        /// Carried by a profile (1.3.0). False only for the machine (rendering quality) and
         /// housekeeping: does the row describe the sky, or the computer (invariant 11)? A profile
         /// posted in the Workshop comments must never set someone else's step count.
         /// </summary>
@@ -390,7 +386,7 @@ namespace VolumetricClouds.UI
     /// is never saved), and so does a profile's file (its rows with Row.Profiled).
     ///
     /// The split (1.1.0): everything about the SKY is in the panel -- its basic tabs (Row.Panel;
-    /// four since 1.2.1, Light) and its advanced ones (Row.Options other than General); the options
+    /// four since 1.3.0, Light) and its advanced ones (Row.Options other than General); the options
     /// page has only the mod itself (Row.Options == General). A row can have both fields (the
     /// fog switch is on the Fog tab and Rendering); the panel shows it on the basic tab only.
     ///
@@ -434,17 +430,11 @@ namespace VolumetricClouds.UI
             int n = 0;
             foreach (Row row in Rows)
             {
-                if (page == OptionsPage.General ? IsOnOptionsPage(row) : row.Options == page)
+                if (row.Options == page)
                     n++;
             }
 
             return n;
-        }
-
-        /// <summary>The game's options page shows its own rows and those that ask to be there too.</summary>
-        public static bool IsOnOptionsPage(Row row)
-        {
-            return row.Options == OptionsPage.General || row.OnOptionsPage;
         }
 
         /// <summary>A tab's name, in the game's language.</summary>
@@ -484,7 +474,6 @@ namespace VolumetricClouds.UI
                     " Clouds=" + CountForPanel(PanelPage.Clouds) + " Fog=" + CountForPanel(PanelPage.Fog) +
                     " Light=" + CountForPanel(PanelPage.Light) +
                     " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
-                    " Rendering=" + CountForOptions(OptionsPage.Rendering) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
                     " | options page=" + CountForOptions(OptionsPage.General) +
                     " | rows with no UI=" + nowhere);
@@ -525,9 +514,9 @@ namespace VolumetricClouds.UI
         /// "Show advanced options" used to be skipped, and "I reset, so the fog is off" was
         /// what he expected. The reset asks first, so it is the player's own click.
         ///
-        /// A picked profile is let go FIRST (1.2.1): while one is picked every change is saved
-        /// into its file too, and the defaults would be written straight over it. The profiles'
-        /// files are all kept; picking one again brings its sky back.
+        /// A picked profile is let go FIRST (1.3.0): the defaults are not that profile's sky, and
+        /// its Save must not be one click away from writing them into it. The profiles' files are
+        /// all kept; picking one again brings its sky back, and asks nothing (Profiles.AfterReset).
         /// </remarks>
         public static void ResetAll()
         {
@@ -536,6 +525,8 @@ namespace VolumetricClouds.UI
 
             foreach (Row row in Rows)
                 row.ResetToDefault();
+
+            Profiles.AfterReset();
 
             // Under the preset's guard: every value is a default now, and the rendering rows'
             // own hooks would otherwise flip the preset (High, reset a moment ago) to Custom.
@@ -913,7 +904,7 @@ namespace VolumetricClouds.UI
 
         /// <summary>
         /// The line the Clouds tab shows instead of putting the brightness sliders in the panel.
-        /// With "Brightness differs at night" (1.2.1) it is the brightness in use and says so: the
+        /// With "Brightness differs at night" (1.3.0) it is the brightness in use and says so: the
         /// night's at night, the two blended through the twilight.
         /// </summary>
         public static string DescribeBrightness()
@@ -961,8 +952,10 @@ namespace VolumetricClouds.UI
             BuildFog();
             BuildWeatherOptions();
             BuildLightOptions();
-            BuildRenderingOptions();
             BuildHaloOptions();
+
+            // The options page, top to bottom: quality and drawing first, then the mod itself.
+            BuildRenderingOptions();
             BuildGeneralOptions();
             BuildHidden();
         }
@@ -1114,7 +1107,7 @@ namespace VolumetricClouds.UI
                 AfterChange = State("cloud style", CloudStyle.Describe),
             });
 
-            // Under Cumulus: how much of the Classic layer fills in among the heaps (1.2.1, asked
+            // Under Cumulus: how much of the Classic layer fills in among the heaps (1.3.0, asked
             // for). 100% = as 1.2 shipped, the default; shown only while Cumulus is picked. No
             // AfterChange (a slider's runs on every tick of a drag): the frame line carries it.
             Add(new Row
@@ -1235,7 +1228,7 @@ namespace VolumetricClouds.UI
                 DefaultColour = Settings.Defaults.ShadeColor,
             });
 
-            // 1.2.1 (asked for: the colours "should be different during day than night"). Off,
+            // 1.3.0 (asked for: the colours "should be different during day than night"). Off,
             // the default, the two above are used around the clock -- exactly as before, so an
             // update changes nobody's clouds. On, these two take over at night, blended in through
             // the twilight (Sky.CloudTint.Blend). Like the day's, each pick is logged by its row.
@@ -1277,24 +1270,22 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Toggle,
                 Panel = PanelPage.Fog,
-                Options = OptionsPage.Rendering,
                 HasNote = true,
                 Confirm = true,
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
                 // Only the player's own click turns this off, never an update. "Reset all
                 // settings" does, since 1.1.0 -- it is his click, and asks first. So does picking
-                // a profile that has it off (1.2.1): also his click, on a sky he saved or chose,
+                // a profile that has it off (1.3.0): also his click, on a sky he saved or chose,
                 // and it asks nothing, like a value typed into the settings file.
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 
-            // Right under the fog switch, in both UIs: it is a part of the fog.
+            // Right under the fog switch: it is a part of the fog.
             Add(new Row
             {
                 Kind = RowKind.Toggle,
                 Panel = PanelPage.Fog,
-                Options = OptionsPage.Rendering,
                 Bool = Settings.FogLampsEnabled,
                 DefaultBool = Settings.Defaults.FogLampsEnabled,
                 Enabled = FogOn,
@@ -1454,7 +1445,7 @@ namespace VolumetricClouds.UI
                 Format = Kilometres,
             });
 
-            // 1.2.1 (asked for: "edit the X and Y values" of the clouds' position, "for advanced
+            // 1.3.0 (asked for: "edit the X and Y values" of the clouds' position, "for advanced
             // settings"): moves THIS city's clouds, all of them together (CloudWind.SetShift),
             // saved with the city (SkyState version 2) -- not a setting: every city's pattern is its
             // own, so no profile or reset carries it. Y is the map's second axis (the world's z).
@@ -1630,7 +1621,7 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// F4 -> Light (an advanced tab until 1.2.1, now always shown). Shadows, the brightness
+        /// F4 -> Light (an advanced tab until 1.3.0, now always shown). Shadows, the brightness
         /// curve, and the two night rows.
         /// </summary>
         private static void BuildLightOptions()
@@ -1716,7 +1707,7 @@ namespace VolumetricClouds.UI
                 Enabled = ManualBrightness,
             });
 
-            // 1.2.1 (asked for: "separate brightness sliders from day and night ... optional"). Off,
+            // 1.3.0 (asked for: "separate brightness sliders from day and night ... optional"). Off,
             // the default, the brightness above is used around the clock -- exactly as before, so
             // an update changes nobody's clouds. On, the night's own takes over at night, through
             // the night colours' twilight (Settings.EffectiveBrightness): the same two kinds as the
@@ -1795,18 +1786,20 @@ namespace VolumetricClouds.UI
             });
         }
 
-        /// <summary>Advanced tab Rendering. What this costs, and the two things that cost the most.</summary>
+        /// <summary>
+        /// The game's options page, before its own rows: what the clouds cost, and how they are
+        /// drawn. The in-game panel's Rendering tab until 1.3.0; the quality preset moved first
+        /// ("so users will notice it first without having to toggle advanced options"), then the
+        /// rest, and the tab went ("its settings are now in the pause menu").
+        /// </summary>
         private static void BuildRenderingOptions()
         {
-            // Also on the game's options page (1.2.1, the author's call), where a player finds it
-            // without the advanced tabs: the first row there, under the same heading. The three
-            // rows it sets follow it there, shown while it reads Custom ("It's not understandable
-            // what is Custom without them"); the Rendering tab always shows them.
+            // The first row of the options page. The three rows it sets follow it, shown while it
+            // reads Custom ("It's not understandable what is Custom without them").
             Add(new Row
             {
                 Kind = RowKind.Choice,
-                Options = OptionsPage.Rendering,
-                OnOptionsPage = true,
+                Options = OptionsPage.General,
                 Group = "Performance",
                 Int = Settings.QualityPreset,
                 DefaultInt = Settings.Defaults.Preset,
@@ -1823,8 +1816,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Value,
-                Options = OptionsPage.Rendering,
-                OnOptionsPage = true,
+                Options = OptionsPage.General,
                 OptionsPageShown = CustomPreset,
                 Float = Settings.CloudQuality,
                 DefaultFloat = Settings.Defaults.Quality,
@@ -1837,8 +1829,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Choice,
-                Options = OptionsPage.Rendering,
-                OnOptionsPage = true,
+                Options = OptionsPage.General,
                 OptionsPageShown = CustomPreset,
                 Int = Settings.ShadowMapResolution,
                 DefaultInt = Settings.Defaults.ShadowMapResolution,
@@ -1851,8 +1842,7 @@ namespace VolumetricClouds.UI
             Add(new Row
             {
                 Kind = RowKind.Choice,
-                Options = OptionsPage.Rendering,
-                OnOptionsPage = true,
+                Options = OptionsPage.General,
                 OptionsPageShown = CustomPreset,
                 Int = Settings.ShadowMapRate,
                 DefaultInt = Settings.Defaults.ShadowMapRate,
@@ -1865,11 +1855,11 @@ namespace VolumetricClouds.UI
 
             // The raymarched clouds are the mod: the switch that turned them into flat
             // billboards, and the billboards' two sliders, went in 1.1.0 ("it defeats the
-            // purpose of the mod").
+            // purpose of the mod"). Under its own heading, after the preset's rows.
             Add(new Row
             {
                 Kind = RowKind.Toggle,
-                Options = OptionsPage.Rendering,
+                Options = OptionsPage.General,
                 Group = "Drawing",
                 Bool = Settings.CloudDepthOcclusion,
                 DefaultBool = Settings.Defaults.DepthOcclusion,
@@ -2077,7 +2067,7 @@ namespace VolumetricClouds.UI
         /// </summary>
         private static void BuildHidden()
         {
-            // The profile picked at the top of the in-game panel (Profiles, 1.2.1), empty for
+            // The profile picked at the top of the in-game panel (Profiles, 1.3.0), empty for
             // none. The panel's profile bar is its only UI. A hand edit of the element goes
             // through the AfterChange: an existing profile is picked, a new name makes one of the
             // sky as it is, empty lets go. Never carried by a profile: it names one.
