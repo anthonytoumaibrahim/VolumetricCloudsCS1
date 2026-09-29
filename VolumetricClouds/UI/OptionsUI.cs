@@ -10,7 +10,8 @@ namespace VolumetricClouds.UI
     /// <summary>
     /// The mod's page in the game's own options: the mod itself (language, the panel's key and
     /// its advanced tabs, the button, diagnostics, the resets) and, first, the quality preset
-    /// (1.2.1, Row.OnOptionsPage: found without the advanced tabs). Every setting of the SKY is in
+    /// (1.2.1, Row.OnOptionsPage: found without the advanced tabs), with the three rows it sets
+    /// under it while it reads Custom (Row.OptionsPageShown). Every setting of the SKY is in
     /// the in-game panel (<see cref="CloudsPanel"/>), where it can be judged against the sky.
     /// </summary>
     /// <remarks>
@@ -43,6 +44,8 @@ namespace VolumetricClouds.UI
 
         private static int _buildCount;
         private static bool _loggedSliderChildren;
+        private static bool _loggedShownRows;
+        private static bool _loggedCaption;
 
         private readonly List<Control> _controls = new List<Control>();
         private bool _refreshing;
@@ -57,6 +60,7 @@ namespace VolumetricClouds.UI
             public UILabel Readout;
             public UIComponent Grey;
             public bool Enabled = true;
+            public bool Shown = true;
         }
 
         /// <summary>Called from Mod.OnSettingsUI. Builds a whole new page every time.</summary>
@@ -128,8 +132,9 @@ namespace VolumetricClouds.UI
             }
 
             // Not left to the first visibility event: "Reset cloud pattern" starts greyed out
-            // at the main menu.
+            // at the main menu, and the preset's rows start hidden unless it reads Custom.
             RefreshEnabled();
+            RefreshShown();
 
             if (_buildCount == 1)
                 Log.Msg("options page: built with " + _controls.Count + " controls");
@@ -143,7 +148,8 @@ namespace VolumetricClouds.UI
             foreach (Row row in SettingsCatalog.Rows)
             {
                 // The page's own rows, and on the options page those that ask to be there too
-                // (the quality preset, 1.2.1).
+                // (1.2.1: the quality preset, and the three rows it sets, built here always and
+                // shown under Custom by RefreshShown).
                 bool shown = which == OptionsPage.General ? SettingsCatalog.IsOnOptionsPage(row) : row.Options == which;
                 if (!shown)
                     continue;
@@ -344,7 +350,10 @@ namespace VolumetricClouds.UI
                     // The UIHelper slider has no readout of its own, so the row's own label
                     // carries the value: "Quality (raymarch steps): 96".
                     if (control.Readout != null)
+                    {
+                        OneLine(control.Readout, row);
                         control.Readout.text = row.Label + ": " + row.FormatDisplay(value);
+                    }
                     break;
                 }
             }
@@ -361,6 +370,31 @@ namespace VolumetricClouds.UI
         {
             UIComponent parent = control.parent;
             return parent != null && parent != groupPanel ? parent : control;
+        }
+
+        /// <summary>
+        /// Keeps a slider's caption on one line. The template's caption wraps at a width of its
+        /// own, and "Quality (raymarch steps): 96" -- the name plus the value this page appends --
+        /// wrapped onto a second line over the slider under it (seen in-game 2026-09-29, the first
+        /// slider on this page since 1.1.0). Its width now follows the text; nothing sits to its
+        /// right. What the template had is logged once, so the log records it.
+        /// </summary>
+        private static void OneLine(UILabel caption, Row row)
+        {
+            if (!_loggedCaption)
+            {
+                _loggedCaption = true;
+                UIComponent holder = caption.parent;
+                Log.Msg("options page: slider '" + row.Name + "' caption kept on one line (the template's: " +
+                        caption.width.ToString("F0") + " x " + caption.height.ToString("F0") +
+                        ", wordWrap=" + caption.wordWrap + " autoSize=" + caption.autoSize +
+                        " autoHeight=" + caption.autoHeight + "; row " +
+                        (holder != null ? holder.width.ToString("F0") + " x " + holder.height.ToString("F0") : "?") + ")");
+            }
+
+            caption.wordWrap = false;
+            caption.autoHeight = false;
+            caption.autoSize = true;
         }
 
         private void UpdateReadout(Row row, float display)
@@ -523,6 +557,7 @@ namespace VolumetricClouds.UI
             }
 
             RefreshEnabled();
+            RefreshShown();
 
             if (touched > 0 && Log.Detailed)
                 Log.Detail("options page: refreshed " + _controls.Count + " controls, " + touched + " had changed");
@@ -540,6 +575,53 @@ namespace VolumetricClouds.UI
                 control.Grey.isEnabled = wanted;
                 control.Grey.opacity = wanted ? 1f : 0.45f;
             }
+        }
+
+        /// <summary>
+        /// Shows the rows that are on this page only sometimes and hides them otherwise
+        /// (Row.IsShownOnOptionsPage: the preset's three rows, under Custom). The whole row goes:
+        /// Grey, the template's panel holding the label and the control. A hidden row takes no
+        /// room (IL, 2026-09-29): its visibility event makes its group re-arrange
+        /// (UIPanel.AutoArrange skips a child that is not visible) and fit its height to the rows
+        /// left (FitChildrenVertically counts isVisibleSelf only), and the page's
+        /// UIScrollablePanel does the same with the groups. Each change is logged with the group's
+        /// new height (seen in-game: 97 hidden, 307 shown).
+        /// </summary>
+        private void RefreshShown()
+        {
+            int changed = 0;
+            bool shown = false;
+            UIComponent group = null;
+            string names = string.Empty;
+
+            foreach (Control control in _controls)
+            {
+                if (control.Grey == null)
+                    continue;
+
+                bool wanted = control.Source.IsShownOnOptionsPage;
+                if (wanted == control.Shown)
+                    continue;
+
+                control.Shown = wanted;
+                control.Grey.isVisible = wanted;
+
+                changed++;
+                shown = wanted;
+                group = control.Grey.parent;
+                names += (names.Length == 0 ? "" : ", ") + control.Source.Name +
+                         (_loggedShownRows ? "" : " (" + control.Grey.name + ")");
+            }
+
+            if (changed == 0)
+                return;
+
+            // Which component each row hides, the first time: a row whose control has no panel
+            // of its own would hide only the control and leave its label behind.
+            _loggedShownRows = true;
+
+            Log.Msg("options page: " + names + (shown ? " shown" : " hidden") +
+                    (group != null ? "; their group is now " + group.height.ToString("F0") + " high" : ""));
         }
     }
 }

@@ -391,6 +391,23 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting MinIllumination { get; private set; }
 
+        /// <summary>
+        /// BRIGHTNESS DIFFERS AT NIGHT (1.2.1, asked for: "separate brightness sliders from day and
+        /// night", optional): on, the clouds take the night's brightness below at night, blended in
+        /// through the same twilight as the night colours; off (the default, so an update changes
+        /// no one's clouds), the brightness above is used day and night, exactly as before.
+        /// </summary>
+        public static BoolSetting CloudNightBrightness { get; private set; }
+
+        /// <summary>At night, with the switch on and automatic brightness: the curve's clear end.</summary>
+        public static FloatSetting CloudNightBrightnessClear { get; private set; }
+
+        /// <summary>At night, with the switch on and automatic brightness: the curve's overcast end.</summary>
+        public static FloatSetting CloudNightBrightnessOvercast { get; private set; }
+
+        /// <summary>At night, with the switch on and automatic brightness off.</summary>
+        public static FloatSetting CloudNightBrightnessFixed { get; private set; }
+
         /// <summary>Draw the clouds at all. Off: no clouds, no shadows, no rain from them.</summary>
         public static BoolSetting CloudsVisible { get; private set; }
 
@@ -540,6 +557,17 @@ namespace VolumetricClouds
 
             /// <summary>1 = off. Only consulted when the brightness curve is off.</summary>
             public const float MinIllumination = 1f;
+
+            /// <summary>
+            /// OFF: a new row reaches every existing settings file with its default, and off means
+            /// the brightness above around the clock -- the clouds exactly as before. The night's
+            /// three start at the day's DEFAULTS; ticking the box starts a night never set at the
+            /// day's current values instead (SettingsCatalog.StartNightBrightness).
+            /// </summary>
+            public const bool NightBrightness = false;
+            public const float NightBrightnessClear = BrightnessClear;
+            public const float NightBrightnessOvercast = BrightnessOvercast;
+            public const float NightBrightnessFixed = Brightness;
 
             public const float NightOpacity = 1f;
             public const float NightGlow = 0.5f;
@@ -768,6 +796,10 @@ namespace VolumetricClouds
                 CloudQuality = new FloatSetting("CloudQuality", Defaults.Quality);
                 CloudDepthOcclusion = new BoolSetting("CloudDepthOcclusion", Defaults.DepthOcclusion);
                 MinIllumination = new FloatSetting("MinIllumination", Defaults.MinIllumination);
+                CloudNightBrightness = new BoolSetting("CloudNightBrightness", Defaults.NightBrightness);
+                CloudNightBrightnessClear = new FloatSetting("CloudNightBrightnessClear", Defaults.NightBrightnessClear);
+                CloudNightBrightnessOvercast = new FloatSetting("CloudNightBrightnessOvercast", Defaults.NightBrightnessOvercast);
+                CloudNightBrightnessFixed = new FloatSetting("CloudNightBrightnessFixed", Defaults.NightBrightnessFixed);
 
                 CloudsVisible = new BoolSetting("CloudsVisible", Defaults.CloudsVisible);
                 CloudAltitude = new FloatSetting("CloudAltitude", Defaults.Altitude);
@@ -829,22 +861,61 @@ namespace VolumetricClouds
         /// <summary>
         /// How brightly the clouds are lit right now: the curve if Auto is on, the slider
         /// otherwise. The curve's endpoints are positions on the same scale as the slider, so
-        /// switching Auto off changes only which number is used.
+        /// switching Auto off changes only which number is used. With "Brightness differs at
+        /// night" the night's own (the same choice, its own numbers) comes in by
+        /// <paramref name="night"/>: 0 by day, 1 at night, CloudVolume's twilight, the one the
+        /// night colours use. Off, the day's value is returned as it always was.
         /// </summary>
-        public static float EffectiveBrightness(float coverage)
+        public static float EffectiveBrightness(float coverage, float night)
         {
-            if (CloudBrightnessAuto == null || !CloudBrightnessAuto.value)
-                return CloudBrightness != null ? CloudBrightness.value : Defaults.Brightness;
+            bool auto = BrightnessAuto;
+            float day = auto
+                ? BrightnessCurve(ValueOf(CloudBrightnessClear, Defaults.BrightnessClear),
+                    ValueOf(CloudBrightnessOvercast, Defaults.BrightnessOvercast), coverage)
+                : ValueOf(CloudBrightness, Defaults.Brightness);
 
-            float clear = CloudBrightnessClear != null ? CloudBrightnessClear.value : Defaults.BrightnessClear;
-            float overcast = CloudBrightnessOvercast != null ? CloudBrightnessOvercast.value : Defaults.BrightnessOvercast;
-            return BrightnessCurve(clear, overcast, coverage);
+            if (!NightBrightnessOn)
+                return day;
+
+            float atNight = auto
+                ? BrightnessCurve(ValueOf(CloudNightBrightnessClear, Defaults.NightBrightnessClear),
+                    ValueOf(CloudNightBrightnessOvercast, Defaults.NightBrightnessOvercast), coverage)
+                : ValueOf(CloudNightBrightnessFixed, Defaults.NightBrightnessFixed);
+
+            return DayAndNight(day, atNight, night);
+        }
+
+        private static float ValueOf(FloatSetting setting, float fallback)
+        {
+            return setting != null ? setting.value : fallback;
         }
 
         /// <summary>True while the brightness curve is driving the clouds.</summary>
         public static bool BrightnessAuto
         {
             get { return CloudBrightnessAuto != null && CloudBrightnessAuto.value; }
+        }
+
+        /// <summary>True while the night has a brightness of its own.</summary>
+        public static bool NightBrightnessOn
+        {
+            get { return CloudNightBrightness != null && CloudNightBrightness.value; }
+        }
+
+        /// <summary>
+        /// The day's brightness and the night's, blended: pure, tested offline
+        /// (tools/test-placement.ps1). Exactly the day's at 0 and exactly the night's at 1 --
+        /// no rounding of a lerp at either end -- and straight in between: a brightness is a
+        /// multiplier on the light, like the colours CloudTint.Blend lerps.
+        /// </summary>
+        public static float DayAndNight(float day, float atNight, float night)
+        {
+            if (night <= 0f)
+                return day;
+            if (night >= 1f)
+                return atNight;
+
+            return day + (atNight - day) * night;
         }
 
         /// <summary>

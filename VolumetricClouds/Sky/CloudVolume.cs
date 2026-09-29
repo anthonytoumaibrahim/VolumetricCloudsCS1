@@ -32,6 +32,12 @@ namespace VolumetricClouds.Sky
         /// <summary>True while the volumetric layer is actually drawing (the fog needs the pass).</summary>
         public static bool IsActive { get; private set; }
 
+        /// <summary>
+        /// The last frame's twilight: 0 by day, 1 once the sun is well down (NightFactor); 0
+        /// without a city. What the Clouds tab's brightness line blends the night's in by.
+        /// </summary>
+        public static float Night { get; private set; }
+
         /// <summary>The cloud volume of this city, for <see cref="ShareMediaWith"/>.</summary>
         private static CloudVolume _current;
 
@@ -739,9 +745,14 @@ namespace VolumetricClouds.Sky
                     key = moon;
             }
 
+            // 0 by day, 1 at night: what brings in the night's brightness (with "Brightness differs
+            // at night", 1.2.1) and its colours below, through one twilight.
+            float night = NightFactor(sun);
+            Night = night;
+
             float coverage = CloudShaderParams.Coverage;
             bool auto = Settings.BrightnessAuto;
-            float brightness = Settings.EffectiveBrightness(coverage);
+            float brightness = Settings.EffectiveBrightness(coverage, night);
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
             Vector3 sunDir = Vector3.up;
@@ -780,7 +791,6 @@ namespace VolumetricClouds.Sky
             // With "Different colours at night" (1.2.1) the night's two take over as the sun goes
             // down, through the same twilight as the night's opacity and glow; off, the day's
             // are used around the clock, exactly as before the switch.
-            float night = NightFactor(sun);
             _nightColourShare = NightColours ? night : 0f;
             Color sunlitTint = CloudTint.Blend(ColourOf(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor),
                 ColourOf(Settings.CloudMoonlitColor, Settings.Defaults.MoonlitColor), _nightColourShare);
@@ -878,6 +888,7 @@ namespace VolumetricClouds.Sky
                        " effective=" + brightness.ToString("F2") +
                        " overcastTerm=" + overcast.ToString("F2") +
                        (auto ? " (cloud skips the overcast term; the fog keeps it)" : "") +
+                       (Settings.NightBrightnessOn ? " | night brightness " + (Night * 100f).ToString("F0") + "% in" : "") +
                        (NightColours ? " | night colours " + (_nightColourShare * 100f).ToString("F0") + "% in" : ""));
 
             float mean = _frameCount > 0 ? _frameTime / _frameCount : 0f;
@@ -1144,6 +1155,7 @@ namespace VolumetricClouds.Sky
         private void OnDestroy()
         {
             IsActive = false;
+            Night = 0f;
             if (_current == this)
                 _current = null;
 

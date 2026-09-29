@@ -87,6 +87,28 @@ namespace VolumetricClouds.UI
         /// </summary>
         public bool OnOptionsPage;
 
+        /// <summary>
+        /// With <see cref="OnOptionsPage"/>: shown there only while this says so (1.2.1: the three
+        /// rows the quality preset sets, under Custom only -- the author: "It's not understandable
+        /// what is Custom without them"). Null: always. The panel's tab shows the row regardless.
+        /// </summary>
+        public Func<bool> OptionsPageShown;
+
+        /// <summary>
+        /// Drawn only while this says so, in either UI, taking no room while hidden (1.2.1: the
+        /// night's brightness rows, while "Brightness differs at night" is ticked -- the author:
+        /// "and then show these"). Null: always. <see cref="Enabled"/> greys a row out instead;
+        /// a row can have both.
+        /// </summary>
+        public Func<bool> Shown;
+
+        /// <summary>
+        /// Toggles: runs when the PLAYER ticks the box in either UI, after the value is stored and
+        /// before it is saved -- never for a hand edit of the file, a profile or a reset, which set
+        /// every value they mean. (1.2.1: the night's brightness starts at the day's.)
+        /// </summary>
+        public Action OnTicked;
+
         public FloatSetting Float;
         public BoolSetting Bool;
         public IntSetting Int;
@@ -270,6 +292,18 @@ namespace VolumetricClouds.UI
         public bool IsEnabled
         {
             get { return Enabled == null || Enabled(); }
+        }
+
+        /// <summary>See <see cref="Shown"/>.</summary>
+        public bool IsShown
+        {
+            get { return Shown == null || Shown(); }
+        }
+
+        /// <summary>On the game's options page: <see cref="Shown"/>, and <see cref="OptionsPageShown"/> there.</summary>
+        public bool IsShownOnOptionsPage
+        {
+            get { return IsShown && (OptionsPageShown == null || OptionsPageShown()); }
         }
 
         /// <summary>The slider position: percent rows are stored as a fraction and shown x100.</summary>
@@ -565,7 +599,13 @@ namespace VolumetricClouds.UI
 
         private static void Settle(Row row, bool value)
         {
+            bool ticked = value && !row.Bool.value;
             row.Bool.value = value;
+
+            // The player's own tick, and only that (a hand edit, a profile and a reset never come
+            // through here): before the save below, so what it sets is saved with the switch.
+            if (ticked && row.OnTicked != null)
+                row.OnTicked();
 
             // Written to disk NOW rather than with the slider changes a second later. A switch
             // is a decision, and "I ticked it and it was off again next time" is the one report
@@ -634,6 +674,16 @@ namespace VolumetricClouds.UI
                 case 2: return "High";
                 default: return "Custom";
             }
+        }
+
+        /// <summary>
+        /// The preset reads Custom: any value but the three presets (an unknown one reads as the
+        /// last choice, see Row.ChoiceIndex). Shows the rows it sets on the options page.
+        /// </summary>
+        private static bool CustomPreset()
+        {
+            int preset = Settings.QualityPreset != null ? Settings.QualityPreset.value : Settings.Defaults.Preset;
+            return preset < 0 || preset > 2;
         }
 
         /// <summary>A rendering row was dragged by hand, so the preset no longer describes it.</summary>
@@ -795,6 +845,48 @@ namespace VolumetricClouds.UI
             return Settings.BrightnessAuto;
         }
 
+        private static bool NightBrightnessOn()
+        {
+            return Settings.NightBrightnessOn;
+        }
+
+        /// <summary>
+        /// "Brightness differs at night" ticked by the player (Row.OnTicked). A night still at its
+        /// defaults -- never set, or reset -- starts at the day's current values, so ticking the box
+        /// changes nothing until a night slider moves: the defaults are the day's DEFAULTS, and a
+        /// tuned day (the author's: 90% / 40%) would otherwise jump to 300% / 50% at nightfall. A
+        /// night already set is kept, so untick and tick again loses nothing.
+        /// </summary>
+        private static void StartNightBrightness()
+        {
+            FloatSetting clear = Settings.CloudNightBrightnessClear;
+            FloatSetting overcast = Settings.CloudNightBrightnessOvercast;
+            FloatSetting fixedValue = Settings.CloudNightBrightnessFixed;
+            if (clear == null || overcast == null || fixedValue == null)
+                return;
+
+            bool untouched = Mathf.Approximately(clear.value, Settings.Defaults.NightBrightnessClear)
+                && Mathf.Approximately(overcast.value, Settings.Defaults.NightBrightnessOvercast)
+                && Mathf.Approximately(fixedValue.value, Settings.Defaults.NightBrightnessFixed);
+
+            if (untouched)
+            {
+                clear.value = Settings.CloudBrightnessClear != null ? Settings.CloudBrightnessClear.value : Settings.Defaults.BrightnessClear;
+                overcast.value = Settings.CloudBrightnessOvercast != null ? Settings.CloudBrightnessOvercast.value : Settings.Defaults.BrightnessOvercast;
+                fixedValue.value = Settings.CloudBrightness != null ? Settings.CloudBrightness.value : Settings.Defaults.Brightness;
+            }
+
+            Log.Msg("setting: the night's brightness " + (untouched ? "starts at the day's" : "was set before, kept") +
+                    ": clear sky " + Percent(clear.value) + ", full overcast " + Percent(overcast.value) +
+                    ", fixed " + Percent(fixedValue.value));
+        }
+
+        /// <summary>A fraction as the slider shows it, for the LOG (English, no unit lookup).</summary>
+        private static string Percent(float fraction)
+        {
+            return (fraction * 100f).ToString("F0", CultureInfo.InvariantCulture) + "%";
+        }
+
         private static bool ShadowsOn()
         {
             return Settings.CloudShadows == null || Settings.CloudShadows.value;
@@ -811,16 +903,36 @@ namespace VolumetricClouds.UI
             Log.Msg("setting: every override cleared; the weather, the fog and the lightning all follow the game again");
         }
 
-        /// <summary>The line the Clouds tab shows instead of putting the brightness sliders in the panel.</summary>
+        /// <summary>
+        /// The line the Clouds tab shows instead of putting the brightness sliders in the panel.
+        /// With "Brightness differs at night" (1.2.1) it is the brightness in use and says so: the
+        /// night's at night, the two blended through the twilight.
+        /// </summary>
         public static string DescribeBrightness()
         {
             float coverage = CloudShaderParams.Coverage;
-            string brightness = Localization.Get("Unit.Percent", (Settings.EffectiveBrightness(coverage) * 100f).ToString("F0"));
+            float night = Settings.NightBrightnessOn ? CloudVolume.Night : 0f;
+            string brightness = Localization.Get("Unit.Percent", (Settings.EffectiveBrightness(coverage, night) * 100f).ToString("F0"));
+            string intensity = Localization.Get("Unit.Percent", (coverage * 100f).ToString("F0"));
+            bool auto = Settings.BrightnessAuto;
 
-            return Settings.BrightnessAuto
-                ? Localization.Get("Status.Brightness.Auto", brightness,
-                    Localization.Get("Unit.Percent", (coverage * 100f).ToString("F0")))
-                : Localization.Get("Status.Brightness.Manual", brightness);
+            if (night <= 0f)
+            {
+                return auto
+                    ? Localization.Get("Status.Brightness.Auto", brightness, intensity)
+                    : Localization.Get("Status.Brightness.Manual", brightness);
+            }
+
+            if (night >= 1f)
+            {
+                return auto
+                    ? Localization.Get("Status.Brightness.AutoNight", brightness, intensity)
+                    : Localization.Get("Status.Brightness.ManualNight", brightness);
+            }
+
+            return auto
+                ? Localization.Get("Status.Brightness.AutoTwilight", brightness, intensity)
+                : Localization.Get("Status.Brightness.ManualTwilight", brightness);
         }
 
         // ---- the catalog ----------------------------------------------------------------------
@@ -1580,6 +1692,56 @@ namespace VolumetricClouds.UI
                 Enabled = ManualBrightness,
             });
 
+            // 1.2.1 (asked for: "separate brightness sliders from day and night ... optional"). Off,
+            // the default, the brightness above is used around the clock -- exactly as before, so
+            // an update changes nobody's clouds. On, the night's own takes over at night, through
+            // the night colours' twilight (Settings.EffectiveBrightness): the same two kinds as the
+            // day's, greyed by the same switch. The night's rows show only while it is on ("then
+            // show these"), and ticking it starts a night never set at the day's values.
+            // "Clouds dim at full overcast to" stays one for both: it is the overcast, not the hour.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Light,
+                Bool = Settings.CloudNightBrightness,
+                DefaultBool = Settings.Defaults.NightBrightness,
+                OnTicked = StartNightBrightness,
+                AfterChange = State("brightness differs at night", OnOff(Settings.CloudNightBrightness)),
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Light,
+                Float = Settings.CloudNightBrightnessClear,
+                DefaultFloat = Settings.Defaults.NightBrightnessClear,
+                Min = 5f, Max = 300f, Step = 5f,
+                Shown = NightBrightnessOn,
+                Enabled = AutoBrightness,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Light,
+                Float = Settings.CloudNightBrightnessOvercast,
+                DefaultFloat = Settings.Defaults.NightBrightnessOvercast,
+                Min = 5f, Max = 300f, Step = 5f,
+                Shown = NightBrightnessOn,
+                Enabled = AutoBrightness,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Options = OptionsPage.Light,
+                Float = Settings.CloudNightBrightnessFixed,
+                DefaultFloat = Settings.Defaults.NightBrightnessFixed,
+                Min = 5f, Max = 300f, Step = 5f,
+                Shown = NightBrightnessOn,
+                Enabled = ManualBrightness,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
@@ -1613,7 +1775,9 @@ namespace VolumetricClouds.UI
         private static void BuildRenderingOptions()
         {
             // Also on the game's options page (1.2.1, the author's call), where a player finds it
-            // without the advanced tabs: the first row there, under the same heading.
+            // without the advanced tabs: the first row there, under the same heading. The three
+            // rows it sets follow it there, shown while it reads Custom ("It's not understandable
+            // what is Custom without them"); the Rendering tab always shows them.
             Add(new Row
             {
                 Kind = RowKind.Choice,
@@ -1636,6 +1800,8 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Value,
                 Options = OptionsPage.Rendering,
+                OnOptionsPage = true,
+                OptionsPageShown = CustomPreset,
                 Float = Settings.CloudQuality,
                 DefaultFloat = Settings.Defaults.Quality,
                 Min = 16f, Max = 96f, Step = 8f,
@@ -1648,6 +1814,8 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Choice,
                 Options = OptionsPage.Rendering,
+                OnOptionsPage = true,
+                OptionsPageShown = CustomPreset,
                 Int = Settings.ShadowMapResolution,
                 DefaultInt = Settings.Defaults.ShadowMapResolution,
                 ChoiceValues = new[] { 512, 1024, 2048 },
@@ -1660,6 +1828,8 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Choice,
                 Options = OptionsPage.Rendering,
+                OnOptionsPage = true,
+                OptionsPageShown = CustomPreset,
                 Int = Settings.ShadowMapRate,
                 DefaultInt = Settings.Defaults.ShadowMapRate,
                 ChoiceUnit = "Unit.Hz",

@@ -37,6 +37,8 @@ and bring their own rain, lightning, fog and night sky with them.
   bottom up, or only above a height you choose. At night it glows round street lamps, building
   lights and headlights. Off by default.
 - **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
+  Since 1.2.1 they can have a brightness of their own at night, blended in through dusk and
+  dawn (*Brightness differs at night*, on the Light tab).
 - **Cloud colours** — tint the sunlit side and the shaded side of the clouds separately: warm
   tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
   hue changes, never the brightness; white, the default, leaves the clouds as they are. The
@@ -87,8 +89,8 @@ backups of the cities you care about.
    the cloud colours included.
 4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
    page in the game's **Options** screen: *Weather*, *Light*, *Rendering* and *Halos* join
-   the F4 panel. That page also has the quality preset (at the top), the language, the
-   panel's key and the reset buttons.
+   the F4 panel. That page also has the quality preset (at the top; set to *Custom*, it shows
+   its three settings under it), the language, the panel's key and the reset buttons.
 
 *Volumetric fog* and *Light halos* are off until you turn them on (the fog asks for
 confirmation first). *Reset all settings to defaults* (on the mod's options page) restores
@@ -122,8 +124,9 @@ style costs what 1.1 did. Volumetric fog is by far
 the most expensive feature, which is why it is opt-in. The *Quality preset*, at the top of the
 mod's options page (and on the in-game panel's Rendering tab), sets the clouds', the fog's and
 the shadows' quality together; the raymarch quality slider and the shadow map's resolution and
-update rate (the Rendering tab, shown with *Show advanced options in the in-game panel*) are
-the finer levers if frames are tight.
+update rate are the finer levers if frames are tight (under the preset on the options page
+when it is set to *Custom*, and on the Rendering tab, shown with *Show advanced options in the
+in-game panel*).
 
 ## Known limitations
 

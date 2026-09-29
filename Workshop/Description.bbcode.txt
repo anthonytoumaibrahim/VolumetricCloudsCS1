@@ -30,7 +30,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Cloud and fog colors[/b], with different cloud colors at night if you want them
 [*][b]Profiles[/b] (new in v1.2.1): save your favorite skies and switch between them from the list at the top of the in-game panel
 [*][b]Rain droplets customization[/b]
-[*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life
+[*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life, and they can have their own brightness at night (new in v1.2.1)
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
 
@@ -40,7 +40,7 @@ Based on player feedback, the clouds run great even on low-end PCs. And you can 
 [list]
 [*][b]Cloud detail and Cumulus (new in v1.2) cost more.[/b] On a slower PC, set [i]Cloud detail[/i] to 0% (the old look), or use Classic.
 [*][b]Volumetric fog is very heavy.[/b] It is by far the most expensive part of the mod, which is why it is off by default.
-[*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is at the top of the mod's options page (Options → Volumetric Weather), and it sets the clouds, the fog and the shadows together.
+[*]If the clouds are too demanding, lower the [i]Quality preset[/i] to Medium or Low. It is at the top of the mod's options page (Options → Volumetric Weather), and it sets the clouds, the fog and the shadows together. Choose Custom there to set each of them yourself.
 [*][b]Mac and Linux[/b] (new in 1.1.1)
 [/list]
 

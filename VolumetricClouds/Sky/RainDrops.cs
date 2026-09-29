@@ -33,9 +33,25 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSwayPhase = Shader.PropertyToID("_SwayPhase");
         private static readonly int IdSnowSway = Shader.PropertyToID("_SnowSway");
 
-        /// <summary>A snowflake near the camera and far from it, metres across, at "Streak width" 100%.</summary>
-        private const float FlakeNear = 0.03f;
-        private const float FlakeFar = 0.07f;
+        /// <summary>
+        /// A snowflake near the camera and far from it, metres across, at "Streak width" 100%: 6 and
+        /// 14 cm at its default 50%. Bigger than real flakes (0.5-2 cm) on purpose. The first snow
+        /// build had 3 / 7 cm, i.e. 1.5 / 3.5 cm by default: a pixel or two at the distances a city
+        /// camera sees them, sixty times less on screen than a rain streak -- "snow is not showing
+        /// anymore" (2026-09-29). The game's own snow is a 2 m grid of particles.
+        /// </summary>
+        private const float FlakeNear = 0.12f;
+        private const float FlakeFar = 0.28f;
+
+        /// <summary>
+        /// Snow shows this many times higher than rain streaks ("Streaks fade out above"): from a
+        /// city view the flakes ARE the snow -- white curtains over white ground cannot be seen from
+        /// above -- and the game's snow showed at every height. Above the cloud base there is none
+        /// anyway (SampleRain).
+        /// </summary>
+        private const float SnowReach = 2.5f;
+
+        private bool _loggedSnow;
 
         /// <summary>Metres a flake drifts to each side as it falls.</summary>
         private const float FlakeSway = 0.35f;
@@ -113,7 +129,7 @@ namespace VolumetricClouds.Sky
                 return;
 
             float streaks = Settings.RainStreaks != null ? Mathf.Max(0f, Settings.RainStreaks.value) : 1f;
-            _fade = HeightFade();
+            _fade = HeightFade(CloudRain.IsSnow);
 
             // Nothing to draw: no rain, switched off, or the camera is too high for streaks.
             bool draw = CloudRain.Active && CloudRain.Amount > 0.001f && streaks > 0f && _fade > 0.001f;
@@ -124,6 +140,16 @@ namespace VolumetricClouds.Sky
                 // The shader places every drop itself; the object only has to stay in view.
                 _holder.transform.position = _camera.transform.position;
                 UpdateMaterial(streaks);
+
+                if (CloudRain.IsSnow && !_loggedSnow)
+                {
+                    _loggedSnow = true;
+                    float width = Multiplier(Settings.RainStreakWidth, Settings.Defaults.RainStreakWidth, 0.1f);
+                    Log.Msg("snow: flakes drawn near the camera, " + (FlakeNear * width * 100f).ToString("F0") + " cm near and " +
+                            (FlakeFar * width * 100f).ToString("F0") + " cm far (\"Streak width\" " + (width * 100f).ToString("F0") +
+                            "%), up to " + StreakLimit(true).ToString("F0") + " m above the ground; the camera is at " +
+                            _heightAboveGround.ToString("F0") + " m");
+                }
             }
 
             if (Log.Detailed && Time.time >= _nextLogTime)
@@ -146,9 +172,9 @@ namespace VolumetricClouds.Sky
         /// <summary>
         /// Streaks belong to street level. From a city-wide view they are what made the game's
         /// rain a filter on the lens, so they fade out with height and the rain curtains in
-        /// the cloud pass take over.
+        /// the cloud pass take over. Snow reaches <see cref="SnowReach"/> times higher (1.2.1).
         /// </summary>
-        private float HeightFade()
+        private float HeightFade(bool snow)
         {
             Vector3 position = _camera.transform.position;
             float ground = Singleton<TerrainManager>.exists
@@ -157,8 +183,15 @@ namespace VolumetricClouds.Sky
 
             _heightAboveGround = position.y - ground;
 
-            float limit = Settings.RainStreakHeight != null ? Mathf.Max(50f, Settings.RainStreakHeight.value) : 450f;
+            float limit = StreakLimit(snow);
             return 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(limit * 0.4f, limit, _heightAboveGround));
+        }
+
+        /// <summary>The camera height above the ground where the streaks, or the flakes, are gone.</summary>
+        private static float StreakLimit(bool snow)
+        {
+            float limit = Settings.RainStreakHeight != null ? Mathf.Max(50f, Settings.RainStreakHeight.value) : 450f;
+            return snow ? limit * SnowReach : limit;
         }
 
         private void UpdateMaterial(float streaks)

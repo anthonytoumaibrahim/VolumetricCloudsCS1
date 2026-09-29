@@ -84,6 +84,8 @@ namespace VolumetricClouds
                               " shade=" + Hex(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor)
                             : " (the same at night)") +
                         " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor) +
+                        // Like the grading: it changes the picture, and the night's (1.2.1) is a switch.
+                        " | brightness: " + Brightness() +
                         // Which saved sky is being edited, if any: a slider moved goes into it.
                         " | profile=" + Profiles.Describe());
 
@@ -96,6 +98,32 @@ namespace VolumetricClouds
             {
                 Log.Warn("Could not write the system report: " + e.Message);
             }
+        }
+
+        /// <summary>
+        /// The cloud brightness as set, by day and at night: "auto 90%..40% (the same at night)",
+        /// "auto 90%..40% night 150%..60%", or "fixed 25%" and so on with automatic brightness off.
+        /// </summary>
+        private static string Brightness()
+        {
+            bool auto = Settings.BrightnessAuto;
+            string day = auto
+                ? "auto " + Percent(Settings.CloudBrightnessClear, Settings.Defaults.BrightnessClear) + ".." +
+                  Percent(Settings.CloudBrightnessOvercast, Settings.Defaults.BrightnessOvercast)
+                : "fixed " + Percent(Settings.CloudBrightness, Settings.Defaults.Brightness);
+
+            if (!Settings.NightBrightnessOn)
+                return day + " (the same at night)";
+
+            return day + " night " + (auto
+                ? Percent(Settings.CloudNightBrightnessClear, Settings.Defaults.NightBrightnessClear) + ".." +
+                  Percent(Settings.CloudNightBrightnessOvercast, Settings.Defaults.NightBrightnessOvercast)
+                : Percent(Settings.CloudNightBrightnessFixed, Settings.Defaults.NightBrightnessFixed));
+        }
+
+        private static string Percent(FloatSetting setting, float fallback)
+        {
+            return (Value(setting, fallback) * 100f).ToString("F0") + "%";
         }
 
         /// <summary>

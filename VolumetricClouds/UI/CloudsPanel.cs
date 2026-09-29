@@ -71,6 +71,11 @@ namespace VolumetricClouds.UI
         private readonly List<Control> _controls = new List<Control>();
         private ProfileBar _bar;
 
+        /// <summary>Each page's stretches, top to bottom (<see cref="Item"/>), and its tab for the log.</summary>
+        private readonly List<List<Item>> _layout = new List<List<Item>>();
+        private readonly List<string> _tabIds = new List<string>();
+        private int _selected;
+
         private const float RefreshInterval = 0.25f;
         private float _nextRefreshTime;
         private float _width = BasicWidth;
@@ -104,6 +109,22 @@ namespace VolumetricClouds.UI
             public bool Enabled = true;
         }
 
+        /// <summary>
+        /// One stretch of a page: a group heading, or a row with its note -- every component the
+        /// builders put on the page for it, so a row can be hidden and everything under it moved
+        /// up as a whole (Row.Shown, 1.2.1). Rows sit at fixed heights on their page; nothing
+        /// lays them out but <see cref="Relayout"/>.
+        /// </summary>
+        private class Item
+        {
+            public Control Control;   // null for a heading
+            public readonly List<UIComponent> Components = new List<UIComponent>();
+            public readonly List<UIComponent> HiddenByUs = new List<UIComponent>();
+            public float Y;
+            public float Height;
+            public bool Shown = true;
+        }
+
         public override void Start()
         {
             base.Start();
@@ -123,9 +144,16 @@ namespace VolumetricClouds.UI
             BuildProfileBar();
 
             foreach (Tab tab in Tabs(advanced))
+            {
+                _tabIds.Add(tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString());
                 _contentHeights.Add(BuildPage(AddPage(tab.Name), tab));
+            }
 
             LayoutTabs();
+
+            // Every row is built where it would be if all were shown; the ones hidden now go, and
+            // the pages close up, before the first one is shown.
+            RefreshShown();
             SelectPage(0);
 
             if (InitialPosition.HasValue)
@@ -238,9 +266,116 @@ namespace VolumetricClouds.UI
                 _bar.Refresh();
 
             RefreshEnabled();
+            RefreshShown();
 
             if (touched > 0 && Log.Detailed)
                 Log.Detail("panel: refreshed " + _controls.Count + " controls, " + touched + " had changed");
+        }
+
+        /// <summary>
+        /// Hides the rows whose Row.Shown says so and closes their page up under them, or opens it
+        /// again (1.2.1). Runs with every refresh, but a page is laid out again only when one of
+        /// its rows has actually changed.
+        /// </summary>
+        private void RefreshShown()
+        {
+            for (int p = 0; p < _layout.Count; p++)
+            {
+                foreach (Item item in _layout[p])
+                {
+                    if (item.Control != null && item.Control.Source.Shown != null
+                        && item.Control.Source.IsShown != item.Shown)
+                    {
+                        Relayout(p);
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Walks a page top to bottom: each stretch shown is moved to where the ones above it end,
+        /// each hidden one is hidden and takes no room. A heading goes with its group's last row.
+        /// </summary>
+        private void Relayout(int index)
+        {
+            List<Item> items = _layout[index];
+            float y = 0f;
+            string changed = string.Empty;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                Item item = items[i];
+                bool shown = item.Control != null ? item.Control.Source.IsShown : HeadingShown(items, i);
+
+                if (shown != item.Shown)
+                {
+                    SetShown(item, shown);
+                    changed += (changed.Length == 0 ? "" : ", ") + (shown ? "+" : "-") +
+                               (item.Control != null ? item.Control.Source.Name : "heading");
+                }
+
+                if (!shown)
+                    continue;
+
+                float dy = y - item.Y;
+                if (dy != 0f)
+                {
+                    foreach (UIComponent component in item.Components)
+                        component.relativePosition += new Vector3(0f, dy);
+
+                    item.Y = y;
+                }
+
+                y += item.Height;
+            }
+
+            _contentHeights[index] = y;
+            if (index == _selected)
+                FitPage(index);
+
+            Log.Msg("panel: " + _tabIds[index] + " tab laid out again (" + changed + "), " + y.ToString("F0") + " high");
+        }
+
+        /// <summary>A heading shows while any row under it, up to the next heading, does.</summary>
+        private static bool HeadingShown(List<Item> items, int heading)
+        {
+            for (int i = heading + 1; i < items.Count && items[i].Control != null; i++)
+            {
+                if (items[i].Control.Source.IsShown)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Hides a stretch's components, remembering which were showing, and shows exactly those
+        /// again: a component its own row keeps hidden stays hidden.
+        /// </summary>
+        private static void SetShown(Item item, bool shown)
+        {
+            item.Shown = shown;
+
+            if (!shown)
+            {
+                item.HiddenByUs.Clear();
+                foreach (UIComponent component in item.Components)
+                {
+                    if (!component.isVisibleSelf)
+                        continue;
+
+                    component.isVisible = false;
+                    item.HiddenByUs.Add(component);
+                }
+
+                return;
+            }
+
+            foreach (UIComponent component in item.HiddenByUs)
+                component.isVisible = true;
+
+            item.HiddenByUs.Clear();
         }
 
         private static string ReadoutText(Row row, float display)
@@ -339,23 +474,38 @@ namespace VolumetricClouds.UI
 
         private void SelectPage(int index)
         {
+            _selected = index;
+
             for (int i = 0; i < _pages.Count; i++)
             {
                 _pages[i].isVisible = i == index;
                 UIBuilder.SetTabSelected(_tabs[i], i == index);
             }
 
-            // The panel is as tall as the selected page needs, and never shorter than it
-            // started: most pages fit, the Halos one has half as many rows again.
+            FitPage(index);
+        }
+
+        /// <summary>
+        /// The panel is as tall as the selected page needs, and never shorter than it started:
+        /// most pages fit, the Halos one has half as many rows again. Again whenever rows of the
+        /// page are shown or hidden.
+        /// </summary>
+        private void FitPage(int index)
+        {
             float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
             _pages[index].height = content;
             height = TitleBarHeight + BarHeight + TabHeight + 2f * Margin + content;
         }
 
-        /// <summary>Draws every catalog row that belongs on this tab, in catalog order.</summary>
+        /// <summary>
+        /// Draws every catalog row that belongs on this tab, in catalog order, each where it would
+        /// be with every row shown, and records the page's stretches for <see cref="Relayout"/>.
+        /// </summary>
         private float BuildPage(UIPanel page, Tab tab)
         {
             float y = 0f;
+            List<Item> items = new List<Item>();
+            HashSet<UIComponent> claimed = new HashSet<UIComponent>();
 
             foreach (Row row in SettingsCatalog.Rows)
             {
@@ -366,9 +516,11 @@ namespace VolumetricClouds.UI
                 if (row.Group != null)
                 {
                     UIBuilder.AddHeading(page, row.GroupTitle, y + 4f);
+                    items.Add(Claim(page, claimed, null, y, HeadingHeight));
                     y += HeadingHeight;
                 }
 
+                float top = y;
                 Control control = Build(page, row, y);
                 _controls.Add(control);
                 y += UIBuilder.RowHeight;
@@ -379,9 +531,31 @@ namespace VolumetricClouds.UI
                     control.Parts.Add(note);
                     y += NoteHeight;
                 }
+
+                items.Add(Claim(page, claimed, control, top, y - top));
             }
 
+            _layout.Add(items);
             return y;
+        }
+
+        /// <summary>
+        /// A new stretch: every component on the page that no earlier stretch has claimed -- what
+        /// the builders just added, whatever each keeps track of itself (a status line, a key's
+        /// name, a colour row's six parts).
+        /// </summary>
+        private static Item Claim(UIPanel page, HashSet<UIComponent> claimed, Control control, float y, float height)
+        {
+            Item item = new Item { Control = control, Y = y, Height = height };
+
+            for (int i = 0; i < page.components.Count; i++)
+            {
+                UIComponent component = page.components[i];
+                if (claimed.Add(component))
+                    item.Components.Add(component);
+            }
+
+            return item;
         }
 
         private Control Build(UIPanel page, Row row, float y)

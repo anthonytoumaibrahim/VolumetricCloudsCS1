@@ -7,10 +7,11 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.2.1 — unreleased
 
-Profiles, cloud colours of their own at night, snow on winter maps, and a way to move the
-clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains four lines: `Profile`
-(empty: no profile) and the three night-colour settings (switched off, so the clouds keep the
-colours you gave them, day and night). Saved cities keep their sky, and are saved with one more
+Profiles, cloud colours and a cloud brightness of their own at night, snow on winter maps, and
+a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file gains
+eight lines: `Profile` (empty: no profile), the three night-colour settings and the four
+night-brightness settings (both switched off, so the clouds keep the colours and the brightness
+you gave them, day and night). Saved cities keep their sky, and are saved with one more
 value, where you moved their clouds (none until you do); an older version of the mod reads them
 as before. What changes for everyone with the update: on winter maps the mod now draws the
 snow and road snow follows the clouds (see *New: snow*); the sun no longer shines through the
@@ -55,12 +56,28 @@ the clouds behind them.
 - It starts switched off: the two colours above are then used day and night, exactly as
   before.
 
+### New: a different cloud brightness at night
+
+- "Brightness differs at night" on the Light tab (with advanced options on), under the cloud
+  brightness settings, gives the clouds a brightness of their own at night. Tick it and the
+  night's sliders appear under it: *At night: clear sky* and *At night: full overcast* with
+  automatic brightness, *At night: fixed brightness* without. Through dusk and dawn the
+  brightness changes gradually from the day's to the night's, as the night colours do.
+- Ticked for the first time, the night's sliders start at the day's values, so nothing changes
+  until you move one; if you set them before, they are kept.
+- It starts switched off: the brightness settings are then used day and night, exactly as
+  before. The brightness line on the Clouds tab shows the brightness in use, the night's at
+  night.
+
 ### New: snow on winter maps
 
 - On a winter map (the Snowfall DLC) the mod now draws the snow, as it draws the rain on other
   maps: snowfall only under the clouds it falls from, whiter curtains hanging from them in the
   distance, and near the camera round, soft snowflakes that fall slowly and drift from side to
   side. Until now the mod stood down on winter maps and the game drew its own snow everywhere.
+- The snowflakes are seen from much higher up than rain streaks: up to 2.5 times the height set
+  by "Streaks fade out above" (1250 m by default), since from a city view the flakes are what
+  shows the snow.
 - Road snow follows the clouds: it builds up only where it is snowing, as roads only get wet
   where it rains. This is the existing "Rain sound, wet roads and road snow follow the clouds"
   switch (the Weather tab, with advanced options on), which is on by default; switch it off for
@@ -83,7 +100,9 @@ the clouds behind them.
 - The Quality preset is now also on the mod's options page (Esc, Options, then Volumetric
   Weather under the mods' settings), at the top, so it can be found without switching on the
   in-game panel's advanced options. It sets the clouds', the fog's and the shadows' quality, as
-  before, and is still on the Rendering tab too.
+  before, and is still on the Rendering tab too. Pick *Custom* there and the three settings it
+  moves (the raymarch quality, the cloud shadows' resolution and their updates per second)
+  appear under it, to set one by one.
 - The volumetric fog is much less grainy: its steps now crowd where the view enters the fog,
   which is the part you see, and at the High quality preset it takes twice as many (58). With
   the fog on, High costs more than before, most of all with the camera down in it; Medium takes

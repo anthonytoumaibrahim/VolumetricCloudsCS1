@@ -200,6 +200,26 @@ Check "it is monotone from one end to the other" ((Brightness 2.0 0.5 0.3) -gt (
 Check "equal ends are a flat line (auto then does nothing, as it should)" ([math]::Abs((Brightness 0.25 0.25 0.6) - 0.25) -lt 1e-6)
 
 ""
+"=== Settings.DayAndNight: the night's brightness through the twilight (1.2.1) ==="
+$blend = $asm.GetType("VolumetricClouds.Settings").GetMethod("DayAndNight", $flags)
+function DayNight([double]$day, [double]$atNight, [double]$night) {
+    return [single]$blend.Invoke($null, [object[]]@([single]$day, [single]$atNight, [single]$night))
+}
+
+foreach ($t in 0, 0.25, 0.5, 0.75, 1.0) {
+    "    day 90%, night 150%, twilight {0,4} -> {1}%" -f $t, ((DayNight 0.9 1.5 $t) * 100).ToString("F1")
+}
+
+# Exact, not close: by day the clouds must get bit for bit what they got before the switch.
+$odd = [single]0.123456789
+Check "by day it is the day's value exactly" ((DayNight $odd 2.7 0) -eq $odd)
+Check "at night it is the night's value exactly" ((DayNight 2.7 $odd 1) -eq $odd)
+Check "outside 0..1 it holds the ends" (((DayNight 0.9 1.5 -2) -eq [single]0.9) -and ((DayNight 0.9 1.5 5) -eq [single]1.5))
+Check "half way is the middle" ([math]::Abs((DayNight 0.9 1.5 0.5) - 1.2) -lt 1e-6)
+Check "it moves one way through the twilight" (((DayNight 0.9 1.5 0.3) -lt (DayNight 0.9 1.5 0.6)) -and ((DayNight 1.5 0.9 0.3) -gt (DayNight 1.5 0.9 0.6)))
+Check "equal day and night is a flat line" ((DayNight 0.4 0.4 0.37) -eq [single]0.4)
+
+""
 "=== LightningPlacement.ThunderVolume: a clap fades with the strike's distance ==="
 $thunder = $asm.GetType("VolumetricClouds.Sky.LightningPlacement").GetMethod("ThunderVolume", $flags)
 function Clap([double]$metres) { return [single]$thunder.Invoke($null, [object[]]@([single]$metres)) }

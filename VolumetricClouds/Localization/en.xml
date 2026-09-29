@@ -167,6 +167,10 @@
 
   <String key="Status.Brightness.Auto">Cloud brightness: {0} (automatic, at intensity {1})</String>
   <String key="Status.Brightness.Manual">Cloud brightness: {0} (set by hand)</String>
+  <String key="Status.Brightness.AutoNight">Cloud brightness: {0} (automatic, at intensity {1}, night)</String>
+  <String key="Status.Brightness.ManualNight">Cloud brightness: {0} (set by hand, night)</String>
+  <String key="Status.Brightness.AutoTwilight">Cloud brightness: {0} (automatic, at intensity {1}, twilight)</String>
+  <String key="Status.Brightness.ManualTwilight">Cloud brightness: {0} (set by hand, twilight)</String>
 
   <String key="Group.CloudColour">Colour (white leaves the clouds as they are)</String>
 
@@ -279,7 +283,7 @@
   <String key="RainStreaks.Tooltip">How many raindrops or snowflakes fall past the camera.</String>
 
   <String key="RainStreakHeight.Label">Streaks fade out above</String>
-  <String key="RainStreakHeight.Tooltip">Camera height where nearby raindrops fade out.</String>
+  <String key="RainStreakHeight.Tooltip">Camera height where nearby raindrops fade out. Snowflakes go 2.5 times higher.</String>
 
   <String key="RainStreakLength.Label">Streak length</String>
   <String key="RainStreakLength.Tooltip">How long each streak is. Snowflakes are round.</String>
@@ -342,6 +346,18 @@
 
   <String key="MinIllumination.Label">Clouds dim at full overcast to</String>
   <String key="MinIllumination.Tooltip">Used with automatic brightness off.</String>
+
+  <String key="CloudNightBrightness.Label">Brightness differs at night</String>
+  <String key="CloudNightBrightness.Tooltip">Off: the brightness above is used day and night.</String>
+
+  <String key="CloudNightBrightnessClear.Label">At night: clear sky</String>
+  <String key="CloudNightBrightnessClear.Tooltip">Cloud brightness at night in a mostly clear sky.</String>
+
+  <String key="CloudNightBrightnessOvercast.Label">At night: full overcast</String>
+  <String key="CloudNightBrightnessOvercast.Tooltip">Cloud brightness at night when the sky is full.</String>
+
+  <String key="CloudNightBrightnessFixed.Label">At night: fixed brightness</String>
+  <String key="CloudNightBrightnessFixed.Tooltip">Used with automatic brightness off.</String>
 
   <String key="CloudDensity.Label">Cloud density</String>
   <String key="CloudDensity.Tooltip">How solid the clouds look.</String>
