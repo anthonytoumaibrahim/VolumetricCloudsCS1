@@ -181,7 +181,7 @@ Full dimensions, formats and limits are in *Specifications* above.
       compatibility (the author's own game with thousands of mods and assets, no conflicts
       found; Render It!, Theme Mixer, Play It! and cloud replacers checked; what the mod takes
       over from the game; removing it should not corrupt a save, with a no-responsibility
-      disclaimer and "keep backups") · coming soon (more languages; profiles shipped in 1.2.1) · GitHub link and
+      disclaimer and "keep backups") · coming soon (more languages; profiles shipped in 1.3.0) · GitHub link and
       the MIT licence · how to report a bug (`output_log.txt` + `VolumetricClouds.log` with
       *Detailed logging*, hosted, linked in the comments) · the AI disclosure. Not in it: no
       moon shadows. Only Steam's tags, and no list inside a list: a Steam-aware previewer

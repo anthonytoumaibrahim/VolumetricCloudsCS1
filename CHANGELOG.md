@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.3.0 — unreleased
+## 1.3.0 — 2026-09-29
 
 Profiles, rainbows, cloud colours and a cloud brightness of their own at night, snow on winter
 maps, and a way to move the clouds. Every value in `VolumetricClouds.xml` is kept, and the file

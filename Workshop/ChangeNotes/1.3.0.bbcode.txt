@@ -3,7 +3,7 @@
 [list]
 [*][b]Profiles[/b]: save whole skies under a name and switch between them from the list at the top of the in-game panel.
 [*][b]Rainbows[/b]: an arch standing in a sunlit shower near where you look. Strength on the Weather tab, a chance per rain on the Now tab.
-[*][b]Night colours[/b]: the clouds can have colours of their own at night. Off by default, on the Clouds tab.
+[*][b]Night colors[/b]: the clouds can have colors of their own at night. Off by default, on the Clouds tab.
 [*][b]Night brightness[/b]: the clouds can have a brightness of their own at night. Off by default, on the Light tab.
 [*][b]Snow[/b]: on winter maps the snow now falls only under the clouds, with the game's own snowflakes, and road snow follows it.
 [*][b]Cloud position[/b]: move a city's clouds up to 10 km each way, saved with the city (Weather tab, advanced options on).
