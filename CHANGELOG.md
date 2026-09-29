@@ -73,8 +73,9 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   rolls its dice when it starts. 100%, the default, is nature, where every rain the sun shines on
   has one.
 - Rainbows need the mod's rain and the cloud shadows (the shadows are how the mod knows where the
-  sun reaches the rain). There are none in snow, at night, or by moonlight. The game keeps a
-  rainbow in its weather but never draws one; the mod does not read it.
+  sun reaches the rain), so there are none with "Shadow darkness" or "Rain curtains under clouds"
+  at 0%. There are none in snow, at night, or by moonlight. The game keeps a rainbow in its
+  weather but never draws one; the mod does not read it.
 
 ### New: different cloud colours at night
 
@@ -172,7 +173,13 @@ Only a new install, or "Reset all settings", gets the new clear-sky cloud bright
   that band is taken off the sky; the game's fog on the ground and at the map's edge is
   unchanged, and the band comes back as it was when the clouds are hidden. At night the clouds
   now reach as far as they are drawn, instead of fading out about 10 km away.
-
+- With "Shadow darkness" at 0%, the volumetric fog got no sunlight at all and stayed dark. It is
+  now lit as it is with the cloud shadows switched off.
+- The in-game panel no longer runs off the bottom of the screen on a tall tab. At the game's
+  usual interface size, the Weather tab (with advanced options on) ended below the screen, its
+  last settings out of reach; the panel now moves up to fit.
+- If another mod switches the game's own rain clouds back on, they are now left to it for the
+  city, instead of being switched off again every frame.
 - Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own to the
   game. Its button goes in the Unified UI bar when the Unified UI mod is enabled, or when
   another mod already shows that bar; otherwise it is the mod's own button on the screen,

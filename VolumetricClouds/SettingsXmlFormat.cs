@@ -102,6 +102,13 @@ namespace VolumetricClouds
         {
             version = 0;
 
+            // A settings file never has a document type, and a profile is a file players share: one
+            // that declares entities could expand them into gigabytes ("billion laughs") and hang
+            // the game at every start while it is the pick. Refused before it is parsed. (No
+            // XmlResolver either: nothing is ever fetched from outside the text.)
+            if (text != null && text.IndexOf("<!DOCTYPE", StringComparison.Ordinal) >= 0)
+                throw new FormatException("it declares a document type (<!DOCTYPE>), which a settings file never has");
+
             var document = new XmlDocument();
             document.XmlResolver = null;
 

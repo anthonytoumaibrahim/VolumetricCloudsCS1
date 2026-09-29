@@ -72,25 +72,25 @@ namespace VolumetricClouds.Sky
 
         private void Flatten()
         {
+            // Already off: ours, or flattened by something else (a second copy of this mod) before
+            // we ever saw it -- then there is nothing of ours to hand back, and never a 0 (the
+            // shader divides by it).
             float current = _fog.m_HorizonHeight;
-            if (_flattened && Mathf.Approximately(current, Flat))
+            if (Mathf.Approximately(current, Flat))
                 return;
 
             // Ours to hand back: the value found, or the one another mod has written since.
-            if (!Mathf.Approximately(current, Flat))
-            {
-                _original = current;
+            _original = current;
 
-                if (!_flattened)
-                {
-                    Log.Msg("game fog: its horizon band is off the sky while our clouds are drawn (it was " +
-                            current.ToString("F0") + " m; the ground's fog and the map edge are untouched)");
-                }
-                else if (++_rewrites <= RewritesLogged)
-                {
-                    Log.Msg("game fog: another mod set the horizon band to " + current.ToString("F0") +
-                            " m; kept off while our clouds are drawn, and that value is the one handed back");
-                }
+            if (!_flattened)
+            {
+                Log.Msg("game fog: its horizon band is off the sky while our clouds are drawn (it was " +
+                        current.ToString("F0") + " m; the ground's fog and the map edge are untouched)");
+            }
+            else if (++_rewrites <= RewritesLogged)
+            {
+                Log.Msg("game fog: another mod set the horizon band to " + current.ToString("F0") +
+                        " m; kept off while our clouds are drawn, and that value is the one handed back");
             }
 
             _flattened = true;

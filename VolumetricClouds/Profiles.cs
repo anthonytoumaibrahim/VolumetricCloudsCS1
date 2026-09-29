@@ -384,6 +384,22 @@ namespace VolumetricClouds
             }
         }
 
+        /// <summary>
+        /// The settings file could not be read at startup and can be now (SettingsXml.Reload): its
+        /// &lt;Profile&gt; is the pick it held then, and is read the way startup reads it -- never put
+        /// in over the file's values. Whatever was picked in the panel meanwhile is let go first:
+        /// the file names the pick now. Never throws.
+        /// </summary>
+        internal static void Reread()
+        {
+            _file = null;
+            _state = Status.None;
+            _problem = null;
+            _neverRead = false;
+            _kept = null;
+            Startup();
+        }
+
         private static void ReadAtStartup()
         {
             string name = Selected;

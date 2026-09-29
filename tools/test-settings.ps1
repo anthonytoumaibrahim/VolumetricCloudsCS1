@@ -278,5 +278,13 @@ Check "an empty file is refused" ($r.Error -is [System.FormatException]) "True"
 $r = Parse "<VolumetricClouds><!-- a -- b --><A>1</A></VolumetricClouds>"
 Check "a '--' in a hand-written comment is refused, not half-read" ($r.Error -is [System.FormatException]) "True"
 
+# A shared profile that declares entities ("billion laughs") must never be expanded: refused unread.
+$laughs = "<?xml version=`"1.0`"?><!DOCTYPE VolumetricClouds [<!ENTITY a `"aaaaaaaaaa`"><!ENTITY b `"&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;`">]><VolumetricClouds><A>&b;</A></VolumetricClouds>"
+$r = Parse $laughs
+Check "a document type (entities) is refused before parsing" ($r.Error -is [System.FormatException]) "True"
+Check "...and says why" ($r.Error.Message -match "DOCTYPE") "True"
+$r = Parse "<?xml version=`"1.0`" encoding=`"utf-8`"?><VolumetricClouds><A>1</A></VolumetricClouds>"
+Check "an XML declaration is still fine" $r.Values["A"] "1"
+
 Write-Host ""
 if ($failed -eq 0) { Write-Host "all passed" } else { Write-Host "$failed FAILED"; exit 1 }

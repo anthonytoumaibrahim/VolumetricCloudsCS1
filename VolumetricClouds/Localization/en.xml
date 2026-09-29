@@ -8,7 +8,7 @@
 
   - {0}, {1}... are filled in by the mod (a number, a name). Keep every one of them.
   - A long text can be wrapped over several lines here: the break reads as one space.
-  - \n is a real line break (used in the two confirmation dialogs).
+  - \n is a real line break (used in the confirmation dialogs and the longer messages).
   - A key missing from a translation shows in English, so a partial translation works.
 
   Tooltips: as few words as possible, never more than one short line (a long one runs out of

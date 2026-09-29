@@ -59,7 +59,7 @@ namespace VolumetricClouds.UI
                 if (Panel != PanelPage.None)
                     return row.Panel == Panel;
 
-                // A row that already has a home on a basic tab (the fog switch) stays there.
+                // A row that already has a home on a basic tab stays there (none since 1.3.0).
                 return row.Options == Options && row.Panel == PanelPage.None;
             }
         }
@@ -494,6 +494,13 @@ namespace VolumetricClouds.UI
             float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
             _pages[index].height = content;
             height = TitleBarHeight + BarHeight + TabHeight + 2f * Margin + content;
+
+            // It grows downwards from where it stands: kept on the screen. Centred on the Now tab
+            // at the game's own 1080-high UI, the advanced Weather tab (~910 high) ended ~100 under
+            // the bottom edge, its last rows out of reach.
+            UIView view = GetUIView();
+            if (view != null && relativePosition.y + height > view.fixedHeight)
+                relativePosition = new Vector3(relativePosition.x, Mathf.Max(0f, Mathf.Floor(view.fixedHeight - height)));
         }
 
         /// <summary>

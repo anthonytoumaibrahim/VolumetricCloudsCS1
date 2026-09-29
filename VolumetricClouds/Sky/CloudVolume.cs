@@ -794,12 +794,14 @@ namespace VolumetricClouds.Sky
         /// Where the pass goes in the frame (1.3.0; the author: the clouds "blend" with the power
         /// lines). The game draws its power lines, halos, smoke and particles see-through, without
         /// depth, BEFORE the cloud pass, which stops only at depth: the whole cloud behind a wire was
-        /// painted over it. From under the cloud base nothing in the city is ever behind a cloud, so
-        /// there the clouds are drawn on their own at <see cref="EarlyQueue"/>, before all of it, and
-        /// the air under them -- rain, fog, the rainbow's arch, which those objects DO stand in --
-        /// stays at <see cref="LateQueue"/> as a second draw, only while there is any. The two blends
-        /// make exactly the one pass's Over(lower, clouds). At or above the base (clouds in front of
-        /// the city) it is the one draw as before.
+        /// painted over it. From under the cloud base the city is under the clouds, so there the
+        /// clouds are drawn on their own at <see cref="EarlyQueue"/>, before all of it, and the air
+        /// under them -- rain, fog, the rainbow's arch, which those objects DO stand in -- stays at
+        /// <see cref="LateQueue"/> as a second draw, only while there is any. The two blends make
+        /// exactly the one pass's Over(lower, clouds). At or above the base (clouds in front of the
+        /// city) it is the one draw as before. The price: anything see-through ABOVE the base -- a
+        /// lamp or a wire on a hill that reaches into the clouds, a plane's lights over them -- is
+        /// then drawn over the cloud in front of it, as the wires were under the clouds behind them.
         /// </summary>
         private void UpdateParts()
         {
@@ -1015,11 +1017,14 @@ namespace VolumetricClouds.Sky
 
             // The cloud shadow map, as the air under the clouds reads it: the fog's sun shafts and
             // the rainbow's "is this drop in the sun" (1.3.0; until then only the fog's, so it was
-            // set only while the fog was on). Uploaded whenever either wants it.
+            // set only while the fog was on). Uploaded whenever either wants it -- and never at
+            // "Shadow darkness" 0%, where the map is white and says nothing: the fog is then lit as
+            // with the shadows off (until 1.3.0 it had no sun at all), and the rainbow says why
+            // there is none.
             CloudShadowMap map = CloudShadowMap.Current;
             bool shadowMap = Settings.ShadowsCast && sun != null && map != null && map.IsReady && map.Texture != null;
             bool bow = ApplyRainbow(sun, key, cloudSun, shadowMap, sunElevation);
-            ApplyShadowLookup(sun, map, shadowMap && (CloudFog.Active || bow));
+            ApplyShadowLookup(sun, map, shadowMap && CloudShadowMap.Readable(CloudShaderParams.Coverage) && (CloudFog.Active || bow));
 
             if (!_loggedLighting)
             {

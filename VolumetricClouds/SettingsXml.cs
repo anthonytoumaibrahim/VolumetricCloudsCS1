@@ -80,6 +80,13 @@ namespace VolumetricClouds
         private static WatchedFile _live;
         private static bool _warnedBrokenSave;
 
+        /// <summary>
+        /// This session has read this file, or written it. Until then (it could not be read at
+        /// startup) the next read is the one startup could not make, and its &lt;Profile&gt; is the
+        /// pick it held, not an edit (<see cref="Reload"/>).
+        /// </summary>
+        private static bool _readOnce;
+
         private static int _savedKey;
         private static bool _replaceFailed;
         private static string _lastSaveError;
@@ -181,6 +188,7 @@ namespace VolumetricClouds
                 return;
             }
 
+            _readOnce = true;
             Log.Msg("settings: " + verb + " " + result.Applied + " values from " + file + result.Describe());
             result.LogProblems("settings");
 
@@ -321,21 +329,39 @@ namespace VolumetricClouds
             }
 
             bool wasBroken = Live.Broken;
+            bool firstRead = !_readOnce;
+            _readOnce = true;
             Live.Broken = false;
             _warnedBrokenSave = false;
 
-            Log.Msg("settings: " + FileName + " was edited" + (wasBroken ? " and can be read again" : "") + " -- " +
+            Log.Msg("settings: " + FileName + " was edited" + (wasBroken ? " and can be read again" : "") +
+                    (firstRead ? " (the first read this session: its <Profile> is only read, as at startup)" : "") + " -- " +
                     (changed.Count == 0 ? "no value changed" : changed.Count + " changed: " + result.Changes()) +
                     result.Describe());
             result.LogProblems("settings");
+
+            // The read startup could not make: the file's <Profile> is the pick it held then, not an
+            // edit. Put in, that profile's values would replace the ones just taken -- which are
+            // the whole truth of the sky, the changes never saved in the profile included. So it
+            // is only READ, the way startup reads it.
+            if (firstRead)
+                changed.RemoveAll(IsProfileRow);
 
             // As if each row had been moved in the UI, in catalog order -- which puts the quality
             // preset before the three rows it writes, and the picked profile (the last row) after
             // every value it might then replace.
             RunAfterChange(changed, "the file");
 
+            if (firstRead)
+                Profiles.Reread();
+
             _savedKey = CurrentKey();
             SettingsCatalog.RefreshAllUIs();
+        }
+
+        private static bool IsProfileRow(Row row)
+        {
+            return row.Text != null && row.Text == Settings.CurrentProfile;
         }
 
         /// <summary>
@@ -409,6 +435,7 @@ namespace VolumetricClouds
 
                 WriteReplacing(Path, text);
                 Live.Remember(text);
+                _readOnce = true;
                 _lastSaveError = null;
 
                 if (Log.Detailed)

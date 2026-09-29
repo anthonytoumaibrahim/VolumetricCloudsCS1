@@ -368,8 +368,9 @@ namespace VolumetricClouds.UI
     ///
     /// The split (1.1.0): everything about the SKY is in the panel -- its basic tabs (Row.Panel;
     /// four since 1.3.0, Light) and its advanced ones (Row.Options other than General); the options
-    /// page has only the mod itself (Row.Options == General). A row can have both fields (the
-    /// fog switch is on the Fog tab and Rendering); the panel shows it on the basic tab only.
+    /// page has the mod itself and, since 1.3.0, what the computer can afford (Row.Options ==
+    /// General: the quality preset and its rows first). A row given both fields would be shown on
+    /// its basic tab only; none has both since the Rendering tab went (1.3.0).
     ///
     /// The words are in Localization/en.xml, in the same order as the rows here: a new row
     /// needs its Label and Tooltip there (the log says at startup if one is missing).
@@ -511,14 +512,12 @@ namespace VolumetricClouds.UI
 
             // Under the preset's guard: every value is a default now, and the rendering rows'
             // own hooks would otherwise flip the preset (High, reset a moment ago) to Custom.
+            // One hook that throws is logged and the rest still run, and the save below still
+            // happens: a reset half applied and never written is the worst of both.
             _applyingPreset = true;
             try
             {
-                foreach (Row row in Rows)
-                {
-                    if (row.AfterChange != null)
-                        row.AfterChange();
-                }
+                SettingsXml.RunAfterChange(Rows, "a reset");
             }
             finally
             {
@@ -561,8 +560,8 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// Re-reads every control in both UIs. A row can be in the panel AND in the options
-        /// page (the fog switch is), and either can be open while the other changes.
+        /// Re-reads every control in both UIs. Either can be open while the other changes a setting
+        /// (the options page over the panel), and one row can move others (the quality preset).
         /// </summary>
         public static void RefreshAllUIs()
         {

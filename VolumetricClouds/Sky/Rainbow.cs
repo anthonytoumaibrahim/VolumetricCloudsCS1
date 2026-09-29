@@ -24,9 +24,12 @@ namespace VolumetricClouds.Sky
     /// dice are under the chance, so moving the slider acts at once. 100%, the default, is nature.
     ///
     /// It needs the cloud shadows: their map is what says where the sun reaches the rain (without
-    /// it every drop under every cloud would be sunlit). None in snow (flakes make no bow), none with
-    /// the sun under the horizon, and never lit by the moon. Faded in over the sun's first 3 degrees.
-    /// A fog bank in front of the rain hides the bow (the shader dims it by the fog before it).
+    /// it every drop under every cloud would be sunlit) -- so none with "Shadow darkness" at 0%
+    /// either (the map is then white everywhere and says nothing), and none before the sun is
+    /// <see cref="LowSun"/> up (the map is white below it). None with "Rain curtains under clouds"
+    /// at 0%: the bow is drawn in them. None in snow (flakes make no bow), and never lit by the
+    /// moon. Faded in over the sun's next 3 degrees. A fog bank in front of the rain hides the bow
+    /// (the shader dims it by the fog before it).
     ///
     /// ONE ARCH AT A TIME, FIXED IN THE WORLD (round 2, the same day; his: "one arch at a time, let's
     /// go"): the first build drew each camera's own bow, which followed the camera -- "the rainbow is
@@ -40,8 +43,14 @@ namespace VolumetricClouds.Sky
     /// </remarks>
     public static class Rainbow
     {
-        /// <summary>The sun climbs this many degrees over the horizon before the bow is at full strength.</summary>
+        /// <summary>The sun climbs this many degrees over <see cref="LowSun"/> before the bow is at full strength.</summary>
         private const float SunFade = 3f;
+
+        /// <summary>
+        /// No bow under this sun (degrees): the cloud shadow map is white while the sun ray is within
+        /// 0.02 of level (CloudShadowMap.shader), so every drop would read as sunlit, under every cloud.
+        /// </summary>
+        private const float LowSun = 1.15f;
 
         /// <summary>
         /// Seen from its spot the arch adds the light the camera's own bow added there (1.3.0's first
@@ -77,6 +86,15 @@ namespace VolumetricClouds.Sky
         private static float _nextLook;
         private static float _score;
         private static string _archState;
+
+        // The search for a new arch, a row of places a frame (SearchRow): the next row, -1 while
+        // none runs; what it looks from; the best place so far.
+        private static int _searchRow = -1;
+        private static Vector3 _searchFocus, _searchToSun;
+        private static float _searchElevation;
+        private static Vector3 _bestSpot, _bestCentre;
+        private static float _bestRadius, _bestScore, _bestRank;
+        private static bool _anyRoom;
 
         /// <summary>Where the arch's spot is (the point it is seen from, in the air in front of it), when there is one.</summary>
         public static Vector3 ArchSpot { get; private set; }
@@ -116,6 +134,12 @@ namespace VolumetricClouds.Sky
             get { return Settings.RainbowChance != null ? Mathf.Clamp01(Settings.RainbowChance.value) : Settings.Defaults.RainbowChance; }
         }
 
+        /// <summary>"Rain curtains under clouds": the shader lights the bow by the rain in them (ArchLight), none at 0%.</summary>
+        private static float Curtains
+        {
+            get { return Settings.RainCurtains != null ? Settings.RainCurtains.value : Settings.Defaults.RainCurtains; }
+        }
+
         /// <summary>Whether this rain's dice came under the chance (100% always does, 0% never).</summary>
         private static bool Granted
         {
@@ -148,8 +172,8 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static float Strength(float sunElevation, bool sunLights, bool shadowMap, bool table)
         {
-            string state, detail = "";
-            float strength = 0f;
+            string state;
+            bool possible = false;
 
             if (Amount <= 0f)
                 state = "off (Rainbows 0%)";
@@ -163,24 +187,32 @@ namespace VolumetricClouds.Sky
                 state = "none: no rain";
             else if (!Granted)
                 state = "none with this rain (its dice against the chance)";
+            else if (Curtains <= 0f)
+                state = "none: \"Rain curtains under clouds\" is at 0% -- the bow is drawn in them";
             else if (!Settings.ShadowsCast)
                 state = "none: the cloud shadows are off -- they say where the sun reaches the rain";
+            else if (!CloudShadowMap.Readable(CloudShaderParams.Coverage))
+                state = "none: \"Shadow darkness\" is at 0% -- the shadows say where the sun reaches the rain";
             else if (!shadowMap)
                 state = "waiting for the cloud shadow map";
-            else if (!sunLights || sunElevation <= 0f)
-                state = "none: the sun is down";
+            else if (!sunLights || sunElevation <= LowSun)
+                state = "none: the sun is down, or too low for the cloud shadows (" + LowSun.ToString("F2") + " deg)";
             else
             {
-                strength = Amount * Mathf.Clamp01(sunElevation / SunFade);
+                possible = true;
                 state = "possible: wherever the sun shines on the rain, opposite the sun";
-                detail = " (sun " + sunElevation.ToString("F0") + " deg up, rain " + Percent(CloudRain.Amount) +
-                         ", strength " + Percent(Amount) + ", chance " + Percent(Chance) + ")";
             }
 
+            float strength = possible ? Amount * Mathf.Clamp01((sunElevation - LowSun) / SunFade) : 0f;
+
+            // The numbers only in the line, never in what is compared: one line per change of state.
             if (state != _state)
             {
                 _state = state;
-                Log.Msg("rainbow: " + state + detail);
+                Log.Msg("rainbow: " + state + (possible
+                    ? " (sun " + sunElevation.ToString("F0") + " deg up, rain " + Percent(CloudRain.Amount) +
+                      ", strength " + Percent(Amount) + ", chance " + Percent(Chance) + ")"
+                    : ""));
             }
 
             Current = strength;
@@ -200,6 +232,7 @@ namespace VolumetricClouds.Sky
             // the next time one can show, it forms afresh where the camera looks.
             if (!possible)
             {
+                _searchRow = -1;
                 _envelope = Mathf.MoveTowards(_envelope, 0f, deltaTime / FadeTime);
                 if (_hasArch && _envelope <= 0f)
                     Drop("gone with the conditions");
@@ -213,92 +246,120 @@ namespace VolumetricClouds.Sky
                 _nextLook = 0f;
             }
 
-            if (Time.time < _nextLook)
-                return;
-            _nextLook = Time.time + LookInterval;
-
-            if (_hasArch)
+            // A search under way goes on, a row a frame, until it is done.
+            if (_searchRow < 0)
             {
-                if (_leaving)
+                if (Time.time < _nextLook)
                     return;
+                _nextLook = Time.time + LookInterval;
 
-                _score = Score(field, ArchSpot, ArchRadius, toSun, ArchCentre.y);
-                float away = Level(focus - ArchCentre).magnitude;
-                string why = away > MoveAway ? "the camera looks " + (away / 1000f).ToString("F1") + " km away"
-                           : _score < MinScore * 0.5f ? "the sunlit rain has left it (" + Percent(_score) + " of it now)"
-                           : null;
-                if (why != null)
+                if (_hasArch)
                 {
-                    _leaving = true;
-                    Log.Msg("rainbow: the arch fades -- " + why);
+                    if (_leaving)
+                        return;
+
+                    _score = Score(field, ArchSpot, ArchRadius, toSun, ArchCentre.y);
+                    float away = Level(focus - ArchCentre).magnitude;
+                    string why = sunElevation > RainbowArch.MaxSunElevation
+                                     ? "the sun is " + sunElevation.ToString("F0") + " deg up (" + RainbowArch.MaxSunElevation.ToString("F0") + " at most)"
+                               : away > MoveAway ? "the camera looks " + (away / 1000f).ToString("F1") + " km away"
+                               : _score < MinScore * 0.5f ? "the sunlit rain has left it (" + Percent(_score) + " of it now)"
+                               : null;
+                    if (why != null)
+                    {
+                        _leaving = true;
+                        Log.Msg("rainbow: the arch fades -- " + why);
+                    }
+
+                    return;
                 }
 
-                return;
+                // A place for a new one: its middle (between its feet) round where the camera looks,
+                // nearer and taller ones preferred. Tall: its top just under the cloud base.
+                _searchRow = 0;
+                _searchFocus = focus;
+                _searchToSun = toSun;
+                _searchElevation = sunElevation;
+                _bestSpot = _bestCentre = Vector3.zero;
+                _bestRadius = _bestScore = _bestRank = 0f;
+                _anyRoom = false;
             }
 
-            // A place for a new one: its middle (between its feet) round where the camera looks,
-            // nearer and taller ones preferred. Tall: its top just under the cloud base.
-            Vector3 bestSpot = Vector3.zero, bestCentre = Vector3.zero;
-            float bestRadius = 0f, bestScore = 0f, bestRank = 0f;
-            bool anyRoom = false;
-            for (float dx = -SearchReach; dx <= SearchReach + 1f; dx += SearchSpacing)
+            SearchRow(field);
+        }
+
+        /// <summary>
+        /// One row of the search's grid (9 places, 2 sizes each), and after the last row the arch
+        /// that ranks best, if enough of it stands in sunlit rain. A row a frame: the whole grid at
+        /// once cost ~4 ms of one frame every 2 s while none stood (measured under the game's Mono).
+        /// The same places in the same order as all at once, so the same arch.
+        /// </summary>
+        private static void SearchRow(CloudDensityField field)
+        {
+            float dx = -SearchReach + _searchRow * SearchSpacing;
+            for (float dz = -SearchReach; dz <= SearchReach + 1f; dz += SearchSpacing)
             {
-                for (float dz = -SearchReach; dz <= SearchReach + 1f; dz += SearchSpacing)
+                Vector3 centre = new Vector3(_searchFocus.x + dx, 0f, _searchFocus.z + dz);
+                centre.y = Ground(centre);
+
+                float tallest = RainbowArch.Radius(TopShare * (CloudRain.CloudBottom - centre.y), _searchElevation);
+                if (tallest < 500f)
+                    continue;
+                _anyRoom = true;
+
+                for (int size = 0; size < 2; size++)
                 {
-                    Vector3 centre = new Vector3(focus.x + dx, 0f, focus.z + dz);
-                    centre.y = Ground(centre);
-
-                    float tallest = RainbowArch.Radius(TopShare * (CloudRain.CloudBottom - centre.y), sunElevation);
-                    if (tallest < 500f)
-                        continue;
-                    anyRoom = true;
-
-                    for (int size = 0; size < 2; size++)
+                    float radius = tallest * (size == 0 ? 1f : 0.7f);
+                    Vector3 spot = RainbowArch.Spot(centre, radius, _searchToSun);
+                    float score = Score(field, spot, radius, _searchToSun, centre.y);
+                    float rank = score * (size == 0 ? 1f : 0.85f) *
+                                 (1f - 0.25f * Mathf.Sqrt(dx * dx + dz * dz) / (SearchReach * 1.4142f));
+                    if (rank > _bestRank)
                     {
-                        float radius = tallest * (size == 0 ? 1f : 0.7f);
-                        Vector3 spot = RainbowArch.Spot(centre, radius, toSun);
-                        float score = Score(field, spot, radius, toSun, centre.y);
-                        float rank = score * (size == 0 ? 1f : 0.85f) *
-                                     (1f - 0.25f * Mathf.Sqrt(dx * dx + dz * dz) / (SearchReach * 1.4142f));
-                        if (rank > bestRank)
-                        {
-                            bestRank = rank;
-                            bestScore = score;
-                            bestSpot = spot;
-                            bestCentre = centre;
-                            bestRadius = radius;
-                        }
+                        _bestRank = rank;
+                        _bestScore = score;
+                        _bestSpot = spot;
+                        _bestCentre = centre;
+                        _bestRadius = radius;
                     }
                 }
             }
 
-            if (bestScore >= MinScore)
+            _searchRow++;
+            if (-SearchReach + _searchRow * SearchSpacing <= SearchReach + 1f)
+                return;
+
+            _searchRow = -1;
+            float sunElevation = _searchElevation;
+
+            if (_bestScore >= MinScore)
             {
                 _hasArch = true;
                 _leaving = false;
                 _envelope = 0f;
-                _score = bestScore;
-                ArchSpot = bestSpot;
-                ArchCentre = bestCentre;
-                ArchRadius = bestRadius;
+                _score = _bestScore;
+                ArchSpot = _bestSpot;
+                ArchCentre = _bestCentre;
+                ArchRadius = _bestRadius;
                 _archState = null;
-                float circle = bestRadius * Mathf.Sin(RainbowArch.BowAngle * Mathf.Deg2Rad);
-                Log.Msg("rainbow: an arch stands at (" + bestCentre.x.ToString("F0") + ", " + bestCentre.z.ToString("F0") + "), " +
-                        (Level(bestCentre - focus).magnitude / 1000f).ToString("F1") + " km from where the camera looks: " +
+                float circle = _bestRadius * Mathf.Sin(RainbowArch.BowAngle * Mathf.Deg2Rad);
+                Log.Msg("rainbow: an arch stands at (" + _bestCentre.x.ToString("F0") + ", " + _bestCentre.z.ToString("F0") + "), " +
+                        (Level(_bestCentre - _searchFocus).magnitude / 1000f).ToString("F1") + " km from where the camera looks: " +
                         (2f * circle / 1000f).ToString("F1") + " km wide, " +
                         (circle * Mathf.Cos(sunElevation * Mathf.Deg2Rad)).ToString("F0") + " m tall, leaning back " +
-                        sunElevation.ToString("F0") + " deg; " + Percent(bestScore) + " of it in sunlit rain");
+                        sunElevation.ToString("F0") + " deg; " + Percent(_bestScore) + " of it in sunlit rain");
             }
             else
             {
-                string state = !anyRoom
-                    ? "no arch: the sun is too high (" + sunElevation.ToString("F0") + " deg, " +
-                      RainbowArch.MaxSunElevation.ToString("F0") + " at most) or no room under the clouds"
+                // The numbers only in the line, never in what is compared: one line per change.
+                string state = !_anyRoom
+                    ? "no arch: the sun is too high (" + RainbowArch.MaxSunElevation.ToString("F0") + " deg at most) or no room under the clouds"
                     : "no arch: no sunlit rain near where the camera looks";
                 if (state != _archState)
                 {
                     _archState = state;
-                    Log.Msg("rainbow: " + state + " (best " + Percent(bestScore) + ", " + Percent(MinScore) + " needed)");
+                    Log.Msg("rainbow: " + state + " (sun " + sunElevation.ToString("F0") + " deg; best " + Percent(_bestScore) + ", " +
+                            Percent(MinScore) + " needed)");
                 }
             }
         }
@@ -397,6 +458,7 @@ namespace VolumetricClouds.Sky
             _nextLook = 0f;
             _score = 0f;
             _archState = null;
+            _searchRow = -1;
         }
 
         private static string Percent(float value)

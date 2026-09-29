@@ -124,6 +124,17 @@ namespace VolumetricClouds.Sky
                 : Settings.Defaults.ShadowDarkness;
         }
 
+        /// <summary>
+        /// Whether the map says where the sun reaches, for what reads it back (the fog's sun shafts,
+        /// the rainbow). It stores 1 - (1 - transmittance) x darkness: at "Shadow darkness" 0% that
+        /// is white everywhere, and undone (SunShaft, BowShaft in CloudRaymarch.shader) every point
+        /// would read as shaded -- fog with no sun at all, and never a rainbow.
+        /// </summary>
+        public static bool Readable(float coverage)
+        {
+            return ShadowDepth(coverage) >= 0.01f;
+        }
+
         /// <summary>Multiplier on optical depth for shadows only; see CloudShadowMap.shader.</summary>
         public static float ShadowFullness
         {

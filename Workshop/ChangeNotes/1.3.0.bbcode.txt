@@ -16,6 +16,7 @@
 [*]Power lines, street lamp glow and smoke no longer fade into the clouds behind them.
 [*]The game's hazy band above the horizon no longer hides the distant clouds, and at night the clouds no longer fade out 10 km away.
 [*]Without the Unified UI mod, the mod no longer adds a Unified UI panel of its own.
+[*]The in-game panel no longer runs off the bottom of the screen on tall tabs.
 [/list]
 [b]Changed[/b]
 [list]

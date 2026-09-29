@@ -14,7 +14,7 @@ The mod should continue working as usual. If anything stopped working for you af
 [olist]
 [*][b]Subscribe[/b] to this mod and to Harmony, then make sure both are enabled in [i]Content Manager → Mods[/i]. If you use Skyve, make sure the mod is enabled in it.
 [*][b]Load a city[/b] (new or saved) and the clouds appear. The mod does not run in the editors or in scenarios.
-[*][b]Press F4[/b] (or click the mod's button in UUI) to open the in-game panel.
+[*][b]Press F4[/b] (or click the mod's button) to open the in-game panel.
 [/olist]
 
 To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] to access the Pause Menu, then [i]Options[/i]. Under "Mods Settings", find Volumetric Weather, then toggle "Show advanced options in the in-game panel".

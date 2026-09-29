@@ -15,6 +15,12 @@ namespace VolumetricClouds.Sky
     ///
     /// The other dome, DayNightCloudsProperties, is the always-on painted sky layer (the one
     /// cloud-replacer mods retexture). It is only reported, not touched.
+    ///
+    /// NEVER FOUGHT OVER (invariant 6, 1.3.0): the game only ever switches it off itself (its
+    /// OnEnable and InitSkydomeMesh, IL), so a dome switched back on while we hold it is another
+    /// mod's wish. It is left on for the city and said once. Switching it off again every frame
+    /// would be a tug-of-war that rebuilds its mesh every frame (OnEnable builds it, OnDisable
+    /// destroys it).
     /// </remarks>
     public class GameCloudDome : MonoBehaviour
     {
@@ -25,7 +31,9 @@ namespace VolumetricClouds.Sky
         private bool _hidden;
         private bool _reportedMissing;
         private float _nextSearch;
-        private int _reDisabled;
+
+        /// <summary>Something else switched the dome back on: it is theirs for the rest of the city.</summary>
+        private bool _leftToOthers;
 
         private static bool OurCloudsShowing
         {
@@ -34,7 +42,7 @@ namespace VolumetricClouds.Sky
 
         private void LateUpdate()
         {
-            if (_dome == null && !TryFind())
+            if (_leftToOthers || (_dome == null && !TryFind()))
                 return;
 
             if (OurCloudsShowing)
@@ -43,16 +51,15 @@ namespace VolumetricClouds.Sky
                 {
                     _originalEnabled = _dome.enabled;
                     _hidden = true;
-                    _reDisabled = 0;
+                    _dome.enabled = false;
                     Log.Msg("game cloud dome: hidden (it was " + (_originalEnabled ? "enabled" : "already disabled") + ")");
                 }
-
-                // Checked every frame in case anything switches it back on.
-                if (_dome.enabled)
+                else if (_dome.enabled)
                 {
-                    _dome.enabled = false;
-                    if (++_reDisabled == 2)
-                        Log.Warn("game cloud dome: something re-enabled it; keeping it off");
+                    _hidden = false;
+                    _leftToOthers = true;
+                    Log.Msg("game cloud dome: switched back on by something else; it is left as it is for this city " +
+                            "(the game's rain clouds may show with ours)");
                 }
             }
             else
@@ -107,7 +114,9 @@ namespace VolumetricClouds.Sky
                 return;
 
             _hidden = false;
-            if (_dome != null)
+
+            // Only if it is still as we left it: switched on since, it is someone else's.
+            if (_dome != null && !_dome.enabled)
             {
                 _dome.enabled = _originalEnabled;
                 Log.Msg("game cloud dome: restored (enabled=" + _originalEnabled + ")");
