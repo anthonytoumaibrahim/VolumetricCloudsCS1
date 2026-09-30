@@ -33,6 +33,7 @@ To see more tabs in the in-game UI like the screenshots above, press [i]Esc[/i] 
 [*][b]Rain droplets customization[/b]
 [*][b]Better nights[/b]: clouds have a soft glow on their undersides, just like in real life, and they can have their own brightness at night (new in v1.3)
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
+[*][b]Fog distance[/b] (new in v1.3.1): how far away the volumetric fog is drawn
 [/list]
 
 [hr][/hr]

@@ -1,0 +1,16 @@
+[h1]Version 1.3.1[/h1]
+[b]New[/b]
+[list]
+[*][b]Fog distance[/b]: see the volumetric fog further away, up to 20 km (Fog tab). The default, 9 km, is the fog as before; farther costs more performance.
+[/list]
+[b]Fixed[/b]
+[list]
+[*]Power lines, water, street lamp glow and smoke no longer show over the volumetric fog, the rain and the rainbow.
+[*]The clouds no longer show over the fog in front of them.
+[*]With [i]Fog follows the ground[/i], the fog on high hills is no longer cut off.
+[/list]
+[b]Changed[/b]
+[list]
+[*]Lightning bolts are drawn as in v1.2 again, fading into the cloud they come out of.
+[*]Your settings and saved cities are unchanged.
+[/list]

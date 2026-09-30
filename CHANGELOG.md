@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.3.1 — unreleased
+## 1.3.1 — 2026-09-30
 
 A fog distance setting, and fixes for the fog, the rain and the lightning. `VolumetricClouds.xml`
 gains one line, `FogDistance`, at 9 km: the fog reaches exactly as far as before, at the same
