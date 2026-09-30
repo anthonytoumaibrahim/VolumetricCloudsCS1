@@ -5,8 +5,8 @@
 [/list]
 [b]Fixed[/b]
 [list]
-[*]Power lines, water, street lamp glow and smoke no longer show over the volumetric fog, the rain and the rainbow.
 [*]The clouds no longer show over the fog in front of them.
+[*]Render order should be improved -- especially for powerlines. Clouds no longer render "on top" of the powerlines.
 [*]With [i]Fog follows the ground[/i], the fog on high hills is no longer cut off.
 [/list]
 [b]Changed[/b]
