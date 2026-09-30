@@ -1,5 +1,5 @@
-[h1]Version 1.3: Profiles, Rainbows, Night Colors and Snow[/h1]
-Save your favorite skies as [b]profiles[/b] and switch between them from the list at the top of the in-game panel. Check the Change Notes to see all the changes.
+[h1]Version 1.3.1: Fog Hotfix[/h1]
+This is a hotfix for the fog render issues in v1.3, it should be back to how it looked in v1.2. Check the Change Notes to see all the changes.
 The mod should continue working as usual. If anything stopped working for you after the update, please let me know in the comments.
 
 [hr][/hr]

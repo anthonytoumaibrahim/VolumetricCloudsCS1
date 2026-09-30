@@ -116,6 +116,19 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// Metres the fog is drawn out to: the "Fog distance" setting (1.3.1). Over the last
+        /// <see cref="FadeLength"/> of it the fog thins to nothing -- at the default 9 km that is from
+        /// the camera on, exactly the fade it always had; farther, it is whole up to there.
+        /// </summary>
+        public static float Reach
+        {
+            get { return Settings.FogDistance != null ? Mathf.Max(1000f, Settings.FogDistance.value) : Settings.Defaults.FogDistance; }
+        }
+
+        /// <summary>The stretch the fog fades out over, ending at <see cref="Reach"/> (all of a shorter one).</summary>
+        public const float FadeLength = 9000f;
+
+        /// <summary>
         /// Whether a point this far above the ground, at this altitude, is between the layer's
         /// underside and its top. The height test only, not the noise field.
         /// </summary>
@@ -131,12 +144,13 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static string DescribeLayer()
         {
+            string reach = ", drawn to " + (Reach / 1000f).ToString("F1") + " km";
             if (FollowsGround)
-                return "follows the ground, " + Base.ToString("F0") + ".." + (Base + Height).ToString("F0") + " m above it";
+                return "follows the ground, " + Base.ToString("F0") + ".." + (Base + Height).ToString("F0") + " m above it" + reach;
 
             float sea = TerrainHeightMap.SeaLevel;
             return "level, " + Base.ToString("F0") + ".." + (Base + Height).ToString("F0") + " m above sea level (altitude " +
-                   (sea + Base).ToString("F0") + ".." + (sea + Base + Height).ToString("F0") + " m)";
+                   (sea + Base).ToString("F0") + ".." + (sea + Base + Height).ToString("F0") + " m)" + reach;
         }
 
         /// <summary>

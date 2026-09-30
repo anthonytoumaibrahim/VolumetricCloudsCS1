@@ -71,6 +71,7 @@ namespace VolumetricClouds
                         " detail=" + Sky.CloudDetail.Describe() +
                         " fragments=" + Sky.CloudFragments.Describe() +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
+                        " fogDistance=" + (Sky.CloudFog.Reach / 1000f).ToString("F1") + "km" +
                         " fogLitByLights=" + On(Settings.FogLampsEnabled, true) +
                         " lightHalos=" + On(Settings.HaloEnabled, false) +
                         " | overrides: weather=" + On(Settings.CoverageOverride, false) +

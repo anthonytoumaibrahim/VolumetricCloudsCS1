@@ -1,11 +1,10 @@
-// The air round the clouds as more than one shader sees it: how far the clouds reach before they
-// fade, the rain curtains under them, the fog on the ground, and the marches' jitter. The cloud
-// pass marches all of it (CloudRaymarch.shader); a lightning bolt is seen THROUGH it
-// (LightningBolt.shader, 1.2.1: it is dimmed by what lies in front of it, and only by that).
-// One definition of each, like the density in CloudCommon: never fork them.
+// The air round the clouds: how far the clouds reach before they fade, the rain curtains under
+// them, the fog on the ground, and the marches' jitter. The cloud pass marches all of it
+// (CloudRaymarch.shader). One definition of each, like the density in CloudCommon: never fork
+// them. (1.3.0 shared it with the lightning bolt, which dimmed itself by what lay in front of it;
+// since 1.3.1 the bolt is drawn before the clouds again, as in 1.2, and they are laid over it.)
 //
-// The values are CloudVolume's: set on the cloud material, and handed to the bolt's by
-// CloudVolume.ShareMediaWith.
+// The values are CloudVolume's, set on the cloud material (and copied to the air's draw).
 #ifndef VOLUMETRIC_CLOUDS_MEDIA_INCLUDED
 #define VOLUMETRIC_CLOUDS_MEDIA_INCLUDED
 
@@ -85,7 +84,10 @@ float _FogBase;            // metres from that reference to the layer's undersid
 float _FogHeight;          // metres from the underside to the top of the layer
 float _FogBreakup;         // 0 solid .. 1 wispy
 float _FogSteps;
-float _FogMaxDistance;
+float _FogMaxDistance;     // how far the fog is drawn: the "Fog distance" setting (1.3.1; 9 km before)
+float _FogFadeStart;       // where it starts to fade out (0 at 9 km: from the camera on, as always) ...
+float _FogFadeLength;      // ... over this many metres, ending at _FogMaxDistance
+float _FogCeiling;         // no fog that follows the ground is above this: the highest ground + the top
 float3 _FogAmbient;
 float3 _FogSun;
 
@@ -257,6 +259,14 @@ float FogAt(float3 p, float above, bool detailed)
 float FogStrength()
 {
     return _FogDensity * saturate(_FogAmount * 5.0);
+}
+
+// How much of the fog is left t metres along the view ray: all of it up to _FogFadeStart, none at
+// _FogMaxDistance. At the default distance (9 km) the fade starts at the camera -- exactly the
+// 1 - t / 9000 it always was; a farther one (CloudVolume.ApplyFog) keeps the fog whole further out.
+float FogFade(float t)
+{
+    return saturate(1.0 - (t - _FogFadeStart) / _FogFadeLength);
 }
 
 #endif

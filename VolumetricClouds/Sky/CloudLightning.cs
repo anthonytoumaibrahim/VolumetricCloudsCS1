@@ -49,10 +49,12 @@ namespace VolumetricClouds.Sky
         private static readonly int IdBoltColor = Shader.PropertyToID("_BoltColor");
         private static readonly int IdBoltIntensity = Shader.PropertyToID("_BoltIntensity");
         private static readonly int IdPixelAngle = Shader.PropertyToID("_PixelAngle");
-        private static readonly int IdBoltSeesMedia = Shader.PropertyToID("_BoltSeesMedia");
 
-        /// <summary>How the last bolt was drawn, for the one log line per change: seen through the cloud pass's air, or plain.</summary>
-        private string _boltModeLogged;
+        /// <summary>Our bolt's queue is this much under the clouds': just before them (see <see cref="DrawBolts"/>).</summary>
+        private const int BoltBeforeClouds = 10;
+
+        /// <summary>The queue a bolt was last drawn at, read back, for the one log line per change.</summary>
+        private int _boltQueueLogged = -1;
 
         // What the cloud pass reads. Always MaxFlashes long: Unity fixes an array's size on first use.
         private static readonly Vector4[] FlashPos = new Vector4[MaxFlashes];
@@ -666,9 +668,20 @@ namespace VolumetricClouds.Sky
             if (_boltMaterial == null)
                 return;
 
+            _boltMaterial.SetFloat(IdPixelAngle,
+                2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight));
+
+            // Drawn BEFORE the clouds, as in 1.2: the cloud pass lays the cloud, the rain and the fog
+            // over the channel, so its top fades into the cloud it comes out of. Just before whichever
+            // queue the clouds are in -- 3090 before the one draw (the shader's own Transparent+90),
+            // 2510 before their early draw under the base, after the game's sky (2501-2503). 1.3.0
+            // drew it after them, dimmed by only what is in front, and in-game it looked "in front"
+            // of the cloud (the author, 2026-09-30: "Not a fan").
+            _boltMaterial.renderQueue = CloudVolume.CloudsQueue - BoltBeforeClouds;
+
             float brightness = Settings.LightningBrightness != null ? Mathf.Max(0f, Settings.LightningBrightness.value) : 1f;
             bool replaceGame = _gameBoltHidden;
-            bool prepared = false;
+            bool drawn = false;
 
             foreach (Strike strike in _active)
             {
@@ -679,12 +692,6 @@ namespace VolumetricClouds.Sky
                 if (strike.FromGame && !replaceGame)
                     continue;
 
-                if (!prepared)
-                {
-                    prepared = true;
-                    PrepareBoltMaterial();
-                }
-
                 // Per strike, so each bolt has the colour of its own flash in the cloud.
                 Color colour = strike.Profile.Tint * (22f * brightness);
 
@@ -692,40 +699,16 @@ namespace VolumetricClouds.Sky
                 _block.SetVector(IdBoltColor, new Vector4(colour.r, colour.g, colour.b, 0f));
                 _block.SetFloat(IdBoltIntensity, strike.Intensity * strike.Power);
                 Graphics.DrawMesh(strike.Bolt, Matrix4x4.identity, _boltMaterial, 0, null, 0, _block);
-            }
-        }
-
-        /// <summary>
-        /// Once a frame, and only in a frame with a bolt to draw: the cloud pass's air (the bolt is
-        /// drawn after the clouds and dimmed by what is in front of it: LightningBolt.shader), then
-        /// the bolt's own values, which the share replaces. Without a cloud pass the bolt is drawn
-        /// plain -- there is then no cloud to be seen through.
-        /// </summary>
-        private void PrepareBoltMaterial()
-        {
-            bool seesMedia = false;
-            try
-            {
-                seesMedia = CloudVolume.ShareMediaWith(_boltMaterial);
-            }
-            catch (Exception e)
-            {
-                if (_boltModeLogged != "failed")
-                    Log.Error("lightning: handing the cloud pass's values to the bolt failed; drawn plain", e);
-                _boltModeLogged = "failed";
+                drawn = true;
             }
 
-            _boltMaterial.SetFloat(IdBoltSeesMedia, seesMedia ? 1f : 0f);
-            _boltMaterial.SetFloat(IdPixelAngle,
-                2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight));
-
-            string mode = seesMedia ? "through" : "plain";
-            if (_boltModeLogged != mode && _boltModeLogged != "failed")
+            // Once per queue a bolt is drawn at, read back from the material (1.3.0's line said
+            // "after the clouds" while a copied queue had really put the bolt in theirs).
+            if (drawn && _boltMaterial.renderQueue != _boltQueueLogged)
             {
-                _boltModeLogged = mode;
-                Log.Msg(seesMedia
-                    ? "lightning: bolts drawn after the clouds, dimmed by the cloud, rain and fog in front of them"
-                    : "lightning: bolts drawn plain (no cloud pass to be seen through)");
+                _boltQueueLogged = _boltMaterial.renderQueue;
+                Log.Msg("lightning: bolts drawn at queue " + _boltQueueLogged + ", just before the clouds (" +
+                        CloudVolume.CloudsQueue + "), as in 1.2: the clouds, rain and fog are laid over them");
             }
         }
 

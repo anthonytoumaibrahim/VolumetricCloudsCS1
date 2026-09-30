@@ -5,6 +5,41 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.3.1 — unreleased
+
+A fog distance setting, and fixes for the fog, the rain and the lightning. `VolumetricClouds.xml`
+gains one line, `FogDistance`, at 9 km: the fog reaches exactly as far as before, at the same
+cost. Nothing in saved cities changes. What changes for everyone with the update: power lines,
+water and lamp glows are inside the fog, the rain and the rainbow again instead of over them,
+lightning bolts look as they did in 1.2, and a fog that follows the ground covers high hills to
+their tops (see *Fixed* and *Changed*).
+
+### New: fog distance
+
+- *Fog distance* on the Fog tab: how far away the volumetric fog is drawn, from 9 km (the
+  default: the fog as it has always been) to 20 km. Farther, the fog stays at full strength
+  further out and thins over the last 9 km; it also costs more performance, since the longer
+  view through the fog gets more steps so it stays as smooth.
+
+### Fixed
+
+- Power lines, water, the glow of street lamps and smoke showed over the volumetric fog, the
+  rain curtains and the rainbow instead of inside them, whenever the camera was under the
+  clouds; and the clouds could show over the fog in front of them. 1.3.0 moved the clouds before
+  those see-through objects (so power lines no longer fade into the clouds behind them) and
+  meant the fog, the rain and the rainbow to stay after them, but they were moved before them
+  with the clouds. They are after them again, as in 1.2.
+- With *Fog follows the ground*, the fog on high hills was cut off: at eye level on hills higher
+  than the camera, when the camera was above the fog, and at one height above the ground round
+  the camera, when the camera was in it. It now covers hills up to their tops.
+
+### Changed
+
+- Lightning bolts are drawn as in 1.2 again: before the clouds, which fade the top of the
+  channel into the cloud it comes out of. 1.3.0 meant to draw them after the clouds, dimmed only
+  by what is in front of them; as released, the cloud in front of a bolt dimmed it twice, and
+  drawn as meant it looked as if in front of the cloud.
+
 ## 1.3.0 — 2026-09-29
 
 Profiles, rainbows, cloud colours and a cloud brightness of their own at night, snow on winter

@@ -215,6 +215,13 @@ namespace VolumetricClouds
         /// <summary>Metres from the underside of the fog to its top: the layer's thickness.</summary>
         public static FloatSetting FogHeight { get; private set; }
 
+        /// <summary>
+        /// Metres: how far away the fog is drawn (1.3.1). 9 km, the default and the least, is the fog
+        /// as it always was, thinning from the camera on; farther keeps it whole further out and
+        /// costs more (Sky.CloudFog.Reach).
+        /// </summary>
+        public static FloatSetting FogDistance { get; private set; }
+
         /// <summary>0 = solid, 1 = wispy: how hard fine noise eats into it. The fog's "Break-up".</summary>
         public static FloatSetting FogBreakup { get; private set; }
 
@@ -666,6 +673,14 @@ namespace VolumetricClouds
             public const bool FogFollowsGround = false;
             public const float FogBase = 0f;
             public const float FogHeight = 370f;
+
+            /// <summary>
+            /// 9 km: what the fog has always reached, so a file without the setting (every one
+            /// written before 1.3.1) gets the fog it had, at the cost it had (the author: "by default
+            /// to what it is now so performance doesn't degrade").
+            /// </summary>
+            public const float FogDistance = 9000f;
+
             public const float FogBreakup = 0.7f;
             public const float FogSpeed = 3.6f;
 
@@ -788,6 +803,7 @@ namespace VolumetricClouds
                 // The layer's THICKNESS. Its .cgs key "FogTopHeight" was kept when that changed,
                 // because with the base at 0 (every saved file) the two are the same number.
                 FogHeight = new FloatSetting("FogHeight", Defaults.FogHeight, "FogTopHeight");
+                FogDistance = new FloatSetting("FogDistance", Defaults.FogDistance);
                 // Keeps its name: what it means has not changed, it has only stopped ALSO
                 // carrying the clouds' brightness. See CloudVolume.FogLightScale.
                 FogBrightness = new FloatSetting("FogBrightness", Defaults.FogBrightness);

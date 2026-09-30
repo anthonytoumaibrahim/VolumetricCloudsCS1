@@ -61,8 +61,12 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static float Night { get; private set; }
 
-        /// <summary>The cloud volume of this city, for <see cref="ShareMediaWith"/>.</summary>
-        private static CloudVolume _current;
+        /// <summary>
+        /// The queue the clouds are drawn at: <see cref="EarlyQueue"/> while the camera is under
+        /// their base (<see cref="UpdateParts"/>), else <see cref="LateQueue"/>. The lightning bolt
+        /// goes just before it (CloudLightning, as in 1.2: the clouds are laid over it).
+        /// </summary>
+        public static int CloudsQueue { get; private set; } = LateQueue;
 
         private CloudDensityField _field;
         private CloudShadowMap _shadowMap;
@@ -164,6 +168,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdFogLevel = Shader.PropertyToID("_FogLevel");
         private static readonly int IdFogSteps = Shader.PropertyToID("_FogSteps");
         private static readonly int IdFogMaxDistance = Shader.PropertyToID("_FogMaxDistance");
+        private static readonly int IdFogFadeStart = Shader.PropertyToID("_FogFadeStart");
+        private static readonly int IdFogFadeLength = Shader.PropertyToID("_FogFadeLength");
+        private static readonly int IdFogCeiling = Shader.PropertyToID("_FogCeiling");
         private static readonly int IdFogAmbient = Shader.PropertyToID("_FogAmbient");
         private static readonly int IdFogSun = Shader.PropertyToID("_FogSun");
         private static readonly int IdCloudShadowTex = Shader.PropertyToID("_CloudShadowTex");
@@ -250,7 +257,6 @@ namespace VolumetricClouds.Sky
             }
 
             _material = new Material(shader) { name = "VolumetricCloudsRaymarch" };
-            _current = this;
 
             _holder = new GameObject("VolumetricCloudsVolume");
             _mesh = BuildBox();
@@ -819,13 +825,16 @@ namespace VolumetricClouds.Sky
 
             _material.renderQueue = _split ? EarlyQueue : LateQueue;
             _material.SetFloat(IdDrawPart, _split ? 1f : 0f);
+            CloudsQueue = _material.renderQueue;
 
             if (air)
             {
                 // Every value the cloud pass has, then the textures one by one (Unity 5.6 copies only
-                // those in the shader's Properties block; see ShareMediaWith) and the lightning's
-                // arrays. The copy keeps this material's queue.
-                _airMaterial.CopyPropertiesFromMaterial(_material);
+                // those in the shader's Properties block; see CopyValues) and the lightning's
+                // arrays. CopyValues keeps this material's own queue, LateQueue: a plain copy takes
+                // the clouds' EarlyQueue with the values (1.3.0 did, and the power lines, the water
+                // and the halos were drawn over the fog).
+                CopyValues(_material, _airMaterial);
                 CloudShaderParams.Apply(_airMaterial, _field, _noise);
                 _airMaterial.SetTexture(IdBlueNoiseTex, _blueNoise);
 
@@ -848,12 +857,14 @@ namespace VolumetricClouds.Sky
             if (state != _partsLogged)
             {
                 _partsLogged = state;
+                // The queues as the materials hold them, read back: the constants are only what was
+                // asked for (in 1.3.0 this line said 3100 while the air was really at 2520).
                 string where = " (camera " + height.ToString("F0") + " m, cloud base " + bottom.ToString("F0") + " m)";
                 Log.Msg(state == 0
-                    ? "cloud pass: one draw at queue " + LateQueue + ", after the see-through objects" + where
+                    ? "cloud pass: one draw at queue " + _material.renderQueue + ", after the see-through objects" + where
                     : state == 1
-                        ? "cloud pass: clouds at queue " + EarlyQueue + ", before the city's see-through objects (power lines, halos, smoke); no rain, fog or rainbow to draw after them" + where
-                        : "cloud pass: clouds at queue " + EarlyQueue + ", before the city's see-through objects; rain, fog and rainbow a draw of their own at " + LateQueue + where);
+                        ? "cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects (power lines, halos, smoke); no rain, fog or rainbow to draw after them" + where
+                        : "cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects; rain, fog and rainbow a draw of their own at " + _airMaterial.renderQueue + where);
             }
         }
 
@@ -1275,7 +1286,20 @@ namespace VolumetricClouds.Sky
             // Whole steps: the march's last one then ends exactly where the fog does, not a few
             // per cent past it.
             _material.SetFloat(IdFogSteps, Mathf.Clamp(Mathf.Round(quality * quality / 160f), 8f, 64f));
-            _material.SetFloat(IdFogMaxDistance, 9000f);
+
+            // How far it is drawn: the "Fog distance" setting (1.3.1; 9 km before, as its default
+            // is). It fades out over the last 9 km: at the default that is from the camera on, the
+            // fade it always had; farther, the fog is whole up to there. A ray longer than 9 km gets
+            // more steps in the shader, so its steps stay as long -- that is what a farther fog costs.
+            float reach = CloudFog.Reach;
+            float fadeLength = Mathf.Min(reach, CloudFog.FadeLength);
+            _material.SetFloat(IdFogMaxDistance, reach);
+            _material.SetFloat(IdFogFadeStart, reach - fadeLength);
+            _material.SetFloat(IdFogFadeLength, fadeLength);
+
+            // Nothing of a fog that follows the ground is above the highest ground plus its top: the
+            // march looks no higher (and no longer stops as if the ground were level).
+            _material.SetFloat(IdFogCeiling, TerrainHeightMap.Highest + CloudFog.Base + height);
 
             if (terrain != null)
                 _material.SetTexture(IdTerrainTex, terrain);
@@ -1405,38 +1429,27 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// Puts the cloud pass's values on another material that is seen through the same air:
-        /// the lightning bolt (1.3.0), dimmed by the cloud, rain and fog IN FRONT of it and by
-        /// nothing behind (CloudMedia.cginc). Floats and vectors by copy; the textures one by one,
-        /// because Unity 5.6 copies only the textures a shader lists in its Properties block and
-        /// cannot even read the others back (probed in the 5.6 editor, 2026-09-28). Every value
-        /// the material had is replaced, so its own go on after this. False while there is no
-        /// cloud pass to share: none in this city yet, its noise not there, or the clouds hidden.
+        /// Every float and vector of the cloud material onto another one, which KEEPS ITS OWN
+        /// RENDER QUEUE. CopyPropertiesFromMaterial takes the source's queue along with its values
+        /// (probed in the 5.6 editor, 2026-09-30: a source at 2520 put the destination at 2520,
+        /// whatever it had): in 1.3.0 that put the air draw in the clouds' early slot, before the
+        /// city's see-through objects, which were then drawn over the fog. The textures are not
+        /// all copied -- Unity 5.6 copies only those a shader lists in its Properties block, and
+        /// cannot even read the others back (probed 2026-09-28) -- so they go on after it. Every
+        /// value the material had is replaced, so its own go on after it too.
         /// </summary>
-        public static bool ShareMediaWith(Material material)
+        private static void CopyValues(Material from, Material to)
         {
-            CloudVolume volume = _current;
-            if (volume == null || material == null || volume._material == null || volume._noise == null || !IsActive)
-                return false;
-
-            material.CopyPropertiesFromMaterial(volume._material);
-            CloudShaderParams.Apply(material, volume._field, volume._noise);
-            material.SetTexture(IdBlueNoiseTex, volume._blueNoise);
-
-            // Without its map there is no fog: the cloud pass has written its amount as 0.
-            Texture terrain = TerrainHeightMap.Texture;
-            if (terrain != null)
-                material.SetTexture(IdTerrainTex, terrain);
-
-            return true;
+            int queue = to.renderQueue;
+            to.CopyPropertiesFromMaterial(from);
+            to.renderQueue = queue;
         }
 
         private void OnDestroy()
         {
             IsActive = false;
             Night = 0f;
-            if (_current == this)
-                _current = null;
+            CloudsQueue = LateQueue;
 
             if (_shadowMap != null)
             {

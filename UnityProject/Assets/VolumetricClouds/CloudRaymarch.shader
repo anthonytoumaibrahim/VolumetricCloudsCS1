@@ -37,9 +37,12 @@ Shader "VolumetricClouds/CloudRaymarch"
             #pragma target 3.5
             #include "UnityCG.cginc"
             #include "CloudCommon.cginc"
-            // The distance fade, the rain curtains, the fog and the jitter: shared with the
-            // lightning bolt, which is seen through them (CloudMedia.cginc).
+            // The distance fade, the rain curtains, the fog and the jitter (CloudMedia.cginc).
             #include "CloudMedia.cginc"
+
+            // The stretch of ray the fog's step count (Quality^2 / 160) is set for: 9 km, as far as
+            // the fog went until its distance became a setting. A longer stretch gets more steps.
+            #define FOG_STEP_STRETCH 9000.0
 
             sampler2D_float _CameraDepthTexture;
 
@@ -125,8 +128,8 @@ Shader "VolumetricClouds/CloudRaymarch"
             // Cloud detail's light (Sky/CloudDetail.cs; only while _DetailAmount > 0).
             float4 _DetailLight;    // x, y, z = Wrenninge's a, b, c; w = the gain that keeps a
                                     // side-lit sunny face as bright as the light below made it
-                                    // (_DetailLight2, the rest of it, is in CloudMedia.cginc: the
-                                    // bolt needs its lod offset)
+                                    // (_DetailLight2, the rest of it, is in CloudMedia.cginc,
+                                    // with CloudLod, which reads its lod offset)
 
             // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0): EVE-Redux
             // V5's four phase lobes -- two of single scattering (the silver lining), two of multiple
@@ -508,7 +511,7 @@ Shader "VolumetricClouds/CloudRaymarch"
             }
 
             // (GroundAt, FogGround, InFogLayer and FogAt -- where the fog is and how dense -- are
-            // in CloudMedia.cginc: the lightning bolt is seen through the fog too.)
+            // in CloudMedia.cginc.)
 
             // The light the city's lamps shed into the fog at p. The map is flat; the height it
             // loses comes back here, because its footprints are Gaussian and so separable: the
@@ -550,6 +553,7 @@ Shader "VolumetricClouds/CloudRaymarch"
             // height lookup a step -- until it first comes within the layer's top of the ground,
             // and the real march starts from the step before. From above that puts every sample
             // in the last stretch before the ground; from inside the fog it starts at the camera.
+            // Either way only the stretch under _FogCeiling is looked at: above it there is none.
             //
             // `camAbove` is the camera's height over FogGround(origin), which frag already has.
             //
@@ -574,52 +578,99 @@ Shader "VolumetricClouds/CloudRaymarch"
                     tStart = max(min(tA, tB), 0.0);
                     tEnd = min(tEnd, max(tA, tB));
                 }
-                else if (camAbove < top)
-                {
-                    tStart = 0.0;
-
-                    // Under a raised layer, looking up: there is nothing before the ray reaches
-                    // the underside. Where that is assumes level ground from here, so the start
-                    // is pulled well in for ground that falls away ahead.
-                    if (!fromInside && dir.y > 0.02)
-                        tStart = 0.6 * (_FogBase - camAbove) / dir.y;
-
-                    // A ray climbing out of the fog leaves it for good soon after: what is
-                    // left of the layer above where it starts, and half as much again plus
-                    // 60 m for ground that rises under it.
-                    if (dir.y > 0.02)
-                    {
-                        float startAbove = max(camAbove, 0.0) + tStart * dir.y;
-                        tEnd = min(tEnd, tStart + (top - startAbove + top * 0.5 + 60.0) / dir.y);
-                    }
-                }
                 else
                 {
-                    float tBefore = 0.0;
+                    // Nothing of a fog that follows the ground is above _FogCeiling, the highest
+                    // ground on the map plus the layer's top, so a ray has only its stretch under
+                    // that to look at: one coming down from above starts where it enters it, one
+                    // climbing stops where it leaves it at the latest. (Until 1.3.1 a ray from above
+                    // the layer was not marched at all going up, and one from inside stopped as if
+                    // the ground were level: the fog on higher hills was cut off at one height.)
+                    float tLow = 0.0;
+                    if (dir.y > 1e-4)
+                        tEnd = min(tEnd, (_FogCeiling - origin.y) / dir.y);
+                    else if (dir.y < -1e-4)
+                        tLow = max((_FogCeiling - origin.y) / dir.y, 0.0);
 
-                    [loop]
-                    for (int c = 1; c <= 14; c++)
+                    if (tEnd <= tLow)
+                        return float4(0, 0, 0, 1);
+
+                    if (camAbove < top)
                     {
-                        // Finer near the camera, where a missed patch would be seen.
-                        float f = (float)c / 14.0;
-                        float t = tEnd * f * f;
-                        float3 p = origin + dir * t;
+                        tStart = 0.0;
 
-                        if (p.y - GroundAt(p) < top)
+                        // Under a raised layer, looking up: there is nothing before the ray reaches
+                        // the underside. Where that is assumes level ground from here, so the start
+                        // is pulled well in for ground that falls away ahead.
+                        if (!fromInside && dir.y > 0.02)
+                            tStart = 0.6 * (_FogBase - camAbove) / dir.y;
+
+                        // A climbing ray leaves the layer over level ground for good soon after: what
+                        // is left of it above where the ray starts, and half as much again plus 60 m
+                        // for ground that rises under it. Past that only a HILL brings it back within
+                        // the layer, so the rest of its stretch is looked at coarsely -- one height
+                        // lookup a look -- and the march reaches past the last place it is. With level
+                        // ground all round it stops where it always did, its steps as fine.
+                        if (dir.y > 0.02)
                         {
-                            tStart = tBefore;
-                            break;
-                        }
+                            float startAbove = max(camAbove, 0.0) + tStart * dir.y;
+                            float tLevel = tStart + (top - startAbove + top * 0.5 + 60.0) / dir.y;
+                            if (tLevel < tEnd)
+                            {
+                                float stride = (tEnd - tLevel) / 14.0;
+                                float tFar = tLevel;
 
-                        tBefore = t;
+                                [loop]
+                                for (int c = 1; c <= 14; c++)
+                                {
+                                    float t = tLevel + stride * (float)c;
+                                    float3 p = origin + dir * t;
+
+                                    // Within the top here, or within what the ray climbs between two
+                                    // looks of it: a hill between them.
+                                    if (p.y - GroundAt(p) < top + dir.y * stride)
+                                        tFar = min(t + stride, tEnd);
+                                }
+
+                                tEnd = tFar;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        float tBefore = tLow;
+                        float span = tEnd - tLow;
+
+                        [loop]
+                        for (int c = 1; c <= 14; c++)
+                        {
+                            // Finer near where it starts, where a missed patch would be seen.
+                            float f = (float)c / 14.0;
+                            float t = tLow + span * f * f;
+                            float3 p = origin + dir * t;
+
+                            // Within the top here -- or, climbing, within what the ray climbed since
+                            // the last look: a hill between two looks.
+                            if (p.y - GroundAt(p) < top + max(dir.y, 0.0) * (t - tBefore))
+                            {
+                                tStart = tBefore;
+                                break;
+                            }
+
+                            tBefore = t;
+                        }
                     }
                 }
 
                 if (tStart < 0.0 || tStart >= tEnd)
                     return float4(0, 0, 0, 1);
 
-                float steps = clamp(_FogSteps, 6.0, 64.0);
+                // Whole steps (CloudVolume.ApplyFog: Quality^2 / 160) for a stretch of up to 9 km,
+                // and more for a longer one -- a Fog distance beyond 9 km (1.3.1) -- so its steps
+                // are as long as at 9 km: the quadratic spacing's step at a distance grows with the
+                // square root of the stretch. Up to 9 km, the steps it always had.
                 float len = tEnd - tStart;
+                float steps = clamp(round(_FogSteps * max(1.0, sqrt(len / FOG_STEP_STRETCH))), 6.0, 96.0);
 
                 // Fog glows around the sun: a strong forward lobe over a flat base.
                 float phase = 0.35 + 0.65 * min(HenyeyGreenstein(cosTheta, 0.65), 6.0);
@@ -629,9 +680,10 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float3 light = 0;
                 float tPrev = tStart;
 
-                // 64: the Quality setting's 96^2 / 160 = 58 at most (CloudVolume.ApplyFog, 1.2.1; 40 before).
+                // 96: the Quality setting's 96^2 / 160 = 58 at most, times up to 1.49 for a 20 km
+                // stretch (1.3.1; 64 in 1.3.0, 40 before).
                 [loop]
-                for (int s = 0; s < 64; s++)
+                for (int s = 0; s < 96; s++)
                 {
                     if ((float)s >= steps || transmittance < 0.02)
                         break;
@@ -653,7 +705,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     if (d > 0.001)
                     {
-                        float fade = saturate(1.0 - t / _FogMaxDistance);
+                        float fade = FogFade(t);
                         float sigma = strength * d * fade;
 
                         // Self-shadowing: how much fog lies between here and the sun, from one
@@ -769,10 +821,12 @@ Shader "VolumetricClouds/CloudRaymarch"
                     float camAbove = origin.y - FogGround(origin);
                     cameraInFog = InFogLayer(camAbove);
 
-                    // A ray that starts above the fog and never descends will not meet it
-                    // (bar a fogged mountainside above the camera, which is not worth fourteen
-                    // lookups on every pixel of sky). One from UNDER a raised layer can.
-                    if (camAbove < _FogBase + _FogHeight || dir.y < 0.0)
+                    // A ray that starts above a LEVEL fog and never descends will not meet it. One
+                    // that follows the ground can drape a hill higher than the camera, so there only
+                    // a camera above _FogCeiling skips those rays (1.3.1: until then all were
+                    // skipped, and a hill's fog ended at eye level). One from UNDER a raised layer
+                    // can meet either.
+                    if (camAbove < _FogBase + _FogHeight || dir.y < 0.0 || (_FogFollowGround > 0.5 && origin.y < _FogCeiling))
                     {
                         float fEnd = min(sceneDist, _FogMaxDistance);
 

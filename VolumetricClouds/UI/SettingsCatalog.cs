@@ -1310,6 +1310,20 @@ namespace VolumetricClouds.UI
                 Enabled = FogOn,
             });
 
+            // 1.3.1 (asked for: "increase the render distance of the fog ... a fog distance slider,
+            // by default to what it is now so performance doesn't degrade"). The least is the
+            // default: 9 km is the fog as it always was (Sky.CloudFog.Reach). Metres in the file.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogDistance,
+                DefaultFloat = Settings.Defaults.FogDistance,
+                Min = 9000f, Max = 20000f, Step = 500f,
+                Format = Kilometres,
+                Enabled = FogOn,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
