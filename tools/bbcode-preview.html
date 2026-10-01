@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steam BBCode Preview</title>
+<!--
+  A live preview of Steam's BBCode dialect, for Workshop/Description.bbcode.txt and the change
+  notes in Workshop/ChangeNotes. Open it in Chrome or Edge straight from disk; it makes no
+  network calls ([img] is shown as a placeholder, never fetched).
+
+  Open... (or drop a file on the page) keeps a handle to the file: Ctrl+S saves back to it, and
+  an edit made in another editor is picked up within a second while there is nothing unsaved
+  here. Without the File System Access API (Firefox) it falls back to load + download.
+
+  The rendering is close to Steam's, not pixel-exact. The character count is Steam's: each line
+  break counts twice (CRLF) and each apostrophe as &#39; (5); 7888 characters read 8071 that way
+  and Steam refused to save the page. "Worst case" also counts & " < > as entities.
+-->
+<style>
+  :root {
+    --page: #171a21; --bar: #1f2430; --line: #2f3542; --text: #c7d5e0; --muted: #8f98a0;
+    --accent: #66c0f4; --warn: #e4b44a; --bad: #e0605a; --ok: #7bb35a;
+    --steam-bg: #1b2838; --steam-text: #acb2b8; --steam-head: #5aa9d6;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--page); color: var(--text);
+    font: 14px/1.4 "Segoe UI", Arial, Helvetica, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 8px 16px; background: var(--bar); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0 12px 0 0; }
+  button {
+    background: #2a475e; color: var(--text); border: 1px solid #3d6c8d; border-radius: 3px;
+    padding: 5px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #3d6c8d; }
+  button:disabled { opacity: .45; cursor: default; }
+  #file { color: var(--muted); }
+  #file.dirty::after { content: " \2022 unsaved"; color: var(--warn); }
+  #count { margin-left: auto; font-variant-numeric: tabular-nums; }
+  #count .ok { color: var(--ok); } #count .warn { color: var(--warn); } #count .bad { color: var(--bad); }
+  main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+  #src {
+    width: 100%; height: 100%; resize: none; border: 0; border-right: 1px solid var(--line);
+    background: #12151b; color: #d4d4d4; padding: 14px 16px; outline: none;
+    font: 13px/1.5 Consolas, "Cascadia Mono", monospace; tab-size: 4; white-space: pre-wrap;
+  }
+  #right { display: flex; flex-direction: column; min-height: 0; }
+  #issues {
+    max-height: 30%; overflow: auto; margin: 0; padding: 6px 16px 6px 34px;
+    background: #2a2416; color: var(--warn); border-bottom: 1px solid var(--line); font-size: 13px;
+  }
+  #issues:empty { display: none; }
+  #issues li { cursor: pointer; } #issues li:hover { text-decoration: underline; }
+  #preview-wrap { flex: 1; overflow: auto; background: var(--steam-bg); }
+  #notice {
+    display: none; padding: 6px 16px; background: #3a2a18; color: var(--warn); font-size: 13px;
+  }
+
+  /* Steam's description look */
+  #preview {
+    max-width: 640px; margin: 0 auto; padding: 18px 16px 40px;
+    color: var(--steam-text); font: 14px/1.5 "Motiva Sans", Arial, Helvetica, sans-serif;
+    overflow-wrap: anywhere;
+  }
+  #preview .h1 { font-size: 18px; color: var(--steam-head); font-weight: normal; margin: 4px 0 6px; line-height: 1.3; }
+  #preview .h2 { font-size: 16px; color: var(--steam-head); font-weight: normal; margin: 4px 0 6px; }
+  #preview .h3 { font-size: 14px; color: var(--steam-head); font-weight: bold; margin: 4px 0 4px; }
+  #preview hr { border: 0; border-top: 1px solid #4b5a6a; margin: 12px 0; height: 0; }
+  #preview ul, #preview ol { margin: 4px 0 8px; padding-left: 30px; }
+  #preview li { margin: 2px 0; }
+  #preview a { color: #ebebeb; text-decoration: none; }
+  #preview a:hover { color: var(--accent); }
+  #preview b { color: #c6d4df; }
+  #preview .quote {
+    margin: 6px 0; padding: 6px 10px; background: rgba(0,0,0,.25); border: 1px solid #56707f;
+    color: #8f98a0; font-size: 13px;
+  }
+  #preview .quote .author { font-style: italic; margin-bottom: 4px; }
+  #preview .code {
+    margin: 6px 0; padding: 8px 10px; background: #0e141b; border: 1px solid #2d3d4d;
+    font: 12px/1.45 Consolas, monospace; white-space: pre-wrap; color: #c7d5e0;
+  }
+  #preview .spoiler { background: #000; color: #000; padding: 0 3px; }
+  #preview .spoiler:hover { color: #d7d7d7; }
+  #preview table { border-collapse: collapse; margin: 6px 0; }
+  #preview td, #preview th { border: 1px solid #4b5a6a; padding: 3px 8px; }
+  #preview .img {
+    display: inline-block; padding: 18px 12px; border: 1px dashed #56707f; color: var(--muted);
+    font-size: 12px; margin: 4px 0;
+  }
+  #preview .unknown { color: var(--bad); background: rgba(224,96,90,.12); }
+
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 45% 55%; }
+    #src { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Steam BBCode Preview</h1>
+  <button id="open" title="Open a .bbcode.txt file (kept linked: Ctrl+S saves back to it)">Open…</button>
+  <button id="save" title="Ctrl+S">Save</button>
+  <span id="file">no file — drop one on the page</span>
+  <span id="count"></span>
+  <input id="picker" type="file" accept=".txt,.bbcode" hidden>
+</header>
+<div id="notice"></div>
+<main>
+  <textarea id="src" spellcheck="true" placeholder="Paste or type Steam BBCode here, or Open a file…"></textarea>
+  <div id="right">
+    <ul id="issues"></ul>
+    <div id="preview-wrap"><div id="preview"></div></div>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+// ---- the parser ---------------------------------------------------------------------------
+
+// Steam's tags. block: one line break right after the tag is swallowed, as Steam does.
+const TAGS = {
+  b: {}, i: {}, u: {}, strike: {}, spoiler: {}, url: {}, noparse: {},
+  h1: { block: true }, h2: { block: true }, h3: { block: true },
+  hr: { block: true }, list: { block: true }, olist: { block: true }, "*": { block: true, item: true },
+  quote: { block: true }, code: { block: true },
+  table: { block: true }, tr: { block: true }, td: { block: true }, th: { block: true },
+  img: {}, previewyoutube: { block: true }
+};
+// Common BBCode that Steam does NOT render: it shows them as text.
+const NOT_STEAM = { color: 1, size: 1, font: 1, center: 1, left: 1, right: 1, s: 1, sup: 1, sub: 1, youtube: 1, email: 1, li: 1, ul: 1, ol: 1 };
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function lineOf(text, offset) {
+  let n = 1;
+  for (let i = 0; i < offset; i++) if (text.charCodeAt(i) === 10) n++;
+  return n;
+}
+
+function parse(text) {
+  const issues = [];
+  const root = { tag: "root", kids: [] };
+  const stack = [root];
+  const re = /\[(\/?)([a-zA-Z0-9*]+)(?:=([^\]\n]*))?\]/g;
+  let pos = 0, m, swallow = false;
+
+  const top = () => stack[stack.length - 1];
+  const addText = (s, at) => {
+    if (swallow && s.startsWith("\n")) s = s.slice(1);
+    swallow = false;
+    if (s) top().kids.push({ text: s, at });
+  };
+  const issue = (at, msg) => issues.push({ line: lineOf(text, at), at, msg });
+
+  while ((m = re.exec(text))) {
+    const [raw, slash, nameRaw, arg] = m;
+    const name = nameRaw.toLowerCase();
+    const at = m.index;
+
+    // inside [noparse] and [code], everything up to the closer is text
+    const cur = top();
+    if ((cur.tag === "noparse" || cur.tag === "code") && !(slash && name === cur.tag)) continue;
+
+    addText(text.slice(pos, at), pos);
+    pos = at + raw.length;
+
+    const def = TAGS[name];
+    if (!def) {
+      issue(at, NOT_STEAM[name]
+        ? `[${slash}${nameRaw}] is not a Steam tag: Steam shows it as text`
+        : `[${slash}${nameRaw}] is not a tag Steam knows: shown as text`);
+      top().kids.push({ text: raw, at, unknown: true });
+      continue;
+    }
+
+    if (!slash) {
+      if (def.item) {
+        // [*] closes the previous item, and must sit in a list
+        if (top().tag === "*") stack.pop();
+        const list = top();
+        if (list.tag !== "list" && list.tag !== "olist") issue(at, "[*] outside a [list] or [olist]");
+      }
+      if ((name === "list" || name === "olist") && stack.some(n => n.tag === "list" || n.tag === "olist")) {
+        issue(at, `a [${name}] inside a list: keep lists flat (the checklist's rule, a nested list broke once)`);
+      }
+      if (name === "url" && arg !== undefined && !/^https?:\/\//i.test(arg.trim())) {
+        issue(at, `[url=${arg}] does not start with http:// or https://`);
+      }
+      if (name === "img") issue(at, "[img]: shown as a placeholder here, never fetched");
+      const node = { tag: name, arg, kids: [], at };
+      top().kids.push(node);
+      stack.push(node);
+      swallow = !!def.block;
+    } else {
+      // a closer: find its opener; [*] items are closed implicitly
+      let i = stack.length - 1;
+      while (i > 0 && stack[i].tag !== name) i--;
+      if (i === 0) {
+        issue(at, `[/${nameRaw}] closes nothing: shown as text`);
+        top().kids.push({ text: raw, at, unknown: true });
+        continue;
+      }
+      for (let j = stack.length - 1; j > i; j--) {
+        if (stack[j].tag !== "*") issue(stack[j].at, `[${stack[j].tag}] is not closed before [/${name}]`);
+      }
+      stack.length = i;
+      swallow = !!def.block;
+    }
+  }
+  addText(text.slice(pos), pos);
+  for (let j = stack.length - 1; j > 0; j--) {
+    const n = stack[j];
+    if (n.tag === "*") continue;
+    issue(n.at, n.tag === "hr" ? "[hr] without [/hr]: Steam needs [hr][/hr]" : `[${n.tag}] is never closed`);
+  }
+  issues.sort((a, b) => a.at - b.at);
+  return { root, issues };
+}
+
+// ---- rendering ----------------------------------------------------------------------------
+
+function textHtml(s) {
+  // Steam turns bare links into links, and keeps every line break
+  return esc(s)
+    .replace(/\bhttps?:\/\/[^\s<\[\]"]+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`)
+    .replace(/\n/g, "<br>");
+}
+
+function plain(node) {
+  if (node.text !== undefined) return node.text;
+  return node.kids.map(plain).join("");
+}
+
+function safeUrl(u) {
+  u = (u || "").trim();
+  return /^https?:\/\//i.test(u) ? u : null;
+}
+
+function render(node) {
+  if (node.text !== undefined) {
+    return node.unknown ? `<span class="unknown">${esc(node.text)}</span>` : textHtml(node.text);
+  }
+  const inner = () => node.kids.map(render).join("");
+  // an item's trailing line break is the one before the next [*] or the closer
+  const trimmed = () => inner().replace(/(<br>)+$/, "");
+  switch (node.tag) {
+    case "root": return inner();
+    case "b": return `<b>${inner()}</b>`;
+    case "i": return `<i>${inner()}</i>`;
+    case "u": return `<u>${inner()}</u>`;
+    case "strike": return `<s>${inner()}</s>`;
+    case "spoiler": return `<span class="spoiler">${inner()}</span>`;
+    case "noparse": return textHtml(plain(node));
+    case "h1": case "h2": case "h3": return `<div class="${node.tag}">${inner()}</div>`;
+    case "hr": return `<hr>${inner()}`; // anything inside is an unclosed [hr]'s spill: keep it visible
+    case "list": return `<ul>${node.kids.filter(k => k.tag === "*").map(render).join("")}</ul>`;
+    case "olist": return `<ol>${node.kids.filter(k => k.tag === "*").map(render).join("")}</ol>`;
+    case "*": return `<li>${trimmed()}</li>`;
+    case "code": return `<div class="code">${esc(plain(node).replace(/^\n/, ""))}</div>`;
+    case "quote": {
+      const who = node.arg ? `<div class="author">Originally posted by <b>${esc(node.arg.split(";")[0])}</b>:</div>` : "";
+      return `<div class="quote">${who}${trimmed()}</div>`;
+    }
+    case "table": return `<table>${node.kids.filter(k => k.tag === "tr").map(render).join("")}</table>`;
+    case "tr": return `<tr>${node.kids.filter(k => k.tag === "td" || k.tag === "th").map(render).join("")}</tr>`;
+    case "td": return `<td>${trimmed()}</td>`;
+    case "th": return `<th>${trimmed()}</th>`;
+    case "img": return `<span class="img">[image: ${esc(plain(node))}]</span>`;
+    case "previewyoutube": return `<span class="img">[YouTube preview: ${esc(node.arg || "")}]</span>`;
+    case "url": {
+      const href = safeUrl(node.arg !== undefined ? node.arg : plain(node));
+      const body = node.arg !== undefined ? inner() : esc(plain(node));
+      return href ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${body}</a>` : body;
+    }
+  }
+  return inner();
+}
+
+// ---- Steam's character count --------------------------------------------------------------
+
+const LIMIT = 8000;
+function steamCount(text) {
+  const t = text.replace(/\r\n/g, "\n");
+  const n = (re) => (t.match(re) || []).length;
+  const base = t.length + n(/\n/g) + 4 * n(/'/g);          // CRLF; ' -> &#39;
+  const worst = base + 4 * n(/&/g) + 5 * n(/"/g) + 3 * n(/[<>]/g); // &amp; &quot; &lt; &gt;
+  return { chars: t.length, base, worst };
+}
+
+// ---- the page -----------------------------------------------------------------------------
+
+const $ = (id) => document.getElementById(id);
+const src = $("src"), preview = $("preview"), issuesEl = $("issues"), countEl = $("count");
+const fileEl = $("file"), notice = $("notice");
+
+let handle = null;        // FileSystemFileHandle, when the browser has the API
+let fileName = null;
+let diskText = null;      // what the file held when last read or written
+let diskTime = 0;
+let pending = 0;
+
+function update() {
+  const text = src.value;
+  const { root, issues } = parse(text);
+  preview.innerHTML = render(root);
+
+  issuesEl.innerHTML = issues.map((x, i) => `<li data-i="${i}">line ${x.line}: ${esc(x.msg)}</li>`).join("");
+  issuesEl.onclick = (e) => {
+    const li = e.target.closest("li"); if (!li) return;
+    const at = issues[+li.dataset.i].at;
+    src.focus(); src.setSelectionRange(at, at);
+    // scroll the line into view
+    const lh = parseFloat(getComputedStyle(src).lineHeight) || 20;
+    src.scrollTop = Math.max(0, (lineOf(text, at) - 5) * lh);
+  };
+
+  const c = steamCount(text);
+  const cls = (v) => v > LIMIT ? "bad" : v > LIMIT - 300 ? "warn" : "ok";
+  countEl.innerHTML =
+    `Steam: <b class="${cls(c.base)}">${c.base}</b> / ${LIMIT}` +
+    ` · worst case <span class="${cls(c.worst)}">${c.worst}</span>` +
+    ` · ${c.chars} typed`;
+  countEl.title = "Steam counts a line break as 2 (CRLF) and an apostrophe as 5 (&#39;).\n" +
+                  "Worst case also counts & \" < > as HTML entities.";
+
+  fileEl.classList.toggle("dirty", diskText !== null && text !== diskText);
+  try { localStorage.setItem("bbcode-preview-draft", text); } catch (e) { /* storage off */ }
+}
+
+src.addEventListener("input", () => { clearTimeout(pending); pending = setTimeout(update, 60); });
+
+function showFile(name) {
+  fileName = name;
+  fileEl.textContent = name || "no file — drop one on the page";
+  document.title = name ? `${name} — Steam BBCode Preview` : "Steam BBCode Preview";
+}
+
+function say(msg) {
+  notice.textContent = msg;
+  notice.style.display = msg ? "block" : "none";
+}
+
+async function loadHandle(h) {
+  const f = await h.getFile();
+  handle = h;
+  diskText = await f.text();
+  diskTime = f.lastModified;
+  src.value = diskText;
+  showFile(f.name);
+  say("");
+  update();
+}
+
+async function loadFile(f) {
+  handle = null;
+  diskText = await f.text();
+  diskTime = f.lastModified;
+  src.value = diskText;
+  showFile(f.name + " (copy: Save downloads it)");
+  update();
+}
+
+$("open").onclick = async () => {
+  if (window.showOpenFilePicker) {
+    try {
+      const [h] = await showOpenFilePicker({
+        types: [{ description: "BBCode text", accept: { "text/plain": [".txt", ".bbcode"] } }]
+      });
+      await loadHandle(h);
+    } catch (e) { if (e.name !== "AbortError") say("Could not open the file: " + e.message); }
+  } else {
+    $("picker").click();
+  }
+};
+$("picker").onchange = (e) => { const f = e.target.files[0]; if (f) loadFile(f); e.target.value = ""; };
+
+async function save() {
+  const text = src.value;
+  if (handle) {
+    try {
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+      const f = await handle.getFile();
+      diskText = text; diskTime = f.lastModified;
+      say("");
+      update();
+    } catch (e) { say("Could not save: " + e.message); }
+  } else {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+    a.download = (fileName || "description.bbcode.txt").replace(/ \(copy.*$/, "");
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    diskText = text;
+    update();
+  }
+}
+$("save").onclick = save;
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(); }
+});
+
+// Drop a file anywhere; Chrome and Edge give a handle, so it stays linked.
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  const item = e.dataTransfer.items && e.dataTransfer.items[0];
+  if (item && item.getAsFileSystemHandle) {
+    try {
+      const h = await item.getAsFileSystemHandle();
+      if (h && h.kind === "file") { await loadHandle(h); return; }
+    } catch (err) { /* fall through to a plain copy */ }
+  }
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+// Edited in another editor (VS Code): take it in, unless there are unsaved changes here.
+setInterval(async () => {
+  if (!handle) return;
+  try {
+    const f = await handle.getFile();
+    if (f.lastModified === diskTime) return;
+    const text = await f.text();
+    diskTime = f.lastModified;
+    if (text === diskText) return;
+    if (src.value === diskText) {
+      const sel = [src.selectionStart, src.selectionEnd], top = src.scrollTop;
+      diskText = text; src.value = text;
+      src.setSelectionRange(sel[0], sel[1]); src.scrollTop = top;
+      update();
+    } else {
+      diskText = text;
+      say("The file changed on disk while you have unsaved changes here. Save overwrites it; Open reloads it.");
+      update();
+    }
+  } catch (e) { /* the file may be mid-write; try again next second */ }
+}, 1000);
+
+// Start from the last draft, if any.
+try { src.value = localStorage.getItem("bbcode-preview-draft") || ""; } catch (e) { /* storage off */ }
+update();
+</script>
+</body>
+</html>
