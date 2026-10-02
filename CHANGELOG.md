@@ -5,6 +5,18 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.3.2 — unreleased
+
+A fix for smoke in the fog. Nothing in `VolumetricClouds.xml` or in saved cities changes.
+
+### Fixed
+
+- Factory smoke, and the game's other particle effects (steam, fire, dust...), disappeared in
+  the volumetric fog and the rain curtains: all the fog behind a plume, down to the ground, was
+  drawn over it. They are now drawn over the fog and the rain, as the game draws them over its
+  own fog, and still under the clouds when the camera is above them. Like with the game's fog,
+  smoke deep inside a thick fog is not dimmed by the fog in front of it.
+
 ## 1.3.1 — 2026-09-30
 
 A fog distance setting, and fixes for the fog, the rain and the lightning. `VolumetricClouds.xml`

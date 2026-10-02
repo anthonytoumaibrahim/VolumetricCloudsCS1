@@ -31,7 +31,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The cloud pass's own queue (the shader's Transparent+100): after everything see-through the
-        /// game draws; the lightning bolt and the rain streaks (+110) come after it.
+        /// game draws; the rain streaks (+110) come after it.
         /// </summary>
         public const int LateQueue = 3100;
 
@@ -40,9 +40,19 @@ namespace VolumetricClouds.Sky
         /// after the game's sky -- the aurora 2501, the painted clouds 2502, the stars 2503 (the
         /// shaders' Queue tags, read out of the game's asset files, and the log) -- and before
         /// everything see-through in the city: the halos 2990, decals and water 2999, the power lines
-        /// and smoke 3000 ('Custom/Net/Electricity': alpha-blended, no depth), particles 3001.
+        /// 3000 ('Custom/Net/Electricity': alpha-blended, no depth), the particles 3000/3001 (which
+        /// <see cref="GameParticles"/> moves after <see cref="AirQueue"/> since 1.3.2).
         /// </summary>
         public const int EarlyQueue = 2520;
+
+        /// <summary>
+        /// The air's own draw -- rain, fog, the rainbow's arch (1.3.2; until then <see cref="LateQueue"/>,
+        /// and only under the base): after everything see-through the game draws, so power lines,
+        /// halos and water are inside the fog, and a few queues before the clouds' late draw, so the
+        /// game's particle effects fit in between (<see cref="GameParticles"/>: smoke over the fog,
+        /// under the clouds above it). The lightning bolt goes before both (<see cref="CloudsQueue"/>).
+        /// </summary>
+        public const int AirQueue = LateQueue - 5;
 
         /// <summary>
         /// The clouds go early this far under their base and come back to the one draw within
@@ -64,7 +74,8 @@ namespace VolumetricClouds.Sky
         /// <summary>
         /// The queue the clouds are drawn at: <see cref="EarlyQueue"/> while the camera is under
         /// their base (<see cref="UpdateParts"/>), else <see cref="LateQueue"/>. The lightning bolt
-        /// goes just before it (CloudLightning, as in 1.2: the clouds are laid over it).
+        /// goes just before it (CloudLightning, as in 1.2: the clouds are laid over it), which is also
+        /// before <see cref="AirQueue"/> from above the base.
         /// </summary>
         public static int CloudsQueue { get; private set; } = LateQueue;
 
@@ -270,10 +281,10 @@ namespace VolumetricClouds.Sky
             _renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
             _renderer.enabled = false;
 
-            // The air under the clouds, drawn apart while the camera is under the cloud base
-            // (UpdateParts). A child, so it follows the box.
+            // The air under the clouds, drawn apart whenever there is any (UpdateParts). A child,
+            // so it follows the box.
             _airMaterial = new Material(shader) { name = "VolumetricCloudsAir" };
-            _airMaterial.renderQueue = LateQueue;
+            _airMaterial.renderQueue = AirQueue;
             GameObject air = new GameObject("VolumetricCloudsAir");
             air.transform.SetParent(_holder.transform, false);
             air.AddComponent<MeshFilter>().sharedMesh = _mesh;
@@ -802,12 +813,20 @@ namespace VolumetricClouds.Sky
         /// depth, BEFORE the cloud pass, which stops only at depth: the whole cloud behind a wire was
         /// painted over it. From under the cloud base the city is under the clouds, so there the
         /// clouds are drawn on their own at <see cref="EarlyQueue"/>, before all of it, and the air
-        /// under them -- rain, fog, the rainbow's arch, which those objects DO stand in -- stays at
-        /// <see cref="LateQueue"/> as a second draw, only while there is any. The two blends make
-        /// exactly the one pass's Over(lower, clouds). At or above the base (clouds in front of the
-        /// city) it is the one draw as before. The price: anything see-through ABOVE the base -- a
-        /// lamp or a wire on a hill that reaches into the clouds, a plane's lights over them -- is
-        /// then drawn over the cloud in front of it, as the wires were under the clouds behind them.
+        /// under them -- rain, fog, the rainbow's arch, which those objects DO stand in -- is a second
+        /// draw after them (<see cref="AirQueue"/>), only while there is any. The two blends make
+        /// exactly the one pass's Over(lower, clouds). The price: anything see-through ABOVE the base
+        /// -- a lamp or a wire on a hill that reaches into the clouds, a plane's lights over them --
+        /// is then drawn over the cloud in front of it, as the wires were under the clouds behind
+        /// them.
+        /// The air is a draw of its own from ABOVE the base too since 1.3.2 (reported: the fog
+        /// "is making smoke (from industrial factories) disappear"): at <see cref="AirQueue"/>, with
+        /// the game's particles moved after it (<see cref="GameParticles"/>) and the clouds after
+        /// those at <see cref="LateQueue"/> -- from above, the clouds are in front of all the air,
+        /// so the two blends are exactly the one pass's Over(clouds, lower). In the few metres under
+        /// the base where the clouds have not gone early yet (<see cref="SplitEnter"/>) this order
+        /// is kept, so the air between the camera and the base is drawn under the clouds on rays
+        /// that go up. Without rain, fog or an arch, the one draw as before.
         /// </summary>
         private void UpdateParts()
         {
@@ -818,21 +837,20 @@ namespace VolumetricClouds.Sky
 
             // The shader's own tests for its rain, fog and arch, a hair lower, so a rounding can never
             // leave any of them undrawn.
-            bool air = _split &&
-                       ((_material.GetFloat(IdRainAmount) > 0.0009f && _material.GetFloat(IdRainShaftDensity) > 0f) ||
-                        (_material.GetFloat(IdFogAmount) > 0.0009f && _material.GetFloat(IdFogDensity) > 0f) ||
-                        _material.GetVector(IdBowParams).z > 0.4f);
+            bool air = (_material.GetFloat(IdRainAmount) > 0.0009f && _material.GetFloat(IdRainShaftDensity) > 0f) ||
+                       (_material.GetFloat(IdFogAmount) > 0.0009f && _material.GetFloat(IdFogDensity) > 0f) ||
+                       _material.GetVector(IdBowParams).z > 0.4f;
 
             _material.renderQueue = _split ? EarlyQueue : LateQueue;
-            _material.SetFloat(IdDrawPart, _split ? 1f : 0f);
+            _material.SetFloat(IdDrawPart, _split || air ? 1f : 0f);
             CloudsQueue = _material.renderQueue;
 
             if (air)
             {
                 // Every value the cloud pass has, then the textures one by one (Unity 5.6 copies only
                 // those in the shader's Properties block; see CopyValues) and the lightning's
-                // arrays. CopyValues keeps this material's own queue, LateQueue: a plain copy takes
-                // the clouds' EarlyQueue with the values (1.3.0 did, and the power lines, the water
+                // arrays. CopyValues keeps this material's own queue, AirQueue: a plain copy takes
+                // the clouds' queue with the values (1.3.0 did, and the power lines, the water
                 // and the halos were drawn over the fog).
                 CopyValues(_material, _airMaterial);
                 CloudShaderParams.Apply(_airMaterial, _field, _noise);
@@ -853,18 +871,30 @@ namespace VolumetricClouds.Sky
 
             _airRenderer.enabled = air;
 
-            int state = !_split ? 0 : air ? 2 : 1;
+            int state = (_split ? 1 : 0) + (air ? 2 : 0);
             if (state != _partsLogged)
             {
                 _partsLogged = state;
                 // The queues as the materials hold them, read back: the constants are only what was
                 // asked for (in 1.3.0 this line said 3100 while the air was really at 2520).
                 string where = " (camera " + height.ToString("F0") + " m, cloud base " + bottom.ToString("F0") + " m)";
-                Log.Msg(state == 0
-                    ? "cloud pass: one draw at queue " + _material.renderQueue + ", after the see-through objects" + where
-                    : state == 1
-                        ? "cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects (power lines, halos, smoke); no rain, fog or rainbow to draw after them" + where
-                        : "cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects; rain, fog and rainbow a draw of their own at " + _airMaterial.renderQueue + where);
+                string airAt = "rain, fog and rainbow a draw of their own at " + _airMaterial.renderQueue +
+                               ", after the power lines and halos, before the particles (smoke)";
+                switch (state)
+                {
+                    case 0:
+                        Log.Msg("cloud pass: one draw at queue " + _material.renderQueue + ", after the see-through objects; no rain, fog or rainbow" + where);
+                        break;
+                    case 1:
+                        Log.Msg("cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects (power lines, halos, smoke); no rain, fog or rainbow to draw after them" + where);
+                        break;
+                    case 2:
+                        Log.Msg("cloud pass: " + airAt + "; the clouds over all of it at " + _material.renderQueue + where);
+                        break;
+                    default:
+                        Log.Msg("cloud pass: clouds at queue " + _material.renderQueue + ", before the city's see-through objects; " + airAt + where);
+                        break;
+                }
             }
         }
 
