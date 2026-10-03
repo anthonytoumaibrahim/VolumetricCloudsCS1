@@ -1305,7 +1305,9 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Fog,
                 Float = Settings.FogHeight,
                 DefaultFloat = Settings.Defaults.FogHeight,
-                Min = 20f, Max = 1000f, Step = 10f,
+                // 1.3.2 (asked for: "a very thin fog layer on the roads and ground"): from 0 m in
+                // 5 m steps, was 20 m in 10 m steps. Widening keeps every saved value.
+                Min = 0f, Max = 1000f, Step = 5f,
                 Format = Metres,
                 Enabled = FogOn,
             });

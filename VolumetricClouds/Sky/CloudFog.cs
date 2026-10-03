@@ -109,10 +109,13 @@ namespace VolumetricClouds.Sky
             get { return Settings.FogBase != null ? Mathf.Max(0f, Settings.FogBase.value) : Settings.Defaults.FogBase; }
         }
 
-        /// <summary>Metres from the underside of the layer to its top.</summary>
+        /// <summary>
+        /// Metres from the underside of the layer to its top. Floored at 1 m, not 0: the shaders
+        /// divide by it (0 on the slider is then a layer too thin to see).
+        /// </summary>
         public static float Height
         {
-            get { return Settings.FogHeight != null ? Mathf.Max(10f, Settings.FogHeight.value) : Settings.Defaults.FogHeight; }
+            get { return Settings.FogHeight != null ? Mathf.Max(1f, Settings.FogHeight.value) : Settings.Defaults.FogHeight; }
         }
 
         /// <summary>

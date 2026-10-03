@@ -7,7 +7,13 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.3.2 — unreleased
 
-A fix for smoke in the fog. Nothing in `VolumetricClouds.xml` or in saved cities changes.
+A fix for smoke in the fog, and a thinner fog. Nothing in `VolumetricClouds.xml` or in saved
+cities changes.
+
+### Changed
+
+- *Fog height* now goes down to 0 m (was 20 m), in 5 m steps, for a thin fog lying on the roads
+  and the ground. Every saved height stays as it was.
 
 ### Fixed
 
