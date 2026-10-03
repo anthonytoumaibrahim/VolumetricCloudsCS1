@@ -12,7 +12,7 @@ cities changes.
 
 ### Changed
 
-- *Fog height* now goes down to 0 m (was 20 m), in 5 m steps, for a thin fog lying on the roads
+- *Fog height* now goes down to 0 m (was 20 m), in 1 m steps, for a thin fog lying on the roads
   and the ground. Every saved height stays as it was.
 
 ### Fixed
