@@ -165,6 +165,18 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return _AmbientColor * (_ShadeLight.x + (1.0 - _ShadeLight.x) * hSky);
             }
 
+            // SUNSET LIGHT (Sky/SunsetLight.cs; only while _SunsetEdge.w > 0, round sunset and sunrise):
+            // the Earth's shadow. A point y metres up still sees the sun sqrt(2 y / R) radians under the
+            // horizontal, so the tops stay lit after the bases. 1 while the sun is up for it, 0 once
+            // it has set for it, smooth over the sun's disc.
+            float4 _SunsetEdge;     // x + y sqrt(y - z) = the edge's 0..1; w = how much of it is used
+
+            float EarthShadow(float y)
+            {
+                float e = saturate(_SunsetEdge.x + _SunsetEdge.y * sqrt(max(y - _SunsetEdge.z, 0.0)));
+                return 1.0 - _SunsetEdge.w * (1.0 - e * e * (3.0 - 2.0 * e));
+            }
+
             // A forward peak (silver linings towards the sun, capped so the rim cannot blow out)
             // over a weak back lobe; octave c flattens both (Wrenninge 2013).
             float DetailPhase(float cosTheta, float c)
@@ -389,6 +401,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Sunlight through the clouds (Soak), on both lights below.
                 bool soak = _LightThrough.x > 0.0;
 
+                // Sunset light's Earth shadow, on every light's sun below.
+                bool sunset = _SunsetEdge.w > 0.0;
+
                 float transmittance = 1.0;
                 float3 light = 0;
 
@@ -414,6 +429,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                         // the march covers.)
                         float hSky = cumulus ? saturate((p.y - _CloudBottom) * _CumulusLight.w) : h;
                         float3 ambient = _AmbientColor * (0.45 + 0.55 * hSky);
+                        float3 sunColor = _SunColor;
+                        if (sunset)
+                            sunColor *= EarthShadow(p.y);
                         float3 radiance;
                         if (cumulus)
                         {
@@ -426,9 +444,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                             // The sky light is blocked by the cloud above: two looks straight up.
                             float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
                                         + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = _SunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                            radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
                             if (_ShadeLight.y > 0.0)
-                                radiance += _SunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
+                                radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
                         }
                         else if (detail)
                         {
@@ -446,19 +464,19 @@ Shader "VolumetricClouds/CloudRaymarch"
                             // The sky light is blocked by the cloud above: two looks straight up.
                             float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
                                         + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = _SunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                            radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
                             if (_ShadeLight.y > 0.0)
-                                radiance += _SunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
+                                radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
 
                             // A low amount: the old light (detail off's, below) handed over to this
                             // one, as the old break-up is in CloudCommon -- no step at 0%.
                             if (_DetailLight2.w < 1.0)
-                                radiance = lerp(_SunColor * SunTransmittance(p) * phase + ambient, radiance, _DetailLight2.w);
+                                radiance = lerp(sunColor * SunTransmittance(p) * phase + ambient, radiance, _DetailLight2.w);
                         }
                         else
                         {
                             float sun = SunTransmittance(p);
-                            radiance = _SunColor * sun * phase + ambient;
+                            radiance = sunColor * sun * phase + ambient;
                         }
 
                         if (_FlashCount > 0.5)

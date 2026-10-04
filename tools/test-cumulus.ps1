@@ -255,6 +255,45 @@ Check ($low -lt 0.02) "at a low sun under a full sky next to none: the backlit d
 Check ((Shade "GroundFor" @([single]1, [single]0.5, [single]-0.1)) -eq 0) "none once the sun is down"
 
 ""
+"=== SunsetLight: the clouds keep the setting sun ==="
+$sunset = $asm.GetType("VolumetricClouds.Sky.SunsetLight")
+function Sunset([string]$name, [object[]]$arguments) { return [single]$sunset.GetMethod($name).Invoke($null, $arguments) }
+function SunsetShare([single]$el, [single]$h, [single]$s) {
+    $a = [object[]]@($el, $h, $s, [single]0, [single]0, [single]0)
+    [void]$sunset.GetMethod("Share").Invoke($null, $a)
+    return ,@([single]$a[3], [single]$a[4], [single]$a[5])
+}
+$hold = [single]$sunset.GetField("HoldElevation").GetValue($null)
+Check ([Math]::Abs((Sunset "DayTime" @([single]$hold)) - 1) -lt 2e-3 -and (Sunset "DayTime" @([single]2)) -lt 0.99) "the hold elevation is where the game's DayTime leaves 1"
+# The game's DayTime and sun path against his log (2026-10-04): 1.3 deg -> 0.846, -1.8 -> 0.592; 17.90h -> 1.3 deg.
+# The log rounds the elevation to 0.1 deg, and DayTime moves ~0.085 a degree there: 0.005 of slack.
+Check ([Math]::Abs((Sunset "DayTime" @([single]1.3)) - 0.846) -lt 5e-3 -and [Math]::Abs((Sunset "DayTime" @([single]-1.8)) - 0.592) -lt 5e-3) "DayTime is the game's (his log: 0.846 at 1.3 deg, 0.592 at -1.8)"
+Check ([Math]::Abs((Sunset "TimeAt" @([single]1.3, [single]29, $true)) - 17.90) -lt 0.01 -and [Math]::Abs((Sunset "TimeAt" @([single]3.16, [single]29, $false)) - 6.24) -lt 0.01) "the game's sun path: 1.3 deg at 17.90h (his log), 3.16 deg at 6.24h in the morning (the gradient's key)"
+$dip = Sunset "Dip" @([single]1100)
+Check ([Math]::Abs($dip - 1.064) -lt 0.01) "a cloud 1100 m up sees the sun 1.06 deg under the horizontal (got $($dip.ToString('F3')))"
+$up = SunsetShare $hold 1300 1
+Check ($up[0] -eq 1 -and $up[1] -eq 1 -and $up[2] -eq 1) "at the hold elevation the clouds get the hold light: the game's light there, no step"
+$prev = SunsetShare 3 1300 1; $redder = $true; $falls = $true
+foreach ($el in 2, 1, 0, -0.5, -1, -1.5) {
+    $sh = SunsetShare $el 1300 1
+    if (($sh[1] / $sh[0]) -gt ($prev[1] / $prev[0]) + 1e-6 -or ($sh[2] / $sh[0]) -gt ($prev[2] / $prev[0]) + 1e-6) { $redder = $false }
+    if ($sh[0] -gt $prev[0] + 1e-6) { $falls = $false }
+    $prev = $sh
+}
+Check $redder "lower and lower, the light turns redder (green and blue go first)"
+Check $falls "and never brighter"
+$m1 = SunsetShare -1 1300 1
+"  at -1 deg, 1300 m up: ($($m1[0].ToString('F2')),$($m1[1].ToString('F2')),$($m1[2].ToString('F3'))) of the hold light"
+Check ($m1[0] -gt 0.6 -and $m1[1] -lt 0.5 * $m1[0] -and $m1[2] -lt 0.1 * $m1[0]) "a degree under the horizon the cloud is still lit, and red"
+$edgeGone = Sunset "Edge" @([single](-0.85 - 1.064 - 0.01), [single]1100, [single]1)
+$edgeTop = Sunset "Edge" @([single](-0.85 - 1.064 - 0.01), [single]2000, [single]1)
+Check ($edgeGone -eq 0 -and $edgeTop -gt 0.5) "the Earth's shadow: when the sun has gone for the base (1100 m) a top at 2000 m is still lit"
+Check ((Sunset "Edge" @([single]0, [single]0, [single]1)) -eq 1 -and (Sunset "Edge" @([single]-0.9, [single]0, [single]1)) -eq 0) "on the ground: lit with the sun on the horizon, dark once its disc is gone (refraction kept)"
+$s2 = SunsetShare -1 1300 2
+Check ($s2[0] -gt $m1[0]) "200%: as if the clouds stood twice as high -- more light, for longer"
+Check ((Sunset "AmountFor" @([single]0)) -eq 0) "0%: off, the game's sun as before"
+
+""
 "=== The weather map's normal scores (CloudDensityField.ScoreBytes): the same for every city ==="
 $fieldType = $asm.GetType("VolumetricClouds.Sky.CloudDensityField")
 $quantile = $fieldType.GetMethod("NormalQuantile")

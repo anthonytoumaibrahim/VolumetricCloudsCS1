@@ -44,7 +44,7 @@ namespace VolumetricClouds.UI
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
-            OptionsPage.Weather, OptionsPage.Halos,
+            OptionsPage.Weather, OptionsPage.Halos, OptionsPage.Advanced,
         };
 
         /// <summary>One tab: a basic page, or an advanced one.</summary>
@@ -272,9 +272,10 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// Hides the rows whose Row.Shown says so and closes their page up under them, or opens it
-        /// again (1.3.0). Runs with every refresh, but a page is laid out again only when one of
-        /// its rows has actually changed.
+        /// Hides the rows Row.IsShownInPanel says to -- Row.Shown (1.3.0), and since 1.4.0 a basic
+        /// tab's greyed-out rows while the advanced options are off -- and closes their page up under
+        /// them, or opens it again. Runs with every refresh, but a page is laid out again only when
+        /// one of its rows has actually changed.
         /// </summary>
         private void RefreshShown()
         {
@@ -282,8 +283,7 @@ namespace VolumetricClouds.UI
             {
                 foreach (Item item in _layout[p])
                 {
-                    if (item.Control != null && item.Control.Source.Shown != null
-                        && item.Control.Source.IsShown != item.Shown)
+                    if (item.Control != null && item.Control.Source.IsShownInPanel != item.Shown)
                     {
                         Relayout(p);
                         break;
@@ -305,7 +305,7 @@ namespace VolumetricClouds.UI
             for (int i = 0; i < items.Count; i++)
             {
                 Item item = items[i];
-                bool shown = item.Control != null ? item.Control.Source.IsShown : HeadingShown(items, i);
+                bool shown = item.Control != null ? item.Control.Source.IsShownInPanel : HeadingShown(items, i);
 
                 if (shown != item.Shown)
                 {
@@ -341,7 +341,7 @@ namespace VolumetricClouds.UI
         {
             for (int i = heading + 1; i < items.Count && items[i].Control != null; i++)
             {
-                if (items[i].Control.Source.IsShown)
+                if (items[i].Control.Source.IsShownInPanel)
                     return true;
             }
 

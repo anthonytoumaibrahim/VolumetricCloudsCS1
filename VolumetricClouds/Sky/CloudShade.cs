@@ -4,9 +4,10 @@ using System.Globalization;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// LIGHT IN THE SHADE: how dark the clouds' shaded sides and undersides are. Two settings, each 0%
-    /// = the light from before, exactly: the sky light the base gets (as a share of what the top
-    /// gets, and how much the cloud above takes away), and the sunlit ground's light on the undersides.
+    /// LIGHT IN THE SHADE: how dark the clouds' shaded sides and undersides are. Two parts, both on
+    /// the "Light inside the clouds" slider (0% = the light from before, exactly): the sky light the
+    /// base gets (as a share of what the top gets, and how much the cloud above takes away), and the
+    /// sunlit ground's light on the undersides.
     /// </summary>
     /// <remarks>
     /// The game's sky light is about a tenth of its sun (in red, at noon; read off the log), so a
@@ -37,14 +38,16 @@ namespace VolumetricClouds.Sky
         /// <summary>How much of the ground a full sky leaves out of the sun (the share in sun is 1 - this x the cover).</summary>
         public const float GroundShadedAtFullCover = 0.6f;
 
+        // Both parts follow the one "Light inside the clouds" slider (with LightThrough); kept apart
+        // here so the maths and the log can still name each.
         public static float SkySetting
         {
-            get { return Clamp(Settings.SkyLightInShade != null ? Settings.SkyLightInShade.value : Settings.Defaults.SkyLightInShade); }
+            get { return LightThrough.Setting; }
         }
 
         public static float GroundSetting
         {
-            get { return Clamp(Settings.GroundLightOnClouds != null ? Settings.GroundLightOnClouds.value : Settings.Defaults.GroundLightOnClouds); }
+            get { return LightThrough.Setting; }
         }
 
         /// <summary>The sky light at the base, as a share of the top's (the shader's _ShadeLight.x).</summary>

@@ -41,12 +41,12 @@ namespace VolumetricClouds.Sky
         /// shaders' Queue tags, read out of the game's asset files, and the log) -- and before
         /// everything see-through in the city: the halos 2990, decals and water 2999, the power lines
         /// 3000 ('Custom/Net/Electricity': alpha-blended, no depth), the particles 3000/3001 (which
-        /// <see cref="GameParticles"/> moves after <see cref="AirQueue"/> since 1.3.2).
+        /// <see cref="GameParticles"/> moves after <see cref="AirQueue"/> since 1.4.0).
         /// </summary>
         public const int EarlyQueue = 2520;
 
         /// <summary>
-        /// The air's own draw -- rain, fog, the rainbow's arch (1.3.2; until then <see cref="LateQueue"/>,
+        /// The air's own draw -- rain, fog, the rainbow's arch (1.4.0; until then <see cref="LateQueue"/>,
         /// and only under the base): after everything see-through the game draws, so power lines,
         /// halos and water are inside the fog, and a few queues before the clouds' late draw, so the
         /// game's particle effects fit in between (<see cref="GameParticles"/>: smoke over the fog,
@@ -106,6 +106,11 @@ namespace VolumetricClouds.Sky
         // (bits; -1 = nothing said yet) and their values.
         private int _cloudLightOn = -1;
         private Vector3 _cloudLightLogged;
+
+        // Sunset light (SunsetLight): the setting the log last named (-1 = none yet), and what it is
+        // doing right now for the per-second sun line (null while the clouds have the game's sun).
+        private float _sunsetLogged = -1f;
+        private string _sunsetNote;
 
         // The Cumulus style's noise (CloudStyle / CumulusNoise3D). Made on the load's worker thread
         // when the style is Cumulus then, else the first time it is chosen (a thread of its own;
@@ -204,6 +209,7 @@ namespace VolumetricClouds.Sky
         private static readonly int IdCumulusLight = Shader.PropertyToID("_CumulusLight");
         private static readonly int IdLightThrough = Shader.PropertyToID("_LightThrough");
         private static readonly int IdShadeLight = Shader.PropertyToID("_ShadeLight");
+        private static readonly int IdSunsetEdge = Shader.PropertyToID("_SunsetEdge");
         private static readonly int IdCumulusLobes = Shader.PropertyToID("_CumulusLobes");
         private static readonly int IdCumulusLobeG = Shader.PropertyToID("_CumulusLobeG");
         private static readonly int IdBowTex = Shader.PropertyToID("_BowTex");
@@ -827,7 +833,7 @@ namespace VolumetricClouds.Sky
         /// -- a lamp or a wire on a hill that reaches into the clouds, a plane's lights over them --
         /// is then drawn over the cloud in front of it, as the wires were under the clouds behind
         /// them.
-        /// The air is a draw of its own from ABOVE the base too since 1.3.2 (reported: the fog
+        /// The air is a draw of its own from ABOVE the base too since 1.4.0 (reported: the fog
         /// "is making smoke (from industrial factories) disappear"): at <see cref="AirQueue"/>, with
         /// the game's particles moved after it (<see cref="GameParticles"/>) and the clouds after
         /// those at <see cref="LateQueue"/> -- from above, the clouds are in front of all the air,
@@ -960,8 +966,9 @@ namespace VolumetricClouds.Sky
             float setting = LightThrough.Setting;
             _material.SetVector(IdLightThrough, new Vector4(LightThrough.AmountFor(setting), LightThrough.KFor(setting), 0f, 0f));
 
-            // The light inside the clouds, all three rows: on the log at the start and whenever one is
-            // switched on or off (0%), every other change on the detailed log.
+            // The light inside the clouds, its three parts (one slider since 1.4.0's merge): on the log
+            // at the start and whenever it is switched on or off (0%), every other change on the
+            // detailed log.
             float sky = CloudShade.SkySetting;
             float ground = CloudShade.GroundSetting;
             int on = (setting > 0f ? 1 : 0) | (sky > 0f ? 2 : 0) | (ground > 0f ? 4 : 0);
@@ -1049,7 +1056,11 @@ namespace VolumetricClouds.Sky
             Color lightAmbient = ambient * 0.9f;
             Color baseSun = lightSun * overcast;
 
-            Color cloudSun = (auto ? lightSun : baseSun) * brightness;
+            // Sunset light (SunsetLight): the CLOUDS' sun only -- the fog is down in the dusk with the
+            // city and keeps the game's (baseSun above), as do the ground and the shadows.
+            Color cloudLightSun = SunsetSun(properties, sun, key, lightSun, sunElevation, linear);
+
+            Color cloudSun = (auto ? cloudLightSun : cloudLightSun * overcast) * brightness;
             Color cloudAmbient = WithFloor(lightAmbient * brightness);
 
             // The player's grading, on the CLOUD's two lights only: the sunlit side and the
@@ -1158,13 +1169,85 @@ namespace VolumetricClouds.Sky
                 if (Log.Detailed)
                 {
                     LogDetail(coverage, auto, brightness, overcast);
-                    LogSun(properties, sun, key, cloudSun);
+                    LogSun(properties, sun, key, cloudSun, _sunsetNote);
                 }
 
                 _frameCount = 0;
                 _frameTime = 0f;
                 _frameWorst = 0f;
             }
+        }
+
+        /// <summary>
+        /// The clouds' sun with "Sunset light" (SunsetLight): below the hold elevation, the game's own
+        /// light at that elevation, redder and fading as the sun sinks, never below the game's light;
+        /// and the Earth's shadow per height for the shader (_SunsetEdge). The game's sun unchanged
+        /// above it, at 0%, and while the moon is the key light.
+        /// </summary>
+        private Color SunsetSun(DayNightProperties properties, Light sun, Light key, Color lightSun, float elevation, bool linear)
+        {
+            float setting = SunsetLight.Setting;
+            float amount = SunsetLight.AmountFor(setting);
+            if (amount <= 0f || properties == null || sun == null || key != sun || elevation >= SunsetLight.HoldElevation ||
+                properties.m_LightColor == null)
+            {
+                _material.SetVector(IdSunsetEdge, Vector4.zero);
+                _sunsetNote = null;
+                LogSunset(setting);
+                return lightSun;
+            }
+
+            // The hold light: the game's at the hold elevation (DayTime 1 there), its gradient read at
+            // the time of day the sun stood there this evening (or morning).
+            float holdTime = SunsetLight.TimeAt(SunsetLight.HoldElevation, properties.m_Latitude, properties.m_TimeOfDay > 12f);
+            Color hold = properties.m_LightColor.Evaluate(holdTime / 24f);
+            if (linear)
+                hold = hold.linear;
+            hold *= properties.m_Exposure * properties.m_SunIntensity * 0.25f;
+
+            // The colour at the layer's middle; the Earth's shadow per height is the shader's.
+            float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
+            float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
+            float r, g, b;
+            SunsetLight.Share(elevation, bottom + 0.5f * thickness, setting, out r, out g, out b);
+
+            Color held = new Color(Mathf.Max(lightSun.r, hold.r * r), Mathf.Max(lightSun.g, hold.g * g), Mathf.Max(lightSun.b, hold.b * b), lightSun.a);
+            Color result = lightSun + (held - lightSun) * amount;
+
+            // The edge over the height above y = 0 (sea level is a few tens of metres: a hundredth of
+            // a degree). x + y sqrt(height) is the edge's 0..1, smoothed in the shader; w = how much of
+            // it is used (the amount).
+            float width = SunsetLight.EdgeFull - SunsetLight.EdgeGone;
+            _material.SetVector(IdSunsetEdge, new Vector4(
+                (elevation - SunsetLight.EdgeGone) / width,
+                SunsetLight.DipPerRootMetre * SunsetLight.StretchFor(setting) / width,
+                0f, amount));
+
+            // For this second's sun line only (it is written further down this frame): no string a frame.
+            _sunsetNote = Log.Detailed && Time.time >= _nextDetailTime
+                ? "sunset light: hold " + Rgb(hold) + " at " + holdTime.ToString("F2") + "h, share (" +
+                  r.ToString("F2") + "," + g.ToString("F2") + "," + b.ToString("F2") + "), clouds' sun " + Rgb(result) +
+                  " (the game's " + Rgb(lightSun) + "), sun up for: base " +
+                  (SunsetLight.Edge(elevation, bottom, setting) * 100f).ToString("F0") + "% top " +
+                  (SunsetLight.Edge(elevation, bottom + thickness, setting) * 100f).ToString("F0") + "%"
+                : null;
+            LogSunset(setting);
+            return result;
+        }
+
+        /// <summary>The "sunset light" line: on the log whenever it is switched on or off, other changes on the detailed log.</summary>
+        private void LogSunset(float setting)
+        {
+            if (setting == _sunsetLogged)
+                return;
+
+            string text = "sunset light: " + SunsetLight.Describe(setting);
+            if (_sunsetLogged < 0f || (setting > 0f) != (_sunsetLogged > 0f))
+                Log.Msg(text);
+            else if (Log.Detailed)
+                Log.Detail(text);
+
+            _sunsetLogged = setting;
         }
 
         /// <summary>Never fully black: even a moonless night sky silhouettes cloud faintly.</summary>
@@ -1252,7 +1335,7 @@ namespace VolumetricClouds.Sky
         /// clouds are lit by and what reaches them, and the sky's three ambient colours. What the
         /// clouds' light does through a sunset, read straight off the log.
         /// </summary>
-        private static void LogSun(DayNightProperties properties, Light sun, Light key, Color cloudSun)
+        private static void LogSun(DayNightProperties properties, Light sun, Light key, Color cloudSun, string sunsetNote)
         {
             if (sun == null)
                 return;
@@ -1269,7 +1352,8 @@ namespace VolumetricClouds.Sky
                        " | ambient " + RenderSettings.ambientMode +
                        " sky=" + Rgb(RenderSettings.ambientSkyColor) +
                        " equator=" + Rgb(RenderSettings.ambientEquatorColor) +
-                       " ground=" + Rgb(RenderSettings.ambientGroundColor));
+                       " ground=" + Rgb(RenderSettings.ambientGroundColor) +
+                       (sunsetNote != null ? " | " + sunsetNote : ""));
         }
 
         private static string Rgb(Color colour)

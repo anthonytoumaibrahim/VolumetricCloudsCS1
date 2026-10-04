@@ -6,7 +6,7 @@ namespace VolumetricClouds.Sky
 {
     /// <summary>
     /// Draws the game's particle effects -- factory smoke above all -- AFTER our rain, fog and
-    /// rainbow (1.3.2; reported: the fog "is making smoke (from industrial factories) disappear").
+    /// rainbow (1.4.0; reported: the fog "is making smoke (from industrial factories) disappear").
     /// </summary>
     /// <remarks>
     /// Particles are see-through and write no depth, so a pass drawn after them stops only at the

@@ -5,29 +5,44 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.3.2 — unreleased
+## 1.4.0 — unreleased
 
-Light inside the clouds, a fix for smoke in the fog, and a thinner fog. `VolumetricClouds.xml`
-gains three lines, `SunlightThroughClouds`, `SkyLightInShade` and `GroundLightOnClouds`, all at
-100%: the new cloud light reaches everyone with the update, profiles saved before it included.
-Setting all three to 0% gives the clouds exactly the light they had before. Nothing in saved
-cities changes.
+Light inside the clouds, a tidier panel with plainer wording, a fix for smoke in the fog, and a
+thinner fog.
+`VolumetricClouds.xml` gains two lines, `LightInsideClouds` and `SunsetLight`, both at 100%: the
+new cloud light reaches everyone with the update, profiles saved before it included. Setting both
+to 0% gives the clouds exactly the light they had before. Every other setting keeps its name and
+value; some sliders only moved (see Changed). Nothing in saved cities changes.
 
 ### New: light inside the clouds
 
-Three sliders on the Light tab, under *Light inside the clouds*, each 0% to 200%, 100% by default.
-They change the light of the Cumulus style and of *Cloud detail*; Classic with *Cloud detail* at 0%
-keeps its look. The ground's cloud shadows are unchanged.
+Two sliders on the Light tab, under *Light inside the clouds*, each 0% to 200%, 100% by default.
+The ground's cloud shadows are unchanged.
 
-- *Sunlight through clouds*: thin and middling cloud glows with the sun behind it, the way real
-  cloud does at sunrise and sunset, instead of turning into dark lumps. A thick overcast seen
-  against the sun stays dark.
-- *Sky light in the shade*: lighter shaded sides and undersides.
-- *Light from the ground*: the sunlit city lights the cloud bases, most at noon, hardly at all at
-  a low sun.
+- *Glow and softer shade*: thin and middling cloud glows with the sun behind it, the way real
+  cloud does at sunrise and sunset, instead of turning into dark lumps; a thick overcast seen
+  against the sun stays dark. The shaded sides and undersides are lighter, and the sunlit city
+  lights the cloud bases (most at noon, hardly at all at a low sun). The Cumulus style and *Cloud
+  detail* only: Classic with *Cloud detail* at 0% keeps its look.
+- *Sunset light*: at sunset and sunrise the clouds keep the low sun's light until the sun has set
+  for them -- a little after it has for the city below -- and turn orange, then red, instead of
+  going gray with the game's light. The tops of tall clouds stay lit after their bases. Both
+  styles; only the clouds: the city, the fog and the shadows keep the game's light. 200% makes it
+  last longer.
 
 ### Changed
 
+- The in-game panel is less crowded. On the Now, Clouds, Fog and Light tabs, a row that does
+  nothing at the moment is hidden instead of grayed out -- every fog row while the fog is off, the
+  fixed brightness while brightness is automatic, the cover slider until you override the
+  weather's. With *Show advanced options in the in-game panel* checked they show grayed, as before.
+- A new *Advanced* tab (with the advanced options on) takes three technical sliders off the basic
+  tabs: *Break-up detail* (from Clouds), *Lit radius around a light* (from Fog) and *Shadow
+  fullness* (from Light). Every setting keeps its value, in the settings file and in profiles.
+- Labels and tooltips are in American English (*color*, *gray*) with fewer technical words: for
+  example *Quality (raymarch steps)* is now *Cloud and fog quality*, and on the Halos tab *Use the
+  replacement halo shader* is now *Use the replacement light halos* and *Size (world radius)* is
+  now *Size*. Every setting keeps its place.
 - *Fog height* now goes down to 0 m (was 20 m), in 1 m steps, for a thin fog lying on the roads
   and the ground. Every saved height stays as it was.
 

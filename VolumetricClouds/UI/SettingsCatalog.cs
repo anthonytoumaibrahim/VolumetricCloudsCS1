@@ -50,7 +50,7 @@ namespace VolumetricClouds.UI
     /// depth occlusion -- are the options page's now (the author: "its settings are now in the
     /// pause menu"). A code-only name: nothing stored says which page a row is on.
     /// </summary>
-    public enum OptionsPage { None, Weather, Halos, General }
+    public enum OptionsPage { None, Weather, Halos, General, Advanced }
 
     /// <summary>
     /// One setting, everything either UI needs to draw it, and its default.
@@ -280,6 +280,27 @@ namespace VolumetricClouds.UI
             get { return Shown == null || Shown(); }
         }
 
+        /// <summary>
+        /// In the in-game panel: <see cref="Shown"/>, and on a basic tab (Now, Clouds, Fog, Light) a
+        /// row that would be greyed out (<see cref="Enabled"/>) is hidden instead, unless "Show
+        /// advanced options in the in-game panel" is ticked -- then it is shown greyed, as before
+        /// 1.4.0 (the author: "let's hide the rows instead of disabling them. They can just show when
+        /// advanced settings are on"). The advanced tabs grey their rows as they always did.
+        /// </summary>
+        public bool IsShownInPanel
+        {
+            get
+            {
+                if (!IsShown)
+                    return false;
+
+                if (Panel == PanelPage.None || IsEnabled)
+                    return true;
+
+                return Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
+            }
+        }
+
         /// <summary>On the game's options page: <see cref="Shown"/>, and <see cref="OptionsPageShown"/> there.</summary>
         public bool IsShownOnOptionsPage
         {
@@ -457,6 +478,7 @@ namespace VolumetricClouds.UI
                     " Light=" + CountForPanel(PanelPage.Light) +
                     " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
+                    " Advanced=" + CountForOptions(OptionsPage.Advanced) +
                     " | options page=" + CountForOptions(OptionsPage.General) +
                     " | rows with no UI=" + nowhere);
 
@@ -906,6 +928,7 @@ namespace VolumetricClouds.UI
             BuildWeatherOptions();
             BuildLightOptions();
             BuildHaloOptions();
+            BuildAdvancedOptions();
 
             // The options page, top to bottom: quality and drawing first, then the mod itself.
             BuildRenderingOptions();
@@ -1139,15 +1162,8 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 100f, Step = 5f,
             });
 
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Panel = PanelPage.Clouds,
-                Float = Settings.CloudBreakupScale,
-                DefaultFloat = Settings.Defaults.BreakupScale,
-                Min = 1.5f, Max = 10f, Step = 0.25f,
-                Format = Times2,
-            });
+            // Break-up detail (CloudBreakupScale): on the Advanced tab since 1.4.0, with the other
+            // technical rows (see "The Advanced tab" below).
 
             // Small, thin shreds round the big clouds, same layer and base (Sky.CloudFragments).
             // The number is a real share of the sky; 0 is off. No AfterChange (a slider's runs
@@ -1305,7 +1321,7 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Fog,
                 Float = Settings.FogHeight,
                 DefaultFloat = Settings.Defaults.FogHeight,
-                // 1.3.2 (asked for: "a very thin fog layer on the roads and ground"): from 0 m in
+                // 1.4.0 (asked for: "a very thin fog layer on the roads and ground"): from 0 m in
                 // 1 m steps, was 20 m in 10 m steps. Widening keeps every saved value.
                 Min = 0f, Max = 1000f, Step = 1f,
                 Format = Metres,
@@ -1390,16 +1406,7 @@ namespace VolumetricClouds.UI
                 Enabled = FogLampsOn,
             });
 
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Panel = PanelPage.Fog,
-                Float = Settings.FogLampRadius,
-                DefaultFloat = Settings.Defaults.FogLampRadius,
-                Min = 2f, Max = 40f, Step = 1f,
-                Format = Metres,
-                Enabled = FogLampsOn,
-            });
+            // Lit radius around a light (FogLampRadius): on the Advanced tab since 1.4.0.
         }
 
         /// <summary>
@@ -1650,16 +1657,7 @@ namespace VolumetricClouds.UI
                 Enabled = ShadowsOn,
             });
 
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Panel = PanelPage.Light,
-                Float = Settings.CloudShadowFullness,
-                DefaultFloat = Settings.Defaults.ShadowFullness,
-                Min = 0.5f, Max = 8f, Step = 0.25f,
-                Format = Times2,
-                Enabled = ShadowsOn,
-            });
+            // Shadow fullness (CloudShadowFullness): on the Advanced tab since 1.4.0.
 
             Add(new Row
             {
@@ -1770,36 +1768,30 @@ namespace VolumetricClouds.UI
                 Min = 20f, Max = 300f, Step = 5f,
             });
 
-            // The light inside the clouds: three rows, each 0% = the light from before, exactly, 100% =
-            // the look chosen ("can we give control to the user?"). Sky/LightThrough: thin and middling
-            // cloud glows with the sun behind it (200%: light twice as deep). Sky/CloudShade: the sky
-            // light in the shade (200%: the base as lit as the top) and the sunlit ground's light on
-            // the undersides (200%: twice the albedo).
+            // The light inside the clouds: two rows, each 0% = the light from before, exactly, 100% =
+            // the look chosen. The first is three parts on one slider (it was three rows until they
+            // were merged before release -- the author: "merge them"): Sky/LightThrough, thin and
+            // middling cloud glows with the sun behind it (200%: light twice as deep), and
+            // Sky/CloudShade, the sky light in the shade (200%: the base as lit as the top) and the
+            // sunlit ground's light on the undersides (200%: twice the albedo).
             Add(new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
                 Group = "CloudLight",
-                Float = Settings.SunlightThroughClouds,
-                DefaultFloat = Settings.Defaults.SunlightThroughClouds,
+                Float = Settings.LightInsideClouds,
+                DefaultFloat = Settings.Defaults.LightInsideClouds,
                 Min = 0f, Max = 200f, Step = 5f,
             });
 
+            // Sky/SunsetLight: the clouds keep the low sun's light, redder, until it has set for them
+            // (0%: the game's sun, as before; 200%: as if they stood twice as high -- it lasts longer).
             Add(new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
-                Float = Settings.SkyLightInShade,
-                DefaultFloat = Settings.Defaults.SkyLightInShade,
-                Min = 0f, Max = 200f, Step = 5f,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Light,
-                Float = Settings.GroundLightOnClouds,
-                DefaultFloat = Settings.Defaults.GroundLightOnClouds,
+                Float = Settings.SunsetLight,
+                DefaultFloat = Settings.Defaults.SunsetLight,
                 Min = 0f, Max = 200f, Step = 5f,
             });
 
@@ -2002,6 +1994,53 @@ namespace VolumetricClouds.UI
             // The "Vehicles and other moving lights" group -- "Vehicle light halos" and "Adjust
             // dynamic lights" with its two sliders -- was here until 1.1.1: removed, see the note
             // in Settings.cs beside HaloNearLightRadius.
+        }
+
+        /// <summary>
+        /// Advanced tab Advanced (1.4.0): the technical rows, moved off the basic tabs to make them
+        /// less crowded (the author: "a new Advanced tab with the settings ... just their position can
+        /// change"). The same settings, names, ranges and defaults: a settings file or profile reads
+        /// exactly as before; only where the slider is changed.
+        /// </summary>
+        private static void BuildAdvancedOptions()
+        {
+            // From Clouds.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Options = OptionsPage.Advanced,
+                Group = "CloudShape",
+                Float = Settings.CloudBreakupScale,
+                DefaultFloat = Settings.Defaults.BreakupScale,
+                Min = 1.5f, Max = 10f, Step = 0.25f,
+                Format = Times2,
+            });
+
+            // From Fog.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Options = OptionsPage.Advanced,
+                Group = "FogLamps",
+                Float = Settings.FogLampRadius,
+                DefaultFloat = Settings.Defaults.FogLampRadius,
+                Min = 2f, Max = 40f, Step = 1f,
+                Format = Metres,
+                Enabled = FogLampsOn,
+            });
+
+            // From Light.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Options = OptionsPage.Advanced,
+                Group = "Shadows",
+                Float = Settings.CloudShadowFullness,
+                DefaultFloat = Settings.Defaults.ShadowFullness,
+                Min = 0.5f, Max = 8f, Step = 0.25f,
+                Format = Times2,
+                Enabled = ShadowsOn,
+            });
         }
 
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>

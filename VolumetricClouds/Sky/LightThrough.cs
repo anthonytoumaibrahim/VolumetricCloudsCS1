@@ -25,14 +25,17 @@ namespace VolumetricClouds.Sky
         /// <summary>The tail's k at 100%: the setting picked on the renders (2026-10-04).</summary>
         public const float K = 0.15f;
 
-        /// <summary>The setting, 0..2 (the slider's 0%..200%); its default when there is none.</summary>
+        /// <summary>
+        /// The setting, 0..2 (the slider's 0%..200%); its default when there is none. "Light inside
+        /// the clouds": one slider for this and both of CloudShade's parts.
+        /// </summary>
         public static float Setting
         {
             get
             {
-                return Settings.SunlightThroughClouds != null
-                    ? Math.Max(0f, Math.Min(2f, Settings.SunlightThroughClouds.value))
-                    : Settings.Defaults.SunlightThroughClouds;
+                return Settings.LightInsideClouds != null
+                    ? Math.Max(0f, Math.Min(2f, Settings.LightInsideClouds.value))
+                    : Settings.Defaults.LightInsideClouds;
             }
         }
 
