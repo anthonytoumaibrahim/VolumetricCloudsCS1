@@ -141,6 +141,30 @@ Shader "VolumetricClouds/CloudRaymarch"
             float4 _CumulusLobes;   // strengths: single 1, single 2, multiple 1, multiple 2
             float4 _CumulusLobeG;   // their eccentricities, in the same order
 
+            // SUNLIGHT THROUGH THE CLOUDS (Sky/LightThrough.cs; only while _LightThrough.x > 0): the
+            // multiple-scattering light falls off no faster than 1 / (1 + k tau)^2, so thin and
+            // middling cloud glows with the sun behind it and a thick deck's far side stays dark.
+            // Never darker than without it; tau = 0, a sunlit face, unchanged.
+            float4 _LightThrough;   // x = amount (0 = off), y = k
+
+            float Soak(float transmittance, float tau)
+            {
+                float tail = 1.0 / (1.0 + _LightThrough.y * tau);
+                return transmittance + _LightThrough.x * (max(transmittance, tail * tail) - transmittance);
+            }
+
+            // THE LIGHT IN THE SHADE (Sky/CloudShade.cs), on the same two lights: the sky light at the
+            // base as a share of the top's (0.45 before), and the sunlit ground's light on the
+            // undersides, strongest at the base, none at the top (Frostbite's ground ambient).
+            float4 _ShadeLight;     // x = the sky light at the base (0.45 = as before), y = the ground's
+                                    // light as a share of _SunColor (0 = none)
+
+            // The sky light at height hSky, before its occlusion by the cloud above.
+            float3 ShadeSky(float hSky)
+            {
+                return _AmbientColor * (_ShadeLight.x + (1.0 - _ShadeLight.x) * hSky);
+            }
+
             // A forward peak (silver linings towards the sun, capped so the rim cannot blow out)
             // over a weak back lobe; octave c flattens both (Wrenninge 2013).
             float DetailPhase(float cosTheta, float c)
@@ -362,6 +386,9 @@ Shader "VolumetricClouds/CloudRaymarch"
                     lobes = float2(min(single, _CumulusLight.z), multiple) * _CumulusLight.y;
                 }
 
+                // Sunlight through the clouds (Soak), on both lights below.
+                bool soak = _LightThrough.x > 0.0;
+
                 float transmittance = 1.0;
                 float3 light = 0;
 
@@ -391,23 +418,37 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (cumulus)
                         {
                             float tau = SunDepth(p, lod);
-                            float sunLit = lobes.x * exp(-tau) + lobes.y * exp(-tau * _CumulusLight.x);
+                            float multipleT = exp(-tau * _CumulusLight.x);
+                            if (soak)
+                                multipleT = Soak(multipleT, tau);
+                            float sunLit = lobes.x * exp(-tau) + lobes.y * multipleT;
 
                             // The sky light is blocked by the cloud above: two looks straight up.
                             float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
                                         + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = _SunColor * sunLit + ambient * exp(-above * _Absorption * _DetailLight2.x);
+                            radiance = _SunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                            if (_ShadeLight.y > 0.0)
+                                radiance += _SunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
                         }
                         else if (detail)
                         {
                             float tau = SunDepth(p, lod);
                             float b = _DetailLight.y;
-                            float sunLit = octaves.x * exp(-tau) + octaves.y * exp(-tau * b) + octaves.z * exp(-tau * b * b);
+                            float octave1T = exp(-tau * b);
+                            float octave2T = exp(-tau * b * b);
+                            if (soak)
+                            {
+                                octave1T = Soak(octave1T, tau);
+                                octave2T = Soak(octave2T, tau);
+                            }
+                            float sunLit = octaves.x * exp(-tau) + octaves.y * octave1T + octaves.z * octave2T;
 
                             // The sky light is blocked by the cloud above: two looks straight up.
                             float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
                                         + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = _SunColor * sunLit + ambient * exp(-above * _Absorption * _DetailLight2.x);
+                            radiance = _SunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                            if (_ShadeLight.y > 0.0)
+                                radiance += _SunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
 
                             // A low amount: the old light (detail off's, below) handed over to this
                             // one, as the old break-up is in CloudCommon -- no step at 0%.

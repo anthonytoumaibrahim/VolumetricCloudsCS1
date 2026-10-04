@@ -379,6 +379,17 @@
   <String key="CloudDensity.Label">Cloud density</String>
   <String key="CloudDensity.Tooltip">How solid the clouds look.</String>
 
+  <String key="Group.CloudLight">Light inside the clouds</String>
+
+  <String key="SunlightThroughClouds.Label">Sunlight through clouds</String>
+  <String key="SunlightThroughClouds.Tooltip">Thin cloud glows with the sun behind it. 0%: as before.</String>
+
+  <String key="SkyLightInShade.Label">Sky light in the shade</String>
+  <String key="SkyLightInShade.Tooltip">Lighter shaded sides and undersides. 0%: as before.</String>
+
+  <String key="GroundLightOnClouds.Label">Light from the ground</String>
+  <String key="GroundLightOnClouds.Tooltip">The sunlit city lights the cloud bases. 0%: none.</String>
+
   <String key="Group.Night">At night</String>
 
   <String key="CloudNightOpacity.Label">Clouds hide the stars at night</String>

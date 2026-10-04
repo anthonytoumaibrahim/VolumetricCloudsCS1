@@ -91,7 +91,11 @@ function Check([bool]$ok, [string]$what) {
     if ($ok) { "  ok   $what" } else { "FAIL $what"; $script:failed++ }
 }
 function Value([string]$name) { return $style.GetField($name).GetValue($null) }
-function Call([string]$name, [object[]]$arguments) { return $style.GetMethod($name).Invoke($null, $arguments) }
+# By name and argument count: SunLight has an overload with sunlight through the clouds.
+function Call([string]$name, [object[]]$arguments) {
+    $m = @($style.GetMethods() | Where-Object { $_.Name -eq $name -and $_.GetParameters().Count -eq $arguments.Count })[0]
+    return $m.Invoke($null, $arguments)
+}
 
 $size = [int]$gen.GetField("Size").GetValue($null)
 $seedFor = $gen.GetMethod("SeedFor")
@@ -209,6 +213,46 @@ $cap = [single](Value "SingleCap")
 Check ($rim -lt 5) "straight into the sun the silver lining is bright but cannot blow out (< 5 x a side-lit face)"
 $deep = [single](Call "SunLight" @([single]0.0, [single]10.0))
 Check (($deep -gt 0) -and ($deep -lt 0.02 * $old)) "ten optical depths in, next to no sunlight is left"
+
+""
+"=== LightThrough: sunlight through the clouds ==="
+$through = $asm.GetType("VolumetricClouds.Sky.LightThrough")
+function Through([string]$name, [object[]]$arguments) { return $through.GetMethod($name).Invoke($null, $arguments) }
+$soakLight = $style.GetMethod("SunLight", [Type[]]@([single], [single], [single], [single]))
+function Soaked([double]$cos, [double]$tau, [double]$amount, [double]$k) { return [single]$soakLight.Invoke($null, [object[]]@([single]$cos, [single]$tau, [single]$amount, [single]$k)) }
+$k100 = [single](Through "KFor" @([single]1.0))
+Check (([single](Through "AmountFor" @([single]0.0)) -eq 0) -and ([single](Through "AmountFor" @([single]1.0)) -eq 1) -and ([single](Through "AmountFor" @([single]2.0)) -eq 1)) "the slider: 0% off, all of the tail from 100% up"
+Check (([Math]::Abs($k100 - 0.15) -lt 1e-6) -and ([Math]::Abs([single](Through "KFor" @([single]2.0)) - 0.075) -lt 1e-6)) "k: 0.15 at 100% (the look chosen), half at 200% (light twice as deep)"
+$offSame = $true; $neverDarker = $true
+foreach ($tau in 0, 0.5, 2, 5, 10, 20, 40, 80) {
+    foreach ($cos in -0.8, 0.0, 0.7, 1.0) {
+        $plain = [single](Call "SunLight" @([single]$cos, [single]$tau))
+        if ((Soaked $cos $tau 0 $k100) -ne $plain) { $offSame = $false }
+        if ((Soaked $cos $tau 1 $k100) -lt $plain) { $neverDarker = $false }
+    }
+}
+Check $offSame "0% is the light from before, exactly"
+Check $neverDarker "never darker than the light from before"
+Check ([Math]::Abs((Soaked 0 0 1 $k100) - $old) -lt 1e-5) "a sunlit face (tau 0) is unchanged: the brightness settings keep their meaning"
+$glow = (Soaked 0 10 1 $k100) / $old
+$thick = (Soaked 0 60 1 $k100) / $old
+"  side-on, against a sunlit face: tau 10 $($glow.ToString('P1')) (before $(($deep / $old).ToString('P2'))), tau 60 $($thick.ToString('P2'))"
+Check ($glow -gt 0.1) "ten optical depths in, a good share of the sun soaks through (the heaps glow)"
+Check ($thick -lt 0.02) "sixty in -- a thick deck's far side -- next to none does (the backlit deck stays dark)"
+
+""
+"=== CloudShade: the light in the shade ==="
+$shade = $asm.GetType("VolumetricClouds.Sky.CloudShade")
+function Shade([string]$name, [object[]]$arguments) { return [single]$shade.GetMethod($name).Invoke($null, $arguments) }
+Check (((Shade "SkyFloorFor" @([single]0)) -eq [single]0.45) -and ((Shade "OcclusionScaleFor" @([single]0)) -eq 1) -and ((Shade "GroundFor" @([single]0, [single]0.64, [single]0.85)) -eq 0)) "0%: the sky light at the base 45% of the top's, the occlusion as it was, no ground light -- the light from before"
+Check (([Math]::Abs((Shade "SkyFloorFor" @([single]1)) - 0.75) -lt 1e-6) -and ([Math]::Abs((Shade "OcclusionScaleFor" @([single]1)) - 0.5) -lt 1e-6)) "100%: the base 75% of the top's, half the occlusion (the look chosen)"
+Check (((Shade "SkyFloorFor" @([single]2)) -eq 1) -and ((Shade "OcclusionScaleFor" @([single]2)) -eq 0)) "200%: the base as lit as the top, no occlusion -- never more"
+$noon = Shade "GroundFor" @([single]1, [single]0.64, [single]0.855)
+$low = Shade "GroundFor" @([single]1, [single]1.0, [single]0.139)
+"  the ground's light on the base at 100%, as a share of the sun: noon at 64% $($noon.ToString('F3')), an 8 deg sun at 100% $($low.ToString('F3'))"
+Check ([Math]::Abs($noon - 0.25 * (1 - 0.6 * 0.64) * 0.855) -lt 1e-5) "the ground's light: albedo 0.25 x the ground in sun x the sun's height"
+Check ($low -lt 0.02) "at a low sun under a full sky next to none: the backlit deck at sunset is left alone"
+Check ((Shade "GroundFor" @([single]1, [single]0.5, [single]-0.1)) -eq 0) "none once the sun is down"
 
 ""
 "=== The weather map's normal scores (CloudDensityField.ScoreBytes): the same for every city ==="

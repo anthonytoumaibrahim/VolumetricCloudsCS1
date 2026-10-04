@@ -7,8 +7,24 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.3.2 — unreleased
 
-A fix for smoke in the fog, and a thinner fog. Nothing in `VolumetricClouds.xml` or in saved
+Light inside the clouds, a fix for smoke in the fog, and a thinner fog. `VolumetricClouds.xml`
+gains three lines, `SunlightThroughClouds`, `SkyLightInShade` and `GroundLightOnClouds`, all at
+100%: the new cloud light reaches everyone with the update, profiles saved before it included.
+Setting all three to 0% gives the clouds exactly the light they had before. Nothing in saved
 cities changes.
+
+### New: light inside the clouds
+
+Three sliders on the Light tab, under *Light inside the clouds*, each 0% to 200%, 100% by default.
+They change the light of the Cumulus style and of *Cloud detail*; Classic with *Cloud detail* at 0%
+keeps its look. The ground's cloud shadows are unchanged.
+
+- *Sunlight through clouds*: thin and middling cloud glows with the sun behind it, the way real
+  cloud does at sunrise and sunset, instead of turning into dark lumps. A thick overcast seen
+  against the sun stays dark.
+- *Sky light in the shade*: lighter shaded sides and undersides.
+- *Light from the ground*: the sunlit city lights the cloud bases, most at noon, hardly at all at
+  a low sun.
 
 ### Changed
 

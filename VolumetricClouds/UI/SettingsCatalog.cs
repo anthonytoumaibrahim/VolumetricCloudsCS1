@@ -1770,6 +1770,39 @@ namespace VolumetricClouds.UI
                 Min = 20f, Max = 300f, Step = 5f,
             });
 
+            // The light inside the clouds: three rows, each 0% = the light from before, exactly, 100% =
+            // the look chosen ("can we give control to the user?"). Sky/LightThrough: thin and middling
+            // cloud glows with the sun behind it (200%: light twice as deep). Sky/CloudShade: the sky
+            // light in the shade (200%: the base as lit as the top) and the sunlit ground's light on
+            // the undersides (200%: twice the albedo).
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Light,
+                Group = "CloudLight",
+                Float = Settings.SunlightThroughClouds,
+                DefaultFloat = Settings.Defaults.SunlightThroughClouds,
+                Min = 0f, Max = 200f, Step = 5f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Light,
+                Float = Settings.SkyLightInShade,
+                DefaultFloat = Settings.Defaults.SkyLightInShade,
+                Min = 0f, Max = 200f, Step = 5f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Light,
+                Float = Settings.GroundLightOnClouds,
+                DefaultFloat = Settings.Defaults.GroundLightOnClouds,
+                Min = 0f, Max = 200f, Step = 5f,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,

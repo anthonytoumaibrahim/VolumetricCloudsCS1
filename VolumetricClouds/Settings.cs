@@ -385,6 +385,21 @@ namespace VolumetricClouds
         public static FloatSetting CloudDensity { get; private set; }
 
         /// <summary>
+        /// How much sunlight soaks through thin and middling cloud (Sky/LightThrough): 0 = the light
+        /// from before, 1 = the look chosen, 2 = light reaching twice as deep.
+        /// </summary>
+        public static FloatSetting SunlightThroughClouds { get; private set; }
+
+        /// <summary>
+        /// The sky light in the clouds' shade (Sky/CloudShade): 0 = as before, 1 = the look chosen
+        /// (the base 75% of the top's, half the occlusion), 2 = the base as lit as the top.
+        /// </summary>
+        public static FloatSetting SkyLightInShade { get; private set; }
+
+        /// <summary>The sunlit ground's light on the clouds' undersides (Sky/CloudShade): 0 = none, as before.</summary>
+        public static FloatSetting GroundLightOnClouds { get; private set; }
+
+        /// <summary>
         /// Multiplier on how brightly clouds are lit, when <see cref="CloudBrightnessAuto"/>
         /// is off. Its saved value is untouched by the curve, so switching Auto off reproduces
         /// exactly what the mod did before the curve existed.
@@ -559,6 +574,16 @@ namespace VolumetricClouds
             public const float Fragments = 0f;       // off: an update never adds fragments to a sky
             public const int FragmentStyle = 1;      // Scattered
             public const float Density = 1.5f;
+
+            /// <summary>
+            /// The light inside the clouds, all three at 100%: the look chosen, and the author's call
+            /// that it reaches new installs AND existing players. New rows, so a settings file or a
+            /// profile without them gets 100% (a missing element is its default); 0% is the light
+            /// from before, exactly.
+            /// </summary>
+            public const float SunlightThroughClouds = 1f;
+            public const float SkyLightInShade = 1f;
+            public const float GroundLightOnClouds = 1f;
 
             /// <summary>
             /// White: no tint, the clouds exactly as they were before colours existed (a struct
@@ -835,6 +860,9 @@ namespace VolumetricClouds
                 CumulusLayer = new FloatSetting("CumulusLayer", Defaults.CumulusLayer);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
+                SunlightThroughClouds = new FloatSetting("SunlightThroughClouds", Defaults.SunlightThroughClouds);
+                SkyLightInShade = new FloatSetting("SkyLightInShade", Defaults.SkyLightInShade);
+                GroundLightOnClouds = new FloatSetting("GroundLightOnClouds", Defaults.GroundLightOnClouds);
                 CloudDetail = new FloatSetting("CloudDetail", Defaults.Detail);
                 CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
                 CloudBreakupScale = new FloatSetting("CloudBreakupScale", Defaults.BreakupScale);

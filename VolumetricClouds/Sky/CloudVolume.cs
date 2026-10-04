@@ -100,6 +100,12 @@ namespace VolumetricClouds.Sky
         private int _detailMilliseconds;
         private bool _failed;
         private bool _loggedLighting;
+        private bool _loggedSunCurve;
+
+        // What the log last said about the light inside the clouds: which of its three rows were on
+        // (bits; -1 = nothing said yet) and their values.
+        private int _cloudLightOn = -1;
+        private Vector3 _cloudLightLogged;
 
         // The Cumulus style's noise (CloudStyle / CumulusNoise3D). Made on the load's worker thread
         // when the style is Cumulus then, else the first time it is chosen (a thread of its own;
@@ -196,6 +202,8 @@ namespace VolumetricClouds.Sky
         private static readonly int IdDetailLight = Shader.PropertyToID("_DetailLight");
         private static readonly int IdDetailLight2 = Shader.PropertyToID("_DetailLight2");
         private static readonly int IdCumulusLight = Shader.PropertyToID("_CumulusLight");
+        private static readonly int IdLightThrough = Shader.PropertyToID("_LightThrough");
+        private static readonly int IdShadeLight = Shader.PropertyToID("_ShadeLight");
         private static readonly int IdCumulusLobes = Shader.PropertyToID("_CumulusLobes");
         private static readonly int IdCumulusLobeG = Shader.PropertyToID("_CumulusLobeG");
         private static readonly int IdBowTex = Shader.PropertyToID("_BowTex");
@@ -924,7 +932,9 @@ namespace VolumetricClouds.Sky
             // texel, i.e. log2(t) + log2(angle / texel).
             float angle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
             float texel = CloudShaderParams.NoiseTexel;
-            float occlusion = cumulus ? CloudStyle.AmbientOcclusion : CloudDetail.AmbientOcclusion;
+            // Eased by "Sky light in the shade" (CloudShade; 0%: as before).
+            float occlusion = (cumulus ? CloudStyle.AmbientOcclusion : CloudDetail.AmbientOcclusion) *
+                              CloudShade.OcclusionScaleFor(CloudShade.SkySetting);
 
             // w: at a low amount the old light is handed over to the detail's (Classic; the Cumulus
             // light is its own at every amount).
@@ -943,6 +953,28 @@ namespace VolumetricClouds.Sky
             else
             {
                 _material.SetVector(IdDetailLight, new Vector4(CloudDetail.OctaveA, CloudDetail.OctaveB, CloudDetail.OctaveC, CloudDetail.LightGain));
+            }
+
+            // Sunlight through the clouds (LightThrough), on both lights above; 0 = off, the shader's
+            // branch never taken.
+            float setting = LightThrough.Setting;
+            _material.SetVector(IdLightThrough, new Vector4(LightThrough.AmountFor(setting), LightThrough.KFor(setting), 0f, 0f));
+
+            // The light inside the clouds, all three rows: on the log at the start and whenever one is
+            // switched on or off (0%), every other change on the detailed log.
+            float sky = CloudShade.SkySetting;
+            float ground = CloudShade.GroundSetting;
+            int on = (setting > 0f ? 1 : 0) | (sky > 0f ? 2 : 0) | (ground > 0f ? 4 : 0);
+            if (on != _cloudLightOn || setting != _cloudLightLogged.x || sky != _cloudLightLogged.y || ground != _cloudLightLogged.z)
+            {
+                string text = "light inside the clouds: sunlight through " + LightThrough.Describe(setting) + "; " + CloudShade.Describe(sky, ground);
+                if (on != _cloudLightOn)
+                    Log.Msg(text);
+                else if (Log.Detailed)
+                    Log.Detail(text);
+
+                _cloudLightOn = on;
+                _cloudLightLogged = new Vector3(setting, sky, ground);
             }
         }
 
@@ -1036,6 +1068,13 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint));
             _material.SetVector(IdAmbientColor, AsVector(cloudAmbient * shadeTint));
 
+            // The light in the clouds' shade (CloudShade): the sky light at the base as a share of the
+            // top's, and the sunlit ground's light on the undersides as a share of the sun above (the
+            // key's: moonlit ground at night). Both at 0%: (0.45, 0), the light from before.
+            _material.SetVector(IdShadeLight, new Vector4(
+                CloudShade.SkyFloorFor(CloudShade.SkySetting),
+                CloudShade.GroundFor(CloudShade.GroundSetting, coverage, sunDir.normalized.y), 0f, 0f));
+
             // Rain curtains hang from the clouds and are drawn in the same pass, so they keep
             // the CLOUD's two colours: one picture, one light. (A cloud override at 20% with
             // another mod's rain at full is the one corner where that reads bright.) The cloud's
@@ -1079,6 +1118,19 @@ namespace VolumetricClouds.Sky
                             : ""));
             }
 
+            if (!_loggedSunCurve && properties != null)
+            {
+                _loggedSunCurve = true;
+                try
+                {
+                    Log.Msg(DescribeSunCurve(properties));
+                }
+                catch (Exception e)
+                {
+                    Log.Msg("sun curve: could not be read (" + e.GetType().Name + ": " + e.Message + ")");
+                }
+            }
+
             if (!_loggedDecoupling && lightSun.maxColorComponent > 0.001f)
             {
                 // Proves from the log alone that the fog no longer rides on the cloud's
@@ -1104,7 +1156,10 @@ namespace VolumetricClouds.Sky
                 _nextDetailTime = Time.time + DetailInterval;
 
                 if (Log.Detailed)
+                {
                     LogDetail(coverage, auto, brightness, overcast);
+                    LogSun(properties, sun, key, cloudSun);
+                }
 
                 _frameCount = 0;
                 _frameTime = 0f;
@@ -1155,6 +1210,71 @@ namespace VolumetricClouds.Sky
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
                        " clouds=" + IsActive);
+        }
+
+        /// <summary>
+        /// The game's sun over the day, once per city: the colour gradient its light is coloured by
+        /// (the moon's too, both times the game's day/night factor) and what its intensity is made
+        /// of. With the latitude and longitude that place it, the clouds' light at every sun height
+        /// can be worked out from this line alone.
+        /// </summary>
+        private static string DescribeSunCurve(DayNightProperties properties)
+        {
+            System.Text.StringBuilder text = new System.Text.StringBuilder("sun curve: light colour");
+            Gradient gradient = properties.m_LightColor;
+            if (gradient == null)
+            {
+                text.Append(" none");
+            }
+            else
+            {
+                GradientColorKey[] keys = gradient.colorKeys;
+                for (int k = 0; k < keys.Length; k++)
+                    text.Append(' ').Append((keys[k].time * 24f).ToString("F2")).Append("h=").Append(Rgb(keys[k].color));
+
+                GradientAlphaKey[] alpha = gradient.alphaKeys;
+                text.Append(" alpha");
+                for (int k = 0; k < alpha.Length; k++)
+                    text.Append(' ').Append((alpha[k].time * 24f).ToString("F2")).Append("h=").Append(alpha[k].alpha.ToString("F3"));
+            }
+
+            text.Append(" | sunIntensity=").Append(properties.m_SunIntensity.ToString("F3"))
+                .Append(" moonIntensity=").Append(properties.m_MoonIntensity.ToString("F3"))
+                .Append(" exposure=").Append(properties.m_Exposure.ToString("F3"))
+                .Append(" rayleigh=").Append(properties.m_RayleighScattering.ToString("F3"))
+                .Append(" latitude=").Append(properties.m_Latitude.ToString("F2"))
+                .Append(" longitude=").Append(properties.m_Longitude.ToString("F2"));
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// The once-a-second sun line: how high it is, the game's day/night factor, which light the
+        /// clouds are lit by and what reaches them, and the sky's three ambient colours. What the
+        /// clouds' light does through a sunset, read straight off the log.
+        /// </summary>
+        private static void LogSun(DayNightProperties properties, Light sun, Light key, Color cloudSun)
+        {
+            if (sun == null)
+                return;
+
+            Light moon = properties != null && properties.m_MoonLight != null ? properties.m_MoonLight.GetComponent<Light>() : null;
+            Log.Detail("sun: elevation=" + SunElevation(sun).ToString("F1") + "deg" +
+                       (properties != null
+                           ? " time=" + properties.m_TimeOfDay.ToString("F2") + "h dayTime=" + properties.DayTime.ToString("F3")
+                           : "") +
+                       " sun=" + sun.intensity.ToString("F3") + "x" + Rgb(sun.color) +
+                       " moon=" + (moon != null ? moon.intensity.ToString("F3") + "x" + Rgb(moon.color) : "none") +
+                       " key=" + (key == null ? "none" : key == sun ? "sun" : "moon") +
+                       " cloudSun=" + Rgb(cloudSun) +
+                       " | ambient " + RenderSettings.ambientMode +
+                       " sky=" + Rgb(RenderSettings.ambientSkyColor) +
+                       " equator=" + Rgb(RenderSettings.ambientEquatorColor) +
+                       " ground=" + Rgb(RenderSettings.ambientGroundColor));
+        }
+
+        private static string Rgb(Color colour)
+        {
+            return "(" + colour.r.ToString("F3") + "," + colour.g.ToString("F3") + "," + colour.b.ToString("F3") + ")";
         }
 
         /// <summary>

@@ -398,7 +398,14 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static float SunLight(float cosTheta, float tau)
         {
-            return (Single(cosTheta) * (float)Math.Exp(-tau) + Multiple(cosTheta) * (float)Math.Exp(-tau * MultipleExtinction)) * LightGain;
+            return SunLight(cosTheta, tau, 0f, LightThrough.K);
+        }
+
+        /// <summary>The same with sunlight through the clouds (LightThrough) at an amount and k.</summary>
+        public static float SunLight(float cosTheta, float tau, float soakAmount, float soakK)
+        {
+            float multiple = LightThrough.Apply((float)Math.Exp(-tau * MultipleExtinction), tau, soakAmount, soakK);
+            return (Single(cosTheta) * (float)Math.Exp(-tau) + Multiple(cosTheta) * multiple) * LightGain;
         }
 
         public static float HenyeyGreenstein(float cosTheta, float g)

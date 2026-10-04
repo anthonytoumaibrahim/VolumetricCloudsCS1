@@ -69,6 +69,9 @@ namespace VolumetricClouds
                         " rainbows=" + Sky.Rainbow.Describe() +
                         " style=" + Sky.CloudStyle.Describe() +
                         " detail=" + Sky.CloudDetail.Describe() +
+                        " sunlightThrough=" + (Sky.LightThrough.Setting * 100f).ToString("F0") + "%" +
+                        " skyLightInShade=" + (Sky.CloudShade.SkySetting * 100f).ToString("F0") + "%" +
+                        " groundLight=" + (Sky.CloudShade.GroundSetting * 100f).ToString("F0") + "%" +
                         " fragments=" + Sky.CloudFragments.Describe() +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
                         " fogDistance=" + (Sky.CloudFog.Reach / 1000f).ToString("F1") + "km" +
