@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volumetric Weather: every text a player reads, in English. The source for every translation.
+
+  To translate: copy this file, name it with the game's code for your language (de.xml, es.xml,
+  fr.xml, ko.xml, pl.xml, pt.xml, ru.xml, zh.xml), set code and name below, and translate the
+  text between the tags. Leave the keys alone.
+
+  - {0}, {1}... are filled in by the mod (a number, a name). Keep every one of them.
+  - A long text can be wrapped over several lines here: the break reads as one space.
+  - \n is a real line break (used in the confirmation dialogs and the longer messages).
+  - A key missing from a translation shows in English, so a partial translation works.
+
+  No tooltips: a label says it all (a warning that cannot wait goes in a .Note under the row).
+  Everyday words, no rendering terms (raymarch, noise, depth buffer, shader). American English
+  (color, gray, check a box).
+-->
+<Language code="es" name="Español">
+
+  <!-- ==================== The mod ==================== -->
+
+  <!-- One line in the game's mods list: about 30 characters fit before it wraps (2026-09-24). -->
+  <String key="Mod.Description">Nubes 3D, sombras, lluvia, niebla</String>
+  <String key="Mod.Unsupported">Volumetric Weather no pudo dibujar sus nubes en este equipo, así que se ha desactivado: no cambia nada en esta ciudad.\n\nEl mod necesita Metal u OpenGL 3.3, y el juego no dispone de ninguno aquí. Si el juego se inicia con una opción que cambia los gráficos (Steam: clic derecho en el juego, Propiedades, Opciones de lanzamiento), quítala y reinicia el juego.</String>
+  <String key="Mod.UnsupportedLinux">Volumetric Weather no pudo dibujar sus nubes en este equipo, así que se ha desactivado: no cambia nada en esta ciudad.\n\nEl mod necesita OpenGL 3.3, y el juego no lo tiene aquí. Si el juego se inicia con una opción que cambia los gráficos (Steam: clic derecho en el juego, Propiedades, Opciones de lanzamiento), quítala y reinicia el juego.\n\nLa versión de Windows del juego ejecuta el mod mediante Proton: Steam, clic derecho en el juego, Propiedades, Compatibilidad, marca "Forzar el uso de una herramienta específica de compatibilidad de Steam Play" y elige una versión de Proton.</String>
+  <String key="Mod.UnsupportedWindows">Volumetric Weather no pudo dibujar sus nubes en este PC, así que se ha desactivado: no cambia nada en esta ciudad.\n\nLas causas habituales:\n- el juego se inicia con una opción como -force-d3d9, o -force-glcore en una tarjeta gráfica con OpenGL anterior a 3.3 (Steam: clic derecho en el juego, Propiedades, Opciones de lanzamiento). Quítala y reinicia el juego.\n- la tarjeta gráfica es anterior a DirectX 10.\n\nSi no es ninguno de estos casos, repórtalo en los comentarios de la página del mod en Workshop, junto con este archivo:\n{0}</String>
+  <String key="Mod.ExperimentalPlatformNote">La compatibilidad con Mac y Linux es nueva y experimental. Si el juego da tirones, usa la calidad Baja.</String>
+
+  <String key="Tab.Now">Ahora</String>
+  <String key="Tab.Clouds">Nubes</String>
+  <String key="Tab.Fog">Niebla</String>
+  <String key="Tab.Weather">Clima</String>
+  <String key="Tab.Light">Luz</String>
+  <String key="Tab.Halos">Halos</String>
+  <String key="Tab.Advanced">Avanzado</String>
+  <String key="Tab.General">General</String>
+
+  <String key="Key.Press">Pulsa una tecla</String>
+
+  <!-- ==================== In-game panel: the profile bar, above the tabs ==================== -->
+  <!-- The messages beside the buttons have about two short lines of room. -->
+
+  <String key="Profiles.Label">Perfil</String>
+  <String key="Profiles.None">(sin perfil)</String>
+  <String key="Profiles.Save">Guardar</String>
+  <String key="Profiles.NewName">Perfil {0}</String>
+  <String key="Profiles.Naming">Escribe un nombre. Enter guarda, Esc cancela.</String>
+  <String key="Profiles.Added">Guardado como perfil nuevo.</String>
+  <String key="Profiles.Saved">Guardado.</String>
+  <String key="Profiles.Unsaved">Cambios sin guardar</String>
+  <String key="Profiles.Unreadable">No se puede leer el archivo. Mira el registro.</String>
+  <String key="Profiles.Failed">No ha funcionado. Mira el registro.</String>
+  <String key="Profiles.Confirm.Discard">Tus cambios en '{0}' no están guardados.\n\n¿Elegir '{1}' de todos modos? Los cambios se perderán. Para conservarlos, pulsa No y luego Guardar.</String>
+  <String key="Profiles.Confirm.Replace">El cielo actual no está guardado en un perfil.\n\n¿Elegir '{0}' de todos modos? Tu cielo será sustituido. Para conservarlo, pulsa No y guárdalo primero.</String>
+  <String key="Profiles.Confirm.Remove">¿Eliminar el perfil '{0}'?\n\nSolo se elimina su archivo: el cielo queda como está.</String>
+  <String key="Profiles.Invalid.Empty">Escribe primero un nombre.</String>
+  <String key="Profiles.Invalid.Long">El nombre puede tener hasta 40 caracteres.</String>
+  <String key="Profiles.Invalid.Character">El nombre no puede contener &lt; &gt; : " / \ | ? *.</String>
+  <String key="Profiles.Invalid.Dot">El nombre no puede empezar ni acabar con un punto.</String>
+  <String key="Profiles.Invalid.Reserved">Windows reserva ese nombre.</String>
+  <String key="Profiles.Invalid.Exists">Ya existe un perfil con ese nombre.</String>
+
+  <!-- ==================== In-game panel: Now ==================== -->
+
+  <String key="FollowTheGame.Label">Seguir el clima del juego (anular ajustes)</String>
+
+  <String key="Status.Weather.Game">lluvia {0}, nubes {1}</String>
+  <String key="Status.Weather.Manual">FORZADO: intensidad {0}  (el juego indica {1})</String>
+  <String key="Status.Weather.Following">Siguiendo el juego: {0}  -&gt;  intensidad {1}  (despejado {2} a lluvia {3})</String>
+
+  <String key="CoverageOverride.Label">Ignorar el clima del juego</String>
+
+  <String key="Coverage.Label">Intensidad fija</String>
+
+  <String key="WindSpeed.Label">Velocidad</String>
+
+  <String key="Status.Fog.Off">La niebla volumétrica está desactivada</String>
+  <String key="Status.Fog.Waiting">Niebla volumétrica: esperando a las nubes</String>
+  <String key="Status.Fog.Measuring">Niebla volumétrica: midiendo el terreno...</String>
+  <String key="Status.Fog.Share">niebla en {0} del mapa</String>
+  <String key="Status.Fog.Manual">FORZADO: {0}  (el juego indica {1})</String>
+  <String key="Status.Fog.Following">Siguiendo el juego: niebla {0}  -&gt;  {1}</String>
+
+  <String key="FogOverride.Label">Forzar niebla</String>
+
+  <String key="FogAmount.Label">Cantidad de niebla</String>
+
+  <String key="LightningOverride.Label">Ajustar actividad de rayos</String>
+
+  <String key="LightningActivity.Label">Actividad de rayos</String>
+
+  <String key="TestLightning.Label">Probar rayo (solo visual, ante la cámara)</String>
+
+  <String key="RainbowChance.Label">Prob. de arcoíris</String>
+
+  <!-- ==================== In-game panel: Clouds ==================== -->
+
+  <String key="CloudsVisible.Label">Volumetric Weather</String>
+
+  <String key="CloudStyle.Label">Estilo de nubes</String>
+  <String key="CloudStyle.Classic">Clásico</String>
+  <String key="CloudStyle.Cumulus">Cúmulos</String>
+
+  <String key="CumulusLayer.Label">Capa clásica</String>
+
+  <String key="CloudAltitude.Label">Altitud de nubes</String>
+
+  <String key="CloudThickness.Label">Grosor de capa</String>
+
+  <String key="CloudDetail.Label">Detalle de nubes (suave a esculpido)</String>
+
+  <String key="CloudShapes.Label">Formas naturales</String>
+
+  <String key="CloudBreakup.Label">Nubes (sólidas a irregulares)</String>
+
+  <String key="Group.CloudShape">Forma de nubes</String>
+  <String key="CloudBreakupScale.Label">Fragmentación (grande a fina)</String>
+
+  <String key="CloudFragments.Label">Fragmentos de nubes</String>
+
+  <String key="CloudFragmentStyle.Label">Estilo fragmentos</String>
+  <String key="CloudFragmentStyle.Clustered">Agrupados</String>
+  <String key="CloudFragmentStyle.Scattered">Dispersos</String>
+  <String key="CloudFragmentStyle.Wispy">Tenues</String>
+
+  <String key="Status.Brightness.Auto">Brillo de nubes: {0} (automático, intensidad {1})</String>
+  <String key="Status.Brightness.Manual">Brillo de nubes: {0} (manual)</String>
+  <String key="Status.Brightness.AutoNight">Brillo de nubes: {0} (automático, intensidad {1}, noche)</String>
+  <String key="Status.Brightness.ManualNight">Brillo de nubes: {0} (manual, noche)</String>
+  <String key="Status.Brightness.AutoTwilight">Brillo de nubes: {0} (automático, intensidad {1}, crepúsculo)</String>
+  <String key="Status.Brightness.ManualTwilight">Brillo de nubes: {0} (manual, crepúsculo)</String>
+
+  <String key="Group.CloudColour">Color (blanco conserva el color original)</String>
+
+  <String key="CloudSunlitColor.Label">Lado iluminado</String>
+
+  <String key="CloudShadeColor.Label">Lado en sombra</String>
+
+  <String key="CloudNightColors.Label">Colores distintos de noche</String>
+
+  <String key="CloudMoonlitColor.Label">Lado lunar</String>
+
+  <String key="CloudNightShadeColor.Label">Lado en sombra de noche</String>
+
+  <String key="Colour.Copy">Copiar</String>
+  <String key="Colour.Copied">Copiado</String>
+  <String key="Colour.Paste">Pegar</String>
+  <String key="Colour.Reset">Predeterminado</String>
+
+  <!-- ==================== In-game panel: Fog ==================== -->
+
+  <String key="FogEnabled.Label">Niebla volumétrica (MUY exigente)</String>
+  <String key="FogEnabled.Note">ADVERTENCIA: este ajuste puede ralentizar mucho el juego. Solo se recomienda para equipos potentes.</String>
+
+  <String key="FogLampsEnabled.Label">Niebla con luces urbanas</String>
+
+  <String key="FogDensity.Label">Densidad de niebla</String>
+
+  <String key="FogFollowsGround.Label">La niebla sigue el terreno</String>
+
+  <String key="FogBase.Label">Inicio de niebla</String>
+
+  <String key="FogHeight.Label">Altura de niebla</String>
+
+  <String key="FogDistance.Label">Alcance de niebla</String>
+
+  <String key="FogBreakup.Label">Niebla (densa a tenue)</String>
+
+  <String key="FogSpeed.Label">Velocidad niebla</String>
+
+  <String key="FogBrightness.Label">Brillo de niebla</String>
+
+  <String key="FogTint.Label">Tono (frío a cálido)</String>
+
+  <String key="FogColor.Label">Color de niebla</String>
+
+  <String key="FogLampLight.Label">Brillo de niebla</String>
+
+  <String key="Group.FogLamps">Niebla con luces urbanas</String>
+  <String key="FogLampRadius.Label">Radio iluminado</String>
+
+  <!-- ==================== Advanced: Weather ==================== -->
+
+  <String key="Group.WeatherMapping">Cómo el clima del juego fija la nubosidad</String>
+
+  <String key="WeatherFairCoverage.Label">Intensidad: tiempo despejado</String>
+
+  <String key="WeatherOvercastCoverage.Label">Intensidad: lluvia</String>
+
+  <String key="WeatherTileSize.Label">Tamaño del patrón</String>
+
+  <String key="Group.CloudPosition">Posición de nubes (solo esta ciudad, se guarda)</String>
+
+  <String key="CloudPositionX.Label">Posición X de nubes</String>
+
+  <String key="CloudPositionY.Label">Posición Y de nubes</String>
+
+  <String key="Group.Rain">Lluvia (nieve en mapas invernales)</String>
+
+  <String key="RainEnabled.Label">Sustituir lluvia y nieve del juego</String>
+
+  <String key="RainCurtains.Label">Cortinas bajo nubes</String>
+
+  <String key="RainStreaks.Label">Trazos cerca de cámara</String>
+
+  <String key="RainStreakHeight.Label">Trazos desaparecen sobre</String>
+
+  <String key="RainStreakLength.Label">Longitud de trazos</String>
+
+  <String key="RainStreakWidth.Label">Ancho de trazos</String>
+
+  <String key="RainStreakOpacity.Label">Brillo de trazos</String>
+
+  <String key="RainStreakColor.Label">Color de trazos</String>
+
+  <String key="RainFallSpeed.Label">Velocidad de caída</String>
+
+  <String key="Rainbows.Label">Arcoíris</String>
+
+  <String key="RainLocalised.Label">Sonido, carreteras mojadas y nieve siguen las nubes</String>
+
+  <String key="Group.Lightning">Rayos</String>
+
+  <String key="LightningEnabled.Label">Los rayos iluminan nubes y lluvia</String>
+
+  <String key="LightningReplaceBolt.Label">Sustituir el rayo del juego</String>
+
+  <String key="LightningBrightness.Label">Brillo de rayos</String>
+
+  <String key="LightningStormScale.Label">Rayos en tormentas</String>
+
+  <!-- ==================== In-game panel: Light ==================== -->
+
+  <String key="Group.Shadows">Sombras en el suelo</String>
+
+  <String key="CloudShadows.Label">Las nubes proyectan sombras</String>
+
+  <String key="CloudShadowDarkness.Label">Oscuridad sombras</String>
+
+  <String key="CloudShadowFullness.Label">Fuerza de sombras</String>
+
+  <String key="Group.Brightness">Brillo de las nubes</String>
+
+  <String key="CloudBrightnessAuto.Label">El brillo sigue la intensidad de nubes</String>
+
+  <String key="CloudBrightnessClear.Label">Brillo: cielo despejado</String>
+
+  <String key="CloudBrightnessOvercast.Label">Brillo: cielo cubierto</String>
+
+  <String key="CloudBrightness.Label">Brillo de nubes (fijo)</String>
+
+  <String key="MinIllumination.Label">Con cielo cubierto, las nubes bajan a</String>
+
+  <String key="CloudNightBrightness.Label">Brillo distinto de noche</String>
+
+  <String key="CloudNightBrightnessClear.Label">Noche: cielo despejado</String>
+
+  <String key="CloudNightBrightnessOvercast.Label">De noche: cielo cubierto</String>
+
+  <String key="CloudNightBrightnessFixed.Label">De noche: brillo fijo</String>
+
+  <String key="CloudDensity.Label">Densidad de nubes</String>
+
+  <String key="Group.CloudLight">Luz dentro de las nubes</String>
+
+  <String key="LightInsideClouds.Label">Brillo y sombra suave</String>
+
+  <String key="SunsetLight.Label">Luz del atardecer</String>
+
+  <String key="Group.Night">De noche</String>
+
+  <String key="CloudNightOpacity.Label">Las nubes ocultan las estrellas</String>
+
+  <String key="NightGlow.Label">Resplandor bajo las nubes de noche</String>
+
+  <!-- ==================== Advanced: Halos ==================== -->
+
+  <String key="Group.Halos">Halos de luces de calles y edificios</String>
+
+  <String key="HaloEnabled.Label">Usar halos de luz alternativos</String>
+
+  <String key="HaloTightness.Label">Concentración (más = menor)</String>
+
+  <String key="HaloBrightness.Label">Brillo</String>
+
+  <String key="HaloRadius.Label">Tamaño</String>
+
+  <String key="Group.NearLights">Las mismas luces, cerca de la cámara</String>
+
+  <String key="HaloNearLightDistance.Label">Luces cercanas: a menos de</String>
+
+  <String key="HaloNearLightTightness.Label">Luces cerca: concentración</String>
+
+  <String key="HaloNearLightBrightness.Label">Luces cercanas: brillo</String>
+
+  <String key="HaloNearLightRadius.Label">Luces cerca: tamaño</String>
+
+  <!-- ==================== The game's options page ==================== -->
+
+  <!-- Quality and drawing come first (the in-game panel's Rendering tab until 1.3.0). -->
+
+  <String key="Group.Performance">Rendimiento</String>
+
+  <String key="QualityPreset.Label">Calidad predefinida</String>
+  <String key="QualityPreset.Low">Baja</String>
+  <String key="QualityPreset.Medium">Media</String>
+  <String key="QualityPreset.High">Alta</String>
+  <String key="QualityPreset.Custom">Personalizada</String>
+
+  <String key="CloudQuality.Label">Calidad de nubes y niebla</String>
+
+  <String key="ShadowMapResolution.Label">Resolución sombras</String>
+
+  <String key="ShadowMapRate.Label">Frecuencia de sombras</String>
+
+  <String key="Group.Drawing">Cómo se dibujan las nubes</String>
+
+  <String key="CloudDepthOcclusion.Label">Edificios y terreno ocultan nubes detrás</String>
+
+  <!-- "(more languages...)" goes when the first translation lands. -->
+  <String key="Group.Language">Idioma</String>
+
+  <String key="Language.Label">Mostrar este mod en</String>
+  <String key="Language.Game">Igual que el juego</String>
+
+  <String key="Group.Panel">Panel del juego</String>
+
+  <String key="ToggleKey.Label">Abrir este panel</String>
+
+  <String key="ShowAdvancedInPanel.Label">Mostrar opciones avanzadas en el panel</String>
+
+  <String key="ShowInUnifiedUI.Label">Mostrar icono en Unified UI</String>
+
+  <String key="Group.Diagnostics">Diagnóstico</String>
+
+  <String key="DetailedLogging.Label">Registro detallado</String>
+
+  <String key="Group.StartingOver">Empezar de nuevo</String>
+
+  <String key="ResetAll.Label">Restablecer todos los ajustes</String>
+  <String key="ResetAll.Confirm">¿Restablecer todos los ajustes?\n\nEsto descarta todos tus cambios, incluidos los del panel del juego, y desactiva 'Niebla volumétrica' y 'Mostrar opciones avanzadas en el panel'.\n\nTus perfiles guardados se conservan: después no habrá ningún perfil seleccionado, y elegir uno restaurará su cielo.</String>
+
+  <String key="ResetPattern.Label">Nuevo patrón de nubes</String>
+  <String key="ResetPattern.Confirm">¿Dar a esta ciudad un nuevo patrón de nubes y niebla?\n\nTu última partida guardada conserva el anterior hasta que tú o el autoguardado volváis a guardar: cargarla antes recupera el cielo anterior.\n\nNingún ajuste cambia.</String>
+
+  <!-- ==================== No row in either UI ==================== -->
+
+  <!-- Read only in the settings file, as the comment on <Profile>. -->
+  <String key="Profile.Label">Perfil actual: el elegido arriba del panel del juego; vacío si no hay ninguno</String>
+  <String key="Profile.Note">Su archivo en VolumetricCloudsProfiles solo cambia al pulsar Guardar en el panel.</String>
+
+  <String key="HudButtonX.Label">Botón del mod (sin Unified UI): distancia desde la izquierda</String>
+  <String key="HudButtonY.Label">Botón del mod (sin Unified UI): distancia desde arriba</String>
+
+  <!-- ==================== Slider readouts ==================== -->
+
+  <String key="Unit.Percent">{0}%</String>
+  <String key="Unit.Metres">{0} m</String>
+  <String key="Unit.Kilometres">{0} km</String>
+  <String key="Unit.Times">{0}x</String>
+  <String key="Unit.Hz">{0} Hz</String>
+  <String key="Readout.Off">desactivado</String>
+  <String key="Readout.Neutral">neutro</String>
+  <String key="Readout.Cool">frío {0}%</String>
+  <String key="Readout.Warm">cálido {0}%</String>
+  <String key="Readout.ActivityNone">{0}% (ninguno)</String>
+  <String key="Readout.ActivityEvery">{0}% (cada {1} s)</String>
+
+  <!-- ==================== The settings file (VolumetricClouds.xml) ==================== -->
+  <!-- Comments the mod writes into the player's settings file. The names of the settings in
+       that file are not translated. -->
+
+  <!-- One line of the file per \n: a bullet wrapped here stays one line there. -->
+  <String key="File.Header">Ajustes de Volumetric Weather.\n\nPuedes editar este archivo con el juego en marcha: el mod vuelve a leerlo en el segundo posterior a guardarlo y los paneles se actualizan.\n\n- Los números usan punto decimal: 0.5, nunca 0,5.\n- Un porcentaje se escribe como lo muestra su control: 47 significa 47%.\n- Un valor fuera de rango se ajusta al límite. Un valor ilegible o un nombre desconocido se ignoran. VolumetricClouds.log indica cuál.\n- Un ajuste cuya línea falta conserva su valor actual (al iniciar, el predeterminado).\n- Si el archivo no se puede leer, el mod no lo modifica y lo indica en el registro.\n- El mod reescribe este archivo, incluidos estos comentarios, cada vez que cambia un ajuste en el juego: tus notas no se conservarán.\n- Borra el archivo con el juego cerrado para volver a todos los valores predeterminados.</String>
+  <String key="File.Section.Panel">Panel del juego: pestaña {0}</String>
+  <String key="File.Section.Advanced">Panel del juego, con opciones avanzadas: pestaña {0}</String>
+  <String key="File.Section.Options">Página de opciones del juego</String>
+  <String key="File.Section.None">No se muestra en ninguna página</String>
+  <String key="File.Percent">{0}, en %. De {1} a {2}, predeterminado {3}.</String>
+  <String key="File.Number">{0}. De {1} a {2}{3}, predeterminado {4}.</String>
+  <String key="File.AnyNumber">{0}. Predeterminado {1}.</String>
+  <String key="File.Readout">(control: {0} a {1})</String>
+  <String key="File.Toggle">{0}. true o false, predeterminado {1}.</String>
+  <String key="File.Choice">{0}. Uno de {1}; predeterminado {2}.</String>
+  <String key="File.Key">{0}. Una tecla como F4 o Ctrl+Shift+C, o None; predeterminado {1}.</String>
+  <String key="File.Colour">{0}. Un color, #RRGGBB (también se acepta 255, 192, 203); predeterminado {1}.</String>
+  <String key="File.Text">{0}.</String>
+
+  <!-- The header of a profile's file (VolumetricCloudsProfiles\<name>.xml): one line per \n. -->
+  <String key="File.ProfileHeader">Perfil de Volumetric Weather: un cielo completo, guardado con el nombre de este archivo.\n\nElígelo arriba del panel del mod en el juego. El botón Guardar del panel escribe el cielo actual en este archivo; nada más en el juego lo modifica.\n\n- Para compartir el cielo, copia este archivo a la carpeta VolumetricCloudsProfiles de otro equipo. Renombra el archivo para renombrar el perfil.\n- Contiene todos los ajustes del cielo salvo los de la pestaña Ahora, que reflejan el clima del momento. Los ajustes del equipo (calidad, idioma, teclas, botón) se excluyen a propósito, al igual que el patrón de nubes de una ciudad, que se guarda en su partida.\n- Un ajuste ausente vuelve a su valor predeterminado al elegir el perfil.\n- Aquí también se aplican las reglas de VolumetricClouds.xml: punto para decimales, porcentajes como los muestra el control y valores fuera de rango ajustados al límite.\n- Puedes editar este archivo con el juego en marcha. Si es el perfil elegido, el mod aplica el cambio en el segundo posterior a guardarlo; si no, se aplica al elegirlo. Si no se puede leer, el mod lo deja intacto y lo indica en el registro.</String>
+
+</Language>

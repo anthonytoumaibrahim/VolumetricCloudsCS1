@@ -7,8 +7,8 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.4.0 — unreleased
 
-Light inside the clouds, a tidier panel with plainer wording, a fix for smoke in the fog, and a
-thinner fog.
+Light inside the clouds, Spanish and French translations, a tidier panel with plainer wording, a
+fix for smoke in the fog, and a thinner fog.
 `VolumetricClouds.xml` gains two lines, `LightInsideClouds` and `SunsetLight`, both at 100%: the
 new cloud light reaches everyone with the update, profiles saved before it included. Setting both
 to 0% gives the clouds exactly the light they had before. Every other setting keeps its name and
@@ -29,6 +29,13 @@ The ground's cloud shadows are unchanged.
   going gray with the game's light. The tops of tall clouds stay lit after their bases. Both
   styles; only the clouds: the city, the fog and the shadows keep the game's light. 200% makes it
   last longer.
+
+### New: Spanish and French
+
+The mod's panel, options page and messages are now in Spanish and French as well as English. A
+game set to either language shows them automatically; the *Language* option on the options page
+picks one by hand. These translations were made with AI, so some wording may be off -- corrections
+are welcome. Any text not yet translated shows in English.
 
 ### Changed
 
