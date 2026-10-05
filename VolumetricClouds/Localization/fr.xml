@@ -11,9 +11,9 @@
   - \n is a real line break (used in the confirmation dialogs and the longer messages).
   - A key missing from a translation shows in English, so a partial translation works.
 
-  Tooltips: as few words as possible, never more than one short line (a long one runs out of
-  the game's tooltip box). Say only what the label leaves out. Everyday words, no rendering
-  terms (raymarch, noise, depth buffer, shader). American English (color, gray, check a box).
+  No tooltips: a label says it all (a warning that cannot wait goes in a .Note under the row).
+  Everyday words, no rendering terms (raymarch, noise, depth buffer, shader). American English
+  (color, gray, check a box).
 -->
 <Language code="fr" name="Français">
 
@@ -41,14 +41,8 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">Profil</String>
-  <String key="Profiles.Tooltip">Ciels enregistrés. Choisissez-en un.</String>
   <String key="Profiles.None">(aucun profil)</String>
-  <String key="Profiles.Fallback.Tooltip">Profil suivant.</String>
-  <String key="Profiles.Field.Tooltip">Nom du nouveau profil.</String>
   <String key="Profiles.Save">Enregistrer</String>
-  <String key="Profiles.Save.Tooltip">Enregistre le ciel dans ce profil.</String>
-  <String key="Profiles.Add.Tooltip">Enregistre ce ciel comme nouveau profil.</String>
-  <String key="Profiles.Remove.Tooltip">Supprime le profil choisi.</String>
   <String key="Profiles.NewName">Profil {0}</String>
   <String key="Profiles.Naming">Entrez un nom. Entrée valide, Échap annule.</String>
   <String key="Profiles.Added">Nouveau profil enregistré.</String>
@@ -69,20 +63,16 @@
   <!-- ==================== In-game panel: Now ==================== -->
 
   <String key="FollowTheGame.Label">Suivre la météo du jeu (annuler les forçages)</String>
-  <String key="FollowTheGame.Tooltip">Désactive les trois remplacements.</String>
 
   <String key="Status.Weather.Game">pluie {0}, nuages {1}</String>
   <String key="Status.Weather.Manual">FORCÉ : intensité {0} (jeu : {1})</String>
   <String key="Status.Weather.Following">Jeu : {0} -> intensité {1} (clair {2} à pluie {3})</String>
 
   <String key="CoverageOverride.Label">Ignorer la météo du jeu</String>
-  <String key="CoverageOverride.Tooltip">Réglez vous-même la quantité de nuages.</String>
 
   <String key="Coverage.Label">Intensité fixe</String>
-  <String key="Coverage.Tooltip">Part du ciel couverte de nuages.</String>
 
   <String key="WindSpeed.Label">Vitesse de déplacement</String>
-  <String key="WindSpeed.Tooltip">Vitesse de dérive des nuages.</String>
 
   <String key="Status.Fog.Off">Brouillard volumétrique désactivé</String>
   <String key="Status.Fog.Waiting">Brouillard volumétrique : attente des nuages</String>
@@ -92,57 +82,41 @@
   <String key="Status.Fog.Following">Jeu : brouillard {0} -> {1}</String>
 
   <String key="FogOverride.Label">Forcer le brouillard</String>
-  <String key="FogOverride.Tooltip">Réglez vous-même le brouillard.</String>
 
   <String key="FogAmount.Label">Quantité de brouillard</String>
-  <String key="FogAmount.Tooltip">Part de la carte dans le brouillard.</String>
 
   <String key="LightningOverride.Label">Régler moi-même les éclairs</String>
-  <String key="LightningOverride.Tooltip">Règle la fréquence des éclairs au lieu de suivre la pluie.</String>
 
   <String key="LightningActivity.Label">Activité des éclairs</String>
-  <String key="LightningActivity.Tooltip">Fréquence des éclairs.</String>
 
   <String key="TestLightning.Label">Tester un éclair (visuel, devant la caméra)</String>
-  <String key="TestLightning.Tooltip">Affiche un éclair, même en pause.</String>
 
   <String key="RainbowChance.Label">Chance d’arc-en-ciel</String>
-  <String key="RainbowChance.Tooltip">Pluies avec arc-en-ciel. 100 % = toute pluie éclairée par le soleil.</String>
 
   <!-- ==================== In-game panel: Clouds ==================== -->
 
   <String key="CloudsVisible.Label">Volumetric Weather</String>
-  <String key="CloudsVisible.Tooltip">Off : retire nuages, ombres, pluie, brouillard et éclairs du mod.</String>
 
   <String key="CloudStyle.Label">Style de nuages</String>
-  <String key="CloudStyle.Tooltip">Classique : couche plate. Cumulus : nuages gonflés de toutes tailles.</String>
   <String key="CloudStyle.Classic">Classique</String>
   <String key="CloudStyle.Cumulus">Cumulus</String>
 
   <String key="CumulusLayer.Label">Couche classique</String>
-  <String key="CumulusLayer.Tooltip">Nuages classiques entre les cumulus. 0 % : cumulus seuls.</String>
 
   <String key="CloudAltitude.Label">Altitude des nuages</String>
-  <String key="CloudAltitude.Tooltip">Altitude de la base des nuages au-dessus de la mer.</String>
 
   <String key="CloudThickness.Label">Épaisseur de couche</String>
-  <String key="CloudThickness.Tooltip">Hauteur des nuages.</String>
 
   <String key="CloudDetail.Label">Détail des nuages (doux à sculptés)</String>
-  <String key="CloudDetail.Tooltip">Nuages nets et gonflés, avec relief. 0 % : ancien rendu doux.</String>
 
   <String key="CloudBreakup.Label">Fragmentation (dense à déchirée)</String>
-  <String key="CloudBreakup.Tooltip">Degré de déchirure des nuages.</String>
 
   <String key="Group.CloudShape">Forme des nuages</String>
   <String key="CloudBreakupScale.Label">Détail des déchirures (gros à fin)</String>
-  <String key="CloudBreakupScale.Tooltip">Taille des morceaux déchirés.</String>
 
   <String key="CloudFragments.Label">Fragments de nuages</String>
-  <String key="CloudFragments.Tooltip">Petits lambeaux entre les gros nuages.</String>
 
   <String key="CloudFragmentStyle.Label">Style des fragments</String>
-  <String key="CloudFragmentStyle.Tooltip">Aspect des fragments.</String>
   <String key="CloudFragmentStyle.Clustered">Groupés</String>
   <String key="CloudFragmentStyle.Scattered">Dispersés</String>
   <String key="CloudFragmentStyle.Wispy">Effilochés</String>
@@ -157,236 +131,167 @@
   <String key="Group.CloudColour">Couleur (blanc = nuages inchangés)</String>
 
   <String key="CloudSunlitColor.Label">Côté au soleil</String>
-  <String key="CloudSunlitColor.Tooltip">Couleur du côté ensoleillé.</String>
 
   <String key="CloudShadeColor.Label">Côté ombragé</String>
-  <String key="CloudShadeColor.Tooltip">Couleur du dessous des nuages.</String>
 
   <String key="CloudNightColors.Label">Couleurs différentes la nuit</String>
-  <String key="CloudNightColors.Tooltip">Off : mêmes deux couleurs jour et nuit.</String>
 
   <String key="CloudMoonlitColor.Label">Côté au clair de lune</String>
-  <String key="CloudMoonlitColor.Tooltip">Couleur du côté éclairé la nuit.</String>
 
   <String key="CloudNightShadeColor.Label">Côté ombragé la nuit</String>
-  <String key="CloudNightShadeColor.Tooltip">Couleur du dessous la nuit.</String>
 
-  <String key="Colour.Field.Tooltip">Entrez une couleur puis Entrée.</String>
-  <String key="Colour.Invalid">Couleur invalide : {0}. Essayez #FFC0CB.</String>
   <String key="Colour.Copy">Copier</String>
   <String key="Colour.Copied">Copié</String>
-  <String key="Colour.Copy.Tooltip">Copier {0}.</String>
   <String key="Colour.Paste">Coller</String>
-  <String key="Colour.Paste.Tooltip">Coller une couleur.</String>
   <String key="Colour.Reset">Défaut</String>
-  <String key="Colour.Reset.Tooltip">Revenir au blanc.</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
   <String key="FogEnabled.Label">Brouillard volumétrique (TRÈS gourmand)</String>
-  <String key="FogEnabled.Tooltip">Vrai brouillard 3D.</String>
   <String key="FogEnabled.Note">ATTENTION : ce réglage peut fortement ralentir le jeu. Recommandé seulement sur les PC puissants.</String>
 
   <String key="FogLampsEnabled.Label">Brouillard éclairé par la ville</String>
-  <String key="FogLampsEnabled.Tooltip">Le brouillard luit autour des lumières.</String>
 
   <String key="FogDensity.Label">Densité du brouillard</String>
-  <String key="FogDensity.Tooltip">Épaisseur du brouillard.</String>
 
   <String key="FogFollowsGround.Label">Brouillard suit le sol</String>
-  <String key="FogFollowsGround.Tooltip">On : suit le relief. Off : reste plat.</String>
 
   <String key="FogBase.Label">Début du brouillard</String>
-  <String key="FogBase.Tooltip">Hauteur de la base du brouillard.</String>
 
   <String key="FogHeight.Label">Hauteur du brouillard</String>
-  <String key="FogHeight.Tooltip">Épaisseur de la couche de brouillard.</String>
 
   <String key="FogDistance.Label">Distance du brouillard</String>
-  <String key="FogDistance.Tooltip">Distance d’affichage. Plus loin = plus lent.</String>
 
   <String key="FogBreakup.Label">Fragmentation (dense à vaporeux)</String>
-  <String key="FogBreakup.Tooltip">Irrégularité du brouillard.</String>
 
   <String key="FogSpeed.Label">Vitesse du brouillard</String>
-  <String key="FogSpeed.Tooltip">Vitesse de dérive du brouillard.</String>
 
   <String key="FogBrightness.Label">Luminosité du brouillard</String>
-  <String key="FogBrightness.Tooltip">Luminosité du brouillard.</String>
 
   <String key="FogTint.Label">Teinte (froide à chaude)</String>
-  <String key="FogTint.Tooltip">Du bleu-gris à une brume chaude.</String>
 
   <String key="FogColor.Label">Couleur du brouillard</String>
-  <String key="FogColor.Tooltip">Couleur du brouillard.</String>
 
   <String key="FogLampLight.Label">Luminosité du brouillard éclairé</String>
-  <String key="FogLampLight.Tooltip">Luminosité du halo autour des lumières.</String>
 
   <String key="Group.FogLamps">Brouillard éclairé par la ville</String>
   <String key="FogLampRadius.Label">Rayon éclairé autour d’une lumière</String>
-  <String key="FogLampRadius.Tooltip">Portée du halo.</String>
 
   <!-- ==================== Advanced: Weather ==================== -->
 
   <String key="Group.WeatherMapping">Influence de la météo sur la couverture nuageuse</String>
 
   <String key="WeatherFairCoverage.Label">Intensité : ciel clair</String>
-  <String key="WeatherFairCoverage.Tooltip">Couverture nuageuse par temps clair.</String>
 
   <String key="WeatherOvercastCoverage.Label">Intensité : pluie</String>
-  <String key="WeatherOvercastCoverage.Tooltip">Nuages par temps de pluie.</String>
 
   <String key="WeatherTileSize.Label">Taille du motif météo</String>
-  <String key="WeatherTileSize.Tooltip">Taille des motifs de nuages.</String>
 
   <String key="Group.CloudPosition">Position des nuages (cette ville, sauvegardée)</String>
 
   <String key="CloudPositionX.Label">Position X des nuages</String>
-  <String key="CloudPositionX.Tooltip">Déplace les nuages sur l’axe X de la carte.</String>
 
   <String key="CloudPositionY.Label">Position Y des nuages</String>
-  <String key="CloudPositionY.Tooltip">Déplace les nuages sur l’axe Y de la carte.</String>
 
   <String key="Group.Rain">Pluie (neige sur cartes hivernales)</String>
 
   <String key="RainEnabled.Label">Remplacer la pluie et la neige du jeu</String>
-  <String key="RainEnabled.Tooltip">Pluie et neige tombent seulement sous les nuages.</String>
 
   <String key="RainCurtains.Label">Rideaux de pluie sous les nuages</String>
-  <String key="RainCurtains.Tooltip">Épaisseur apparente de la pluie ou neige au loin.</String>
 
   <String key="RainStreaks.Label">Traits de pluie près de la caméra</String>
-  <String key="RainStreaks.Tooltip">Nombre de gouttes passant devant la caméra.</String>
 
   <String key="RainStreakHeight.Label">Les traits disparaissent au-dessus de</String>
-  <String key="RainStreakHeight.Tooltip">Hauteur caméra où les gouttes proches disparaissent.</String>
 
   <String key="RainStreakLength.Label">Longueur des traits</String>
-  <String key="RainStreakLength.Tooltip">Longueur de chaque trait.</String>
 
   <String key="RainStreakWidth.Label">Largeur des traits</String>
-  <String key="RainStreakWidth.Tooltip">Épaisseur de chaque trait.</String>
 
   <String key="RainStreakOpacity.Label">Luminosité des traits</String>
-  <String key="RainStreakOpacity.Tooltip">Visibilité des traits.</String>
 
   <String key="RainStreakColor.Label">Couleur des traits</String>
-  <String key="RainStreakColor.Tooltip">Couleur des traits.</String>
 
   <String key="RainFallSpeed.Label">Vitesse de chute</String>
-  <String key="RainFallSpeed.Tooltip">Vitesse de chute de la pluie ou neige.</String>
 
   <String key="Rainbows.Label">Arcs-en-ciel</String>
-  <String key="Rainbows.Tooltip">Arc-en-ciel dans la pluie au soleil. 100 % = réaliste. Requiert les ombres.</String>
 
   <String key="RainLocalised.Label">Son, routes mouillées et neige suivent les nuages</String>
-  <String key="RainLocalised.Tooltip">Seulement là où il pleut ou neige vraiment.</String>
 
   <String key="Group.Lightning">Éclairs</String>
 
   <String key="LightningEnabled.Label">Les éclairs illuminent nuages et pluie</String>
-  <String key="LightningEnabled.Tooltip">Ajoute aussi des éclairs sans effet en tempête.</String>
 
   <String key="LightningReplaceBolt.Label">Remplacer l’éclair du jeu</String>
-  <String key="LightningReplaceBolt.Tooltip">Une nouvelle forme à chaque éclair.</String>
 
   <String key="LightningBrightness.Label">Luminosité des éclairs</String>
-  <String key="LightningBrightness.Tooltip">Luminosité des éclairs.</String>
 
   <String key="LightningStormScale.Label">Éclairs en tempête</String>
-  <String key="LightningStormScale.Tooltip">Quantité d’éclairs lors de fortes pluies.</String>
 
   <!-- ==================== In-game panel: Light ==================== -->
 
   <String key="Group.Shadows">Ombres au sol</String>
 
   <String key="CloudShadows.Label">Les nuages projettent des ombres au sol</String>
-  <String key="CloudShadows.Tooltip">Ombres mobiles sur la ville.</String>
 
   <String key="CloudShadowDarkness.Label">Obscurité des ombres</String>
-  <String key="CloudShadowDarkness.Tooltip">Assombrissement du sol sous les nuages.</String>
 
   <String key="CloudShadowFullness.Label">Densité des ombres</String>
-  <String key="CloudShadowFullness.Tooltip">Ombres plus fortes des nuages fins.</String>
 
   <String key="Group.Brightness">Luminosité des nuages</String>
 
   <String key="CloudBrightnessAuto.Label">Luminosité selon l’intensité des nuages</String>
-  <String key="CloudBrightnessAuto.Tooltip">Plus clair par beau temps, plus gris si couvert.</String>
 
   <String key="CloudBrightnessClear.Label">Luminosité : ciel clair</String>
-  <String key="CloudBrightnessClear.Tooltip">Luminosité avec un ciel presque clair.</String>
 
   <String key="CloudBrightnessOvercast.Label">Luminosité : ciel couvert</String>
-  <String key="CloudBrightnessOvercast.Tooltip">Luminosité quand le ciel est couvert.</String>
 
   <String key="CloudBrightness.Label">Luminosité des nuages (fixe)</String>
-  <String key="CloudBrightness.Tooltip">Utilisé si la luminosité auto est coupée.</String>
 
   <String key="MinIllumination.Label">Assombrir les nuages à ciel couvert à</String>
-  <String key="MinIllumination.Tooltip">Utilisé si la luminosité auto est coupée.</String>
 
   <String key="CloudNightBrightness.Label">Luminosité différente la nuit</String>
-  <String key="CloudNightBrightness.Tooltip">Off : même luminosité jour et nuit.</String>
 
   <String key="CloudNightBrightnessClear.Label">Nuit : ciel clair</String>
-  <String key="CloudNightBrightnessClear.Tooltip">Luminosité nocturne avec ciel presque clair.</String>
 
   <String key="CloudNightBrightnessOvercast.Label">Nuit : ciel couvert</String>
-  <String key="CloudNightBrightnessOvercast.Tooltip">Luminosité nocturne sous ciel couvert.</String>
 
   <String key="CloudNightBrightnessFixed.Label">Nuit : luminosité fixe</String>
-  <String key="CloudNightBrightnessFixed.Tooltip">Utilisé si la luminosité auto est coupée.</String>
 
   <String key="CloudDensity.Label">Densité des nuages</String>
-  <String key="CloudDensity.Tooltip">Densité apparente des nuages.</String>
 
   <String key="Group.CloudLight">Lumière dans les nuages</String>
 
   <String key="LightInsideClouds.Label">Lueur et ombres plus douces</String>
-  <String key="LightInsideClouds.Tooltip">Les nuages fins brillent à contre-jour ; ombres plus douces. 0 % : off.</String>
 
   <String key="SunsetLight.Label">Lumière du couchant</String>
-  <String key="SunsetLight.Tooltip">Les nuages gardent le soleil et virent orange/rouge. 0 % : off.</String>
 
   <String key="Group.Night">La nuit</String>
 
   <String key="CloudNightOpacity.Label">Les nuages cachent les étoiles la nuit</String>
-  <String key="CloudNightOpacity.Tooltip">Empêche les étoiles de traverser les nuages.</String>
 
   <String key="NightGlow.Label">Lueur sous les nuages la nuit</String>
-  <String key="NightGlow.Tooltip">Lueur douce, comme celle d’une ville.</String>
 
   <!-- ==================== Advanced: Halos ==================== -->
 
   <String key="Group.Halos">Halos des lampadaires et bâtiments</String>
 
   <String key="HaloEnabled.Label">Utiliser les halos de remplacement</String>
-  <String key="HaloEnabled.Tooltip">Remplace la lueur du jeu autour des lumières.</String>
 
   <String key="HaloTightness.Label">Concentration (plus = plus petit)</String>
-  <String key="HaloTightness.Tooltip">Réduit la brume autour de chaque lumière.</String>
 
   <String key="HaloBrightness.Label">Luminosité</String>
-  <String key="HaloBrightness.Tooltip">Luminosité du halo.</String>
 
   <String key="HaloRadius.Label">Taille</String>
-  <String key="HaloRadius.Tooltip">Portée du halo.</String>
 
   <String key="Group.NearLights">Mêmes lampes, près de la caméra</String>
 
   <String key="HaloNearLightDistance.Label">Lumières proches : moins de</String>
-  <String key="HaloNearLightDistance.Tooltip">Les plus proches utilisent les réglages ci-dessous.</String>
 
   <String key="HaloNearLightTightness.Label">Proches : concentration</String>
-  <String key="HaloNearLightTightness.Tooltip">En % de la concentration principale.</String>
 
   <String key="HaloNearLightBrightness.Label">Proches : luminosité</String>
-  <String key="HaloNearLightBrightness.Tooltip">En % de la luminosité principale.</String>
 
   <String key="HaloNearLightRadius.Label">Proches : taille</String>
-  <String key="HaloNearLightRadius.Tooltip">En % de la taille principale.</String>
 
   <!-- ==================== The game's options page ==================== -->
 
@@ -395,57 +300,45 @@
   <String key="Group.Performance">Performances</String>
 
   <String key="QualityPreset.Label">Préréglage qualité</String>
-  <String key="QualityPreset.Tooltip">Qualité nuages, brouillard et ombres. Plus bas = plus rapide.</String>
   <String key="QualityPreset.Low">Faible</String>
   <String key="QualityPreset.Medium">Moyenne</String>
   <String key="QualityPreset.High">Élevée</String>
   <String key="QualityPreset.Custom">Personnalisée</String>
 
   <String key="CloudQuality.Label">Qualité des nuages et du brouillard</String>
-  <String key="CloudQuality.Tooltip">Détail nuages/brouillard. Plus bas = plus rapide.</String>
 
   <String key="ShadowMapResolution.Label">Résolution des ombres de nuages</String>
-  <String key="ShadowMapResolution.Tooltip">Netteté des ombres. Plus bas = plus rapide.</String>
 
   <String key="ShadowMapRate.Label">Actualisation des ombres de nuages</String>
-  <String key="ShadowMapRate.Tooltip">Mises à jour/s. Plus bas = plus rapide.</String>
 
   <String key="Group.Drawing">Affichage des nuages</String>
 
   <String key="CloudDepthOcclusion.Label">Bâtiments et terrain masquent les nuages derrière eux</String>
-  <String key="CloudDepthOcclusion.Tooltip">Désactivez seulement si les bords des nuages semblent faux.</String>
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Langue</String>
 
   <String key="Language.Label">Afficher ce mod en</String>
-  <String key="Language.Tooltip">Langue des panneaux du mod.</String>
   <String key="Language.Game">Comme le jeu</String>
 
   <String key="Group.Panel">Panneau en jeu</String>
 
   <String key="ToggleKey.Label">Ouvrir ce panneau</String>
-  <String key="ToggleKey.Tooltip">Cliquez puis appuyez sur une touche.</String>
 
   <String key="ShowAdvancedInPanel.Label">Afficher les options avancées dans le panneau</String>
-  <String key="ShowAdvancedInPanel.Tooltip">Ajoute Météo, Halos et Avancé, et affiche toutes les lignes.</String>
 
   <String key="ShowInUnifiedUI.Label">Afficher l’icône dans Unified UI</String>
-  <String key="ShowInUnifiedUI.Tooltip">Place le bouton dans la barre Unified UI.</String>
 
   <String key="Group.Diagnostics">Diagnostic</String>
 
   <String key="DetailedLogging.Label">Journal détaillé</String>
-  <String key="DetailedLogging.Tooltip">Pour les rapports de bug. Sinon, laissez désactivé.</String>
 
   <String key="Group.StartingOver">Recommencer</String>
 
   <String key="ResetAll.Label">Réinitialiser tous les réglages</String>
-  <String key="ResetAll.Tooltip">Coupe aussi brouillard volumétrique et options avancées.</String>
   <String key="ResetAll.Confirm">Rétablir tous les réglages par défaut ?\n\nCela efface tous vos réglages, y compris ceux du panneau en jeu, et désactive « Brouillard volumétrique » et « Afficher les options avancées dans le panneau ».\n\nVos profils sont conservés : aucun profil ne sera sélectionné ensuite, et en choisir un restaurera son ciel.</String>
 
   <String key="ResetPattern.Label">Réinitialiser le motif de nuages</String>
-  <String key="ResetPattern.Tooltip">Nouveaux nuages et brouillard pour cette ville.</String>
   <String key="ResetPattern.Confirm">Donner à cette ville un nouveau motif de nuages et de brouillard ?\n\nVotre dernière sauvegarde garde l’ancien jusqu’à la prochaine sauvegarde manuelle ou auto : la recharger avant cela restaure l’ancien ciel.\n\nAucun de vos réglages ne change.</String>
 
   <!-- ==================== No row in either UI ==================== -->
