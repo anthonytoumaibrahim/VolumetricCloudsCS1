@@ -85,7 +85,6 @@ namespace VolumetricClouds.UI
             UILabel label = UIBuilder.AddLabel(parent, Localization.Get("Profiles.Label"), new Vector3(x, y + 12f), 0.8f);
             label.autoSize = false;
             label.size = new Vector2(LabelWidth, 20f);
-            label.tooltip = Localization.Get("Profiles.Tooltip");
 
             float left = x + LabelWidth;
             Vector3 at = new Vector3(left, y + 4f);
@@ -95,7 +94,6 @@ namespace VolumetricClouds.UI
             _drop = UIBuilder.AddDropDown(parent, size, at, VisibleItems, out missing);
             if (_drop != null)
             {
-                _drop.tooltip = Localization.Get("Profiles.Tooltip");
                 _drop.eventSelectedIndexChanged += (component, index) =>
                 {
                     if (!_refreshing)
@@ -116,7 +114,6 @@ namespace VolumetricClouds.UI
             {
                 _cycle = UIBuilder.AddButton(parent, string.Empty, size, at);
                 _cycle.canFocus = false;
-                _cycle.tooltip = Localization.Get("Profiles.Fallback.Tooltip");
                 _cycle.eventClick += (component, e) => Cycle();
 
                 if (!_loggedFallback)
@@ -128,7 +125,6 @@ namespace VolumetricClouds.UI
             }
 
             _field = UIBuilder.AddTextField(parent, size, at, ProfileName.MaxLength);
-            _field.tooltip = Localization.Get("Profiles.Field.Tooltip");
             _field.isVisible = false;
             _field.eventTextSubmitted += (component, text) => Submitted(text);
             _field.eventTextCancelled += (component, text) => StopNaming(null);
@@ -136,21 +132,18 @@ namespace VolumetricClouds.UI
             left += DropWidth + Gap;
             _save = UIBuilder.AddButton(parent, Localization.Get("Profiles.Save"), new Vector2(SaveWidth, ControlHeight), new Vector3(left, y + 4f));
             _save.canFocus = false;
-            _save.tooltip = Localization.Get("Profiles.Save.Tooltip");
             _save.eventClick += (component, e) => SaveClicked();
 
             left += SaveWidth + 4f;
             _add = UIBuilder.AddButton(parent, "+", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _add.textScale = 1.1f;
             _add.canFocus = false;
-            _add.tooltip = Localization.Get("Profiles.Add.Tooltip");
             _add.eventClick += (component, e) => StartNaming();
 
             left += ButtonWidth + 4f;
             _remove = UIBuilder.AddButton(parent, "-", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _remove.textScale = 1.1f;
             _remove.canFocus = false;
-            _remove.tooltip = Localization.Get("Profiles.Remove.Tooltip");
             _remove.eventClick += (component, e) => ConfirmRemove();
 
             left += ButtonWidth + Gap + 2f;

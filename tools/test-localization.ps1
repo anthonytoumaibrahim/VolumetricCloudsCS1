@@ -5,7 +5,7 @@
 # LocalizationFile.cs has no Unity dependency, so its SOURCE is compiled here (the way
 # test-reporter.ps1 does it) and reads the real Localization\*.xml. Then:
 #   - every file parses, with no key written twice and every {n} well-formed;
-#   - English has every key the code asks for: the rows of SettingsCatalog.cs (Label, Tooltip,
+#   - English has every key the code asks for: the rows of SettingsCatalog.cs (Label,
 #     Note, Group, choice names -- read from the source, as the in-game check reads
 #     them from the built rows), the tab names, and every key-shaped string literal in *.cs;
 #   - English has no key nothing asks for (dead text a translator would translate for nothing);
@@ -55,11 +55,9 @@ foreach ($b in $blocks) {
     if ($b -match '(?:Float|Bool|Int|Key|Colour|Text) = Settings\.(\w+)') { $name = $nameOf[$Matches[1]] }
     if ($b -match 'Id = "(\w+)"') { $name = $Matches[1] }
     if (-not $name) { Write-Host "FAIL  a row with neither a setting nor an Id:`n$b"; $failed++; continue }
-    $shown = ($b -match 'Panel = PanelPage\.') -or ($b -match 'Options = OptionsPage\.')
 
     if ($kind -ne 'Status') {
         [void]$needed.Add("$name.Label")
-        if ($shown) { [void]$needed.Add("$name.Tooltip") }
     }
     if ($b -match 'HasNote = true') { [void]$needed.Add("$name.Note") }
     if ($b -match 'Group = "(\w+)"') { [void]$needed.Add("Group." + $Matches[1]) }
@@ -103,7 +101,7 @@ foreach ($key in $en.Table.Keys) {
 }
 Check "every English text is non-empty with well-formed {n}" ($bad -join "; ") ""
 
-Check "a wrapped tooltip is one line" ($en.Table["FollowTheGame.Tooltip"] -match "`n") "False"
+Check "a wrapped text is one line" ($en.Table["Mod.ExperimentalPlatformNote"] -match "`n") "False"
 Check "\n is a real break, no stray spaces" ($en.Table["Profiles.Confirm.Remove"] -match "^Delete the profile '\{0\}'\?`n`nOnly its file is removed") "True"
 $header = $en.Table["File.Header"] -split "`n"
 Check "the settings file header: 11 lines, blank second line" ("" + $header.Count + "," + ($header[1] -eq "")) "11,True"

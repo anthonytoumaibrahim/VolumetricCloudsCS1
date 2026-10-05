@@ -39,7 +39,9 @@ The ground's cloud shadows are unchanged.
 - A new *Advanced* tab (with the advanced options on) takes three technical sliders off the basic
   tabs: *Break-up detail* (from Clouds), *Lit radius around a light* (from Fog) and *Shadow
   fullness* (from Light). Every setting keeps its value, in the settings file and in profiles.
-- Labels and tooltips are in American English (*color*, *gray*) with fewer technical words: for
+- No more tooltips: hovering over a row, a profile button or a color field no longer pops up a
+  hint. The labels say what each one does. (The mod's button still shows its name.)
+- Labels are in American English (*color*, *gray*) with fewer technical words: for
   example *Quality (raymarch steps)* is now *Cloud and fog quality*, and on the Halos tab *Use the
   replacement halo shader* is now *Use the replacement light halos* and *Size (world radius)* is
   now *Size*. Every setting keeps its place.

@@ -582,7 +582,6 @@ namespace VolumetricClouds.UI
                 {
                     UIButton button = UIBuilder.AddButton(page, row.Label, new Vector2(page.width, 26f),
                         new Vector3(0f, y + 4f));
-                    button.tooltip = row.Tooltip;
                     Row captured = row;
                     button.eventClick += (component, e) =>
                     {
@@ -607,7 +606,6 @@ namespace VolumetricClouds.UI
 
                             SettingsCatalog.ApplyToggle(captured, isChecked);
                         });
-                    box.tooltip = row.Tooltip;
                     control.Check = box;
                     control.Parts.Add(box);
                     break;
@@ -616,7 +614,6 @@ namespace VolumetricClouds.UI
                 case RowKind.Key:
                 {
                     UIButton button = UIBuilder.AddKeyBinding(page, y, row.Label, row.Key);
-                    button.tooltip = row.Tooltip;
                     control.Parts.Add(button);
                     break;
                 }
@@ -648,7 +645,6 @@ namespace VolumetricClouds.UI
                             captured.Int.value = captured.ChoiceValues[index];
                             Changed(captured);
                         });
-                    slider.tooltip = row.Tooltip;
                     control.Slider = slider;
                     control.Parts.Add(slider);
                     AddSiblings(page, control, slider);
@@ -669,7 +665,6 @@ namespace VolumetricClouds.UI
                             captured.Store(v);
                             Changed(captured);
                         });
-                    slider.tooltip = row.Tooltip;
                     control.Slider = slider;
                     control.Parts.Add(slider);
 

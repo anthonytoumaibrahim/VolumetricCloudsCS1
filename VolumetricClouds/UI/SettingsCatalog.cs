@@ -59,7 +59,7 @@ namespace VolumetricClouds.UI
     /// A class rather than a struct: net35, and they are built once and then referenced.
     ///
     /// A row holds no words. Its texts are in Localization/en.xml (and its translations) under
-    /// its <see cref="Name"/>: "CloudAltitude.Label", "CloudAltitude.Tooltip", and so on, read
+    /// its <see cref="Name"/>: "CloudAltitude.Label", "CloudAltitude.Note", and so on, read
     /// in the game's language every time a UI asks. <see cref="SettingsCatalog.LogLayout"/>
     /// checks at startup that English has every key a row needs.
     /// </remarks>
@@ -78,7 +78,7 @@ namespace VolumetricClouds.UI
         /// <summary>Non-null starts a new group here. Its title is "Group.&lt;Group&gt;" in the language files.</summary>
         public string Group;
 
-        /// <summary>A line of text under the row ("&lt;Name&gt;.Note"), for the warnings a tooltip would hide.</summary>
+        /// <summary>A line of text under the row ("&lt;Name&gt;.Note"), for a warning the label cannot hold (rows have no tooltips).</summary>
         public bool HasNote;
 
         /// <summary>
@@ -195,11 +195,6 @@ namespace VolumetricClouds.UI
             get { return Localization.Get(Name + ".Label"); }
         }
 
-        public string Tooltip
-        {
-            get { return Localization.Get(Name + ".Tooltip"); }
-        }
-
         /// <summary>Null when the row has none.</summary>
         public string Note
         {
@@ -247,9 +242,6 @@ namespace VolumetricClouds.UI
                 yield break;
 
             yield return Name + ".Label";
-
-            if (Panel != PanelPage.None || Options != OptionsPage.None)
-                yield return Name + ".Tooltip";
 
             if (HasNote)
                 yield return Name + ".Note";
@@ -394,7 +386,7 @@ namespace VolumetricClouds.UI
     /// its basic tab only; none has both since the Rendering tab went (1.3.0).
     ///
     /// The words are in Localization/en.xml, in the same order as the rows here: a new row
-    /// needs its Label and Tooltip there (the log says at startup if one is missing).
+    /// needs its Label there (the log says at startup if one is missing).
     /// </remarks>
     public static class SettingsCatalog
     {

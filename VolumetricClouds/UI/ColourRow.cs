@@ -60,7 +60,6 @@ namespace VolumetricClouds.UI
             UILabel name = UIBuilder.AddLabel(parent, row.Label, new Vector3(0f, y + 8f), 0.8f);
             name.autoSize = false;
             name.size = new Vector2(LabelWidth, 20f);
-            name.tooltip = row.Tooltip;
             _parts.Add(name);
 
             float x = LabelWidth + 4f;
@@ -70,7 +69,6 @@ namespace VolumetricClouds.UI
             {
                 // The clone still holds the template's colour; Refresh only writes on a change.
                 _swatch.selectedColor = _shown;
-                _swatch.tooltip = row.Tooltip;
                 _swatch.eventSelectedColorChanged += (component, colour) =>
                 {
                     if (!_refreshing)
@@ -91,7 +89,6 @@ namespace VolumetricClouds.UI
 
             _text = UIBuilder.AddTextField(parent, new Vector2(TextWidth, 26f), new Vector3(x, y + 4f), 64);
             _text.text = ColorText.Format(_shown);
-            _text.tooltip = Localization.Get("Colour.Field.Tooltip");
             _text.eventTextSubmitted += (component, text) => Submit(text);
             _text.eventTextCancelled += (component, text) => ShowValid();
             _parts.Add(_text);
@@ -107,13 +104,11 @@ namespace VolumetricClouds.UI
 
             UIButton paste = UIBuilder.AddButton(parent, Localization.Get("Colour.Paste"), new Vector2(ButtonWidth, 26f), new Vector3(x, y + 4f));
             paste.canFocus = false;
-            paste.tooltip = Localization.Get("Colour.Paste.Tooltip");
             paste.eventClick += (component, e) => Paste();
             _parts.Add(paste);
 
             // Right-aligned. Not in Parts: it greys out on its own rule (already the default).
             _reset = CreateReset(parent, y);
-            _reset.tooltip = Localization.Get("Colour.Reset.Tooltip");
             _reset.eventClick += (component, e) =>
             {
                 if (_row.IsDefaultColour)
@@ -168,8 +163,6 @@ namespace VolumetricClouds.UI
                     _copy.text = Localization.Get("Colour.Copy");
                 }
 
-                string hex = ColorText.Format(current);
-                _copy.tooltip = Localization.Get("Colour.Copy.Tooltip", hex);
                 _reset.isEnabled = ResetWanted;
             }
             finally
@@ -288,7 +281,6 @@ namespace VolumetricClouds.UI
             _invalidUntil = -1f;
             _text.text = ColorText.Format(_shown);
             _text.textColor = UIBuilder.TextFieldColour;
-            _text.tooltip = Localization.Get("Colour.Field.Tooltip");
         }
 
         /// <summary>What could not be read stays on show in red for a moment, then goes back.</summary>
@@ -300,7 +292,6 @@ namespace VolumetricClouds.UI
 
             _text.text = shown;
             _text.textColor = UIBuilder.InvalidColour;
-            _text.tooltip = Localization.Get("Colour.Invalid", shown);
             _invalidUntil = Time.realtimeSinceStartup + InvalidShownFor;
         }
 

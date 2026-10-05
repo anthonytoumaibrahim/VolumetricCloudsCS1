@@ -254,7 +254,6 @@ namespace VolumetricClouds.UI
                     if (box == null)
                         return null;
 
-                    box.tooltip = row.Tooltip;
                     control.Check = box;
                     control.Grey = box;
                     break;
@@ -275,7 +274,6 @@ namespace VolumetricClouds.UI
                     if (button == null)
                         return null;
 
-                    button.tooltip = row.Tooltip;
                     control.Button = button;
                     control.Grey = button;
                     break;
@@ -310,7 +308,6 @@ namespace VolumetricClouds.UI
                     if (drop == null)
                         return null;
 
-                    drop.tooltip = row.Tooltip;
                     control.Drop = drop;
                     control.Grey = RowPanel(drop, groupPanel);
                     break;
@@ -342,7 +339,6 @@ namespace VolumetricClouds.UI
                     if (slider == null)
                         return null;
 
-                    slider.tooltip = row.Tooltip;
                     control.Slider = slider;
                     control.Readout = FindSliderLabel(slider, row);
                     control.Grey = RowPanel(slider, groupPanel);
@@ -457,8 +453,6 @@ namespace VolumetricClouds.UI
                 () => { }) as UIButton;
             if (button == null)
                 return null;
-
-            button.tooltip = row.Tooltip;
 
             bool editing = false;
 
