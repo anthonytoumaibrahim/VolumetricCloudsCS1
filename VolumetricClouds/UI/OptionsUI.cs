@@ -52,6 +52,12 @@ namespace VolumetricClouds.UI
         private readonly List<Control> _controls = new List<Control>();
         private bool _refreshing;
 
+        /// <summary>The page's scroll panel, inside the game's OptionsMainPanel.</summary>
+        private UIComponent _host;
+
+        /// <summary>The language the page's words were built in.</summary>
+        private string _builtLanguage;
+
         private class Control
         {
             public Row Source;
@@ -98,9 +104,11 @@ namespace VolumetricClouds.UI
 
         private void BuildPage(UIHelperBase helper)
         {
+            _builtLanguage = Localization.CurrentCode;
             BuildRows(helper, OptionsPage.General);
 
             UIComponent host = PanelOf(helper);
+            _host = host;
 
             // Mac and Linux (1.1.1): one warning at the BOTTOM of the page, in yellow, wrapping.
             // Not a group title (this page's usual way to show prose, see BuildRows): a title
@@ -491,6 +499,65 @@ namespace VolumetricClouds.UI
             };
 
             return button;
+        }
+
+        /// <summary>
+        /// After the Language row changes: the page's words were fixed when it was built, so it
+        /// is built again, in the new language, the way the game does it when ITS language
+        /// changes -- OptionsMainPanel.OnLocaleChanged -> CreateCategories (IL, 2026-10-05), which
+        /// destroys every mod's page and calls OnSettingsUI again -- then our page is opened
+        /// again with the panel's public SelectMod (the category is named by IUserMod.Name).
+        /// One frame later, by a coroutine on the game's panel: now, the dropdown that changed
+        /// would be destroyed inside its own event. Nothing happens when the words would not
+        /// change (another row's AfterChange, or "the game's" picked while it is the same).
+        /// </summary>
+        public static void RebuildForLanguage()
+        {
+            OptionsUI page = Instance;
+            if (page == null || page._host == null || page._builtLanguage == Localization.CurrentCode)
+                return;
+
+            try
+            {
+                OptionsMainPanel options = page._host.GetComponentInParent<OptionsMainPanel>();
+                if (options == null || !options.isActiveAndEnabled)
+                {
+                    Log.Msg("options page: language now '" + Localization.CurrentCode +
+                            "'; the page shows it the next time it opens (options panel not found)");
+                    return;
+                }
+
+                options.StartCoroutine(RebuildNextFrame(options, page._builtLanguage));
+            }
+            catch (Exception e)
+            {
+                Log.Error("Could not rebuild the options page in the new language.", e);
+            }
+        }
+
+        private static System.Collections.IEnumerator RebuildNextFrame(OptionsMainPanel options, string from)
+        {
+            yield return null;
+
+            try
+            {
+                System.Reflection.MethodInfo rebuild = typeof(OptionsMainPanel).GetMethod("OnLocaleChanged",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (rebuild == null)
+                {
+                    Log.Msg("options page: OptionsMainPanel.OnLocaleChanged not found; the page shows the new language the next time it opens");
+                    yield break;
+                }
+
+                rebuild.Invoke(options, null);
+                options.SelectMod(new Mod().Name);
+
+                Log.Msg("options page: rebuilt in '" + Localization.CurrentCode + "' (was '" + from + "')");
+            }
+            catch (Exception e)
+            {
+                Log.Error("Could not rebuild the options page in the new language.", e);
+            }
         }
 
         private static bool IsModifier(KeyCode code)

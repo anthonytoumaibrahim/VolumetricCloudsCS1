@@ -2038,10 +2038,8 @@ namespace VolumetricClouds.UI
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>
         private static void BuildGeneralOptions()
         {
-            // First: whoever cannot read the rest must find this one. The group's title says for
-            // now that English is all there is (drop that with the first translation). It is on
-            // the heading, not the label, because a heading spans the panel and a slider's label
-            // is cut at 196 px.
+            // First: whoever cannot read the rest must find this one. A change rebuilds the
+            // in-game panel and this page (OptionsUI.RebuildForLanguage), both in the new language.
             Add(new Row
             {
                 Kind = RowKind.Choice,
@@ -2057,6 +2055,7 @@ namespace VolumetricClouds.UI
                     Log.Msg("setting: language = " + Localization.CurrentCode +
                             (Settings.Language != null && Settings.Language.value == 0 ? " (the game's)" : " (chosen)"));
                     ModController.RebuildPanel();
+                    OptionsUI.RebuildForLanguage();
                 },
             });
 
