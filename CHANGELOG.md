@@ -5,14 +5,15 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.4.0 — unreleased
+## 1.4.0 — 2026-10-06
 
 Light inside the clouds, Spanish, French and Simplified Chinese translations, a tidier panel with
 plainer wording, fixes for smoke in the fog and a ring around the sun, and a thinner fog.
 `VolumetricClouds.xml` gains two lines, `LightInsideClouds` and `SunsetLight`, both at 100%: the
 new cloud light reaches everyone with the update, profiles saved before it included. Setting both
 to 0% gives the clouds exactly the light they had before. Every other setting keeps its name and
-value; some sliders only moved (see Changed). Nothing in saved cities changes.
+value; some sliders only moved (see Changed). New players get a brighter fog. Nothing in saved
+cities changes.
 
 ### New: light inside the clouds
 
@@ -54,6 +55,9 @@ are welcome. Any text not yet translated shows in English.
   now *Size*. Every setting keeps its place.
 - *Fog height* now goes down to 0 m (was 20 m), in 1 m steps, for a thin fog lying on the roads
   and the ground. Every saved height stays as it was.
+- *Fog brightness* starts at 150% (was 95%), so the fog is lighter: for new players, and after
+  *Reset all settings to defaults*. If you already use the mod, your settings file keeps your
+  own number.
 
 ### Fixed
 

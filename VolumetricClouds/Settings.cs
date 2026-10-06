@@ -708,10 +708,11 @@ namespace VolumetricClouds
             public const float FogSpeed = 3.6f;
 
             /// <summary>
-            /// The author's file holds 190%, but under a cloud brightness of 25% that the fog no
-            /// longer borrows: after the decoupling the fog is lit through the fixed
-            /// <see cref="Sky.CloudVolume.FogLightScale"/> of 0.5 instead, so half that number
-            /// puts a new subscriber's fog exactly where the tuned one looks today.
+            /// 150% (1.4.0, the author's own value): brighter than the 95% that put a new
+            /// subscriber's fog where the tuned one looked before the decoupling (190% under a
+            /// cloud brightness of 25%, lit since through the fixed
+            /// <see cref="Sky.CloudVolume.FogLightScale"/> of 0.5). Like every default, it reaches
+            /// only new installs and a Reset: a file that holds the element keeps its number.
             /// </summary>
             public const float FogBrightness = 1.5f;
 

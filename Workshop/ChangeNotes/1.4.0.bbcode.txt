@@ -1,0 +1,20 @@
+[h1]Version 1.4.0[/h1]
+[b]New[/b]
+[list]
+[*][b]Light inside the clouds[/b]: thin clouds glow with the sun behind them, shaded sides and bases are lighter, and clouds stay lit orange and red a little after sunset (Light tab: [i]Glow and softer shade[/i], [i]Sunset light[/i]; 0% looks as before).
+[*][b]Spanish, French and Simplified Chinese[/b]: the mod follows the game's language, or pick one on the options page. Translated with AI, so corrections are welcome.
+[/list]
+[b]Fixed[/b]
+[list]
+[*]Factory smoke and other particle effects no longer disappear in the volumetric fog and the rain.
+[*]The large ring around the sun is gone; far clouds still hide the sun.
+[/list]
+[b]Changed[/b]
+[list]
+[*]The in-game panel hides rows that do nothing at the moment; with [i]Show advanced options in the in-game panel[/i] they show grayed, as before.
+[*]A new [i]Advanced[/i] tab holds three technical sliders.
+[*]No more tooltips, and plainer labels.
+[*][i]Fog height[/i] now goes down to 0 m.
+[*][i]Fog brightness[/i] starts at 150% for new players.
+[*]Your settings and saved cities keep their values.
+[/list]

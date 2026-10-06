@@ -1,5 +1,6 @@
-[h1]Version 1.3.1[/h1]
-Cloud Styles, Mac & Linux support, Rainbows, and more were added since the first version. Check the change notes to see everything.
+[h1]Version 1.4.0[/h1]
+Light inside the clouds, translations, Cloud Styles, Mac & Linux support, Rainbows, and more were added since the first version. Check the change notes to see everything.
+If something stopped working after the update, please let me know.
 
 [hr][/hr]
 [h1]How to use[/h1]
@@ -17,10 +18,12 @@ To see more tabs in the in-game UI like the screenshots above, go to the mod's o
 [*][b]Volumetric 3D clouds[/b] (two cloud styles: Classic and Cumulus) with real shadows
 [*][b]Follows the game's weather by default[/b], and you can manually control everything
 [*][b]Rain and lightning that come from the clouds[/b]: rain falls only under the clouds, and lightning affects the clouds
+[*][b]Light inside the clouds[/b] (new in v1.4): clouds glow with the sun behind them and stay lit after sunset
 [*][b]Rainbows[/b] (new in v1.3)
 [*][b]Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
 [*][b]Cloud and fog colors[/b], with different cloud colors at night
 [*][b]Profiles[/b] (new in v1.3): save your favorite skies and switch between them
+[*][b]English, Spanish, French and Simplified Chinese[/b] (new in v1.4)
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
 
