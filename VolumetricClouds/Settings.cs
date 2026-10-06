@@ -713,7 +713,7 @@ namespace VolumetricClouds
             /// <see cref="Sky.CloudVolume.FogLightScale"/> of 0.5 instead, so half that number
             /// puts a new subscriber's fog exactly where the tuned one looks today.
             /// </summary>
-            public const float FogBrightness = 0.95f;
+            public const float FogBrightness = 1.5f;
 
             public const float FogTint = -0.4f;
 
