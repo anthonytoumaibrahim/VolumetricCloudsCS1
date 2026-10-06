@@ -7,8 +7,8 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.4.0 — unreleased
 
-Light inside the clouds, Spanish and French translations, a tidier panel with plainer wording, a
-fix for smoke in the fog, and a thinner fog.
+Light inside the clouds, Spanish, French and Simplified Chinese translations, a tidier panel with
+plainer wording, fixes for smoke in the fog and a ring around the sun, and a thinner fog.
 `VolumetricClouds.xml` gains two lines, `LightInsideClouds` and `SunsetLight`, both at 100%: the
 new cloud light reaches everyone with the update, profiles saved before it included. Setting both
 to 0% gives the clouds exactly the light they had before. Every other setting keeps its name and
@@ -30,11 +30,11 @@ The ground's cloud shadows are unchanged.
   styles; only the clouds: the city, the fog and the shadows keep the game's light. 200% makes it
   last longer.
 
-### New: Spanish and French
+### New: Spanish, French and Simplified Chinese
 
-The mod's panel, options page and messages are now in Spanish and French as well as English. A
-game set to either language shows them automatically; the *Language* option on the options page
-picks one by hand. These translations were made with AI, so some wording may be off -- corrections
+The mod's panel, options page and messages are now in Spanish, French and Simplified Chinese as
+well as English. A game set to one of them shows it automatically; the *Language* option on the
+options page picks one by hand. These translations were made with AI, so some wording may be off -- corrections
 are welcome. Any text not yet translated shows in English.
 
 ### Changed
@@ -62,6 +62,12 @@ are welcome. Any text not yet translated shows in English.
   drawn over it. They are now drawn over the fog and the rain, as the game draws them over its
   own fog, and still under the clouds when the camera is above them. Like with the game's fog,
   smoke deep inside a thick fog is not dimmed by the fog in front of it.
+- A large ring showed around the sun: far-off clouds near it stayed solid and darker while the rest
+  of the far clouds faded into the sky, most visible with a low sun or a low cloud brightness. The
+  far clouds now fade into the distance the same way across the whole sky, and they still hide the
+  sun: what shows through them is the sky without the sun's glow, worked out from the game's own
+  sky (changing it with Render It! or Theme Mixer is followed). Far clouds toward the sun look a
+  little different for everyone.
 
 ## 1.3.1 — 2026-09-30
 

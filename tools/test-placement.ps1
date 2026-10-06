@@ -236,32 +236,63 @@ Check "never below the floor" ((Clap 12000) -eq [single]0.3 -and (Clap 1e9) -eq 
 Check "it only ever gets quieter with distance" ((Clap 1500) -gt (Clap 3000) -and (Clap 3000) -gt (Clap 6000))
 
 ""
-"=== SunCoverCone: how far round the sun the clouds block it (1.3.0) ==="
-# The cover follows the sky's glow round the sun (the game's Mie phase, g from the map): full where the
-# glow is 30% of its peak, none below 10%. Reference angles from the Henyey-Greenstein phase itself.
-$cone = $asm.GetType("VolumetricClouds.Sky.SunCoverCone")
-function ConeAngles([double]$g) {
-    $a = [object[]]@([single]$g, [single]0, [single]0)
-    [void]$cone.GetMethod("Angles", $flags).Invoke($null, $a)
-    return @([double]$a[1], [double]$a[2])
+"=== SkyGlow: the far clouds let the sky through, not the sun's glow (1.4.0) ==="
+# The C# twin of CloudMedia.cginc SkyGlowPass. The sky inputs his game logged on 2026-10-06 (g 0.744,
+# linear without tonemapping); the night-zenith colour (not logged then) is a guess of the right size.
+# The shapes are checked, not exact values: 1 away from the sun, smooth, small at the sun.
+$glowType = $asm.GetType("VolumetricClouds.Sky.SkyGlow")
+function V3([double]$x, [double]$y, [double]$z) { return (New-Object UnityEngine.Vector3 $x, $y, $z).psobject.BaseObject }
+function SetField($obj, [string]$name, $value) { $glowType.GetField($name).SetValue($obj, $value) }
+function NewSky([double]$sunDeg, [double]$g) {
+    $sky = [Activator]::CreateInstance($glowType)
+    $r = $sunDeg * [Math]::PI / 180
+    SetField $sky "SunDir" (V3 0 ([Math]::Sin($r)) ([Math]::Cos($r)))
+    SetField $sky "SunSize" ([single](32 / 1.64))
+    SetField $sky "BetaR" (V3 0.00581 0.01357 0.03312)
+    SetField $sky "BetaM" (V3 0.00166 0.00166 0.00166)
+    SetField $sky "MiePhaseG" (V3 ((1 - $g * $g) / (2 + $g * $g)) (1 + $g * $g) (2 * $g))
+    SetField $sky "MieConst" (V3 0.0017 0.0007 0.0003)
+    SetField $sky "NightZenith" (V3 0.003 0.005 0.01)
+    SetField $sky "NightHorizon" (V3 0 0 0)
+    SetField $sky "SkyMultiplier" ((New-Object UnityEngine.Vector4 0.527, 4, 0, 0).psobject.BaseObject)
+    SetField $sky "ColorCorrection" ((New-Object UnityEngine.Vector2 1, 2).psobject.BaseObject)
+    return $sky
 }
-function GlowShare([double]$g, [double]$deg) {
-    $c = [Math]::Cos($deg * [Math]::PI / 180)
-    return [Math]::Pow((1 - $g) * (1 - $g) / (1 + $g * $g - 2 * $g * $c), 1.5)
+$around = $glowType.GetMethod("PassAround")
+$through = $glowType.GetMethod("ThroughAround")
+function Around($sky, [double]$deg) { return [double]$around.Invoke($sky, [object[]]@([single]$deg)) }
+function Through($sky, [double]$deg) { return [double]$through.Invoke($sky, [object[]]@([single]$deg)) }
+
+$low = NewSky 8.6 0.744
+$line = "    sun 8.6 deg up, share let through:"
+foreach ($d in 0, 2, 5, 10, 20, 33, 45, 60, 90, 135, 180) { $line += " {0}={1:F0}%" -f $d, (100 * (Around $low $d)) }
+$line
+
+# The share is steep at the sun's disc, as the sky is; what must not jump anywhere is the sky that
+# comes through (share x sky) -- that is what a faded far cloud shows.
+$prev = -1.0; $prevThrough = -1.0; $worstStep = 0.0; $monotonic = $true; $nan = $false
+for ($d = 0.0; $d -le 180; $d += 0.5) {
+    $p = Around $low $d
+    $l = Through $low $d
+    if ([double]::IsNaN($p) -or [double]::IsNaN($l)) { $nan = $true }
+    if ($prev -ge 0) {
+        if ($p -lt $prev - 1e-4) { $monotonic = $false }
+        $worstStep = [math]::Max([double]$worstStep, [double]([math]::Abs($l - $prevThrough) / [math]::Max([double]$l, 1e-6)))
+    }
+    $prev = $p; $prevThrough = $l
 }
-foreach ($g in 0.5, 0.651, 0.76, 0.9) {
-    $ang = ConeAngles $g
-    "    g {0,-5}: full within {1,5:F1} deg, none beyond {2,5:F1} deg" -f $g, $ang[0], $ang[1]
-}
-$his = ConeAngles 0.651
-Check "his map (g 0.651): full within 28 deg, none beyond 49" (([math]::Abs($his[0] - 27.8) -lt 0.3) -and ([math]::Abs($his[1] - 48.8) -lt 0.3))
-$def = ConeAngles 0.76
-Check "the game's default (g 0.76): 17.6 and 30.5 deg" (([math]::Abs($def[0] - 17.6) -lt 0.3) -and ([math]::Abs($def[1] - 30.5) -lt 0.3))
-Check "the glow really is 30% / 10% of its peak there" (([math]::Abs((GlowShare 0.651 $his[0]) - 0.3) -lt 0.005) -and ([math]::Abs((GlowShare 0.651 $his[1]) - 0.1) -lt 0.005))
-$wide = ConeAngles 0.5; $narrow = ConeAngles 0.9
-Check "a wider glow (smaller g) gets a wider cover" (($wide[0] -gt $his[0]) -and ($narrow[1] -lt $def[1]))
-$odd = ConeAngles 0.02; $sharp = ConeAngles 0.999
-Check "any g gives a usable cone: 3..70 deg, at least 5 apart" (($odd[0] -ge 3) -and ($odd[1] -le 70) -and ($sharp[0] -ge 3) -and ($sharp[1] -ge $sharp[0] + 5))
+Check "never NaN, always 0..1" ((-not $nan) -and (Around $low 0) -ge 0 -and (Around $low 180) -le 1)
+Check "the sun is held back: under 10% of the sky's light at the sun gets through" ((Around $low 0) -lt 0.10)
+Check "away from the sun the sky passes as before (at least 97% from 90 deg on)" ((Around $low 90) -gt 0.97 -and (Around $low 180) -gt 0.97)
+Check "more gets through the further from the sun, never less" $monotonic
+Check "no edge in what comes through: under 3% change per half degree" ($worstStep -lt 0.03)
+"    worst change per half degree in what comes through: {0:F2}%" -f (100 * $worstStep)
+
+$high = NewSky 50 0.744
+$night = NewSky -20 0.744
+Check "a high sun and a sun below the horizon work too" (((Around $high 0) -lt 0.10) -and ((Around $high 120) -gt 0.97) -and -not [double]::IsNaN((Around $night 0)))
+$empty = [Activator]::CreateInstance($glowType)
+Check "no sky inputs at all (all zero): everything passes" ((Around $empty 0) -eq 1)
 
 ""
 if ($failed -eq 0) { "All checks passed." } else { "$failed check(s) FAILED."; exit 1 }

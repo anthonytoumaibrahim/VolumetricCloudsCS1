@@ -357,8 +357,9 @@ Shader "VolumetricClouds/CloudRaymarch"
             }
 
             // The cloud slab between tEnter and tExit. Returns premultiplied light in rgb and
-            // what is left of the background in a.
-            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float jitter, float cosTheta)
+            // what is left of the background in a. `skyBehind`: the ray ends in the sky, not on
+            // the ground or a building.
+            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float jitter, float cosTheta, bool skyBehind)
             {
                 if (tExit <= tEnter)
                     return float4(0, 0, 0, 1);
@@ -498,11 +499,17 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Stretch what is left so that "stopped early" means opaque.
                 transmittance = saturate((transmittance - 0.02) / 0.98);
 
-                // Dissolve into the distance rather than ending on a hard line; at night, and in
-                // front of the sun, only where the clouds run out (CloudMedia).
-                float presence = CloudPresence(tEnter, SunCover(cosTheta));
+                // Dissolve into the distance rather than ending on a hard line; at night only where
+                // the clouds run out (CloudMedia).
+                float presence = CloudPresence(tEnter);
 
-                return float4(light * presence, 1.0 - (1.0 - transmittance) * presence);
+                // What dissolves lets the sky behind it through -- all of it but the sun's glow and
+                // disc (CloudMedia SkyGlowPass, 1.4.0), so the clouds still block the sun.
+                float sky = 1.0;
+                if (skyBehind && _SkyGlowMode.y > 0.5 && presence < 1.0 && transmittance < 1.0)
+                    sky = SkyGlowPass(dir);
+
+                return float4(light * presence, transmittance + (1.0 - transmittance) * (1.0 - presence) * sky);
             }
 
             // Rain hanging under the clouds: the grey curtains seen from a distance, and the
@@ -846,7 +853,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 float4 clouds = float4(0, 0, 0, 1);
                 if (drawClouds)
-                    clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta);
+                    clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta, sceneDist >= 1e9);
 
                 // The part of the ray under the cloud base: from the camera when it is below
                 // the base, otherwise from where the ray comes down through it.

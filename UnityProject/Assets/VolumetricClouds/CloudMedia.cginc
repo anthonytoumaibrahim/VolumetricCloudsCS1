@@ -20,18 +20,73 @@ float3 _SunDir;        // towards the light
 float _NightOpacity;
 float _CloudExtent;
 
-// The same in front of the sun, by day (1.2.1; the author: "The sun is still visible behind
-// clouds during the morning"). The sky's sun is a disc of HDR light, and a far cloud faded to 20%
-// lets 20% of it through -- the stars' problem at night, with the sun. So within a few degrees of
-// the light (_SunDir), the far clouds keep their cover. x = cos of the angle where that starts,
-// y = cos of the angle within which it is full, z = 1 while it applies.
-float4 _SunCover;
+// The same towards the sun, by day: a far cloud faded to 20% lets 20% of the sky behind it
+// through, and there that sky is the sun's disc and its glow -- so bright that the clouds burned
+// white (the author: "like in real life: the clouds should block the sun"). 1.2.1 to 1.3.x kept the
+// far clouds solid in a cone round the sun; that showed as a disc round it, "a huge ring", darkest
+// at a low brightness (2026-10-06). Since 1.4.0 they fade as everywhere else, but what dissolves
+// lets through only the part of the sky that is NOT the sun's: the game's own sky worked out with
+// and without the glow (SkyGlowPass, C# twin Sky/SkyGlow.cs). Smooth everywhere, so no edge.
+//
+// The game's sky (Hidden/DayNight/Skybox, a uSky): DayNightProperties sets these globally for it
+// each frame. Read only -- the cloud material never sets them, so they are always the game's.
+float3 _BetaR;
+float3 _BetaM;
+float3 _MiePhase_g;          // x = the phase's scale, y = 1 + g^2, z = 2g
+float3 _MieConst;
+float4 _NightZenithColor;
+float4 _NightHorizonColor;
+float4 _SkyMultiplier;       // x = sunset share, y = the sky's brightness
+float2 _ColorCorrection;
 
-// How much of the night's rule applies towards `cosTheta` (the ray against _SunDir): 1 at the
-// sun, 0 away from it.
-float SunCover(float cosTheta)
+float4 _SkyGlow;             // xyz = towards the game's sun (not _SunDir: the moon's at night),
+                             // w = the sky's _SunSize (32 / DayNightProperties.m_SunSize)
+float4 _SkyGlowMode;         // y = 1 while it applies (0: no game sky; the clouds fade into whatever
+                             // is there)
+
+// The game's sky colour from its light, graded as its last lines do -- but never compressed, even
+// where its HDR_OFF variant would squeeze it under white: worked out on compressed values, the share
+// at the sun was 64% (2026-10-06, a sun 8.6 deg up) and the sun showed clearly through the clouds,
+// so the sun reaching the screen is far brighter than white. Uncompressed, the share is exact for an
+// HDR sky and for a compressed one holds back more round the sun, never less: a smooth darkening.
+float3 SkyToneMap(float3 v)
 {
-    return _SunCover.z * smoothstep(_SunCover.x, _SunCover.y, cosTheta);
+    return pow(max(v * _ColorCorrection.x, 1e-10), _ColorCorrection.y);
+}
+
+// The share of the game's sky along `dir` that is not the sun's, 0..1: 1 away from the sun, small
+// at its disc. The skybox's own maths, once as it is and once with the sun's disc taken out and
+// the Mie glow held at its value 90 degrees from the sun; by brightness, since a blend weight has
+// one number for all three colours. The C# twin (SkyGlow.Pass) must stay the same.
+float SkyGlowPass(float3 dir)
+{
+    float c = dot(dir, _SkyGlow.xyz);
+    float h = max(dir.y + 0.06, 0.06);
+    float hw = max(dir.y, 0.0);
+    float sR = 8.0 / h;
+    float sM = 1.2 / h;
+
+    float3 x = sR * _NightZenithColor.xyz;
+    float3 q = x * (2.0 - x);
+    float3 tr = exp(-(_BetaR * sR + _BetaM * sM));
+    float3 e = q * tr + _SkyMultiplier.x * ((1.0 - tr) - tr * q);
+    float ex = abs(e.x) < 1e-6 ? 1e-6 : e.x;
+    float3 mie = sM * e / ex * _MieConst;
+
+    float phase = _MiePhase_g.x * pow(max(_MiePhase_g.y - _MiePhase_g.z * c, 1e-6), -1.5);
+    float side = _MiePhase_g.x * pow(max(_MiePhase_g.y, 1e-6), -1.5);
+    float ray = (1.0 + c * c) * _SkyMultiplier.y;
+    float3 dusk = _SkyGlow.y < 0.25 ? _NightHorizonColor.xyz * q : float3(0.0, 0.0, 0.0);
+
+    float3 full = (0.75 * e + phase * mie) * ray + dusk;
+    float3 glowless = (0.75 * e + min(phase, side) * mie) * ray + dusk;
+    if (_SkyGlow.y > -0.1)
+        full += min(mie, hw) * min(pow(max(_SkyGlow.w * (1.0 - c), 1e-6), -1.5), 1000.0) * tr;
+
+    float3 luma = float3(0.2126, 0.7152, 0.0722);
+    float lumFull = dot(SkyToneMap(full), luma);
+    float lumGlowless = dot(SkyToneMap(glowless), luma);
+    return lumFull > 1e-6 ? saturate(lumGlowless / lumFull) : 1.0;
 }
 
 float4 _DetailLight2;   // x = how strongly the cloud above takes the sky light away,
@@ -125,16 +180,15 @@ float CloudLod(float t)
 }
 
 // How much of the clouds there is at distance tEnter, 0..1: they dissolve into the distance
-// rather than ending on a hard line -- and at night, and in front of the sun (`sunward`,
-// SunCover), that only happens where the clouds actually run out. The same factor scales the
-// light and the coverage, as premultiplied alpha needs.
-float CloudPresence(float tEnter, float sunward)
+// rather than ending on a hard line -- and at night that only happens where the clouds actually
+// run out. The same factor scales the light and the coverage, as premultiplied alpha needs.
+float CloudPresence(float tEnter)
 {
     float fade = saturate(1.0 - tEnter / _MaxDistance);
     fade *= fade;
 
     float edge = 1.0 - smoothstep(0.7, 1.0, tEnter / max(_CloudExtent, 1.0));
-    return lerp(fade, max(fade, edge), max(_NightOpacity, sunward));
+    return lerp(fade, max(fade, edge), _NightOpacity);
 }
 
 // The rain curtains' extinction per metre at p, t metres along the view ray: uneven
