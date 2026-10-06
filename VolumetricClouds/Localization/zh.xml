@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volumetric Weather: every text a player reads, in English. The source for every translation.
+
+  To translate: copy this file, name it with the game's code for your language (de.xml, es.xml,
+  fr.xml, ko.xml, pl.xml, pt.xml, ru.xml, zh.xml), set code and name below, and translate the
+  text between the tags. Leave the keys alone.
+
+  - {0}, {1}... are filled in by the mod (a number, a name). Keep every one of them.
+  - A long text can be wrapped over several lines here: the break reads as one space.
+  - \n is a real line break (used in the confirmation dialogs and the longer messages).
+  - A key missing from a translation shows in English, so a partial translation works.
+
+  No tooltips: a label says it all (a warning that cannot wait goes in a .Note under the row).
+  Everyday words, no rendering terms (raymarch, noise, depth buffer, shader). American English
+  (color, gray, check a box).
+-->
+<Language code="zh" name="简体中文">
+
+  <!-- ==================== The mod ==================== -->
+
+  <!-- One line in the game's mods list: about 30 characters fit before it wraps (2026-09-24). -->
+  <String key="Mod.Description">3D 云层、阴影、雨、雾</String>
+  <String key="Mod.Unsupported">
+    体积天气无法在此电脑上绘制云层，因此已自动关闭：本城市不会受到任何影响。\n\n此模组需要 Metal 或 OpenGL 3.3，但游戏当前未使用其中任何一种。如果游戏通过启动选项更改了图形模式（Steam：右键游戏 → 属性 → 启动选项），请移除该选项并重启游戏。
+  </String>
+  <String key="Mod.UnsupportedLinux">
+    体积天气无法在此电脑上绘制云层，因此已自动关闭：本城市不会受到任何影响。\n\n此模组需要 OpenGL 3.3，但游戏当前未使用它。如果游戏通过启动选项更改了图形模式（Steam：右键游戏 → 属性 → 启动选项），请移除该选项并重启游戏。\n\nWindows 版游戏可通过 Proton 运行此模组：Steam 中右键游戏 → 属性 → 兼容性，勾选“强制使用特定 Steam Play 兼容性工具”，然后选择一个 Proton 版本。
+  </String>
+  <String key="Mod.UnsupportedWindows">
+    体积天气无法在此电脑上绘制云层，因此已自动关闭：本城市不会受到任何影响。\n\n常见原因：\n- 游戏使用了 -force-d3d9 等启动选项，或显卡的 OpenGL 版本低于 3.3 时使用了 -force-glcore（Steam：右键游戏 → 属性 → 启动选项）。请移除该选项并重启游戏。\n- 显卡早于 DirectX 10。\n\n如果以上都不适用，请在模组的 Workshop 页面评论区报告，并附上此文件：\n{0}
+  </String>
+  <String key="Mod.ExperimentalPlatformNote">
+    Mac 和 Linux 支持仍是新增的实验功能。如果游戏卡顿，请选择“低”质量预设。
+  </String>
+
+  <String key="Tab.Now">当前</String>
+  <String key="Tab.Clouds">云层</String>
+  <String key="Tab.Fog">雾</String>
+  <String key="Tab.Weather">天气</String>
+  <String key="Tab.Light">光照</String>
+  <String key="Tab.Halos">光晕</String>
+  <String key="Tab.Advanced">高级</String>
+  <String key="Tab.General">常规</String>
+
+  <String key="Key.Press">按下一个键</String>
+
+  <!-- ==================== In-game panel: the profile bar, above the tabs ==================== -->
+  <!-- The messages beside the buttons have about two short lines of room. -->
+
+  <String key="Profiles.Label">配置</String>
+  <String key="Profiles.None">（无配置）</String>
+  <String key="Profiles.Save">保存</String>
+  <String key="Profiles.NewName">配置 {0}</String>
+  <String key="Profiles.Naming">输入名称。Enter 保存，Esc 取消。</String>
+  <String key="Profiles.Added">已保存为新配置。</String>
+  <String key="Profiles.Saved">已保存。</String>
+  <String key="Profiles.Unsaved">未保存的更改</String>
+  <String key="Profiles.Unreadable">无法读取文件。请查看日志。</String>
+  <String key="Profiles.Failed">操作失败。请查看日志。</String>
+  <String key="Profiles.Confirm.Discard">
+    对“{0}”的更改尚未保存。\n\n仍要选择“{1}”吗？更改将丢失。若要保留，请点“否”，然后先保存。
+  </String>
+  <String key="Profiles.Confirm.Replace">
+    当前天空尚未保存到配置。\n\n仍要选择“{0}”吗？当前天空将被替换。若要保留，请点“否”，然后先保存。
+  </String>
+  <String key="Profiles.Confirm.Remove">
+    删除配置“{0}”吗？\n\n只会删除其文件；当前天空不会改变。
+  </String>
+  <String key="Profiles.Invalid.Empty">请先输入名称。</String>
+  <String key="Profiles.Invalid.Long">名称最多 40 个字符。</String>
+  <String key="Profiles.Invalid.Character">名称不能包含 &lt; &gt; : " / \ | ? *。</String>
+  <String key="Profiles.Invalid.Dot">名称不能以句点开头或结尾。</String>
+  <String key="Profiles.Invalid.Reserved">Windows 保留了该名称。</String>
+  <String key="Profiles.Invalid.Exists">已有同名配置。</String>
+
+  <!-- ==================== In-game panel: Now ==================== -->
+
+  <String key="FollowTheGame.Label">跟随游戏天气（清除所有覆盖）</String>
+
+  <String key="Status.Weather.Game">降雨 {0}，云量 {1}</String>
+  <String key="Status.Weather.Manual">已覆盖：强度 {0}（游戏为 {1}）</String>
+  <String key="Status.Weather.Following">跟随游戏：{0} → 强度 {1}（晴 {2} 到雨 {3}）</String>
+
+  <String key="CoverageOverride.Label">忽略游戏天气</String>
+
+  <String key="Coverage.Label">固定强度</String>
+
+  <String key="WindSpeed.Label">移动速度</String>
+
+  <String key="Status.Fog.Off">体积雾已关闭</String>
+  <String key="Status.Fog.Waiting">体积雾：等待云层</String>
+  <String key="Status.Fog.Measuring">体积雾：正在测量地形...</String>
+  <String key="Status.Fog.Share">地图 {0} 区域有雾</String>
+  <String key="Status.Fog.Manual">已覆盖：{0}（游戏为 {1}）</String>
+  <String key="Status.Fog.Following">跟随游戏：雾 {0} → {1}</String>
+
+  <String key="FogOverride.Label">覆盖雾量</String>
+
+  <String key="FogAmount.Label">雾量</String>
+
+  <String key="LightningOverride.Label">手动设置闪电活动</String>
+
+  <String key="LightningActivity.Label">闪电活动</String>
+
+  <String key="TestLightning.Label">测试闪电（仅视觉，镜头前方）</String>
+
+  <String key="RainbowChance.Label">彩虹概率</String>
+
+  <!-- ==================== In-game panel: Clouds ==================== -->
+
+  <String key="CloudsVisible.Label">体积天气</String>
+
+  <String key="CloudStyle.Label">云层样式</String>
+  <String key="CloudStyle.Classic">经典</String>
+  <String key="CloudStyle.Cumulus">积云</String>
+
+  <String key="CumulusLayer.Label">经典云层</String>
+
+  <String key="CloudAltitude.Label">云层高度</String>
+
+  <String key="CloudThickness.Label">云层厚度</String>
+
+  <String key="CloudDetail.Label">云层细节（柔和→立体）</String>
+
+  <String key="CloudBreakup.Label">破碎度（整体→零散）</String>
+
+  <String key="Group.CloudShape">云层形状</String>
+  <String key="CloudBreakupScale.Label">破碎细节（粗→细）</String>
+
+  <String key="CloudFragments.Label">云层碎片</String>
+
+  <String key="CloudFragmentStyle.Label">碎片样式</String>
+  <String key="CloudFragmentStyle.Clustered">成团</String>
+  <String key="CloudFragmentStyle.Scattered">分散</String>
+  <String key="CloudFragmentStyle.Wispy">轻薄</String>
+
+  <String key="Status.Brightness.Auto">云层亮度：{0}（自动，强度 {1}）</String>
+  <String key="Status.Brightness.Manual">云层亮度：{0}（手动）</String>
+  <String key="Status.Brightness.AutoNight">云层亮度：{0}（自动，强度 {1}，夜间）</String>
+  <String key="Status.Brightness.ManualNight">云层亮度：{0}（手动，夜间）</String>
+  <String key="Status.Brightness.AutoTwilight">云层亮度：{0}（自动，强度 {1}，黄昏）</String>
+  <String key="Status.Brightness.ManualTwilight">云层亮度：{0}（手动，黄昏）</String>
+
+  <String key="Group.CloudColour">颜色（白色保持云层原色）</String>
+
+  <String key="CloudSunlitColor.Label">向阳面</String>
+
+  <String key="CloudShadeColor.Label">背光面</String>
+
+  <String key="CloudNightColors.Label">夜间使用不同颜色</String>
+
+  <String key="CloudMoonlitColor.Label">月光面</String>
+
+  <String key="CloudNightShadeColor.Label">夜间背光面</String>
+
+  <String key="Colour.Copy">复制</String>
+  <String key="Colour.Copied">已复制</String>
+  <String key="Colour.Paste">粘贴</String>
+  <String key="Colour.Reset">默认</String>
+
+  <!-- ==================== In-game panel: Fog ==================== -->
+
+  <String key="FogEnabled.Label">体积雾（极耗性能）</String>
+  <String key="FogEnabled.Note">
+    警告：此设置可能大幅降低游戏性能，仅推荐高性能电脑使用。
+  </String>
+
+  <String key="FogLampsEnabled.Label">城市灯光照亮雾气</String>
+
+  <String key="FogDensity.Label">雾密度</String>
+
+  <String key="FogFollowsGround.Label">雾贴合地面</String>
+
+  <String key="FogBase.Label">雾起始高度</String>
+
+  <String key="FogHeight.Label">雾层高度</String>
+
+  <String key="FogDistance.Label">雾显示距离</String>
+
+  <String key="FogBreakup.Label">雾破碎度（浓密→轻薄）</String>
+
+  <String key="FogSpeed.Label">雾移动速度</String>
+
+  <String key="FogBrightness.Label">雾亮度</String>
+
+  <String key="FogTint.Label">雾色调（冷→暖）</String>
+
+  <String key="FogColor.Label">雾颜色</String>
+
+  <String key="FogLampLight.Label">受光雾亮度</String>
+
+  <String key="Group.FogLamps">城市灯光照亮雾气</String>
+  <String key="FogLampRadius.Label">灯光照雾半径</String>
+
+  <!-- ==================== Advanced: Weather ==================== -->
+
+  <String key="Group.WeatherMapping">游戏天气如何决定云量</String>
+
+  <String key="WeatherFairCoverage.Label">强度：晴天</String>
+
+  <String key="WeatherOvercastCoverage.Label">强度：下雨</String>
+
+  <String key="WeatherTileSize.Label">天气图案大小</String>
+
+  <String key="Group.CloudPosition">云层位置（仅本城市，随存档保存）</String>
+
+  <String key="CloudPositionX.Label">云层位置 X</String>
+
+  <String key="CloudPositionY.Label">云层位置 Y</String>
+
+  <String key="Group.Rain">降雨（冬季地图为降雪）</String>
+
+  <String key="RainEnabled.Label">替换游戏的雨雪</String>
+
+  <String key="RainCurtains.Label">云下雨幕</String>
+
+  <String key="RainStreaks.Label">镜头附近雨线</String>
+
+  <String key="RainStreakHeight.Label">雨线淡出高度</String>
+
+  <String key="RainStreakLength.Label">雨线长度</String>
+
+  <String key="RainStreakWidth.Label">雨线宽度</String>
+
+  <String key="RainStreakOpacity.Label">雨线亮度</String>
+
+  <String key="RainStreakColor.Label">雨线颜色</String>
+
+  <String key="RainFallSpeed.Label">雨雪下落速度</String>
+
+  <String key="Rainbows.Label">彩虹</String>
+
+  <String key="RainLocalised.Label">雨声、湿路和路面积雪跟随云层</String>
+
+  <String key="Group.Lightning">闪电</String>
+
+  <String key="LightningEnabled.Label">闪电照亮云层和雨幕</String>
+
+  <String key="LightningReplaceBolt.Label">替换游戏闪电形状</String>
+
+  <String key="LightningBrightness.Label">闪电亮度</String>
+
+  <String key="LightningStormScale.Label">暴雨中的闪电</String>
+
+  <!-- ==================== In-game panel: Light ==================== -->
+
+  <String key="Group.Shadows">地面阴影</String>
+
+  <String key="CloudShadows.Label">云层在地面投下阴影</String>
+
+  <String key="CloudShadowDarkness.Label">阴影深度</String>
+
+  <String key="CloudShadowFullness.Label">阴影饱满度</String>
+
+  <String key="Group.Brightness">云层受光亮度</String>
+
+  <String key="CloudBrightnessAuto.Label">亮度跟随云层强度</String>
+
+  <String key="CloudBrightnessClear.Label">亮度：晴空</String>
+
+  <String key="CloudBrightnessOvercast.Label">亮度：阴天</String>
+
+  <String key="CloudBrightness.Label">云层亮度（固定）</String>
+
+  <String key="MinIllumination.Label">阴天时最低亮度</String>
+
+  <String key="CloudNightBrightness.Label">夜间使用不同亮度</String>
+
+  <String key="CloudNightBrightnessClear.Label">夜间：晴空</String>
+
+  <String key="CloudNightBrightnessOvercast.Label">夜间：阴天</String>
+
+  <String key="CloudNightBrightnessFixed.Label">夜间：固定亮度</String>
+
+  <String key="CloudDensity.Label">云层密度</String>
+
+  <String key="Group.CloudLight">云内光照</String>
+
+  <String key="LightInsideClouds.Label">辉光与柔和阴影</String>
+
+  <String key="SunsetLight.Label">日落光照</String>
+
+  <String key="Group.Night">夜间</String>
+
+  <String key="CloudNightOpacity.Label">夜间云层遮住星星</String>
+
+  <String key="NightGlow.Label">夜间云下辉光</String>
+
+  <!-- ==================== Advanced: Halos ==================== -->
+
+  <String key="Group.Halos">街灯与建筑灯光晕</String>
+
+  <String key="HaloEnabled.Label">使用替换光晕</String>
+
+  <String key="HaloTightness.Label">紧致度（越高越小）</String>
+
+  <String key="HaloBrightness.Label">亮度</String>
+
+  <String key="HaloRadius.Label">大小</String>
+
+  <String key="Group.NearLights">镜头附近的同类灯光</String>
+
+  <String key="HaloNearLightDistance.Label">近处灯光：距离小于</String>
+
+  <String key="HaloNearLightTightness.Label">近处灯光：紧致度</String>
+
+  <String key="HaloNearLightBrightness.Label">近处灯光：亮度</String>
+
+  <String key="HaloNearLightRadius.Label">近处灯光：大小</String>
+
+  <!-- ==================== The game's options page ==================== -->
+
+  <!-- Quality and drawing come first (the in-game panel's Rendering tab until 1.3.0). -->
+
+  <String key="Group.Performance">性能</String>
+
+  <String key="QualityPreset.Label">质量预设</String>
+  <String key="QualityPreset.Low">低</String>
+  <String key="QualityPreset.Medium">中</String>
+  <String key="QualityPreset.High">高</String>
+  <String key="QualityPreset.Custom">自定义</String>
+
+  <String key="CloudQuality.Label">云层和雾质量</String>
+
+  <String key="ShadowMapResolution.Label">云影分辨率</String>
+
+  <String key="ShadowMapRate.Label">云影更新频率</String>
+
+  <String key="Group.Drawing">云层绘制方式</String>
+
+  <String key="CloudDepthOcclusion.Label">建筑和地形遮挡后方云层</String>
+
+  <!-- "(more languages...)" goes when the first translation lands. -->
+  <String key="Group.Language">语言</String>
+
+  <String key="Language.Label">模组显示语言</String>
+  <String key="Language.Game">与游戏相同</String>
+
+  <String key="Group.Panel">游戏内面板</String>
+
+  <String key="ToggleKey.Label">打开此面板</String>
+
+  <String key="ShowAdvancedInPanel.Label">在游戏内面板显示高级选项</String>
+
+  <String key="ShowInUnifiedUI.Label">在 Unified UI 中显示图标</String>
+
+  <String key="Group.Diagnostics">诊断</String>
+
+  <String key="DetailedLogging.Label">详细日志</String>
+
+  <String key="Group.StartingOver">重置</String>
+
+  <String key="ResetAll.Label">将所有设置恢复默认</String>
+  <String key="ResetAll.Confirm">
+    将所有设置恢复为默认值吗？\n\n这会丢弃你调整过的所有内容，包括游戏内面板中的更改，并关闭“体积雾”和“在游戏内面板显示高级选项”。\n\n已保存的配置会保留；重置后不会选中任何配置，再次选择即可恢复其中的天空设置。
+  </String>
+
+  <String key="ResetPattern.Label">重置云层图案</String>
+  <String key="ResetPattern.Confirm">
+    为此城市生成新的云层和雾图案吗？\n\n在你或自动保存再次保存之前，上一次存档仍保留旧图案；若此前载入该存档，旧天空会恢复。\n\n其他设置不会改变。
+  </String>
+
+  <!-- ==================== No row in either UI ==================== -->
+
+  <!-- Read only in the settings file, as the comment on <Profile>. -->
+  <String key="Profile.Label">当前配置：游戏内面板顶部所选配置；留空表示无</String>
+  <String key="Profile.Note">
+    只有在面板中按下“保存”时，VolumetricCloudsProfiles 文件夹中的对应文件才会更改。
+  </String>
+
+  <String key="HudButtonX.Label">模组按钮（不使用 Unified UI）：距左边缘</String>
+  <String key="HudButtonY.Label">模组按钮（不使用 Unified UI）：距上边缘</String>
+
+  <!-- ==================== Slider readouts ==================== -->
+
+  <String key="Unit.Percent">{0}%</String>
+  <String key="Unit.Metres">{0} 米</String>
+  <String key="Unit.Kilometres">{0} 公里</String>
+  <String key="Unit.Times">{0}x</String>
+  <String key="Unit.Hz">{0} Hz</String>
+  <String key="Readout.Off">关闭</String>
+  <String key="Readout.Neutral">中性</String>
+  <String key="Readout.Cool">冷 {0}%</String>
+  <String key="Readout.Warm">暖 {0}%</String>
+  <String key="Readout.ActivityNone">{0}%（无）</String>
+  <String key="Readout.ActivityEvery">{0}%（每 {1} 秒）</String>
+
+  <!-- ==================== The settings file (VolumetricClouds.xml) ==================== -->
+  <!-- Comments the mod writes into the player's settings file. The names of the settings in
+       that file are not translated. -->
+
+  <!-- One line of the file per \n: a bullet wrapped here stays one line there. -->
+  <String key="File.Header">
+    体积天气设置。\n\n游戏运行时可编辑此文件：保存后，模组会在一秒内重新读取，面板也会同步更新。\n\n- 小数使用点：0.5，不要写 0,5。\n- 百分比按滑块显示方式填写：47 表示 47%。\n- 超出范围的值会被拉回范围内。无法读取的值以及模组不认识的名称会被忽略；VolumetricClouds.log 会说明具体项目。\n- 缺少某项设置行时，会保留当前值（启动时则为默认值）。\n- 如果整个文件都无法读取，模组不会修改它，并会在日志中说明。\n- 每当游戏内设置改变时，模组都会重写此文件（包括这些注释），因此你自行添加的注释不会保留。\n- 关闭游戏后删除此文件，可从全部默认设置重新开始。
+  </String>
+  <String key="File.Section.Panel">游戏内面板：{0} 选项卡</String>
+  <String key="File.Section.Advanced">游戏内面板（已开启高级选项）：{0} 选项卡</String>
+  <String key="File.Section.Options">游戏选项页面</String>
+  <String key="File.Section.None">两个页面都不显示</String>
+  <String key="File.Percent">{0}，单位 %。{1} 到 {2}，默认 {3}。</String>
+  <String key="File.Number">{0}。{1} 到 {2}{3}，默认 {4}。</String>
+  <String key="File.AnyNumber">{0}。默认 {1}。</String>
+  <String key="File.Readout">（滑块：{0} 到 {1}）</String>
+  <String key="File.Toggle">{0}。true 或 false，默认 {1}。</String>
+  <String key="File.Choice">{0}。可选 {1}；默认 {2}。</String>
+  <String key="File.Key">{0}。按键如 F4、Ctrl+Shift+C 或 None；默认 {1}。</String>
+  <String key="File.Colour">{0}。颜色格式 #RRGGBB（也可读取 255, 192, 203）；默认 {1}。</String>
+  <String key="File.Text">{0}。</String>
+
+  <!-- The header of a profile's file (VolumetricCloudsProfiles\<name>.xml): one line per \n. -->
+  <String key="File.ProfileHeader">
+    体积天气配置：一整套天空设置，以此文件名保存。\n\n可在模组游戏内面板顶部选择它。面板中的“保存”按钮会把当前天空写入此文件；游戏中的其他内容不会修改它。\n\n- 要分享天空设置，请将此文件复制到另一台电脑的 VolumetricCloudsProfiles 文件夹。重命名文件即可重命名配置。\n- 此文件保存除“当前”选项卡之外的所有天空设置；“当前”表示此刻天气。描述电脑本身的设置（质量、语言、按键、按钮）不会包含在内；城市的云层图案也不会包含，它保存在城市存档中。\n- 若此文件缺少某项设置，选择该配置时该项会恢复默认值。\n- VolumetricClouds.xml 的规则同样适用：小数使用点、百分比按滑块显示方式填写、超出范围的值会被拉回范围内。\n- 游戏运行时可编辑此文件。如果它是当前选中的配置，保存后一秒内模组就会应用修改；否则会在你选择它时应用。如果整个文件无法读取，模组不会修改它，并会在日志中说明。
+  </String>
+
+</Language>
