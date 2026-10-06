@@ -23,7 +23,6 @@ To see more tabs in the in-game UI like the screenshots above, go to the mod's o
 [*][b]Cloud fragments[/b]: small pieces of cloud around and between the big clouds. Off by default
 [*][b]Cloud and fog colors[/b], with different cloud colors at night
 [*][b]Profiles[/b] (new in v1.3): save your favorite skies and switch between them
-[*][b]English, Spanish, French and Simplified Chinese[/b] (new in v1.4)
 [*][b]Optional, off by default[/b]: [b]volumetric fog[/b] that rolls over the city like low cloud, and [b]smaller light halos[/b] around street lamps, building lights and vehicles
 [/list]
 
@@ -35,7 +34,8 @@ Works on Windows, Mac and Linux as of v1.1.1.
 
 [hr][/hr]
 [h1]Source code[/h1]
-The mod is open source under the MIT license, except for the light halo shaders, which are adapted from the game's own (see the LICENSE file). It includes two small MIT-licensed libraries: UnifiedUILib by kianzarrin and CitiesHarmony.API by boformer. Many thanks to both.
+Open source (MIT). Includes UnifiedUILib by kianzarrin and CitiesHarmony.API by boformer, thanks to both. Full license info on the repository.
+This mod was made with substantial help from AI. I set the goals, made the design decisions, and did all of the in-game testing and tuning.
 [h3][url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1]Open on GitHub[/url][/h3]
 
 [hr][/hr]
@@ -49,6 +49,3 @@ On a Mac it is in [i]~/Library/Application Support/Colossal Order/Cities_Skyline
 [*][b]What happened[/b]: what you did and expected, screenshots, your graphics card and your other mods.
 [/olist]
 Both logs start fresh at every launch, so copy them before restarting, upload them (Google Drive, Pastebin...) and post the link in the comments.
-
-[hr][/hr]
-This mod was made with substantial help from AI. I set the goals, made the design decisions, and did all of the in-game testing and tuning. Everything was checked against the game along the way.
