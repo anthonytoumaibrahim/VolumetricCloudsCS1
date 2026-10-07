@@ -150,6 +150,12 @@ exactly as it stands, so this is the release artifact.
       experiment.
 - [ ] If shaders were rebuilt: `build-bundle.ps1` reported no `Shader error`/`Shader warning`
       **and** the bundle's file hash changed.
+- [ ] **Every release:** `tools\test-amd.ps1` passes (`release.ps1` runs it with the other
+      tests). It builds every shader in the shipped Windows bundle with AMD's own compiler for
+      RX 6000, RX 7000 and RX 9000 chips, and fails on a compile error or a register spill. It
+      needs Radeon GPU Analyzer, which runs on any GPU (`-Rga <path>` or `VC_RGA` if it is not in
+      `Documents\Projects\RGA`). Compare the cloud pixel shader's size and registers with the last
+      release (1.4.0 on gfx1100: 13,446 instructions, 90 VGPRs, 102 SGPRs); a big jump is worth a look.
 - [ ] The deployed copy is the one that was tested in step 2 — not an older or newer build.
 - [ ] Decide on a `Source` subfolder. There is none today; if one is ever added, the panel's
       *Include source* checkbox decides whether it is uploaded, and it is deleted from the
