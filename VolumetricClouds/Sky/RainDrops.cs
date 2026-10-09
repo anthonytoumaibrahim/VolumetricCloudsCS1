@@ -209,9 +209,7 @@ namespace VolumetricClouds.Sky
         {
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
-            Color ambient = RenderSettings.ambientMode == UnityEngine.Rendering.AmbientMode.Flat
-                ? RenderSettings.ambientLight
-                : RenderSettings.ambientSkyColor;
+            Color ambient = SceneAmbient.Sky();
             if (linear)
                 ambient = ambient.linear;
 

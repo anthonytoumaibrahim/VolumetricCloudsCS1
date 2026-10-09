@@ -1059,9 +1059,7 @@ namespace VolumetricClouds.Sky
                 lightSun = c * (key.intensity * 0.25f);
             }
 
-            Color ambient = RenderSettings.ambientMode == UnityEngine.Rendering.AmbientMode.Flat
-                ? RenderSettings.ambientLight
-                : RenderSettings.ambientSkyColor;
+            Color ambient = SceneAmbient.Sky();
             if (linear)
                 ambient = ambient.linear;
 
