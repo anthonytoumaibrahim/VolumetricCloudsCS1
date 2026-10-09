@@ -92,6 +92,8 @@
   <String key="Status.Fog.Waiting">体积雾：等待云层</String>
   <String key="Status.Fog.Measuring">体积雾：正在测量地形...</String>
   <String key="Status.Fog.Share">地图 {0} 区域有雾</String>
+  <String key="Status.Fog.ShareMorning">地图 {0} 区域有晨雾</String>
+  <String key="Status.Fog.ShareMist">地图 {0} 区域有雨后薄雾</String>
   <String key="Status.Fog.Manual">已覆盖：{0}（游戏为 {1}）</String>
   <String key="Status.Fog.Following">跟随游戏：雾 {0} → {1}</String>
 
@@ -189,6 +191,11 @@
   <String key="FogColor.Label">雾颜色</String>
 
   <String key="FogLampLight.Label">受光雾亮度</String>
+
+  <String key="Group.FogChanges">变化的雾（不超过上方设置）</String>
+  <String key="FogChangesWithWeather.Label">雾随天气变化</String>
+  <String key="MorningFog.Label">晨雾</String>
+  <String key="MistAfterRain.Label">雨后薄雾</String>
 
   <String key="Group.FogLamps">城市灯光照亮雾气</String>
   <String key="FogLampRadius.Label">灯光照雾半径</String>

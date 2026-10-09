@@ -115,6 +115,8 @@
   <String key="Status.Fog.Waiting">Volumetric fog: waiting for the clouds</String>
   <String key="Status.Fog.Measuring">Volumetric fog: measuring the terrain...</String>
   <String key="Status.Fog.Share">fog over {0} of the map</String>
+  <String key="Status.Fog.ShareMorning">morning fog over {0} of the map</String>
+  <String key="Status.Fog.ShareMist">mist after rain over {0} of the map</String>
   <String key="Status.Fog.Manual">OVERRIDDEN: {0}  (the game says {1})</String>
   <String key="Status.Fog.Following">Following the game: fog {0}  ->  {1}</String>
 
@@ -213,6 +215,11 @@
   <String key="FogColor.Label">Fog color</String>
 
   <String key="FogLampLight.Label">Lit fog brightness</String>
+
+  <String key="Group.FogChanges">Changing fog (never more than set above)</String>
+  <String key="FogChangesWithWeather.Label">Fog changes with the weather</String>
+  <String key="MorningFog.Label">Morning fog</String>
+  <String key="MistAfterRain.Label">Mist after rain</String>
 
   <String key="Group.FogLamps">Fog lit by the city's lights</String>
   <String key="FogLampRadius.Label">Lit radius around a light</String>

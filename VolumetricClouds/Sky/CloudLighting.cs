@@ -208,6 +208,7 @@ namespace VolumetricClouds.Sky
                         " drift=(" + CloudFog.Offset.x.ToString("F0") + "," + CloudFog.Offset.z.ToString("F0") + ")m" +
                         " swirl=" + CloudFog.Boil.ToString("F2") +
                         " layer=" + CloudFog.DescribeLayer() +
+                        CloudFog.DescribeSources() +
                         " terrainMap=" + (TerrainHeightMap.Ready ? "ready" : CloudFog.Enabled ? "pending" : "not built (fog is off)"));
                 Log.Detail("coverage=" + coverage.ToString("F2") +
                         " shadows=" + _mode +

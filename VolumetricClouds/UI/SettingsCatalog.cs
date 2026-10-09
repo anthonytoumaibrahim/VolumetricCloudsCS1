@@ -1399,6 +1399,43 @@ namespace VolumetricClouds.UI
             });
 
             // Lit radius around a light (FogLampRadius): on the Advanced tab since 1.4.0.
+
+            // 1.5.0, asked for by a player: fog that is "not just a fixed density of fog moving
+            // around" but changes -- denser on autumn nights, "lowered if the sun shines again",
+            // light and tall "after a summer rain". The sliders above are the MOST fog (the
+            // author's call: "Ceiling"), so these only ever take it lower, thinner or wispier
+            // (Sky.FogSources). All 0% for everyone: at 0% the fog is exactly as before. Last on the
+            // tab, under their own heading: a heading claims every row below it up to the next one.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Group = "FogChanges",
+                Float = Settings.FogChangesWithWeather,
+                DefaultFloat = Settings.Defaults.FogChangesWithWeather,
+                Min = 0f, Max = 100f, Step = 5f,
+                Enabled = FogOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Float = Settings.MorningFog,
+                DefaultFloat = Settings.Defaults.MorningFog,
+                Min = 0f, Max = 100f, Step = 5f,
+                Enabled = FogOn,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Float = Settings.MistAfterRain,
+                DefaultFloat = Settings.Defaults.MistAfterRain,
+                Min = 0f, Max = 100f, Step = 5f,
+                Enabled = FogOn,
+            });
         }
 
         /// <summary>

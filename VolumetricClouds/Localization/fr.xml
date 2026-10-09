@@ -78,6 +78,8 @@
   <String key="Status.Fog.Waiting">Brouillard volumétrique : attente des nuages</String>
   <String key="Status.Fog.Measuring">Brouillard volumétrique : mesure du terrain...</String>
   <String key="Status.Fog.Share">brouillard sur {0} de la carte</String>
+  <String key="Status.Fog.ShareMorning">brouillard matinal sur {0} de la carte</String>
+  <String key="Status.Fog.ShareMist">brume après la pluie sur {0} de la carte</String>
   <String key="Status.Fog.Manual">FORCÉ : {0} (jeu : {1})</String>
   <String key="Status.Fog.Following">Jeu : brouillard {0} -> {1}</String>
 
@@ -173,6 +175,11 @@
   <String key="FogColor.Label">Couleur du brouillard</String>
 
   <String key="FogLampLight.Label">Luminosité du brouillard éclairé</String>
+
+  <String key="Group.FogChanges">Brouillard changeant (jamais plus que réglé ci-dessus)</String>
+  <String key="FogChangesWithWeather.Label">Le brouillard suit la météo</String>
+  <String key="MorningFog.Label">Brouillard matinal</String>
+  <String key="MistAfterRain.Label">Brume après la pluie</String>
 
   <String key="Group.FogLamps">Brouillard éclairé par la ville</String>
   <String key="FogLampRadius.Label">Rayon éclairé autour d’une lumière</String>

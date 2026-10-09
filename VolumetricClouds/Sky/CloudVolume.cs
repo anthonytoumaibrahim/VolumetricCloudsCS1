@@ -259,6 +259,10 @@ namespace VolumetricClouds.Sky
         private float _frameWorst;
         private bool _loggedDecoupling;
 
+        // Whether Real Light held the game's ambient apart from the city's when last looked at
+        // (SceneAmbient): logged on every change, as it splits the clouds' light from the air's.
+        private bool _ambientHeld;
+
         /// <summary>How far the night colours are in, 0..1 (0 whenever they are off); for the detail line.</summary>
         private float _nightColourShare;
 
@@ -1066,6 +1070,26 @@ namespace VolumetricClouds.Sky
             Color lightAmbient = ambient * 0.9f;
             Color baseSun = lightSun * overcast;
 
+            // The air under the clouds -- rain curtains and fog -- in the light the CITY is lit with
+            // (SceneAmbient.Air): seen against the city, it has to stand in the same light, or it
+            // vanishes into a brighter city. The same colour as the clouds' unless Real Light holds
+            // the game's apart, so without it this is exactly lightAmbient.
+            Color airAmbient = SceneAmbient.Air();
+            if (linear)
+                airAmbient = airAmbient.linear;
+
+            Color airLightAmbient = airAmbient * 0.9f;
+
+            bool held = SceneAmbient.IsHeld;
+            if (held != _ambientHeld)
+            {
+                _ambientHeld = held;
+                Log.Msg(held
+                    ? "lighting: Real Light holds the game's ambient apart from the city's -- the clouds take the game's " + lightAmbient +
+                      ", the rain curtains, rain streaks and fog the city's " + airLightAmbient
+                    : "lighting: Real Light no longer holds the game's ambient apart -- clouds, rain and fog take the city's " + airLightAmbient);
+            }
+
             // Sunset light (SunsetLight): the CLOUDS' sun only -- the fog is down in the dusk with the
             // city and keeps the game's (baseSun above), as do the ground and the shadows.
             Color cloudLightSun = SunsetSun(properties, sun, key, lightSun, sunElevation, linear);
@@ -1099,7 +1123,10 @@ namespace VolumetricClouds.Sky
             // Rain curtains hang from the clouds and are drawn in the same pass, so they keep
             // the CLOUD's two colours: one picture, one light. (A cloud override at 20% with
             // another mod's rain at full is the one corner where that reads bright.) The cloud's
-            // light, NOT its grading: rain shafts under pink clouds would read as a bug.
+            // light, NOT its grading: rain shafts under pink clouds would read as a bug. Its
+            // ambient is the AIR's, though (the same as the cloud's unless Real Light holds the
+            // game's apart): lit by the game's while the city behind is lit ~20x brighter, the
+            // curtains disappeared (2026-10-09).
             // Snow (winter maps, 1.3.0) hangs whiter and a little thicker than rain: flakes scatter
             // far more of the light they are in, and a snowfall takes the view sooner than rain.
             bool snow = CloudRain.IsSnow;
@@ -1110,12 +1137,13 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdRainFloor, 0f);
             _material.SetFloat(IdRainFall, -CloudRain.FallOffset.y);
             _material.SetFloat(IdRainCurtainScale, CloudRain.CurtainScale);
-            _material.SetVector(IdRainAmbient, AsVector(cloudAmbient) * (snow ? 1f : 0.6f));
+            Color rainAmbient = WithFloor(airLightAmbient * brightness);
+            _material.SetVector(IdRainAmbient, AsVector(rainAmbient) * (snow ? 1f : 0.6f));
             _material.SetVector(IdRainSun, AsVector(cloudSun) * (snow ? 0.3f : 0.12f));
 
             ApplyNight(night, shadeTint);
             ApplySkyGlow(properties);
-            ApplyFog(lightAmbient, baseSun);
+            ApplyFog(airLightAmbient, baseSun);
 
             // The cloud shadow map, as the air under the clouds reads it: the fog's sun shafts and
             // the rainbow's "is this drop in the sun" (1.3.0; until then only the fog's, so it was
@@ -1164,7 +1192,10 @@ namespace VolumetricClouds.Sky
                         " | cloud x" + brightness.ToString("F2") + (auto ? " (auto)" : " (fixed)") +
                         " sun=" + cloudSun + " ambient=" + cloudAmbient +
                         " | fog x" + FogLightScale.ToString("F2") + " x fogBrightness" +
-                        " | rain = the cloud's");
+                        " | rain = the cloud's" +
+                        (SceneAmbient.IsHeld
+                            ? " | Real Light holds the game's ambient apart: the clouds take it, the rain and the fog the city's, airAmbient=" + airLightAmbient
+                            : ""));
             }
 
             // Every frame goes into the average, so the "frame:" line is the mean of the whole
@@ -1540,10 +1571,15 @@ namespace VolumetricClouds.Sky
                 return;
             }
 
-            float density = Settings.FogDensity != null ? Mathf.Max(0f, Settings.FogDensity.value) : Settings.Defaults.FogDensity;
-            float height = CloudFog.Height;
+            // The layer AS DRAWN (1.5.0): the sliders are the most fog there can be, and the look
+            // (CloudFog.Look: the time of day, the morning fog, the mist) takes it lower, thinner or
+            // wispier inside them. With the three "Changing fog" rows at 0% every one of these is
+            // its slider exactly. Uniforms only: the shader does not know, and costs no more.
+            float density = (Settings.FogDensity != null ? Mathf.Max(0f, Settings.FogDensity.value) : Settings.Defaults.FogDensity) * CloudFog.Look.Density;
+            float layerBase = CloudFog.LayerBase;
+            float height = CloudFog.LayerHeight;
             bool followsGround = CloudFog.FollowsGround;
-            float breakup = Settings.FogBreakup != null ? Mathf.Clamp01(Settings.FogBreakup.value) : Settings.Defaults.FogBreakup;
+            float breakup = CloudFog.LayerBreakup(Settings.FogBreakup != null ? Mathf.Clamp01(Settings.FogBreakup.value) : Settings.Defaults.FogBreakup);
 
             // The fog lies on the terrain map; until that exists there is nothing to lie on.
             // CloudFog.Active already says the map is ready, so this is belt and braces.
@@ -1580,7 +1616,7 @@ namespace VolumetricClouds.Sky
             _material.SetFloat(IdFogFloor, TerrainHeightMap.Lowest - 10f);
             _material.SetFloat(IdFogFollowGround, followsGround ? 1f : 0f);
             _material.SetFloat(IdFogLevel, TerrainHeightMap.SeaLevel);
-            _material.SetFloat(IdFogBase, CloudFog.Base);
+            _material.SetFloat(IdFogBase, layerBase);
             _material.SetFloat(IdFogHeight, height);
             _material.SetFloat(IdFogBreakup, breakup * 0.8f);
 
@@ -1608,7 +1644,7 @@ namespace VolumetricClouds.Sky
 
             // Nothing of a fog that follows the ground is above the highest ground plus its top: the
             // march looks no higher (and no longer stops as if the ground were level).
-            _material.SetFloat(IdFogCeiling, TerrainHeightMap.Highest + CloudFog.Base + height);
+            _material.SetFloat(IdFogCeiling, TerrainHeightMap.Highest + layerBase + height);
 
             if (terrain != null)
                 _material.SetTexture(IdTerrainTex, terrain);

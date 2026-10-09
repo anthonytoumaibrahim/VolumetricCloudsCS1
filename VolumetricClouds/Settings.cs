@@ -229,6 +229,26 @@ namespace VolumetricClouds
         public static FloatSetting FogSpeed { get; private set; }
 
         /// <summary>
+        /// 0..1 (1.5.0): how much the weather's fog (the game's, or the override's) changes its look
+        /// with the time of day and how strong the fog is -- thicker at night and in a big spell,
+        /// thinner, lower and wispier on a sunny afternoon. Never more than the fog sliders
+        /// (Sky.FogSources). 0, the default, is the fog as it always was.
+        /// </summary>
+        public static FloatSetting FogChangesWithWeather { get; private set; }
+
+        /// <summary>
+        /// 0..1 (1.5.0): the most of the map a morning's fog can cover. It forms overnight, low and
+        /// dense, and lifts in the morning (Sky.FogSources). Needs the day/night cycle. 0 = none.
+        /// </summary>
+        public static FloatSetting MorningFog { get; private set; }
+
+        /// <summary>
+        /// 0..1 (1.5.0): the most of the map light mist covers after rain, while the game's ground is
+        /// wet (Sky.FogSources). None after snow. 0 = none.
+        /// </summary>
+        public static FloatSetting MistAfterRain { get; private set; }
+
+        /// <summary>
         /// Multiplier on the fog's own light. Since the brightness decoupling it really is the
         /// fog's brightness: the clouds' brightness no longer reaches it.
         /// </summary>
@@ -708,6 +728,14 @@ namespace VolumetricClouds
             public const float FogSpeed = 3.6f;
 
             /// <summary>
+            /// All three 0 (1.5.0): off for new AND existing players (the author's condition for every
+            /// new fog option), and at 0 the fog is exactly what it was, bit for bit.
+            /// </summary>
+            public const float FogChangesWithWeather = 0f;
+            public const float MorningFog = 0f;
+            public const float MistAfterRain = 0f;
+
+            /// <summary>
             /// 150% (1.4.0, the author's own value): brighter than the 95% that put a new
             /// subscriber's fog where the tuned one looked before the decoupling (190% under a
             /// cloud brightness of 25%, lit since through the fixed
@@ -835,6 +863,9 @@ namespace VolumetricClouds
                 FogColor = new ColorSetting("FogColor", Defaults.FogColor);
                 FogBreakup = new FloatSetting("FogBreakup", Defaults.FogBreakup);
                 FogSpeed = new FloatSetting("FogSpeed", Defaults.FogSpeed);
+                FogChangesWithWeather = new FloatSetting("FogChangesWithWeather", Defaults.FogChangesWithWeather);
+                MorningFog = new FloatSetting("MorningFog", Defaults.MorningFog);
+                MistAfterRain = new FloatSetting("MistAfterRain", Defaults.MistAfterRain);
                 FogLampsEnabled = new BoolSetting("FogLampsEnabled", Defaults.FogLampsEnabled);
                 FogLampLight = new FloatSetting("FogLampLight", Defaults.FogLampLight);
                 FogLampRadius = new FloatSetting("FogLampRadius", Defaults.FogLampRadius);

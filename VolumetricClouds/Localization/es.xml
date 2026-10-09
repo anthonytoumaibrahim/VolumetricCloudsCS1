@@ -78,6 +78,8 @@
   <String key="Status.Fog.Waiting">Niebla volumétrica: esperando a las nubes</String>
   <String key="Status.Fog.Measuring">Niebla volumétrica: midiendo el terreno...</String>
   <String key="Status.Fog.Share">niebla en {0} del mapa</String>
+  <String key="Status.Fog.ShareMorning">niebla matinal en {0} del mapa</String>
+  <String key="Status.Fog.ShareMist">neblina tras la lluvia en {0} del mapa</String>
   <String key="Status.Fog.Manual">FORZADO: {0}  (el juego indica {1})</String>
   <String key="Status.Fog.Following">Siguiendo el juego: niebla {0}  -&gt;  {1}</String>
 
@@ -174,6 +176,11 @@
   <String key="FogColor.Label">Color de niebla</String>
 
   <String key="FogLampLight.Label">Brillo de niebla</String>
+
+  <String key="Group.FogChanges">Niebla cambiante (nunca más de lo fijado arriba)</String>
+  <String key="FogChangesWithWeather.Label">La niebla cambia con el clima</String>
+  <String key="MorningFog.Label">Niebla matinal</String>
+  <String key="MistAfterRain.Label">Neblina tras la lluvia</String>
 
   <String key="Group.FogLamps">Niebla con luces urbanas</String>
   <String key="FogLampRadius.Label">Radio iluminado</String>

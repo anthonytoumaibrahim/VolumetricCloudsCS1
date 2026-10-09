@@ -5,6 +5,30 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.5.0 — unreleased
+
+Fog that changes on its own. `VolumetricClouds.xml` gains three lines, `FogChangesWithWeather`,
+`MorningFog` and `MistAfterRain`, all at 0%: at 0% the fog is exactly as before, so nothing changes
+for anyone until they move one. Profiles saved before read them as 0%. Nothing in saved cities
+changes.
+
+### New: changing fog
+
+Three sliders at the bottom of the Fog tab, under *Changing fog*, each 0% to 100%, 0% by default.
+With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
+you get: these only ever make it thinner, lower or wispier than that.
+
+- *Fog changes with the weather*: the fog is thickest at night and in heavy fog. On a sunny
+  afternoon it is thinner, lower and wispier, and a light foggy spell is lighter than a heavy one.
+  With *Override fog* too.
+- *Morning fog*: thick, low fog forms overnight and is thickest around sunrise. During the morning
+  it lifts off the ground, thins and breaks up, and by mid-morning it is gone. Some mornings are
+  foggier than others. Needs the day/night cycle.
+- *Mist after rain*: when a rain ends, light, wispy mist rises over the wet ground and fades as the
+  ground dries over the next few hours. Not after snow.
+
+Light halos glow in the fog by how thick it is, so thin mist blooms them less than heavy fog.
+
 ## 1.4.0 — 2026-10-06
 
 Light inside the clouds, Spanish, French and Simplified Chinese translations, a tidier panel with

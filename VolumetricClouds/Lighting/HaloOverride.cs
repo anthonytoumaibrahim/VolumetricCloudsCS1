@@ -282,12 +282,14 @@ namespace VolumetricClouds.Lighting
         /// honoured too -- and ours reads the same, so the weather's fog and Play It!'s fog
         /// slider bloom the lamps exactly as in vanilla. While OUR fog is on screen its amount
         /// is the fog in the air (following the game it is the game's value smoothed; overridden
-        /// it is the slider) and stands in for it.
+        /// it is the slider) and stands in for it -- times how dense it is as a share of its
+        /// slider (1.5.0: thin mist must not bloom the lamps like thick fog; 1 unless one of the
+        /// "Changing fog" rows is in use, so exactly the amount before).
         /// </summary>
         private static float HaloFog()
         {
             float world = Shader.GetGlobalVector(IdWeatherParams).z;
-            return CloudFog.Active ? CloudFog.Amount : world;
+            return CloudFog.Active ? CloudFog.Amount * CloudFog.Look.Density : world;
         }
 
         private void UpdateMaterials()

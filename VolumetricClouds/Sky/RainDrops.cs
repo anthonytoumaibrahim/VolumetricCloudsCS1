@@ -204,12 +204,15 @@ namespace VolumetricClouds.Sky
                                Mathf.Min(1f, color.w * opacity));
         }
 
-        /// <summary>Streaks catch the sky: the scene's ambient, lifted, with a little of the key light.</summary>
+        /// <summary>
+        /// Streaks catch the sky: the scene's ambient, lifted, with a little of the key light. The
+        /// city's ambient (SceneAmbient.Air), not the clouds': they fall through the city's air.
+        /// </summary>
         private static Vector4 DropColor()
         {
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
-            Color ambient = SceneAmbient.Sky();
+            Color ambient = SceneAmbient.Air();
             if (linear)
                 ambient = ambient.linear;
 

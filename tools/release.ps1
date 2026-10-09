@@ -38,7 +38,7 @@ $deployed = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\Addons\Mods\Volume
 $parked = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\VolumetricClouds-dev-parked"
 $shipped = @("VolumetricClouds.dll", "UnifiedUILib.dll", "CitiesHarmony.API.dll")
 # "amd" builds every shipped shader with AMD's compiler (needs Radeon GPU Analyzer: see test-amd.ps1).
-$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "amd")
+$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "fogoptions", "amd")
 
 $problems = 0
 
