@@ -263,6 +263,10 @@ namespace VolumetricClouds.Sky
         // (SceneAmbient): logged on every change, as it splits the clouds' light from the air's.
         private bool _ambientHeld;
 
+        // Whether the clouds were brightened to stand in Real Light's sky when last looked at
+        // (SceneAmbient.CloudLight): logged on every change.
+        private bool _realLightSkyLogged;
+
         /// <summary>How far the night colours are in, 0..1 (0 whenever they are off); for the detail line.</summary>
         private float _nightColourShare;
 
@@ -1094,8 +1098,19 @@ namespace VolumetricClouds.Sky
             // city and keeps the game's (baseSun above), as do the ground and the shadows.
             Color cloudLightSun = SunsetSun(properties, sun, key, lightSun, sunElevation, linear);
 
-            Color cloudSun = (auto ? cloudLightSun : cloudLightSun * overcast) * brightness;
-            Color cloudAmbient = WithFloor(lightAmbient * brightness);
+            // Under Real Light's sky, as bright as that sky's sun (SceneAmbient.CloudLight; 1 without it).
+            float underRealLight = SceneAmbient.CloudLight;
+            bool brightened = underRealLight > 1.001f;
+            if (brightened != _realLightSkyLogged)
+            {
+                _realLightSkyLogged = brightened;
+                Log.Msg(brightened
+                    ? "lighting: Real Light's sky is drawn -- the clouds stand in its sun, x" + underRealLight.ToString("F2") + " the light they take from the game's"
+                    : "lighting: Real Light's sky is not drawn -- the clouds take the game's light as it is");
+            }
+
+            Color cloudSun = (auto ? cloudLightSun : cloudLightSun * overcast) * (brightness * underRealLight);
+            Color cloudAmbient = WithFloor(lightAmbient * brightness) * underRealLight;
 
             // The player's grading, on the CLOUD's two lights only: the sunlit side and the
             // shaded side. A tint changes the hue, never the brightness, and white is exactly
@@ -1391,6 +1406,7 @@ namespace VolumetricClouds.Sky
                        " moon=" + (moon != null ? moon.intensity.ToString("F3") + "x" + Rgb(moon.color) : "none") +
                        " key=" + (key == null ? "none" : key == sun ? "sun" : "moon") +
                        " cloudSun=" + Rgb(cloudSun) +
+                       " underRealLight=x" + SceneAmbient.CloudLight.ToString("F2") +
                        " | ambient " + RenderSettings.ambientMode +
                        " sky=" + Rgb(RenderSettings.ambientSkyColor) +
                        " equator=" + Rgb(RenderSettings.ambientEquatorColor) +
