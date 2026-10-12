@@ -88,6 +88,13 @@ namespace VolumetricClouds
         public static StringSetting CurrentProfile { get; private set; }
 
         /// <summary>
+        /// (1.5.0) The in-game panel's group headings folded away while the advanced options are on:
+        /// their Row.Group names, comma separated. The panel's headings are its only UI; never part of
+        /// a profile (it is how the panel looks, not the sky).
+        /// </summary>
+        public static StringSetting PanelFoldedGroups { get; private set; }
+
+        /// <summary>
         /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
         /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
         /// </summary>
@@ -634,6 +641,13 @@ namespace VolumetricClouds
             /// <summary>No profile: the settings file alone, which is what every player had before profiles.</summary>
             public const string Profile = "";
 
+            /// <summary>
+            /// The panel's groups folded until the player opens them (advanced options on only): the
+            /// technical ones, so the advanced panel opens about as short as the basic one. Reaches
+            /// existing players too (a new row), which is the point.
+            /// </summary>
+            public const string PanelFoldedGroups = "WeatherMapping,CloudPosition,FogLamps,CloudLight,DayAndNight,NearLights";
+
             // ---- the weather and the cover ----
 
             /// <summary>What the override asks for when it is first switched on.</summary>
@@ -1089,6 +1103,7 @@ namespace VolumetricClouds
 
                 // The element is "Profile", a name that stays for good (invariant 15).
                 CurrentProfile = new StringSetting("Profile", Defaults.Profile);
+                PanelFoldedGroups = new StringSetting("PanelFoldedGroups", Defaults.PanelFoldedGroups);
 
                 // Before the file is read: reading it walks the catalog, and building the
                 // catalog calls Init.

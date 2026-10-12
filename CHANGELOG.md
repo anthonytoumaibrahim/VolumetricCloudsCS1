@@ -10,10 +10,10 @@ below; the mods list shows it after the mod's name, and the first line of
 A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, and the mod's defaults in the profile list.
-`VolumetricClouds.xml` gains twenty lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+`VolumetricClouds.xml` gains twenty-one lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
-(3: the new *Frosted glass* look, the one change everybody sees; *Like the game* puts the old panel
-back), `FogChangesWithWeather`, `MorningFog`,
+(3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
+back), `PanelFoldedGroups` (the advanced panel's folded headings), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
@@ -39,6 +39,18 @@ Every setting in the panel now ends in a small reset button (a round arrow) that
 setting back to its default; it is faded while the setting is already there. The colour rows' text
 button *Default* is now the same icon. Long setting names are no longer cut off: each tab's name
 column is as wide as its longest name needs, and a name that still doesn't fit is drawn smaller.
+
+In the new looks the tabs are icons (a clock for *Now*, a cloud, two clouds for *Distant clouds*,
+fog, a sun, a rain cloud for *Weather*, a light bulb for *Halos*), each tab's name its tooltip, and
+the open tab's name stands beside the panel's title; *Vanilla* keeps its named tabs. Every icon in
+the panel is Lucide's (ISC licence, credited in THIRD-PARTY-NOTICES.md). The *Clouds* and *Fog* tabs
+have headings of their own now (*Height and shape*; *Thickness and height*, *Look and movement*,
+*City lights in the fog*). With *Show advanced options* on, a click on a heading folds its settings
+away and back; the technical groups start folded (the weather's mapping, the cloud position, the
+city lights in the fog, the light inside the clouds, day and night, the near lamps), so the advanced
+panel opens about as short as the basic one. Which are folded is kept in `PanelFoldedGroups`, never in
+a profile. *Frosted glass* no longer loses its blur in cities where another mod keeps something in
+the screen's alpha.
 
 ### New: changing fog
 
@@ -214,6 +226,10 @@ Built, awaiting the in-game test:
   `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15). 2026-10-13:
   the reset buttons (`ResetRow`; the colour rows keep their own), the names' column per tab (log:
   `panel: <tab> tab names N wide`), "Profile" given room; check every tab's names in every language.
+  2026-10-13 later: folding headings (advanced only; log `panel: <Group> folded/opened`), icon tabs
+  and the tab's name beside the title (log `tabs: drawn as icons`), the blur kept solid (log
+  `frosted: first frame ...`, `effects in order`, `cameras drawing now`: if the blur is still gone in
+  the author's main city, these name the mod).
 
 - *Mixed* (written up above), rebuilt 2026-10-12 from the 2026-10-05 version that looked good but cost
   too much. Cheaper now: one map texture (the type in its alpha, no id map), one noise for every cloud

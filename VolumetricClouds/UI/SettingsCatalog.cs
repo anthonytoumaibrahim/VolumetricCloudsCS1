@@ -1273,6 +1273,8 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Value,
                 Panel = PanelPage.Clouds,
+                // 1.5.0: a heading of their own, so the advanced panel can fold them (CloudsPanel).
+                Group = "CloudShape",
                 Float = Settings.CloudAltitude,
                 DefaultFloat = Settings.Defaults.Altitude,
                 Min = 200f, Max = 3000f, Step = 50f,
@@ -1489,6 +1491,8 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
+                // 1.5.0: the fog's rows under three headings, so the advanced panel can fold them.
+                Group = "FogShape",
                 Float = Settings.FogDensity,
                 DefaultFloat = Settings.Defaults.FogDensity,
                 Min = 10f, Max = 500f, Step = 5f,
@@ -1561,6 +1565,7 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
+                Group = "FogLook",
                 Float = Settings.FogBreakup,
                 DefaultFloat = Settings.Defaults.FogBreakup,
                 Min = 0f, Max = 100f, Step = 5f,
@@ -1615,6 +1620,7 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
+                Group = "FogLamps",
                 Float = Settings.FogLampLight,
                 DefaultFloat = Settings.Defaults.FogLampLight,
                 Min = 0f, Max = 400f, Step = 5f,
@@ -2468,6 +2474,16 @@ namespace VolumetricClouds.UI
                 Format = Steps,
                 Profiled = false,
                 AfterChange = ModController.PlaceHudButton,
+            });
+
+            // 1.5.0: the panel's folded group headings (advanced options on). Its headings are its UI;
+            // the panel reads the value on every refresh, so a hand edit or a reset shows at once.
+            Add(new Row
+            {
+                Kind = RowKind.Text,
+                Text = Settings.PanelFoldedGroups,
+                DefaultText = Settings.Defaults.PanelFoldedGroups,
+                Profiled = false,
             });
         }
 

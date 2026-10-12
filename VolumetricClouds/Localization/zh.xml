@@ -136,6 +136,7 @@
   <String key="MixedShapes.Label">云的形状（圆润到不规则）</String>
   <String key="MixedTextureVariety.Label">纹理变化</String>
 
+  <String key="Group.CloudShape">高度与形状</String>
   <String key="CloudAltitude.Label">云层高度</String>
 
   <String key="CloudThickness.Label">云层厚度</String>
@@ -193,6 +194,7 @@
 
   <String key="FogLampsEnabled.Label">城市灯光照亮雾气</String>
 
+  <String key="Group.FogShape">浓度与高度</String>
   <String key="FogDensity.Label">雾密度</String>
 
   <String key="FogFollowsGround.Label">雾贴合地面</String>
@@ -205,6 +207,7 @@
 
   <String key="FogDistance.Label">雾显示距离</String>
 
+  <String key="Group.FogLook">外观与运动</String>
   <String key="FogBreakup.Label">雾破碎度（浓密→轻薄）</String>
 
   <String key="FogSpeed.Label">雾移动速度</String>
@@ -215,6 +218,7 @@
 
   <String key="FogColor.Label">雾颜色</String>
 
+  <String key="Group.FogLamps">雾中的城市灯光</String>
   <String key="FogLampLight.Label">受光雾亮度</String>
 
   <String key="Group.FogChanges">变化的雾（不超过上方设置）</String>
@@ -413,6 +417,7 @@
 
   <String key="HudButtonX.Label">模组按钮（不使用 Unified UI）：距左边缘</String>
   <String key="HudButtonY.Label">模组按钮（不使用 Unified UI）：距上边缘</String>
+  <String key="PanelFoldedGroups.Label">游戏内面板中折叠的标题（启用高级选项时），以逗号分隔</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

@@ -159,6 +159,7 @@
   <String key="MixedShapes.Label">Cloud shapes (round to irregular)</String>
   <String key="MixedTextureVariety.Label">Texture variety</String>
 
+  <String key="Group.CloudShape">Height and shape</String>
   <String key="CloudAltitude.Label">Cloud altitude</String>
 
   <String key="CloudThickness.Label">Layer thickness</String>
@@ -216,6 +217,7 @@
 
   <String key="FogLampsEnabled.Label">Fog lit by the city's lights</String>
 
+  <String key="Group.FogShape">Thickness and height</String>
   <String key="FogDensity.Label">Fog density</String>
 
   <String key="FogFollowsGround.Label">Fog follows the ground</String>
@@ -228,6 +230,7 @@
 
   <String key="FogDistance.Label">Fog distance</String>
 
+  <String key="Group.FogLook">Look and movement</String>
   <String key="FogBreakup.Label">Fog break-up (solid to wispy)</String>
 
   <String key="FogSpeed.Label">Fog speed</String>
@@ -238,6 +241,7 @@
 
   <String key="FogColor.Label">Fog color</String>
 
+  <String key="Group.FogLamps">City lights in the fog</String>
   <String key="FogLampLight.Label">Lit fog brightness</String>
 
   <String key="Group.FogChanges">Changing fog (never more than set above)</String>
@@ -443,6 +447,7 @@
 
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
+  <String key="PanelFoldedGroups.Label">The in-game panel's folded headings (advanced options on), comma separated</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

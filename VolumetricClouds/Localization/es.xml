@@ -122,6 +122,7 @@
   <String key="MixedShapes.Label">Formas de las nubes (redondas a irregulares)</String>
   <String key="MixedTextureVariety.Label">Variedad de textura</String>
 
+  <String key="Group.CloudShape">Altura y forma</String>
   <String key="CloudAltitude.Label">Altitud de nubes</String>
 
   <String key="CloudThickness.Label">Grosor de capa</String>
@@ -180,6 +181,7 @@
 
   <String key="FogLampsEnabled.Label">Niebla con luces urbanas</String>
 
+  <String key="Group.FogShape">Densidad y altura</String>
   <String key="FogDensity.Label">Densidad de niebla</String>
 
   <String key="FogFollowsGround.Label">La niebla sigue el terreno</String>
@@ -192,6 +194,7 @@
 
   <String key="FogDistance.Label">Alcance de niebla</String>
 
+  <String key="Group.FogLook">Aspecto y movimiento</String>
   <String key="FogBreakup.Label">Niebla (densa a tenue)</String>
 
   <String key="FogSpeed.Label">Velocidad niebla</String>
@@ -202,6 +205,7 @@
 
   <String key="FogColor.Label">Color de niebla</String>
 
+  <String key="Group.FogLamps">Luces de la ciudad en la niebla</String>
   <String key="FogLampLight.Label">Brillo de niebla</String>
 
   <String key="Group.FogChanges">Niebla cambiante (nunca más de lo fijado arriba)</String>
@@ -394,6 +398,7 @@
 
   <String key="HudButtonX.Label">Botón del mod (sin Unified UI): distancia desde la izquierda</String>
   <String key="HudButtonY.Label">Botón del mod (sin Unified UI): distancia desde arriba</String>
+  <String key="PanelFoldedGroups.Label">Encabezados plegados del panel del juego (opciones avanzadas activadas), separados por comas</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

@@ -64,6 +64,33 @@ namespace VolumetricClouds.UI
             public PanelPage Panel;
             public OptionsPage Options;
 
+            /// <summary>
+            /// Its icon in the new looks (1.5.0): a Lucide name the library draws (ModsLibCS1's
+            /// THIRD-PARTY-NOTICES.md). Vanilla keeps the names.
+            /// </summary>
+            public string Icon
+            {
+                get
+                {
+                    switch (Panel)
+                    {
+                        case PanelPage.Now: return "clock";
+                        case PanelPage.Clouds: return "cloud";
+                        case PanelPage.DistantClouds: return "cloudy";
+                        case PanelPage.Fog: return "cloud-fog";
+                        case PanelPage.Light: return "sun";
+                    }
+
+                    switch (Options)
+                    {
+                        case OptionsPage.Weather: return "cloud-sun-rain";
+                        case OptionsPage.Halos: return "lightbulb";
+                    }
+
+                    return null;
+                }
+            }
+
             public bool Shows(Row row)
             {
                 if (Panel != PanelPage.None)
@@ -78,7 +105,9 @@ namespace VolumetricClouds.UI
         public Vector3? InitialPosition;
 
         private Builder _ui;
+        private Frame _frame;
         private TabStrip _tabs;
+        private readonly List<string> _tabNames = new List<string>();
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
         private readonly List<Control> _controls = new List<Control>();
@@ -139,7 +168,21 @@ namespace VolumetricClouds.UI
             public float Y;
             public float Height;
             public bool Shown = true;
+
+            /// <summary>The group (Row.Group) this heading starts, or this row sits under. Null above the first heading.</summary>
+            public string Group;
+
+            /// <summary>A heading's own controls; folding (advanced options on) when it has an arrow.</summary>
+            public HeadingRow Heading;
         }
+
+        /// <summary>
+        /// The groups folded away (Settings.PanelFoldedGroups, 1.5.0), as last read: only while the
+        /// advanced options are on -- the basic panel is short enough, and its headings stay plain.
+        /// </summary>
+        private readonly List<string> _folded = new List<string>();
+        private string _foldedRead;
+        private bool _advanced;
 
         public override void Start()
         {
@@ -149,6 +192,8 @@ namespace VolumetricClouds.UI
 
             bool advanced = Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
             _width = advanced ? AdvancedWidth : BasicWidth;
+            _advanced = advanced;
+            ReadFolded();
 
             _ui = PanelLook.NewBuilder();
 
@@ -158,19 +203,24 @@ namespace VolumetricClouds.UI
 
             // Background, title, close button; dragging the title bar moves the whole panel.
             // Only the title bar: the profile bar under it is controls.
-            _ui.AddFrame(this, Mod.DisplayName, Hide);
+            _frame = _ui.AddFrame(this, Mod.DisplayName, Hide);
             BuildProfileBar();
 
             // Every setting row ends in its reset button (1.5.0): room for it on every row.
             _ui.ResetColumn = ResetColumn;
 
             List<Tab> tabs = Tabs(advanced);
-            List<string> names = new List<string>();
+            List<string> icons = new List<string>();
             foreach (Tab tab in tabs)
-                names.Add(tab.Name);
+            {
+                _tabNames.Add(tab.Name);
+                icons.Add(tab.Icon);
+            }
 
+            // The new looks draw each tab as its icon, its name the tooltip and, for the open one,
+            // beside the panel's title (SelectPage). Vanilla: named tabs, as before.
             _tabs = _ui.AddTabStrip(this, new Vector3(Margin, TitleBarHeight + BarHeight + 2f), _width - 2f * Margin,
-                TabHeight, names, SelectPage);
+                TabHeight, _tabNames, SelectPage, icons);
             FitTabs();
 
             foreach (Tab tab in tabs)
@@ -341,17 +391,77 @@ namespace VolumetricClouds.UI
         /// </summary>
         private void RefreshShown()
         {
+            // The folded groups changed under the panel: a reset, a hand edit of the file.
+            if (Settings.PanelFoldedGroups != null && Settings.PanelFoldedGroups.value != _foldedRead)
+            {
+                ReadFolded();
+                foreach (List<Item> items in _layout)
+                {
+                    foreach (Item item in items)
+                    {
+                        if (item.Heading != null)
+                            item.Heading.SetOpen(!IsFolded(item.Group));
+                    }
+                }
+            }
+
             for (int p = 0; p < _layout.Count; p++)
             {
                 foreach (Item item in _layout[p])
                 {
-                    if (item.Control != null && item.Control.Source.IsShownInPanel != item.Shown)
+                    if (item.Control != null && RowShown(item) != item.Shown)
                     {
                         Relayout(p);
                         break;
                     }
                 }
             }
+        }
+
+        /// <summary>A row: shown by its own rules (Row.IsShownInPanel), and its group not folded away.</summary>
+        private bool RowShown(Item item)
+        {
+            return item.Control.Source.IsShownInPanel && !IsFolded(item.Group);
+        }
+
+        private bool IsFolded(string group)
+        {
+            return _advanced && group != null && _folded.Contains(group);
+        }
+
+        private void ReadFolded()
+        {
+            _folded.Clear();
+            _foldedRead = Settings.PanelFoldedGroups != null ? Settings.PanelFoldedGroups.value : string.Empty;
+            if (string.IsNullOrEmpty(_foldedRead))
+                return;
+
+            foreach (string name in _foldedRead.Split(','))
+            {
+                string group = name.Trim();
+                if (group.Length > 0 && !_folded.Contains(group))
+                    _folded.Add(group);
+            }
+        }
+
+        /// <summary>A heading clicked: its group folded or opened, kept in the settings file, the page closed up.</summary>
+        private void SetFolded(int page, string group, bool folded)
+        {
+            if (folded == _folded.Contains(group))
+                return;
+
+            if (folded)
+                _folded.Add(group);
+            else
+                _folded.Remove(group);
+
+            _foldedRead = string.Join(",", _folded.ToArray());
+            Settings.PanelFoldedGroups.value = _foldedRead;
+            SettingsXml.SaveNow();
+
+            Log.Msg("panel: " + group + " " + (folded ? "folded" : "opened") + " (folded now: " +
+                    (_foldedRead.Length > 0 ? _foldedRead : "none") + ")");
+            Relayout(page);
         }
 
         /// <summary>
@@ -367,7 +477,7 @@ namespace VolumetricClouds.UI
             for (int i = 0; i < items.Count; i++)
             {
                 Item item = items[i];
-                bool shown = item.Control != null ? item.Control.Source.IsShownInPanel : HeadingShown(items, i);
+                bool shown = item.Control != null ? RowShown(item) : HeadingShown(items, i);
 
                 if (shown != item.Shown)
                 {
@@ -398,7 +508,10 @@ namespace VolumetricClouds.UI
             Log.Msg("panel: " + _tabIds[index] + " tab laid out again (" + changed + "), " + y.ToString("F0") + " high");
         }
 
-        /// <summary>A heading shows while any row under it, up to the next heading, does.</summary>
+        /// <summary>
+        /// A heading shows while any row under it, up to the next heading, would by its own rules:
+        /// a folded heading stays, to be opened again.
+        /// </summary>
         private static bool HeadingShown(List<Item> items, int heading)
         {
             for (int i = heading + 1; i < items.Count && items[i].Control != null; i++)
@@ -490,6 +603,7 @@ namespace VolumetricClouds.UI
                 _pages[i].isVisible = i == index;
 
             _tabs.Select(index);
+            _ui.SetSubtitle(_frame, _tabNames[index]);
             FitPage(index);
         }
 
@@ -519,6 +633,7 @@ namespace VolumetricClouds.UI
         private float BuildPage(UIPanel page, Tab tab)
         {
             float y = 0f;
+            string group = null;
             List<Item> items = new List<Item>();
             HashSet<UIComponent> claimed = new HashSet<UIComponent>();
 
@@ -544,8 +659,25 @@ namespace VolumetricClouds.UI
 
                 if (row.Group != null)
                 {
-                    _ui.AddHeading(page, row.GroupTitle, y + 4f);
-                    items.Add(Claim(page, claimed, null, y, HeadingHeight));
+                    // With the advanced options on, a click folds the group away (1.5.0).
+                    group = row.Group;
+                    HeadingRow heading;
+                    if (_advanced)
+                    {
+                        string captured = group;
+                        int pageIndex = _layout.Count;   // this page's, once it is added below
+                        heading = _ui.AddFoldingHeading(page, row.GroupTitle, y + 4f, !IsFolded(group),
+                            open => SetFolded(pageIndex, captured, !open));
+                    }
+                    else
+                    {
+                        heading = _ui.AddHeading(page, row.GroupTitle, y + 4f);
+                    }
+
+                    Item item = Claim(page, claimed, null, y, HeadingHeight);
+                    item.Group = group;
+                    item.Heading = heading;
+                    items.Add(item);
                     y += HeadingHeight;
                 }
 
@@ -561,7 +693,9 @@ namespace VolumetricClouds.UI
                     y += NoteHeight;
                 }
 
-                items.Add(Claim(page, claimed, control, top, y - top));
+                Item stretch = Claim(page, claimed, control, top, y - top);
+                stretch.Group = group;
+                items.Add(stretch);
             }
 
             _layout.Add(items);

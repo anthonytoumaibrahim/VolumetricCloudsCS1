@@ -122,6 +122,7 @@
   <String key="MixedShapes.Label">Formes des nuages (rondes à irrégulières)</String>
   <String key="MixedTextureVariety.Label">Variété de texture</String>
 
+  <String key="Group.CloudShape">Altitude et forme</String>
   <String key="CloudAltitude.Label">Altitude des nuages</String>
 
   <String key="CloudThickness.Label">Épaisseur de couche</String>
@@ -179,6 +180,7 @@
 
   <String key="FogLampsEnabled.Label">Brouillard éclairé par la ville</String>
 
+  <String key="Group.FogShape">Densité et hauteur</String>
   <String key="FogDensity.Label">Densité du brouillard</String>
 
   <String key="FogFollowsGround.Label">Brouillard suit le sol</String>
@@ -191,6 +193,7 @@
 
   <String key="FogDistance.Label">Distance du brouillard</String>
 
+  <String key="Group.FogLook">Aspect et mouvement</String>
   <String key="FogBreakup.Label">Fragmentation (dense à vaporeux)</String>
 
   <String key="FogSpeed.Label">Vitesse du brouillard</String>
@@ -201,6 +204,7 @@
 
   <String key="FogColor.Label">Couleur du brouillard</String>
 
+  <String key="Group.FogLamps">Lumières de la ville dans le brouillard</String>
   <String key="FogLampLight.Label">Luminosité du brouillard éclairé</String>
 
   <String key="Group.FogChanges">Brouillard changeant (jamais plus que réglé ci-dessus)</String>
@@ -393,6 +397,7 @@
 
   <String key="HudButtonX.Label">Bouton du mod (sans Unified UI) : distance depuis le bord gauche</String>
   <String key="HudButtonY.Label">Bouton du mod (sans Unified UI) : distance depuis le bord supérieur</String>
+  <String key="PanelFoldedGroups.Label">Titres repliés du panneau en jeu (options avancées activées), séparés par des virgules</String>
 
   <!-- ==================== Slider readouts ==================== -->
 
