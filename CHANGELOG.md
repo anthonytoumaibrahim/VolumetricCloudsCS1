@@ -7,13 +7,16 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.5.0 — unreleased
 
-Fog that changes on its own, clouds that can hide the sky by day, smoother clouds, a wind direction of
-your own, and the mod's defaults in the profile list. `VolumetricClouds.xml` gains nine lines:
-`FogChangesWithWeather`, `MorningFog`, `MistAfterRain`, `FogInValleys`, `FogOverWater` and
-`CloudDayOpacity`, all at 0%, `CloudTemporal` (off), and `WindDirection` (0: follow the game) with
-`WindAngle`. At those values the fog, the clouds and the wind are exactly as before, so nothing
-changes for anyone until they move one. Profiles saved before read the new sliders as 0%. Nothing in
-saved cities changes.
+Fog that changes on its own, a third cloud style, more say over cumulus clouds, clouds that can hide
+the sky by day, smoother clouds, a wind direction of your own, and the mod's defaults in the profile
+list. `VolumetricClouds.xml` gains fifteen lines: `FogChangesWithWeather`, `MorningFog`,
+`MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
+(off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
+`CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
+only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
+before, so nothing changes for anyone until they move one. Profiles saved before read the new
+sliders at those values. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
+the update. Nothing in saved cities changes.
 
 ### New: changing fog
 
@@ -56,6 +59,48 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   ending a few degrees above it with clear sky underneath. Seen from high up, it also covers the sky
   beyond the edge of the map. It hides a low sun too. By day it follows *Clouds hide the sky by
   day* (0%: no change); at night it follows *Clouds hide the stars at night*.
+
+### New: the Mixed cloud style
+
+A third choice for *Cloud style* on the Clouds tab, next to *Classic* and *Cumulus*: one style for
+every kind of weather, so there's no need to switch between the other two.
+
+- In a light sky the clouds are separate: many of them, spread across the sky, each with its own
+  size and height, puffy on top and flat underneath, like fair-weather cumulus.
+- As the intensity rises they grow and gather, and the Classic layer comes in under and between
+  them. From about 85% the layer takes over, with some cumulus rising out of it.
+- At 100% the sky is as fully covered as *Classic* at 100%.
+- The mix isn't the same everywhere: some stretches of sky lean toward separate clouds, others
+  toward the layer, and the balance changes as the weather moves through.
+- New clouds form out of a few small puffs and grow, rather than appearing all at once.
+- Rain, lightning, the cloud shadows and the rainbows follow the clouds as they're drawn. The
+  layer's settings (*Layer thickness*, *Cloud detail*, *Break-up*, *Cloud fragments*) shape its
+  layer, as they do under *Cumulus*. *Classic layer* sets how much of the layer comes in, as it does
+  under *Cumulus*.
+- Its own variety, each 0% to 100%, 50% by default (0% is the style as first built):
+  - *Big clouds*: now and then a cloud grows bigger and a little taller than the rest, like the
+    occasional towering cumulus in a fair-weather sky (one in ten at 50%, one in five at 100%).
+  - *Cloud shapes (round to irregular)*: the clouds get more lobes, spread wider, and some are drawn
+    out one way, so they don't all look like one family.
+  - *Texture variety*: chunkier lobes where the sky leans toward separate clouds, finer ones where
+    it leans toward the layer.
+
+### New: cumulus size, height and amount
+
+Three sliders on the Clouds tab, shown under *Cumulus* and *Mixed*, 100% by default (the clouds as
+before). Under *Cumulus* they shape the heaps, under *Mixed* the separate clouds; the Classic layer
+keeps its own settings.
+
+- *Cumulus size*, 50% to 200%: smaller or bigger clouds, wider and taller together, their lobes with them.
+- *Cumulus height*, 50% to 200%: flatter or taller for their width.
+- *Cumulus amount*, 0% to 200%: fewer or more of them at the same intensity (0%: none, only the layer).
+
+Bigger and taller clouds take more drawing: there's more cloud to light, and the slab the clouds are
+worked through grows with the tallest cloud.
+
+*Classic* and *Cumulus* look exactly as before, and *Classic* stays the default. In the settings
+file and in profiles the new style is `<CloudStyle>2</CloudStyle>`; an older version of the mod
+reading it ignores that one line and draws *Classic*.
 
 ### New: smoother clouds
 
@@ -112,8 +157,6 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
 
 Not started yet:
 
-- Clouds: high and distant clouds from photographs of real skies (a *High clouds* group, every row
-  off by default), and the Mixed style again.
 - Remove the temporary *Skip the empty sky* test switch (Advanced tab, "Testing" group:
   `Settings.SkipEmptySkyTest`, its catalog row, its texts in all four languages) once its frame
   times are compared. The skip itself stays. The same for *Clouds to the horizon* (`FarDeckTest`,
@@ -121,6 +164,15 @@ Not started yet:
 
 Built, awaiting the in-game test:
 
+- *Mixed* (written up above), rebuilt 2026-10-12 from the 2026-10-05 version that looked good but cost
+  too much. Cheaper now: one map texture (the type in its alpha, no id map), one noise for every cloud
+  (no per-cloud numbers; no crease where two clouds meet), the light's far looks read the carving's
+  mean instead of the noise, and the empty-sky skip knows where its clouds reach. Tested 2026-10-12:
+  liked ("I do like Mixed"), no dearer than Cumulus with *Smoother clouds* on (42%: 26-27 ms against
+  Cumulus's 29.7; 84%: both 38-41 ms). Then "can we add more variety?": the cumulus rows and Mixed's
+  three variety rows (written up above), built the same day, awaiting the in-game look. (High and
+  distant clouds from photographs of real skies were built and dropped 2026-10-12: a cubemap does the
+  same.)
 - *Smoother clouds* (written up above), built 2026-10-12, tested: works (the tint showed the blend
   in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
   by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to

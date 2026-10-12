@@ -395,7 +395,7 @@ namespace VolumetricClouds.Sky
             // the main thread and upload when it lands. Clouds appear a moment after load.
             // The seed is this city's (SkyPattern): the save's, or a new one for a new city.
             int seed = SkyPattern.NoiseSeed;
-            bool cumulus = CloudStyle.IsCumulus;
+            bool cumulus = CloudStyle.UsesNoise;
             CloudDetail.Failed = false;
             CloudStyle.Failed = false;
             if (cumulus)
@@ -799,7 +799,7 @@ namespace VolumetricClouds.Sky
                 }
             }
 
-            bool wanted = CloudStyle.IsCumulus || _cumulus != null;
+            bool wanted = CloudStyle.UsesNoise || _cumulus != null;
             if (wanted && !_cumulusWorking && !CloudStyle.Failed && _cumulusSeed != SkyPattern.NoiseSeed)
             {
                 int seed = SkyPattern.NoiseSeed;
@@ -1084,8 +1084,11 @@ namespace VolumetricClouds.Sky
             // The light steps reach about the tallest cloud: the layer's thickness, or under Cumulus
             // the whole span of its curve or the thickest the layer gets (as the renders it was
             // chosen on), whichever is more.
+            // (Under Mixed the span is its own, the height its previews measured the sky light over.
+            // Both grow with Cumulus size and height, 1.5.0.)
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
-            float reach = cumulus ? Mathf.Max(CloudStyle.Span, thickness * CloudStyle.LayerThickest) : thickness;
+            float span = CloudStyle.MixedDrawn ? CloudMix.LightSpanFor(CloudMixMap.BakedShape) : CloudStyle.SpanNow;
+            float reach = cumulus ? Mathf.Max(span, thickness * CloudStyle.LayerThickest) : thickness;
 
             // After the three fine steps (6, 12, 24 m) four more grow by this much each, to about
             // 1.1 x that: 2x for the 350 m layer cloud detail's look was chosen on.
@@ -1107,7 +1110,7 @@ namespace VolumetricClouds.Sky
             if (cumulus)
             {
                 _material.SetVector(IdCumulusLight, new Vector4(
-                    CloudStyle.MultipleExtinction, CloudStyle.LightGain, CloudStyle.SingleCap, 1f / CloudStyle.Span));
+                    CloudStyle.MultipleExtinction, CloudStyle.LightGain, CloudStyle.SingleCap, 1f / span));
                 _material.SetVector(IdCumulusLobes, new Vector4(
                     CloudStyle.SingleW1, CloudStyle.SingleW2, CloudStyle.MultipleW1, CloudStyle.MultipleW2));
                 _material.SetVector(IdCumulusLobeG, new Vector4(
@@ -1480,7 +1483,8 @@ namespace VolumetricClouds.Sky
                        Screen.width + "x" + Screen.height +
                        " | steps=" + MarchSteps.ToString("F0") +
                        " reach=" + (Reach / 1000f).ToString("F0") + "km" +
-                       " style=" + (CloudStyle.Drawn ? "Cumulus(layer " + (CloudStyle.LayerAmount * 100f).ToString("F0") + "%)" : "Classic") +
+                       " style=" + (CloudStyle.Drawn ? CloudStyle.Describe() : "Classic") +
+                       (CloudStyle.MixedDrawn ? " mix=(" + CloudMix.DescribeMix(CloudShaderParams.Coverage) + ")" : "") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        // 1.5.0: the share of the weather map's cells the march jumps over (0: not skipping).
@@ -2058,6 +2062,9 @@ namespace VolumetricClouds.Sky
 
             // A worker still making one for this city: its result is for a city that is gone.
             _cumulusPending = null;
+
+            // The Mixed style's maps go with the city (a bake still running is dropped when it lands).
+            CloudMixMap.Release();
         }
     }
 }

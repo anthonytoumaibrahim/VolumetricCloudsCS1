@@ -377,7 +377,7 @@ namespace VolumetricClouds.Sky
             float middle = bottom + 0.35f * thickness;
             float tile = Mathf.Max(500f, Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize);
             Vector2 phase = CloudWind.WeatherPhase(tile);
-            float coverage = CloudWeather.Coverage;
+            float coverage = CloudStyle.CloudTestCoverage(CloudWeather.Coverage);
 
             float sum = 0f;
             for (int k = 0; k < ArchSamples; k++)

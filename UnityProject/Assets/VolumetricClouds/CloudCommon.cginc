@@ -103,7 +103,7 @@ float3 _DetailTexPhase;  // the wind's drift over one repeat of it (CloudWind.No
 // and a heaped top) -- with the CLASSIC LAYER among and under them (the author's idea: "combine the
 // classic and cumulus clouds"), its thickness following the map. _CloudStyle == 0 is Classic: the
 // layer alone, computed exactly as it always was.
-float _CloudStyle;          // 0 Classic, 1 Cumulus
+float _CloudStyle;          // 0 Classic, 1 Cumulus, 2 Mixed (below)
 float4 _LayerShape;         // the layer under the Cumulus style: x = Layer thickness in metres; its
                             // factor on that is a line in the map's score, y + z * score (thick where
                             // the map is high), within w .. _LayerShapeMax
@@ -112,9 +112,21 @@ float _DetailLodShift;      // under the Cumulus style `lod` is the Cumulus nois
                             // much more (log2 of the ratio of their texels)
 sampler3D _CumulusTex;      // Sky/CumulusNoise3D: 128^3 ARGB32, mipmapped, 8 octaves of puffy
                             // Worley; the value is read from ALPHA, which is never sRGB-decoded
-sampler2D _WeatherScoreTex; // CloudDensityField.ScoreTexture: the weather map's NORMAL SCORES (each
+
+// A 2D texture read at level 0 through ANOTHER texture's sampler (1.5.0): the cloud pass uses 15 of
+// the 16 samplers a pixel shader may have, so a new data texture brings no sampler of its own.
+// Every API the bundles carry (D3D11; GLCore and Metal through HLSLcc) has separate textures and
+// samplers -- HLSLSupport.cginc's own test; the other branch only keeps the file compiling elsewhere.
+#if defined(SHADER_API_D3D11) || defined(SHADER_API_XBOXONE) || defined(UNITY_COMPILER_HLSLCC) || defined(SHADER_API_PSSL)
+    #define VC_TEX2D_LOD0(tex, samplertex, uv) tex.SampleLevel(sampler##samplertex, uv, 0)
+#else
+    #define VC_TEX2D_LOD0(tex, samplertex, uv) tex2Dlod(tex, float4(uv, 0, 0))
+#endif
+
+UNITY_DECLARE_TEX2D(_WeatherScoreTex); // CloudDensityField.ScoreTexture: the weather map's NORMAL SCORES (each
                             // texel's rank on its own map as a normal z, 0..1 stored), LINEAR, read
-                            // from alpha; the same share of every city's map lies above any score
+                            // from alpha; the same share of every city's map lies above any score.
+                            // Bilinear, repeating: the Mixed map borrows its sampler.
 float4 _CumulusShape;       // xy = the coverage as a line in the score, x + y * score (CloudStyle.Line),
                             // z = the most coverage anywhere, w = 1 / the coverage curve's span in metres
 float4 _CumulusNoise;       // x = 1 / its repeat in metres, y = erosion depth, z = 1 / (1 - edge
@@ -124,6 +136,84 @@ float4 _CumulusCurve0;      // EVE's cumulus coverage curve, first segment, as a
 float4 _CumulusCurve1;      // ... second segment
 float4 _CumulusCurveKeys;   // x, y, z = the keys' heights (fractions of the span); w = the value past
                             // the last key (before the first it is the first segment's d)
+
+// THE MIXED STYLE (Sky/CloudMix.cs, 1.5.0): SEPARATE CLOUDS, each its own size and height, with the
+// Classic layer coming in as the intensity rises (Classic's own cover from ~85%, its 100% at 100%).
+// A grid of cells over the weather map holds at most one cloud per cell; its body is three bubbles,
+// but only as an ENVELOPE: the profile inside reaches _MixCarve.x at most, so the Cumulus noise's own
+// surface is the cloud (EVE's in-between coverage). Where the clouds stand is BAKED (Sky/CloudMixMap:
+// on the CPU, as the intensity moves) into one map over one weather repeat: a step reads it once, and
+// empty sky stops there. One noise carves them all, moving with them. A slow TYPE pattern (the map's
+// alpha) tips each stretch of sky towards separate clouds or towards layer. _CloudStyle == 2; nothing
+// of it is read otherwise. CloudMix.cs holds the C# twins.
+UNITY_DECLARE_TEX2D_NOSAMPLER(_MixMap); // bilinear, LINEAR, through the score texture's sampler: r = the
+                        // horizontal profile (0 at a cloud's edge, 1 a band in), g = its top / _MixScale.x,
+                        // b = its band / _MixScale.y, a = the type (0 tips towards layer, 1 towards clouds)
+float4 _MixScale;       // metres per unit: x = of a top, y = of a band; z = metres over which the flat base comes in
+float4 _MixCarve;       // x = the most the profile reaches (the in-between cover), y = erosion depth,
+                        // z = 1 / (1 - hardness), w = the density at full, in _Absorption's units
+float4 _MixNoise;       // x = 1 / its repeat in metres, y = its middle, z = its stretch, w = the mip levels
+                        // its texels sit above the Cumulus noise's (the march's lod is for that one)
+float3 _MixPhase;       // the clouds' own drift over one repeat of it (CloudWind.WeatherPhase): rigid
+float4 _MixNoise2;      // TEXTURE VARIETY (1.5.0): x = 1 / the chunky repeat (where the type leans to
+                        // separate clouds; _MixNoise is then the fine one), y = its mip levels as
+                        // _MixNoise.w, z = 1 while on (0: one repeat, one read, as before)
+float3 _MixPhase2;      // the clouds' drift over the chunky repeat
+float2 _MixEnvelope;    // the carving's mean without the noise: y * (profile - x)^1.5 (CloudMix.EnvelopeDensity)
+float4 _MixThreshold;   // the layer's threshold: x in a layer area (the lowest anywhere), y between,
+                        // z in a separate-cloud area; w = the type's strength (0 at 100%)
+
+float4 MixMapAt(float2 uvWeather)
+{
+    return VC_TEX2D_LOD0(_MixMap, _WeatherScoreTex, uvWeather);
+}
+
+// The layer's threshold where the map's type is `type`: between its value in a layer area and in a
+// separate-cloud area, as the type leans -- the middle one once its strength is gone.
+float MixLayerThreshold(float type)
+{
+    float t = 0.5 + (type - 0.5) * _MixThreshold.w;
+    return t < 0.5 ? lerp(_MixThreshold.x, _MixThreshold.y, t * 2.0)
+                   : lerp(_MixThreshold.y, _MixThreshold.z, t * 2.0 - 1.0);
+}
+
+// The separate clouds at p, from `envelope`: the map there (MixMapAt; empty sky costs that one read).
+// `lod`: the march's mip level for the Cumulus noise. Not `detailed` (the light's far looks, the looks
+// up): the carving's mean at this profile, without reading the noise -- what a long stretch averages to.
+float MixFieldDensity(float3 p, float lod, float4 envelope, bool detailed)
+{
+    float y = p.y - _CloudBottom;
+    float top = envelope.g * _MixScale.x;
+    if (y >= top || envelope.r <= 0.0)
+        return 0.0;
+
+    // The profile: 0 at the envelope's surface, 1 a band's depth in -- the nearer of its side and its top.
+    float profile = min(envelope.r, saturate((top - y) / max(envelope.b * _MixScale.y, 1.0)));
+    float base = saturate(y / _MixScale.z) * _MixCarve.w;
+
+    if (!detailed)
+    {
+        float t = max(profile - _MixEnvelope.x, 0.0);
+        return _MixEnvelope.y * t * sqrt(t) * base;
+    }
+
+    // Texture variety: chunky where the type leans to separate clouds, fine where it leans to layer,
+    // the two noise values blended between (each read only where it shows).
+    float chunky = 0.0;
+    if (_MixNoise2.z > 0.0)
+        chunky = smoothstep(0.3, 0.7, envelope.a);
+
+    float noise = 0.0;
+    [branch]
+    if (chunky < 1.0)
+        noise = tex3Dlod(_CumulusTex, float4(p * _MixNoise.x - _MixPhase, max(lod + _MixNoise.w, 0.0))).a;
+    [branch]
+    if (chunky > 0.0)
+        noise = lerp(noise, tex3Dlod(_CumulusTex, float4(p * _MixNoise2.x - _MixPhase2, max(lod + _MixNoise2.y, 0.0))).a, chunky);
+    noise = saturate((noise - _MixNoise.y) * _MixNoise.z + 0.5);
+
+    return saturate((profile * _MixCarve.x - _MixCarve.y * (1.0 - noise)) * _MixCarve.z) * base;
+}
 
 // Coverage over height: the cloud's silhouette. A cloud only reaches as high as its coverage lets
 // it (cg below): what makes every cloud its own height.
@@ -161,11 +251,12 @@ float CumulusDensity(float3 p, float lod, float score)
 }
 
 // THE CLASSIC LAYER at p: `h` its height through the layer (0 at the base, 1 at the top), `weather`
-// the map there, `lod` cloud detail's mip level. The layer the mod has always drawn; the Cumulus
-// style draws it too, beside its heaps.
-float LayerDensity(float3 p, bool detailed, float lod, float h, float weather)
+// the map there, `lod` cloud detail's mip level, `threshold` the map value it starts at (_Threshold,
+// except under Mixed, whose type varies it across the sky). The layer the mod has always drawn; the
+// Cumulus and Mixed styles draw it too, beside their own clouds.
+float LayerDensity(float3 p, bool detailed, float lod, float h, float weather, float threshold)
 {
-    float coverage = saturate((weather - _Threshold) / _Softness);
+    float coverage = saturate((weather - threshold) / _Softness);
 
     // The big clouds' shape. (Zero exactly when coverage is, so with fragments off this returns
     // in the same cases, with the same numbers, as before they existed.)
@@ -205,7 +296,7 @@ float LayerDensity(float3 p, bool detailed, float lod, float h, float weather)
             // different directions: its 500 m repeat made a grid of billows in the distance.
             float3 uvDetail = p * _DetailLookup.x - _DetailTexPhase;
             float shiftBase = (base - 0.5) * _DetailLookup.y;
-            float shiftWeather = (weather - _Threshold) * _DetailLookup.y * 2.0;
+            float shiftWeather = (weather - threshold) * _DetailLookup.y * 2.0;
             uvDetail += float3(shiftBase + shiftWeather * 0.6, shiftBase * 0.5, shiftWeather - shiftBase * 0.8);
 
             float4 texel = tex3Dlod(_DetailTex, float4(uvDetail, lod));
@@ -282,23 +373,34 @@ float SampleDensityLod(float3 p, bool detailed, float lod)
 
     if (_CloudStyle > 0.5)
     {
-        // The heaps, and the Classic layer among and under them: where both are, the denser wins.
-        float score = tex2Dlod(_WeatherScoreTex, float4(uvWeather, 0, 0)).a;
-        float heaps = CumulusDensity(p, max(lod, 0.0), score);
+        // Cumulus: the heaps, and the Classic layer among and under them. Mixed: its separate clouds
+        // and the layer, cut where the map's type says. Where both are, the denser wins.
+        float score = VC_TEX2D_LOD0(_WeatherScoreTex, _WeatherScoreTex, uvWeather).a;
+        float clouds;
+        float threshold = _Threshold;
+        [branch]
+        if (_CloudStyle > 1.5)
+        {
+            float4 envelope = MixMapAt(uvWeather);
+            clouds = MixFieldDensity(p, lod, envelope, detailed);
+            threshold = MixLayerThreshold(envelope.a);
+        }
+        else
+            clouds = CumulusDensity(p, max(lod, 0.0), score);
 
         // The layer is thick where the map is high and thin where it is low: variety over
         // kilometres, so a full sky is not one even carpet of the same puffs.
         float thickness = _LayerShape.x * clamp(_LayerShape.y + _LayerShape.z * score, _LayerShape.w, _LayerShapeMax);
         float hLayer = (p.y - _CloudBottom) / thickness;
         if (hLayer >= 1.0)
-            return heaps;
+            return clouds;
 
         float weatherHere = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
-        return max(heaps, LayerDensity(p, detailed, max(lod + _DetailLodShift, 0.0), hLayer, weatherHere));
+        return max(clouds, LayerDensity(p, detailed, max(lod + _DetailLodShift, 0.0), hLayer, weatherHere, threshold));
     }
 
     float weather = tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r;
-    return LayerDensity(p, detailed, lod, h, weather);
+    return LayerDensity(p, detailed, lod, h, weather, _Threshold);
 }
 
 float SampleDensity(float3 p, bool detailed)

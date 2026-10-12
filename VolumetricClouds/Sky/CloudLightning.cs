@@ -524,7 +524,7 @@ namespace VolumetricClouds.Sky
             Vector2 phase = CloudWind.WeatherPhase(tile);
             return _field.SampleCloud(position.x / tile - phase.x,
                                       position.z / tile - phase.y,
-                                      CloudWeather.Coverage);
+                                      CloudStyle.CloudTestCoverage(CloudWeather.Coverage));
         }
 
         private void Evaluate(uint gameFrame, uint ownFrame, bool paused)

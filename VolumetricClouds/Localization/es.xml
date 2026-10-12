@@ -112,8 +112,15 @@
   <String key="CloudStyle.Label">Estilo de nubes</String>
   <String key="CloudStyle.Classic">Clásico</String>
   <String key="CloudStyle.Cumulus">Cúmulos</String>
+  <String key="CloudStyle.Mixed">Mixto</String>
 
   <String key="CumulusLayer.Label">Capa clásica</String>
+  <String key="CumulusSize.Label">Tamaño de los cúmulos</String>
+  <String key="CumulusHeight.Label">Altura de los cúmulos</String>
+  <String key="CumulusAmount.Label">Cantidad de cúmulos</String>
+  <String key="MixedBigClouds.Label">Nubes grandes</String>
+  <String key="MixedShapes.Label">Formas de las nubes (redondas a irregulares)</String>
+  <String key="MixedTextureVariety.Label">Variedad de textura</String>
 
   <String key="CloudAltitude.Label">Altitud de nubes</String>
 

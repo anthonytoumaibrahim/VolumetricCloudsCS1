@@ -126,8 +126,15 @@
   <String key="CloudStyle.Label">云层样式</String>
   <String key="CloudStyle.Classic">经典</String>
   <String key="CloudStyle.Cumulus">积云</String>
+  <String key="CloudStyle.Mixed">混合</String>
 
   <String key="CumulusLayer.Label">经典云层</String>
+  <String key="CumulusSize.Label">积云大小</String>
+  <String key="CumulusHeight.Label">积云高度</String>
+  <String key="CumulusAmount.Label">积云数量</String>
+  <String key="MixedBigClouds.Label">大块云</String>
+  <String key="MixedShapes.Label">云的形状（圆润到不规则）</String>
+  <String key="MixedTextureVariety.Label">纹理变化</String>
 
   <String key="CloudAltitude.Label">云层高度</String>
 

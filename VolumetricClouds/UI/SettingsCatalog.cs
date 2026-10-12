@@ -816,9 +816,15 @@ namespace VolumetricClouds.UI
             return Settings.NightBrightnessOn;
         }
 
+        /// <summary>A style that draws cumulus is picked: Cumulus (its heaps) or Mixed (its separate clouds).</summary>
         private static bool CumulusPicked()
         {
-            return CloudStyle.IsCumulus;
+            return CloudStyle.IsCumulus || CloudStyle.IsMixed;
+        }
+
+        private static bool MixedPicked()
+        {
+            return CloudStyle.IsMixed;
         }
 
         /// <summary>
@@ -1120,9 +1126,10 @@ namespace VolumetricClouds.UI
                 AfterChange = State("show clouds", OnOff(Settings.CloudsVisible)),
             });
 
-            // Classic, the layer the mod has always drawn, or Cumulus, EVE-Redux V5's model
-            // (Sky.CloudStyle). Stored by value, append only. A settings file from before the row
-            // means Classic: an update never swaps a player's clouds (Row.OlderFileInt).
+            // Classic, the layer the mod has always drawn, Cumulus, EVE-Redux V5's model
+            // (Sky.CloudStyle), or Mixed (1.5.0, Sky.CloudMix): separate clouds with the layer coming
+            // in as the intensity rises. Stored by value, append only. A settings file from before the
+            // row means Classic: an update never swaps a player's clouds (Row.OlderFileInt).
             Add(new Row
             {
                 Kind = RowKind.Choice,
@@ -1130,14 +1137,15 @@ namespace VolumetricClouds.UI
                 Int = Settings.CloudStyle,
                 DefaultInt = Settings.Defaults.CloudStyle,
                 OlderFileInt = Settings.Defaults.CloudStyleForOlderFiles,
-                ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus" },
-                ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus },
+                ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus", "CloudStyle.Mixed" },
+                ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus, CloudStyle.Mixed },
                 AfterChange = State("cloud style", CloudStyle.Describe),
             });
 
             // Under Cumulus: how much of the Classic layer fills in among the heaps (1.3.0, asked
-            // for). 100% = as 1.2 shipped, the default; shown only while Cumulus is picked. No
-            // AfterChange (a slider's runs on every tick of a drag): the frame line carries it.
+            // for); under Mixed (1.5.0) how much of its layer comes in. 100% = as they shipped, the
+            // default; shown only while either is picked. No AfterChange (a slider's runs on every
+            // tick of a drag): the frame line carries it.
             Add(new Row
             {
                 Kind = RowKind.Percent,
@@ -1146,6 +1154,69 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.CumulusLayer,
                 Min = 0f, Max = 100f, Step = 5f,
                 Shown = CumulusPicked,
+            });
+
+            // The cumulus rows (1.5.0): Cumulus's heaps and Mixed's separate clouds alike. 100% = the
+            // clouds as they were, the defaults. Shown while either style is picked.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CumulusSize,
+                DefaultFloat = Settings.Defaults.CumulusSize,
+                Min = 50f, Max = 200f, Step = 5f,
+                Shown = CumulusPicked,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CumulusHeight,
+                DefaultFloat = Settings.Defaults.CumulusHeight,
+                Min = 50f, Max = 200f, Step = 5f,
+                Shown = CumulusPicked,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CumulusAmount,
+                DefaultFloat = Settings.Defaults.CumulusAmount,
+                Min = 0f, Max = 200f, Step = 5f,
+                Shown = CumulusPicked,
+            });
+
+            // Mixed's variety (1.5.0): 0% = Mixed as first built. Shown only while Mixed is picked.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.MixedBigClouds,
+                DefaultFloat = Settings.Defaults.MixedBigClouds,
+                Min = 0f, Max = 100f, Step = 5f,
+                Shown = MixedPicked,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.MixedShapes,
+                DefaultFloat = Settings.Defaults.MixedShapes,
+                Min = 0f, Max = 100f, Step = 5f,
+                Shown = MixedPicked,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Clouds,
+                Float = Settings.MixedTextureVariety,
+                DefaultFloat = Settings.Defaults.MixedTextureVariety,
+                Min = 0f, Max = 100f, Step = 5f,
+                Shown = MixedPicked,
             });
 
             Add(new Row

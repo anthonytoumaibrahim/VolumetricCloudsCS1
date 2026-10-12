@@ -89,7 +89,7 @@ namespace VolumetricClouds.Sky
 
             // The Cumulus noise too while that style is chosen or its noise exists, so the new
             // pattern lands in one frame; otherwise it is made later, if it is ever wanted.
-            bool withCumulus = (CloudStyle.IsCumulus || CloudStyle.Texture != null) && !CloudStyle.Failed;
+            bool withCumulus = (CloudStyle.UsesNoise || CloudStyle.Texture != null) && !CloudStyle.Failed;
 
             Log.Msg("sky: a new cloud pattern was asked for -- generating seeds " + fieldSeed + "/" + noiseSeed + " on a worker thread" +
                     (withCumulus ? " (with the Cumulus noise)" : ""));

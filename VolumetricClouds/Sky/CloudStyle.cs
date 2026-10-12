@@ -4,7 +4,8 @@ using System.Globalization;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// The two cloud styles (1.2). CLASSIC is the mod's cloud layer as it has always been: the
+    /// The cloud styles (1.2; MIXED, the third, in 1.5.0: <see cref="CloudMix"/>, which shares this
+    /// style's noise, light and layer). CLASSIC is the mod's cloud layer as it has always been: the
     /// weather map thresholded into clouds, one thickness for all of them. CUMULUS adds HEAPS to that
     /// layer: EVE-Redux V5's cloud model (blackrack's KSP clouds, which the author asked to match "as
     /// close as" possible), every heap carved out of one big noise (<see cref="CumulusNoise3D"/>),
@@ -44,6 +45,9 @@ namespace VolumetricClouds.Sky
         public const int Classic = 0;
         public const int Cumulus = 1;
 
+        /// <summary>1.5.0: separate clouds with the Classic layer coming in as the intensity rises (<see cref="CloudMix"/>).</summary>
+        public const int Mixed = 2;
+
         /// <summary>The setting's value (the default without one).</summary>
         public static int Current
         {
@@ -55,6 +59,17 @@ namespace VolumetricClouds.Sky
             get { return Current == Cumulus; }
         }
 
+        public static bool IsMixed
+        {
+            get { return Current == Mixed; }
+        }
+
+        /// <summary>A style carved from the Cumulus noise: Cumulus, or Mixed (its separate clouds).</summary>
+        public static bool UsesNoise
+        {
+            get { return IsCumulus || IsMixed; }
+        }
+
         /// <summary>
         /// The Cumulus noise, while a city is loaded (CloudVolume makes and uploads it the first
         /// time the style is wanted; null until then).
@@ -64,20 +79,148 @@ namespace VolumetricClouds.Sky
         /// <summary>This city's Cumulus noise could not be made: the clouds are drawn Classic, and the log says why.</summary>
         public static bool Failed { get; set; }
 
-        /// <summary>What is actually drawn: Cumulus when it is chosen AND its noise is there.</summary>
+        /// <summary>
+        /// A style of the Cumulus noise is actually drawn: Cumulus or Mixed chosen AND the noise there.
+        /// Everything the two share keys on this -- the Cumulus light, the noise's mip level, twice
+        /// the steps, the layer's thickness following the map. Until the noise is there, Classic.
+        /// </summary>
         public static bool Drawn
         {
+            get { return HeapsDrawn || MixedDrawn; }
+        }
+
+        /// <summary>The Cumulus style's heaps are drawn.</summary>
+        public static bool HeapsDrawn
+        {
             get { return IsCumulus && Texture != null; }
+        }
+
+        /// <summary>The Mixed style is drawn: chosen, the noise up and its cloud map baked (CloudMixMap).</summary>
+        public static bool MixedDrawn
+        {
+            get { return MixedWanted && CloudMixMap.Ready; }
+        }
+
+        /// <summary>The Mixed style is chosen and its noise is up: its cloud map should be baked.</summary>
+        public static bool MixedWanted
+        {
+            get { return IsMixed && Texture != null && !CloudMixMap.Failed; }
+        }
+
+        /// <summary>
+        /// The cover the rain, lightning's cloud test and the rainbow's sunlit-rain test are cut at:
+        /// the cover in effect, or under Mixed the SMALLEST cover its layer is drawn at anywhere, so
+        /// rain always falls from drawn cloud (invariant 2). Classic and Cumulus: unchanged.
+        /// </summary>
+        public static float CloudTestCoverage(float coverage)
+        {
+            return MixedDrawn ? MixedLayerInCumulusArea(coverage) : coverage;
         }
 
         /// <summary>
         /// How much of the Classic layer Cumulus mixes in, 0..1 ("Classic layer", 1.3.0): the
         /// layer is cut at this share of the cover (CloudShaderParams.LayerCoverage), so less of it
-        /// is fewer and smaller pieces of layer, never a paler one. 1 = as in 1.2.
+        /// is fewer and smaller pieces of layer, never a paler one. 1 = as in 1.2. Under Mixed
+        /// (1.5.0) the same share of its layer's cover, in every stretch of sky.
         /// </summary>
         public static float LayerAmount
         {
             get { return Math.Max(0f, Math.Min(1f, Settings.CumulusLayer != null ? Settings.CumulusLayer.value : Settings.Defaults.CumulusLayer)); }
+        }
+
+        /// <summary>Mixed's layer cover at this intensity (CloudMix.LayerCover), times <see cref="LayerAmount"/>.</summary>
+        public static float MixedLayer(float coverage)
+        {
+            return CloudMix.LayerCover(coverage) * LayerAmount;
+        }
+
+        /// <summary>The same where the type leans to layer: the most anywhere (the empty-sky skip tests against it).</summary>
+        public static float MixedLayerInLayerArea(float coverage)
+        {
+            return CloudMix.LayerCoverInLayerArea(coverage) * LayerAmount;
+        }
+
+        /// <summary>The same where the type leans to separate clouds: the least anywhere (the rain is cut at it).</summary>
+        public static float MixedLayerInCumulusArea(float coverage)
+        {
+            return CloudMix.LayerCoverInCumulusArea(coverage) * LayerAmount;
+        }
+
+        // ---- the cumulus rows (1.5.0), shared by the heaps and Mixed's separate clouds ----------
+
+        /// <summary>Cumulus size, 0.5..2: the heaps' noise and height, the separate clouds' width and height.</summary>
+        public static float SizeFactor
+        {
+            get { return Clamp(Settings.CumulusSize != null ? Settings.CumulusSize.value : Settings.Defaults.CumulusSize, 0.5f, 2f); }
+        }
+
+        /// <summary>Cumulus height, 0.5..2: their height alone.</summary>
+        public static float HeightFactor
+        {
+            get { return Clamp(Settings.CumulusHeight != null ? Settings.CumulusHeight.value : Settings.Defaults.CumulusHeight, 0.5f, 2f); }
+        }
+
+        /// <summary>Cumulus amount, 0..2: how many at a given intensity.</summary>
+        public static float AmountFactor
+        {
+            get { return Clamp(Settings.CumulusAmount != null ? Settings.CumulusAmount.value : Settings.Defaults.CumulusAmount, 0f, 2f); }
+        }
+
+        /// <summary>Mixed's Texture variety, 0..1 (the shader's alone: CloudShaderParams.ApplyMix).</summary>
+        public static float TextureVariety
+        {
+            get { return Clamp(Settings.MixedTextureVariety != null ? Settings.MixedTextureVariety.value : Settings.Defaults.MixedTextureVariety, 0f, 1f); }
+        }
+
+        private static CloudMix.Shape _mixShape = CloudMix.Shape.Plain;
+
+        /// <summary>
+        /// The player's shape for Mixed's separate clouds now (the cumulus rows, Big clouds, Cloud
+        /// shapes). A new object only when a value moves: the bake compares it every frame.
+        /// </summary>
+        public static CloudMix.Shape MixShape
+        {
+            get
+            {
+                float big = Clamp(Settings.MixedBigClouds != null ? Settings.MixedBigClouds.value : Settings.Defaults.MixedBigClouds, 0f, 1f);
+                float outline = Clamp(Settings.MixedShapes != null ? Settings.MixedShapes.value : Settings.Defaults.MixedShapes, 0f, 1f);
+                CloudMix.Shape s = _mixShape;
+                if (s.Size != SizeFactor || s.Height != HeightFactor || s.Amount != AmountFactor || s.Big != big || s.Outline != outline)
+                    _mixShape = new CloudMix.Shape(SizeFactor, HeightFactor, AmountFactor, big, outline);
+                return _mixShape;
+            }
+        }
+
+        /// <summary>The heaps' noise repeat, metres: <see cref="NoiseTile"/> times Cumulus size.</summary>
+        public static float NoiseTileNow
+        {
+            get { return NoiseTile * SizeFactor; }
+        }
+
+        /// <summary>The heaps' coverage curve's span, metres: <see cref="Span"/> times Cumulus size and height.</summary>
+        public static float SpanNow
+        {
+            get { return Span * SizeFactor * HeightFactor; }
+        }
+
+        /// <summary>The tallest heap now, metres above the base.</summary>
+        public static float TallestNow
+        {
+            get { return Tallest * SizeFactor * HeightFactor; }
+        }
+
+        /// <summary>
+        /// The intensity the heaps are cut at: the cover in effect times Cumulus amount (0: none; 2: as
+        /// many as twice the intensity would give, up to <see cref="HeapCap"/>'s).
+        /// </summary>
+        public static float HeapCoverage(float coverage)
+        {
+            return Math.Min(1f, coverage * AmountFactor);
+        }
+
+        private static float Clamp(float v, float lo, float hi)
+        {
+            return Math.Max(lo, Math.Min(hi, v));
         }
 
         /// <summary>
@@ -418,22 +561,27 @@ namespace VolumetricClouds.Sky
 
         public static string Name(int style)
         {
-            return style == Cumulus ? "Cumulus" : style == Classic ? "Classic" : "unknown (" + style + ")";
+            return style == Cumulus ? "Cumulus" : style == Classic ? "Classic" : style == Mixed ? "Mixed" : "unknown (" + style + ")";
         }
 
         public static string Describe()
         {
-            return Current == Cumulus
-                ? Name(Current) + " (Classic layer " + (LayerAmount * 100f).ToString("F0", CultureInfo.InvariantCulture) + "%)"
-                : Name(Current);
+            CultureInfo c = CultureInfo.InvariantCulture;
+            string layer = " (Classic layer " + (LayerAmount * 100f).ToString("F0", c) + "%, ";
+            if (Current == Cumulus)
+                return Name(Current) + layer + "size " + (SizeFactor * 100f).ToString("F0", c) + "%, height " +
+                       (HeightFactor * 100f).ToString("F0", c) + "%, amount " + (AmountFactor * 100f).ToString("F0", c) + "%)";
+            if (Current == Mixed)
+                return Name(Current) + layer + MixShape + ", texture variety " + (TextureVariety * 100f).ToString("F0", c) + "%)";
+            return Name(Current);
         }
 
         /// <summary>The Cumulus style's shape, once, for the log.</summary>
         public static string DescribeShape()
         {
             CultureInfo c = CultureInfo.InvariantCulture;
-            return "heaps carved from one " + CumulusNoise3D.Size + "^3 noise repeating every " + NoiseTile.ToString("F0", c) +
-                   " m, up to " + Tallest.ToString("F0", c) + " m tall, edges " + (Hardness * 100f).ToString("F0", c) +
+            return "heaps carved from one " + CumulusNoise3D.Size + "^3 noise repeating every " + NoiseTileNow.ToString("F0", c) +
+                   " m, up to " + TallestNow.ToString("F0", c) + " m tall, edges " + (Hardness * 100f).ToString("F0", c) +
                    "% hard, erosion " + ErosionDepth.ToString("F2", c) + ", no more of them above " +
                    (HeapCap * 100f).ToString("F0", c) + "%; with the Classic layer, its thickness x " +
                    LayerThinnest.ToString("F2", c) + ".." + LayerThickest.ToString("F2", c) + " following the map";

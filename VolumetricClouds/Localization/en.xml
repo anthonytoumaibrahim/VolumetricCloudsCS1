@@ -149,8 +149,15 @@
   <String key="CloudStyle.Label">Cloud style</String>
   <String key="CloudStyle.Classic">Classic</String>
   <String key="CloudStyle.Cumulus">Cumulus</String>
+  <String key="CloudStyle.Mixed">Mixed</String>
 
   <String key="CumulusLayer.Label">Classic layer</String>
+  <String key="CumulusSize.Label">Cumulus size</String>
+  <String key="CumulusHeight.Label">Cumulus height</String>
+  <String key="CumulusAmount.Label">Cumulus amount</String>
+  <String key="MixedBigClouds.Label">Big clouds</String>
+  <String key="MixedShapes.Label">Cloud shapes (round to irregular)</String>
+  <String key="MixedTextureVariety.Label">Texture variety</String>
 
   <String key="CloudAltitude.Label">Cloud altitude</String>
 

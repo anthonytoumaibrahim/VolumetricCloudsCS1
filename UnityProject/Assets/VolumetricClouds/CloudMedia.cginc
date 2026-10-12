@@ -203,9 +203,14 @@ float4 _EmptySky;          // x = 1: skip (0 with fragments, at a full cover, or
 // No cloud at all in a cell with these most-weather and most-score: the layer is cut at _Threshold
 // (SampleDensityLod, LayerDensity), and under Cumulus the heaps' coverage line (CumulusDensity) is
 // at or under 0 at its highest score -- it only rises with the score, which the C# side checks
-// is so (_CumulusShape.y >= 0).
+// is so (_CumulusShape.y >= 0). Under Mixed the map is the style's own copy (CloudMixMap), whose
+// "score" says whether any separate cloud reaches the cell (0 or 1), and the layer is cut at least
+// at _MixThreshold.x, its lowest threshold anywhere.
 bool CellEmpty(float weather, float score)
 {
+    if (_CloudStyle > 1.5)
+        return weather <= _MixThreshold.x && score <= 0.0;
+
     if (weather > _Threshold)
         return false;
 
