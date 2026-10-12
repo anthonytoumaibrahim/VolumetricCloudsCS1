@@ -156,6 +156,9 @@ reading it ignores that one line and draws *Classic*.
 
 ### Changed
 
+- Smoke, steam, fire and the game's other particle effects are drawn as they were before 1.4.0:
+  inside the fog again, so a thick fog hides them. 1.4.0 drew them on top of the fog, which kept
+  them from disappearing but showed them undimmed through any amount of fog, and looked worse.
 - The *Advanced* tab of the in-game panel is gone: its three rows are back where they were before
   1.4.0, *Break-up detail* on the Clouds tab, *Lit radius around a light* on the Fog tab and *Shadow
   fullness* on the Light tab. Their settings are unchanged.
@@ -168,10 +171,6 @@ reading it ignores that one line and draws *Classic*.
 
 ### Fixed
 
-- Fire, explosions and fireworks were always drawn under every smoke plume, even one far behind
-  them: the game draws the glowing kind and the smoky kind one after the other, whatever the
-  distance (its own draw order has the same fault; since 1.4.0 the fog no longer hides it). They now
-  share one draw order, the nearer plume over the farther one.
 - A lightning bolt was cut into pieces wherever clouds far behind it showed through: every cloud on
   the line of sight was drawn over the bolt, including the ones behind it. Now only the clouds in
   front of a bolt, and those up to a quarter of its distance behind it, cover it. The bolt still
@@ -212,12 +211,10 @@ Built, awaiting the in-game test:
   learn whether it saves time where the clouds are the cost (then say so above, or not); remove the
   camera diagnostics (`otherCameraDraws` in the frame line). (Its tint switch is gone; the shader's
   `_TemporalTint` branch is left unused until the next bundle build.)
-- Smoke and fire in the fog: since 1.4.0 smoke and fire are drawn on top of the fog instead of
-  vanishing in it. They should fade into it with distance, like everything else. Black smoke over
-  white steam: NOT fixed by the one queue -- the log (2026-10-12) shows both are 'Alpha Blended',
-  so they always shared a queue and Unity already sorts them, by each plume's centre, not per
-  particle. A big plume whose centre is nearer covers steam in front of its far end. Only the
-  fire/explosion order was fixed (see Fixed).
+- Smoke and fire back inside the fog (written up under Changed), done 2026-10-13 on the author's
+  call ("This is worse than before"): GameParticles removed, the game's particles keep their own
+  queues (3000/3001, before the air at 3095). Check in-game: smoke in a thick fog hidden as in 1.3,
+  no `particles:` lines in the log. Fading smoke into the fog with distance is dropped for now.
 
 Undecided (not agreed yet, decide before building):
 

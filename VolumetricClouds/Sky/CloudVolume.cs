@@ -41,17 +41,17 @@ namespace VolumetricClouds.Sky
         /// after the game's sky -- the aurora 2501, the painted clouds 2502, the stars 2503 (the
         /// shaders' Queue tags, read out of the game's asset files, and the log) -- and before
         /// everything see-through in the city: the halos 2990, decals and water 2999, the power lines
-        /// 3000 ('Custom/Net/Electricity': alpha-blended, no depth), the particles 3000/3001 (which
-        /// <see cref="GameParticles"/> moves after <see cref="AirQueue"/> since 1.4.0).
+        /// 3000 ('Custom/Net/Electricity': alpha-blended, no depth), the particles 3000/3001.
         /// </summary>
         public const int EarlyQueue = 2520;
 
         /// <summary>
         /// The air's own draw -- rain, fog, the rainbow's arch (1.4.0; until then <see cref="LateQueue"/>,
         /// and only under the base): after everything see-through the game draws, so power lines,
-        /// halos and water are inside the fog, and a few queues before the clouds' late draw, so the
-        /// game's particle effects fit in between (<see cref="GameParticles"/>: smoke over the fog,
-        /// under the clouds above it). The lightning bolt goes before both (<see cref="CloudsQueue"/>).
+        /// halos, water and the game's particle effects (smoke) are inside the fog, and a few queues
+        /// before the clouds' late draw. 1.4.0 moved the particles in between (smoke over the fog);
+        /// 1.5.0 put them back (smoke drawn over the fog looked worse than smoke hidden by it). The
+        /// lightning bolt goes before both (<see cref="CloudsQueue"/>).
         /// </summary>
         public const int AirQueue = LateQueue - 5;
 
@@ -973,8 +973,9 @@ namespace VolumetricClouds.Sky
         /// them.
         /// The air is a draw of its own from ABOVE the base too since 1.4.0 (reported: the fog
         /// "is making smoke (from industrial factories) disappear"): at <see cref="AirQueue"/>, with
-        /// the game's particles moved after it (<see cref="GameParticles"/>) and the clouds after
-        /// those at <see cref="LateQueue"/> -- from above, the clouds are in front of all the air,
+        /// the game's particles moved after it and the clouds after those at <see cref="LateQueue"/>
+        /// (the particles went back to their own queues in 1.5.0; the split stayed, harmless) --
+        /// from above, the clouds are in front of all the air,
         /// so the two blends are exactly the one pass's Over(clouds, lower). In the few metres under
         /// the base where the clouds have not gone early yet (<see cref="SplitEnter"/>) this order
         /// is kept, so the air between the camera and the base is drawn under the clouds on rays
@@ -1034,7 +1035,7 @@ namespace VolumetricClouds.Sky
                 // asked for (in 1.3.0 this line said 3100 while the air was really at 2520).
                 string where = " (camera " + height.ToString("F0") + " m, cloud base " + bottom.ToString("F0") + " m)";
                 string airAt = "rain, fog and rainbow a draw of their own at " + _airMaterial.renderQueue +
-                               ", after the power lines and halos, before the particles (smoke)";
+                               ", after the power lines, halos and particles (smoke)";
                 switch (state)
                 {
                     case 0:
