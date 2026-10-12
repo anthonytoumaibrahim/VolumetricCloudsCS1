@@ -2002,6 +2002,18 @@ namespace VolumetricClouds.UI
                 Profiled = false,
                 AfterChange = State("depth occlusion", OnOff(Settings.CloudDepthOcclusion)),
             });
+
+            // Smoother clouds (1.5.0, Sky/CloudTemporal): the machine's choice like the rows above, so
+            // never in a profile; off by default, and outside the quality preset.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.General,
+                Bool = Settings.CloudTemporal,
+                DefaultBool = Settings.Defaults.Temporal,
+                Profiled = false,
+                AfterChange = State("smoother clouds", OnOff(Settings.CloudTemporal)),
+            });
         }
 
         /// <summary>
@@ -2175,6 +2187,33 @@ namespace VolumetricClouds.UI
                 DefaultBool = Settings.Defaults.FarDeckTest,
                 Profiled = false,
                 AfterChange = State("far deck (test switch)", OnOff(Settings.FarDeckTest)),
+            });
+
+            // TEMPORARY (1.5.0 test): every march's jitter moved on each frame, for a TAA to average
+            // (Sky/CloudTemporal FrameShift). Before release: keep it (decided how) or drop it, then
+            // REMOVE this switch.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Advanced,
+                Group = "Testing",
+                Bool = Settings.JitterEachFrameTest,
+                DefaultBool = Settings.Defaults.JitterEachFrameTest,
+                Profiled = false,
+                AfterChange = State("grain changes every frame (test switch)", OnOff(Settings.JitterEachFrameTest)),
+            });
+
+            // TEMPORARY (1.5.0 test): where Smoother clouds' blend is used (red) and where the clouds are
+            // still marched (blue). REMOVE before release with its texts.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Advanced,
+                Group = "Testing",
+                Bool = Settings.TemporalTintTest,
+                DefaultBool = Settings.Defaults.TemporalTintTest,
+                Profiled = false,
+                AfterChange = State("smoother clouds tint (test switch)", OnOff(Settings.TemporalTintTest)),
             });
         }
 

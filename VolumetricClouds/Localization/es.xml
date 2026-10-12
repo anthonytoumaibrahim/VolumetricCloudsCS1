@@ -262,6 +262,8 @@
 
   <String key="SkipEmptySkyTest.Label">Saltar el cielo vacío</String>
   <String key="FarDeckTest.Label">Nubes hasta el horizonte</String>
+  <String key="JitterEachFrameTest.Label">El grano cambia en cada fotograma</String>
+  <String key="TemporalTintTest.Label">Teñir las nubes suavizadas (rojo = mezcladas, azul = no)</String>
 
   <String key="Group.Brightness">Brillo de las nubes</String>
 
@@ -342,6 +344,8 @@
   <String key="Group.Drawing">Cómo se dibujan las nubes</String>
 
   <String key="CloudDepthOcclusion.Label">Edificios y terreno ocultan nubes detrás</String>
+
+  <String key="CloudTemporal.Label">Nubes más suaves (mezcla varios fotogramas: menos grano)</String>
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Idioma</String>

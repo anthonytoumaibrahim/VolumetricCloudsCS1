@@ -355,6 +355,19 @@ namespace VolumetricClouds
         /// </summary>
         public static BoolSetting FarDeckTest { get; private set; }
 
+        /// <summary>
+        /// TEMPORARY (1.5.0 test, decide before release): every march's jitter moved on each frame
+        /// (Sky/CloudTemporal FrameShift), so a temporal anti-aliasing (Render It!'s TAA) averages the
+        /// grain. Without one the grain shimmers instead. Off: the jitter as before.
+        /// </summary>
+        public static BoolSetting JitterEachFrameTest { get; private set; }
+
+        /// <summary>
+        /// TEMPORARY (1.5.0 test): Smoother clouds' pixels drawn red, the cloud pixels still marched blue,
+        /// to see where the blend is used. Remove before release.
+        /// </summary>
+        public static BoolSetting TemporalTintTest { get; private set; }
+
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
         public static IntSetting ShadowMapResolution { get; private set; }
 
@@ -488,6 +501,12 @@ namespace VolumetricClouds
 
         /// <summary>Let scene geometry hide clouds behind it. Diagnostic escape hatch.</summary>
         public static BoolSetting CloudDepthOcclusion { get; private set; }
+
+        /// <summary>
+        /// Smoother clouds (1.5.0, Sky/CloudTemporal): the clouds marched at half size and blended over the
+        /// frames for the main camera. Off by default: nothing changes until a player turns it on.
+        /// </summary>
+        public static BoolSetting CloudTemporal { get; private set; }
 
         /// <summary>
         /// World illumination at 100% coverage, 0..1. Overcast, not night. Bypassed entirely
@@ -719,11 +738,20 @@ namespace VolumetricClouds
 
             /// <summary>TEMPORARY trial switch: the far deck on, to be judged in-game.</summary>
             public const bool FarDeckTest = true;
+
+            /// <summary>TEMPORARY test switch: off, the jitter as before.</summary>
+            public const bool JitterEachFrameTest = false;
+
+            /// <summary>TEMPORARY test switch: off, no tint.</summary>
+            public const bool TemporalTintTest = false;
             public const int ShadowMapResolution = 2048;
             public const int ShadowMapRate = 20;
 
             // ---- rendering (the machine, never a shared preset) ----
             public const bool DepthOcclusion = true;
+
+            /// <summary>Smoother clouds: off, so a new row changes nothing for anyone (invariant 15).</summary>
+            public const bool Temporal = false;
 
             /// <summary>
             /// Raymarch steps. 96 is the slider's maximum, what the author runs, and the shader's
@@ -961,6 +989,8 @@ namespace VolumetricClouds
                 CloudShadowFullness = new FloatSetting("CloudShadowFullness", Defaults.ShadowFullness);
                 SkipEmptySkyTest = new BoolSetting("SkipEmptySkyTest", Defaults.SkipEmptySkyTest);
                 FarDeckTest = new BoolSetting("FarDeckTest", Defaults.FarDeckTest);
+                JitterEachFrameTest = new BoolSetting("JitterEachFrameTest", Defaults.JitterEachFrameTest);
+                TemporalTintTest = new BoolSetting("TemporalTintTest", Defaults.TemporalTintTest);
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);
@@ -981,6 +1011,7 @@ namespace VolumetricClouds
                 CloudBrightnessOvercast = new FloatSetting("CloudBrightnessOvercast", Defaults.BrightnessOvercast);
                 CloudQuality = new FloatSetting("CloudQuality", Defaults.Quality);
                 CloudDepthOcclusion = new BoolSetting("CloudDepthOcclusion", Defaults.DepthOcclusion);
+                CloudTemporal = new BoolSetting("CloudTemporal", Defaults.Temporal);
                 MinIllumination = new FloatSetting("MinIllumination", Defaults.MinIllumination);
                 CloudNightBrightness = new BoolSetting("CloudNightBrightness", Defaults.NightBrightness);
                 CloudNightBrightnessClear = new FloatSetting("CloudNightBrightnessClear", Defaults.NightBrightnessClear);

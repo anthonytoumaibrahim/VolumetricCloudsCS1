@@ -150,6 +150,14 @@ namespace VolumetricClouds.Sky
         private bool _split;
         private int _partsLogged = -1;
 
+        // Smoother clouds (1.5.0, Settings.CloudTemporal): the clouds marched at half size and blended
+        // over the frames for the main camera, run from the box's OnWillRenderObject (CloudTemporalHook).
+        private CloudTemporal _temporal;
+        private static readonly int IdTemporalOn = Shader.PropertyToID("_TemporalOn");
+        private static readonly int IdTemporalTint = Shader.PropertyToID("_TemporalTint");
+        private static readonly int IdJitterShift = Shader.PropertyToID("_VCJitterShift");
+        private bool _jitterShiftLogged;
+
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
         private static readonly int IdUseDepth = Shader.PropertyToID("_UseDepth");
@@ -363,6 +371,10 @@ namespace VolumetricClouds.Sky
             _renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
             _renderer.enabled = false;
 
+            // Smoother clouds: told by the box which camera is about to draw it.
+            _temporal = new CloudTemporal(shader);
+            _holder.AddComponent<CloudTemporalHook>().Owner = this;
+
             // The air under the clouds, drawn apart whenever there is any (UpdateParts). A child,
             // so it follows the box.
             _airMaterial = new Material(shader) { name = "VolumetricCloudsAir" };
@@ -475,6 +487,20 @@ namespace VolumetricClouds.Sky
 
             bool wanted = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
 
+            // Smoother clouds switched off (or no clouds to draw): nothing of it runs or stays.
+            if (_temporal != null && _temporal.Running && (!wanted || !TemporalWanted))
+                _temporal.Release();
+
+            // The "grain changes every frame" test switch (1.5.0): every march's jitter moved on each
+            // frame, for a temporal anti-aliasing to average away. 0: the jitter as before.
+            bool shift = Settings.JitterEachFrameTest != null && Settings.JitterEachFrameTest.value;
+            Shader.SetGlobalFloat(IdJitterShift, shift ? CloudTemporal.FrameShift(Time.frameCount) : 0f);
+            if (shift != _jitterShiftLogged)
+            {
+                _jitterShiftLogged = shift;
+                Log.Msg("grain changes every frame (test switch): " + (shift ? "on -- the march's jitter moves on each frame" : "off -- the jitter as before"));
+            }
+
             _renderer.enabled = wanted;
             IsActive = wanted;
             if (!wanted)
@@ -489,6 +515,63 @@ namespace VolumetricClouds.Sky
 
             UpdateMaterial();
             UpdateParts();
+        }
+
+        /// <summary>The Smoother clouds setting is on.</summary>
+        private static bool TemporalWanted
+        {
+            get { return Settings.CloudTemporal != null && Settings.CloudTemporal.value; }
+        }
+
+        /// <summary>
+        /// A camera is about to draw the cloud box (CloudTemporalHook, once per camera per frame, with
+        /// the camera already where it draws from). The main camera with Smoother clouds on gets this
+        /// frame's blend (CloudTemporal) and reads it; any other camera, or a failure, marches as before.
+        /// The cloud material's values were all set in LateUpdate, which comes first.
+        /// </summary>
+        public void OnBoxWillRender(Camera camera)
+        {
+            if (_material == null)
+                return;
+
+            // Every camera that draws the box, once each (1.5.0: smoother clouds showed no difference
+            // in-game -- is another camera in between?), and whether it comes after the main camera's
+            // preparation in the same frame.
+            string name = camera == null ? "(none)" : camera.name;
+            bool main = camera != null && camera == _camera;
+            if (main)
+                _mainPreparedFrame = Time.frameCount;
+            else
+                _otherCameraDraws++;
+            if (!_boxCameras.Contains(name))
+            {
+                _boxCameras.Add(name);
+                Log.Msg("cloud box: drawn by camera '" + name + "'" + (main ? " (the main camera)" :
+                        " (another camera; " + (_mainPreparedFrame == Time.frameCount ? "after" : "before") +
+                        " the main camera's preparation this frame" +
+                        (camera != null ? ", depth " + camera.depth + ", mask 0x" + camera.cullingMask.ToString("X") +
+                                          ", target " + (camera.targetTexture != null ? camera.targetTexture.width + "x" + camera.targetTexture.height : "screen") : "") + ")"));
+            }
+
+            // Only the main camera's preparation sets this. Another camera never clears it: the shader
+            // reads the blend only from where it was marched, so it marches anywhere else.
+            if (!main)
+                return;
+
+            bool drawn = _noise != null && _temporal != null && TemporalWanted && IsActive && _temporal.Render(camera, _material);
+            _material.SetFloat(IdTemporalOn, drawn ? 1f : 0f);
+        }
+
+        private readonly System.Collections.Generic.HashSet<string> _boxCameras = new System.Collections.Generic.HashSet<string>();
+        private int _mainPreparedFrame = -1;
+        private int _otherCameraDraws;
+
+        /// <summary>Draws of the box by cameras other than the main one since the last call (detailed log).</summary>
+        private int TakeOtherCameraDraws()
+        {
+            int draws = _otherCameraDraws;
+            _otherCameraDraws = 0;
+            return draws;
         }
 
         /// <summary>
@@ -887,6 +970,9 @@ namespace VolumetricClouds.Sky
             ApplyLighting();
             ApplyDetailLight();
             CloudLightning.ApplyTo(_material);
+
+            // TEMPORARY test switch (1.5.0): smoother clouds' pixels red, marched cloud pixels blue.
+            _material.SetFloat(IdTemporalTint, Settings.TemporalTintTest != null && Settings.TemporalTintTest.value ? 1f : 0f);
         }
 
         /// <summary>
@@ -1401,6 +1487,9 @@ namespace VolumetricClouds.Sky
                        " emptySky=" + (CloudShaderParams.EmptyShareNow * 100f).ToString("F0") + "%" +
                        // 1.5.0 trial: how much of the far deck shows (0 under 90% cover).
                        " farDeck=" + (_farDeckShown * 100f).ToString("F0") + "%" +
+                       // 1.5.0: Smoother clouds (frames blended / fresh starts in this line's second).
+                       " temporal=" + (_temporal != null && _temporal.Running ? "on(" + _temporal.TakeCounts() + ")" : "off") +
+                       " otherCameraDraws=" + TakeOtherCameraDraws() +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
@@ -1928,6 +2017,15 @@ namespace VolumetricClouds.Sky
                 _shadowMap.Dispose();
                 _shadowMap = null;
             }
+
+            if (_temporal != null)
+            {
+                _temporal.Dispose();
+                _temporal = null;
+            }
+
+            // Ours, a global: back to "the jitter as before" for anything still drawn.
+            Shader.SetGlobalFloat(IdJitterShift, 0f);
 
             if (_holder != null)
                 Destroy(_holder);

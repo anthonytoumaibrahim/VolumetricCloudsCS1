@@ -177,11 +177,17 @@ float Hash12(float2 p)
 sampler2D _BlueNoiseTex;
 float _BlueNoiseScale;     // 1 / the tile's size in pixels; 0 until it is there (the hash)
 
+// A global, 0 except while the "grain changes every frame" test switch is on (Sky/CloudTemporal.cs,
+// 1.5.0): then this frame's shift, so the same pixel's jitter walks through 0..1 over the frames and a
+// temporal anti-aliasing (Render It!'s TAA) can average the grain away. At 0, the jitter as before.
+float _VCJitterShift;
+
 float MarchJitter(float2 pixel)
 {
-    return _BlueNoiseScale > 0.0
+    float jitter = _BlueNoiseScale > 0.0
         ? tex2Dlod(_BlueNoiseTex, float4(pixel * _BlueNoiseScale, 0, 0)).a
         : Hash12(pixel);
+    return _VCJitterShift > 0.0 ? frac(jitter + _VCJitterShift) : jitter;
 }
 
 // SKIP THE EMPTY SKY (1.5.0, Sky/EmptySky): per cell of the weather map, the most cloud it can

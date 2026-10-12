@@ -277,6 +277,8 @@
 
   <String key="SkipEmptySkyTest.Label">跳过空旷天空</String>
   <String key="FarDeckTest.Label">云层延伸至地平线</String>
+  <String key="JitterEachFrameTest.Label">颗粒感每帧变化</String>
+  <String key="TemporalTintTest.Label">为平滑云层着色（红色 = 已混合，蓝色 = 未混合）</String>
 
   <String key="Group.Brightness">云层受光亮度</String>
 
@@ -357,6 +359,8 @@
   <String key="Group.Drawing">云层绘制方式</String>
 
   <String key="CloudDepthOcclusion.Label">建筑和地形遮挡后方云层</String>
+
+  <String key="CloudTemporal.Label">更平滑的云层（混合多帧画面：减少颗粒感）</String>
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">语言</String>

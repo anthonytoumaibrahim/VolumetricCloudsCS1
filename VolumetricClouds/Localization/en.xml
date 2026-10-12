@@ -301,6 +301,8 @@
 
   <String key="SkipEmptySkyTest.Label">Skip the empty sky</String>
   <String key="FarDeckTest.Label">Clouds to the horizon</String>
+  <String key="JitterEachFrameTest.Label">Grain changes every frame</String>
+  <String key="TemporalTintTest.Label">Tint smoother clouds (red = blended, blue = not)</String>
 
   <String key="Group.Brightness">How brightly the clouds are lit</String>
 
@@ -381,6 +383,8 @@
   <String key="Group.Drawing">How the clouds are drawn</String>
 
   <String key="CloudDepthOcclusion.Label">Buildings and terrain hide clouds behind them</String>
+
+  <String key="CloudTemporal.Label">Smoother clouds (blends frames together: less grain)</String>
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Language</String>

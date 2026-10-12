@@ -261,6 +261,8 @@
 
   <String key="SkipEmptySkyTest.Label">Sauter le ciel vide</String>
   <String key="FarDeckTest.Label">Nuages jusqu’à l’horizon</String>
+  <String key="JitterEachFrameTest.Label">Le grain change à chaque image</String>
+  <String key="TemporalTintTest.Label">Teinter les nuages lissés (rouge = mélangés, bleu = non)</String>
 
   <String key="Group.Brightness">Luminosité des nuages</String>
 
@@ -341,6 +343,8 @@
   <String key="Group.Drawing">Affichage des nuages</String>
 
   <String key="CloudDepthOcclusion.Label">Bâtiments et terrain masquent les nuages derrière eux</String>
+
+  <String key="CloudTemporal.Label">Nuages plus lisses (mélange plusieurs images : moins de grain)</String>
 
   <!-- "(more languages...)" goes when the first translation lands. -->
   <String key="Group.Language">Langue</String>

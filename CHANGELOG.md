@@ -7,12 +7,13 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.5.0 — unreleased
 
-Fog that changes on its own, clouds that can hide the sky by day, a wind direction of your own, and
-the mod's defaults in the profile list. `VolumetricClouds.xml` gains eight lines:
+Fog that changes on its own, clouds that can hide the sky by day, smoother clouds, a wind direction of
+your own, and the mod's defaults in the profile list. `VolumetricClouds.xml` gains nine lines:
 `FogChangesWithWeather`, `MorningFog`, `MistAfterRain`, `FogInValleys`, `FogOverWater` and
-`CloudDayOpacity`, all at 0%, and `WindDirection` (0: follow the game) with `WindAngle`. At those values the fog, the clouds and the
-wind are exactly as before, so nothing changes for anyone until they move one. Profiles saved before
-read the new sliders as 0%. Nothing in saved cities changes.
+`CloudDayOpacity`, all at 0%, `CloudTemporal` (off), and `WindDirection` (0: follow the game) with
+`WindAngle`. At those values the fog, the clouds and the wind are exactly as before, so nothing
+changes for anyone until they move one. Profiles saved before read the new sliders as 0%. Nothing in
+saved cities changes.
 
 ### New: changing fog
 
@@ -55,6 +56,16 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   ending a few degrees above it with clear sky underneath. Seen from high up, it also covers the sky
   beyond the edge of the map. It hides a low sun too. By day it follows *Clouds hide the sky by
   day* (0%: no change); at night it follows *Clouds hide the stars at night*.
+
+### New: smoother clouds
+
+- *Smoother clouds (blends frames together: less grain)* in the game's options, under *How the clouds
+  are drawn*, off by default. The clouds are worked out at half the screen's size each way, every
+  frame, and each frame is blended with the ones before it, moved to where the camera and the wind
+  have taken the clouds since. The fine grain the clouds are drawn with averages away; the clouds are a
+  little softer. Their shapes don't change. Where a building or a hill reaches into the clouds, or a
+  lightning bolt shows, the clouds there are drawn as before. In very fast camera moves the clouds can
+  trail for a moment. It is used by the game's main camera only.
 
 ### New: wind direction
 
@@ -101,12 +112,25 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
 
 Not started yet:
 
-- Clouds: smoothing over frames, high and distant clouds from photographs of real skies (a *High
-  clouds* group, every row off by default), and the Mixed style again.
+- Clouds: high and distant clouds from photographs of real skies (a *High clouds* group, every row
+  off by default), and the Mixed style again.
 - Remove the temporary *Skip the empty sky* test switch (Advanced tab, "Testing" group:
   `Settings.SkipEmptySkyTest`, its catalog row, its texts in all four languages) once its frame
   times are compared. The skip itself stays. The same for *Clouds to the horizon* (`FarDeckTest`,
   see the far clouds item below).
+
+Built, awaiting the in-game test:
+
+- *Smoother clouds* (written up above), built 2026-10-12, tested: works (the tint showed the blend
+  in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
+  by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to
+  learn whether it saves time where the clouds are the cost (then say so above, or not); remove the
+  temporary *Tint smoother clouds* switch (`Settings.TemporalTintTest`, its row, its texts in all four
+  languages) and the camera diagnostics (`otherCameraDraws` in the frame line).
+- Temporary test switch *Grain changes every frame* (Advanced tab, "Testing",
+  `Settings.JitterEachFrameTest`, off): every march's jitter moves on each frame, so a temporal
+  anti-aliasing (Render It!'s TAA) can average the grain. Without one the grain shimmers instead.
+  Decide (keep, and how, or drop), then remove the switch with its texts in all four languages.
 - Smoke and fire in the fog: since 1.4.0 smoke and fire are drawn on top of the fog instead of
   vanishing in it. They should fade into it with distance, like everything else. Black smoke over
   white steam: NOT fixed by the one queue -- the log (2026-10-12) shows both are 'Alpha Blended',

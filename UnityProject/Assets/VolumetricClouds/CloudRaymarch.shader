@@ -59,6 +59,33 @@ Shader "VolumetricClouds/CloudRaymarch"
             // there, but drawn under the one pass they had the whole cloud behind them painted over
             // them (the author: the clouds "blend" with the power lines).
             float _DrawPart;
+
+            // SMOOTHER CLOUDS (Sky/CloudTemporal.cs, 1.5.0): the clouds marched into a half-size target just
+            // before the main camera draws (mode 1), blended with the last frames' (mode 2), and read back by
+            // the camera's own draw (mode 0 with _TemporalOn) wherever nothing of the scene stands inside the
+            // cloud slab and no bolt shows. Modes 1 and 2 draw a quad over the target, not the box.
+            float _TemporalMode;        // 0 = the camera's draw, 1 = march into the target, 2 = blend
+            float _TemporalOn;          // mode 0: 1 while there is a blend to read -- by the camera standing at
+                                        // _TemporalEye only (the main camera): any other marches
+            float _TemporalTint;        // mode 0, TEMPORARY test switch: blended clouds red, marched ones blue
+            sampler2D _TemporalTex;     // mode 0: the blend; mode 2: this frame's march (rgb = light,
+                                        // a = 1 - transmittance, before the distance fade)
+            float4x4 _TemporalVP;       // mode 0: the view-projection it was marched with (OpenGL convention)
+            float4 _TemporalCorner0;    // modes 1, 2: the camera's rays (world, not normalised) at the target's
+            float4 _TemporalCorner1;    // corners (0, 0), (1, 0), (0, 1), (1, 1); mode 1's moved by this frame's
+            float4 _TemporalCorner2;    // sub-texel shift
+            float4 _TemporalCorner3;
+            float4 _TemporalEye;        // modes 1, 2: xyz = the camera; w = the target's up (+1 / -1)
+            float4 _TemporalSize;       // modes 1, 2: the target's width, height, 1 / width, 1 / height
+            float _TemporalJitter;      // mode 1: this frame's shift of the march's jitter, 0..1
+            // Mode 2 reads two targets, and a pass has 16 samplers: the clouds, fog, rain, bolt and rainbow
+            // take 14, _TemporalTex the 15th. So the blend reads this frame's march through _TemporalTex and
+            // the blend until last frame through the rainbow's _BowTex, which it never reads as the rainbow
+            // (Sky/CloudTemporal sets both on its own material; the camera's draw keeps its own).
+            float4x4 _TemporalPrevVP;   // mode 2: last frame's view-projection
+            float4 _TemporalParams;     // mode 2: x = how much of the last frames is kept (0: none), yz = how far
+                                        // the clouds drifted since then (m, x and z)
+
             float3 _SunColor;      // (_SunDir, towards the light, is in CloudMedia)
             float3 _AmbientColor;
 
@@ -115,6 +142,21 @@ Shader "VolumetricClouds/CloudRaymarch"
             v2f vert(appdata_base v)
             {
                 v2f o;
+
+                // Smoother clouds' passes: a quad whose corners are 0..1 over the half-size target, the
+                // camera's rays between them (Sky/CloudTemporal.cs). Its up as GL.GetGPUProjectionMatrix
+                // says the target has it (probed in the 5.6 editor, 2026-10-12: -1 on D3D11), so a texel
+                // written at uv is read back at uv.
+                if (_TemporalMode > 0.5)
+                {
+                    float2 uv = v.vertex.xy;
+                    o.pos = float4(uv.x * 2.0 - 1.0, (uv.y * 2.0 - 1.0) * _TemporalEye.w, 0.5, 1.0);
+                    o.worldPos = _TemporalEye.xyz + lerp(lerp(_TemporalCorner0.xyz, _TemporalCorner1.xyz, uv.x),
+                                                         lerp(_TemporalCorner2.xyz, _TemporalCorner3.xyz, uv.x), uv.y);
+                    o.screenPos = float4(uv, 0.0, 1.0);
+                    return o;
+                }
+
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 o.screenPos = ComputeScreenPos(o.pos);
@@ -489,12 +531,11 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return radiance;
             }
 
-            // The cloud slab between tEnter and tExit. Returns premultiplied light in rgb and
-            // what is left of the background in a. `skyBehind`: the ray ends in the sky, not on
-            // the ground or a building. `tStop`: a lightning bolt's BoltStop (1e9 without one): the
-            // march ends there but keeps the steps of the whole ray, so the cloud in front of a bolt
-            // is marched exactly as on the pixels beside it.
-            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float tStop, float jitter, float cosTheta, bool skyBehind)
+            // The cloud slab between tEnter and tExit, before the distance fade (FinishClouds): light in
+            // rgb, transmittance in a. `tStop`: a lightning bolt's BoltStop (1e9 without one): the march
+            // ends there but keeps the steps of the whole ray, so the cloud in front of a bolt is marched
+            // exactly as on the pixels beside it. Smoother clouds blend this, then finish it per pixel.
+            float4 MarchCloudsRaw(float3 origin, float3 dir, float tEnter, float tExit, float tStop, float jitter, float cosTheta)
             {
                 if (tExit <= tEnter)
                     return float4(0, 0, 0, 1);
@@ -563,6 +604,17 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Stretch what is left so that "stopped early" means opaque.
                 transmittance = saturate((transmittance - 0.02) / 0.98);
 
+                return float4(light, transmittance);
+            }
+
+            // MarchCloudsRaw's light and transmittance, dissolved into the distance. Returns premultiplied
+            // light in rgb and what is left of the background in a. `skyBehind`: the ray ends in the sky,
+            // not on the ground or a building.
+            float4 FinishClouds(float4 raw, float tEnter, float3 dir, bool skyBehind)
+            {
+                float3 light = raw.rgb;
+                float transmittance = raw.a;
+
                 // Dissolve into the distance rather than ending on a hard line; at night only where
                 // the clouds run out (CloudMedia).
                 float presence = CloudPresence(tEnter);
@@ -574,6 +626,101 @@ Shader "VolumetricClouds/CloudRaymarch"
                     sky = SkyGlowPass(dir);
 
                 return float4(light * presence, transmittance + (1.0 - transmittance) * (1.0 - presence) * sky);
+            }
+
+            // The cloud slab between tEnter and tExit, marched and finished (see the two above).
+            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float tStop, float jitter, float cosTheta, bool skyBehind)
+            {
+                if (tExit <= tEnter)
+                    return float4(0, 0, 0, 1);
+
+                return FinishClouds(MarchCloudsRaw(origin, dir, tEnter, tExit, tStop, jitter, cosTheta), tEnter, dir, skyBehind);
+            }
+
+            // SMOOTHER CLOUDS, the camera's draw: the blended clouds on this pixel's ray, looked up through
+            // the matrix they were marched with this frame (Sky/CloudTemporal.cs), before the distance fade.
+            // a < 0: none here (off the target), march as usual.
+            float4 TemporalClouds(float3 dir)
+            {
+                float4 clip = mul(_TemporalVP, float4(dir, 0.0));
+                if (clip.w <= 1e-4)
+                    return float4(0, 0, 0, -1);
+
+                float2 uv = clip.xy / clip.w * 0.5 + 0.5;
+                if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+                    return float4(0, 0, 0, -1);
+
+                float4 blended = tex2Dlod(_TemporalTex, float4(uv, 0, 0));
+                return float4(blended.rgb, 1.0 - blended.a);
+            }
+
+            // How far along a ray from `eye` its clouds were seen, for moving them to last frame's view:
+            // from under the base, the base (it is flat); from over the top, the top; from inside, close
+            // by. Exact for the bases, which is what a camera under them sees most of; elsewhere the
+            // neighbourhood clamp in TemporalResolve keeps what is off from smearing.
+            float TemporalDistance(float3 eye, float3 dir)
+            {
+                float dy = abs(dir.y) < 1e-4 ? (dir.y < 0 ? -1e-4 : 1e-4) : dir.y;
+                float tA = (_CloudBottom - eye.y) / dy;
+                float tB = (_CloudTop - eye.y) / dy;
+                float tEnter = max(min(tA, tB), 0.0);
+                float tExit = min(max(tA, tB), _MaxDistance);
+                if (tExit <= tEnter)
+                    return 100000.0;
+
+                return tEnter > 0.0 ? tEnter : min(tExit, 1000.0);
+            }
+
+            // SMOOTHER CLOUDS, mode 2: this frame's march blended with the last frames', those moved to where
+            // the same clouds were seen then (the camera's move and the wind's), and held inside what this
+            // frame's march has round the texel (the neighbourhood clamp), so a cloud that moved or changed
+            // never leaves a ghost. A texel with no history (new on screen, or a reset) takes the march.
+            // (This frame's march comes in through _TemporalTex, the blend until last frame through _BowTex:
+            // see their declarations.)
+            float4 TemporalResolve(float2 uv, float3 worldPos)
+            {
+                float2 texel = _TemporalSize.zw;
+                float4 now = tex2Dlod(_TemporalTex, float4(uv, 0, 0));
+                float4 low = now;
+                float4 high = now;
+
+                [unroll]
+                for (int y = -1; y <= 1; y++)
+                {
+                    [unroll]
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        if (x != 0 || y != 0)
+                        {
+                            float4 s = tex2Dlod(_TemporalTex, float4(uv + float2(x, y) * texel, 0, 0));
+                            low = min(low, s);
+                            high = max(high, s);
+                        }
+                    }
+                }
+
+                float3 eye = _TemporalEye.xyz;
+                float3 dir = normalize(worldPos - eye);
+                float3 then = eye + dir * TemporalDistance(eye, dir) - float3(_TemporalParams.y, 0.0, _TemporalParams.z);
+
+                float keep = 0.0;
+                float4 history = now;
+                float4 clip = mul(_TemporalPrevVP, float4(then, 1.0));
+                if (clip.w > 1e-3)
+                {
+                    float2 was = clip.xy / clip.w * 0.5 + 0.5;
+                    if (was.x >= 0.0 && was.x <= 1.0 && was.y >= 0.0 && was.y <= 1.0)
+                    {
+                        history = clamp(tex2Dlod(_BowTex, float4(was, 0, 0)), low, high);
+                        keep = _TemporalParams.x;
+                    }
+                }
+
+                // Nothing invalid ever goes into the history: there it would stay, and spread. On D3D11
+                // min/max return the operand that is a number, so a NaN becomes 0 (not isnan, which the
+                // compiler may fold away).
+                float4 blended = lerp(now, history, keep);
+                return min(max(blended, 0.0), float4(60000.0, 60000.0, 60000.0, 1.0));
             }
 
             // THE FAR DECK (Sky/CloudVolume.cs, 1.5.0 trial): the clouds past where the march thins,
@@ -1025,7 +1172,12 @@ Shader "VolumetricClouds/CloudRaymarch"
 
             float4 frag(v2f i) : SV_Target
             {
-                float3 origin = _WorldSpaceCameraPos;
+                // Smoother clouds' blend (mode 2): no march at all.
+                if (_TemporalMode > 1.5)
+                    return TemporalResolve(i.screenPos.xy, i.worldPos);
+
+                bool marchOnly = _TemporalMode > 0.5;
+                float3 origin = marchOnly ? _TemporalEye.xyz : _WorldSpaceCameraPos;
                 float3 dir = normalize(i.worldPos - origin);
 
                 // Slab intersection. tA is where the ray crosses the cloud base.
@@ -1034,6 +1186,21 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float tB = (_CloudTop - origin.y) / dy;
                 float tEnter = max(min(tA, tB), 0.0);
                 float tExit = min(max(tA, tB), _MaxDistance);
+
+                // Smoother clouds' march (mode 1): the clouds alone, before the distance fade, through
+                // the whole slab -- no scene (the camera's draw marches every pixel where the scene stands
+                // in the slab itself), no bolt -- with the jitter moved on every frame so the blend
+                // averages it away.
+                if (marchOnly)
+                {
+                    float2 texelPos = i.screenPos.xy * _TemporalSize.xy;
+                    float shifted = frac(MarchJitter(texelPos) + _TemporalJitter);
+                    float4 raw = MarchCloudsRaw(origin, dir, tEnter, tExit, 1e9, shifted, dot(dir, _SunDir));
+                    return float4(raw.rgb, 1.0 - raw.a);
+                }
+
+                // The slab's own end, before the scene cuts it: what smoother clouds marched to.
+                float tExitClear = tExit;
 
                 // Stop at scene geometry, so buildings and hills hide what is behind them.
                 float sceneDist = 1e9;
@@ -1065,7 +1232,28 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 float4 clouds = float4(0, 0, 0, 1);
                 if (drawClouds)
-                    clouds = MarchClouds(origin, dir, tEnter, tExit, boltStop, jitter, cosTheta, sceneDist >= 1e9);
+                {
+                    // Smoother clouds (Sky/CloudTemporal.cs): the blend, where it is the same as a march
+                    // here would be -- the scene ends the ray past the slab (or never), and no bolt stops
+                    // it. Where a building or a hill stands inside the slab, or a bolt shows, a march.
+                    // Only the camera it was made for reads it: the one standing where it was marched from.
+                    // (A flag set per camera before its draw was not enough: another camera culled between
+                    // the main camera's preparation and its draw would turn it off.)
+                    float3 fromEye = origin - _TemporalEye.xyz;
+                    bool temporalCamera = _TemporalOn > 0.5 && dot(fromEye, fromEye) < 1.0;
+
+                    float4 raw = float4(0, 0, 0, -1);
+                    if (temporalCamera && tExit > tEnter && sceneDist >= tExitClear && boltStop >= 1e9)
+                        raw = TemporalClouds(dir);
+
+                    clouds = raw.a >= 0.0
+                        ? FinishClouds(raw, tEnter, dir, sceneDist >= 1e9)
+                        : MarchClouds(origin, dir, tEnter, tExit, boltStop, jitter, cosTheta, sceneDist >= 1e9);
+
+                    // TEMPORARY test switch: which way each cloud pixel was drawn.
+                    if (_TemporalTint > 0.5 && tExit > tEnter)
+                        clouds.rgb *= raw.a >= 0.0 ? float3(1.0, 0.3, 0.3) : float3(0.3, 0.3, 1.0);
+                }
 
                 // The far deck, behind them, wherever there is sky (from any height: until 1.5.0's second
                 // trial only from under the base, and it vanished as the camera rose into the clouds).
