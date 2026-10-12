@@ -47,7 +47,10 @@ namespace VolumetricClouds.UI
 
         private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
 
-        private static readonly PanelPage[] BasicTabs = { PanelPage.Now, PanelPage.Clouds, PanelPage.Fog, PanelPage.Light };
+        private static readonly PanelPage[] BasicTabs =
+        {
+            PanelPage.Now, PanelPage.Clouds, PanelPage.DistantClouds, PanelPage.Fog, PanelPage.Light,
+        };
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
@@ -168,6 +171,7 @@ namespace VolumetricClouds.UI
 
             _tabs = _ui.AddTabStrip(this, new Vector3(Margin, TitleBarHeight + BarHeight + 2f), _width - 2f * Margin,
                 TabHeight, names, SelectPage);
+            FitTabs();
 
             foreach (Tab tab in tabs)
             {
@@ -193,6 +197,26 @@ namespace VolumetricClouds.UI
 
             Log.Msg("panel built: " + _controls.Count + " controls over " + _pages.Count + " tabs (" +
                     (advanced ? "advanced" : "basic") + ", " + _ui.Skin + ")");
+        }
+
+        /// <summary>
+        /// A tab name wider than its tab is drawn smaller until it fits (1.5.0: five tabs, and
+        /// "DISTANT CLOUDS" / "NUAGES LOINTAINS" in capitals): a button clips what runs past its edge.
+        /// </summary>
+        private void FitTabs()
+        {
+            foreach (UIButton tab in _tabs.Tabs)
+            {
+                float room = tab.width - 8f;
+                float wide = _ui.Measure(tab.text, tab.textScale) + tab.characterSpacing * tab.text.Length;
+                if (wide > room && wide > 0f)
+                {
+                    float scale = tab.textScale * room / wide;
+                    Log.Msg("panel: tab '" + tab.text + "' drawn at " + (100f * scale / tab.textScale).ToString("F0") +
+                            "% to fit its " + tab.width.ToString("F0") + " px");
+                    tab.textScale = scale;
+                }
+            }
         }
 
         private static List<Tab> Tabs(bool advanced)

@@ -36,6 +36,7 @@
 
   <String key="Tab.Now">当前</String>
   <String key="Tab.Clouds">云层</String>
+  <String key="Tab.DistantClouds">远处的云</String>
   <String key="Tab.Fog">雾</String>
   <String key="Tab.Weather">天气</String>
   <String key="Tab.Light">光照</String>
@@ -170,6 +171,16 @@
   <String key="CloudMoonlitColor.Label">月光面</String>
 
   <String key="CloudNightShadeColor.Label">夜间背光面</String>
+
+  <String key="Group.SkyLayer">云层后方的摄影天空（可叠加）</String>
+
+  <String key="SkyCirrus.Label">卷云（高空细丝）</String>
+
+  <String key="SkySheepClouds.Label">鱼鳞云（成片的小云团）</String>
+
+  <String key="SkyFarClouds.Label">地平线上的积云</String>
+
+  <String key="SkyCloudLayers.Label">多层云（多种云同时出现）</String>
 
   <String key="Colour.Copy">复制</String>
   <String key="Colour.Copied">已复制</String>

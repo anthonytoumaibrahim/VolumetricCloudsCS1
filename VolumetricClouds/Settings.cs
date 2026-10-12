@@ -468,6 +468,16 @@ namespace VolumetricClouds
         /// </summary>
         public static ColorSetting CloudNightShadeColor { get; private set; }
 
+        /// <summary>
+        /// DISTANT CLOUDS (1.5.0, Sky/SkyLayer; its own panel tab): photographed skies behind the clouds,
+        /// one amount per kind, 0..1; they add up. 0 is off, and with all four at 0 nothing of it exists.
+        /// A kind's amount walks through its pictures, thinnest first (Sky/SkyLayerMix).
+        /// </summary>
+        public static FloatSetting SkyCirrus { get; private set; }
+        public static FloatSetting SkySheepClouds { get; private set; }
+        public static FloatSetting SkyFarClouds { get; private set; }
+        public static FloatSetting SkyCloudLayers { get; private set; }
+
         /// <summary>Multiplier on cloud optical density.</summary>
         public static FloatSetting CloudDensity { get; private set; }
 
@@ -712,6 +722,12 @@ namespace VolumetricClouds
             public const bool NightColors = false;
             public static readonly Color32 MoonlitColor = new Color32(255, 255, 255, 255);
             public static readonly Color32 NightShadeColor = new Color32(255, 255, 255, 255);
+
+            /// <summary>Distant clouds (1.5.0): all off, so new rows change nobody's sky (invariant 15).</summary>
+            public const float SkyCirrus = 0f;
+            public const float SkySheepClouds = 0f;
+            public const float SkyFarClouds = 0f;
+            public const float SkyCloudLayers = 0f;
 
             /// <summary>The manual brightness, used when the curve below is switched off.</summary>
             public const float Brightness = 0.25f;
@@ -1038,6 +1054,12 @@ namespace VolumetricClouds
                 CloudNightColors = new BoolSetting("CloudNightColors", Defaults.NightColors);
                 CloudMoonlitColor = new ColorSetting("CloudMoonlitColor", Defaults.MoonlitColor);
                 CloudNightShadeColor = new ColorSetting("CloudNightShadeColor", Defaults.NightShadeColor);
+                // Not "HighCloud*": that was September's rejected concept (none is in any file, checked
+                // 2026-10-12, but the names stay clear of it).
+                SkyCirrus = new FloatSetting("SkyCirrus", Defaults.SkyCirrus);
+                SkySheepClouds = new FloatSetting("SkySheepClouds", Defaults.SkySheepClouds);
+                SkyFarClouds = new FloatSetting("SkyFarClouds", Defaults.SkyFarClouds);
+                SkyCloudLayers = new FloatSetting("SkyCloudLayers", Defaults.SkyCloudLayers);
 
                 // Not the old HaloFogEnabled/HaloFogValue, which belonged to an experiment where
                 // values like -5 were normal; here -5 would simply mean "no glow", and an old

@@ -35,6 +35,9 @@
     <EmbeddedResource Include="Resources\CloudIcon.png" />
     <!-- Every language file, as "Localization.<code>.xml": Localization.cs finds them by name. -->
     <EmbeddedResource Include="Localization\*.xml" LogicalName="Localization.%(Filename)%(Extension)" />
+    <!-- Distant clouds' pictures (1.5.0, tools/make-skylayer.ps1), as "SkyLayer.<name>.jpg": Sky/SkyLayer.cs
+         finds them by name. Embedded once, never in the shader bundles (which would hold them three times). -->
+    <EmbeddedResource Include="Resources\SkyLayer\*.jpg" LogicalName="SkyLayer.%(Filename)%(Extension)" />
     <!-- Shader bundles from UnityProject (see build-bundle.ps1), one per platform: Direct3D 11
          + OpenGL Core for Windows, OpenGL Core for Linux, Metal + OpenGL Core for the Mac.
          ShaderBundle picks one by Application.platform, by these exact LogicalNames.

@@ -28,6 +28,7 @@
 
   <String key="Tab.Now">Actuel</String>
   <String key="Tab.Clouds">Nuages</String>
+  <String key="Tab.DistantClouds">Nuages lointains</String>
   <String key="Tab.Fog">Brouillard</String>
   <String key="Tab.Weather">Météo</String>
   <String key="Tab.Light">Lumière</String>
@@ -156,6 +157,16 @@
   <String key="CloudMoonlitColor.Label">Côté au clair de lune</String>
 
   <String key="CloudNightShadeColor.Label">Côté ombragé la nuit</String>
+
+  <String key="Group.SkyLayer">Ciels photographiés derrière les nuages (ils s'additionnent)</String>
+
+  <String key="SkyCirrus.Label">Cirrus (hauts, en fines traînées)</String>
+
+  <String key="SkySheepClouds.Label">Nuages moutonnés (petits flocons en bancs)</String>
+
+  <String key="SkyFarClouds.Label">Cumulus à l'horizon</String>
+
+  <String key="SkyCloudLayers.Label">Couches de nuages (plusieurs types à la fois)</String>
 
   <String key="Colour.Copy">Copier</String>
   <String key="Colour.Copied">Copié</String>

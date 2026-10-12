@@ -40,7 +40,7 @@ namespace VolumetricClouds.UI
     /// Which basic tab of the in-game (F4) panel a row appears on. None = not in it. Light was an
     /// advanced tab until 1.3.0 (the author: it should show "even without advanced settings on").
     /// </summary>
-    public enum PanelPage { None, Now, Clouds, Fog, Light }
+    public enum PanelPage { None, Now, Clouds, Fog, Light, DistantClouds }
 
     /// <summary>
     /// General = the game's mod options page (which has no tabs since 1.1.0). The others are
@@ -489,7 +489,8 @@ namespace VolumetricClouds.UI
             }
 
             Log.Msg("settings catalog: " + Rows.Count + " rows | panel Now=" + CountForPanel(PanelPage.Now) +
-                    " Clouds=" + CountForPanel(PanelPage.Clouds) + " Fog=" + CountForPanel(PanelPage.Fog) +
+                    " Clouds=" + CountForPanel(PanelPage.Clouds) +
+                    " DistantClouds=" + CountForPanel(PanelPage.DistantClouds) + " Fog=" + CountForPanel(PanelPage.Fog) +
                     " Light=" + CountForPanel(PanelPage.Light) +
                     " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
@@ -1407,6 +1408,48 @@ namespace VolumetricClouds.UI
                 Colour = Settings.CloudNightShadeColor,
                 DefaultColour = Settings.Defaults.NightShadeColor,
                 Enabled = NightColoursOn,
+            });
+
+            // DISTANT CLOUDS (1.5.0, Sky.SkyLayer), a tab of their own: photographed skies behind the
+            // clouds, a row per kind, and they add up. 0 is off; all four at 0 and nothing of it exists.
+            // Each walks through its pictures, thinnest first (Sky.SkyLayerMix). Look rows, so profiled:
+            // a profile saved before them reads 0. No AfterChange (a slider's runs per drag tick):
+            // SkyLayer logs them.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.DistantClouds,
+                Group = "SkyLayer",
+                Float = Settings.SkyCirrus,
+                DefaultFloat = Settings.Defaults.SkyCirrus,
+                Min = 0f, Max = 100f, Step = 1f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.DistantClouds,
+                Float = Settings.SkySheepClouds,
+                DefaultFloat = Settings.Defaults.SkySheepClouds,
+                Min = 0f, Max = 100f, Step = 1f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.DistantClouds,
+                Float = Settings.SkyFarClouds,
+                DefaultFloat = Settings.Defaults.SkyFarClouds,
+                Min = 0f, Max = 100f, Step = 1f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.DistantClouds,
+                Float = Settings.SkyCloudLayers,
+                DefaultFloat = Settings.Defaults.SkyCloudLayers,
+                Min = 0f, Max = 100f, Step = 1f,
             });
         }
 

@@ -8,8 +8,10 @@ below; the mods list shows it after the mod's name, and the first line of
 ## 1.5.0 — unreleased
 
 A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
-cumulus clouds, clouds that can hide the sky by day, smoother clouds, a wind direction of your own,
-and the mod's defaults in the profile list. `VolumetricClouds.xml` gains sixteen lines: `PanelSkin`
+cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
+clouds, a wind direction of your own, and the mod's defaults in the profile list.
+`VolumetricClouds.xml` gains twenty lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+`SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Like the game* puts the old panel
 back), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
@@ -18,7 +20,8 @@ back), `FogChangesWithWeather`, `MorningFog`,
 only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
 before, so nothing changes for anyone until they move one. Profiles saved before read the new
 sliders at those values. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
-the update. Nothing in saved cities changes.
+the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 3 MB (the
+photographed skies).
 
 ### New: the panel's look
 
@@ -121,6 +124,22 @@ worked through grows with the tallest cloud.
 file and in profiles the new style is `<CloudStyle>2</CloudStyle>`; an older version of the mod
 reading it ignores that one line and draws *Classic*.
 
+### New: distant clouds
+
+A tab of its own in the in-game panel, *Distant clouds*, with four sliders, each 0% to 100%, 0% by
+default. They draw real skies, photographed, behind the mod's own clouds: *Cirrus* (high, thin
+streaks), *Sheep clouds* (small puffs in fields), *Cumulus on the horizon* and *Cloud layers*
+(several kinds at once). They add up, so cirrus can stand over sheep clouds over far cumulus. Only
+the clouds are taken from the photographs: the game's sun and sky light them, so they turn gold at
+sunset, keep the light longest the higher they stand, glow round the sun, and go dark at night,
+where they hide the stars. Everything else in the sky, the mod's clouds, the rain, the fog and
+lightning, stands in front of them. They drift a little with the wind and stay in place overall;
+each city sees them turned its own way.
+
+Each slider walks through its photographs, thinnest first: *Cirrus* shows a faint sky at 33%, sharp
+streaks at 67% and a sky full of swirls at 100%; the other three have two photographs (one at 50%,
+the other at 100%) or one. The photographs are Poly Haven's, free for any use (CC0).
+
 ### New: smoother clouds
 
 - *Smoother clouds (blends frames together: less grain)* in the game's options, under *How the clouds
@@ -202,9 +221,16 @@ Built, awaiting the in-game test:
   mean instead of the noise, and the empty-sky skip knows where its clouds reach. Tested 2026-10-12:
   liked ("I do like Mixed"), no dearer than Cumulus with *Smoother clouds* on (42%: 26-27 ms against
   Cumulus's 29.7; 84%: both 38-41 ms). Then "can we add more variety?": the cumulus rows and Mixed's
-  three variety rows (written up above), built the same day, awaiting the in-game look. (High and
-  distant clouds from photographs of real skies were built and dropped 2026-10-12: a cubemap does the
-  same.)
+  three variety rows (written up above), built the same day, awaiting the in-game look.
+- *Distant clouds* (written up above): built 2026-10-12 from the author's picks (C2, C3, C6, S1, S7,
+  F2, F6, M2 of 30 shortlisted Poly Haven skies; `tools/make-skylayer.ps1` cuts the clouds out of
+  each 4K HDR), dropped the same day ("a cubemap does the same"), RESTORED 2026-10-13 on the author's
+  call, on a tab of its own. Fixed on restoring, after "at 100% ... super dense and really dark": the
+  shade towards the sun was a sum of four looks (up to 12 of depth, 2% of the sun), now their
+  average with a lighter floor; each kind has a greatest opacity (cirrus 90%, the others 75-80%).
+  Its own shader (`SkyLayer.shader`, queue 2507). To judge in-game: each slider at 100%, the light at
+  noon, sunset and night, the horizon, the tab names fitting (log: `panel: tab '...' drawn at`).
+  Before release: the Workshop description could thank Poly Haven (CC0 needs no credit).
 - *Smoother clouds* (written up above), built 2026-10-12, tested: works (the tint showed the blend
   in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
   by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to

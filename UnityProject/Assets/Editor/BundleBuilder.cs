@@ -30,6 +30,7 @@ public static class BundleBuilder
         "Assets/VolumetricClouds/LightningBoltMap.shader",
         "Assets/VolumetricClouds/Invisible.shader",
         "Assets/VolumetricClouds/FogLamps.shader",
+        "Assets/VolumetricClouds/SkyLayer.shader",
     };
 
     private struct Target

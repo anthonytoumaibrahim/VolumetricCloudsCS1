@@ -56,6 +56,7 @@
 
   <String key="Tab.Now">Now</String>
   <String key="Tab.Clouds">Clouds</String>
+  <String key="Tab.DistantClouds">Distant clouds</String>
   <String key="Tab.Fog">Fog</String>
   <String key="Tab.Weather">Weather</String>
   <String key="Tab.Light">Light</String>
@@ -193,6 +194,16 @@
   <String key="CloudMoonlitColor.Label">Moonlit side</String>
 
   <String key="CloudNightShadeColor.Label">Shaded side at night</String>
+
+  <String key="Group.SkyLayer">Photographed skies behind the clouds (they add up)</String>
+
+  <String key="SkyCirrus.Label">Cirrus (high, thin streaks)</String>
+
+  <String key="SkySheepClouds.Label">Sheep clouds (small puffs in fields)</String>
+
+  <String key="SkyFarClouds.Label">Cumulus on the horizon</String>
+
+  <String key="SkyCloudLayers.Label">Cloud layers (several kinds at once)</String>
 
   <String key="Colour.Copy">Copy</String>
   <String key="Colour.Copied">Copied</String>

@@ -153,6 +153,10 @@ namespace VolumetricClouds.Sky
         // Smoother clouds (1.5.0, Settings.CloudTemporal): the clouds marched at half size and blended
         // over the frames for the main camera, run from the box's OnWillRenderObject (CloudTemporalHook).
         private CloudTemporal _temporal;
+
+        // Distant clouds (1.5.0, Sky/SkyLayer): photographed skies behind the clouds, a child of the box
+        // with its own shader; null if the bundle lacks it.
+        private SkyLayer _skyLayer;
         private static readonly int IdTemporalOn = Shader.PropertyToID("_TemporalOn");
 
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
@@ -386,6 +390,13 @@ namespace VolumetricClouds.Sky
             _airRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
             _airRenderer.enabled = false;
 
+            // Distant clouds behind it all. Without their shader the clouds still draw; the rows do nothing.
+            Shader skyShader = ShaderBundle.Get(ShaderBundle.SkyLayer);
+            if (skyShader != null)
+                _skyLayer = new SkyLayer(skyShader, _holder.transform, _mesh);
+            else
+                Log.Warn("sky layer: its shader is missing from the bundle; the distant clouds stay off.");
+
             _shadowMap = CloudShadowMap.TryCreate();
 
             // The noise volume is tens of millions of hash evaluations: generate it off
@@ -493,6 +504,8 @@ namespace VolumetricClouds.Sky
             if (!wanted)
             {
                 _airRenderer.enabled = false;
+                if (_skyLayer != null)
+                    _skyLayer.Update(null);
                 return;
             }
 
@@ -502,6 +515,10 @@ namespace VolumetricClouds.Sky
 
             UpdateMaterial();
             UpdateParts();
+
+            // After the clouds' light is set: distant clouds take it from their material.
+            if (_skyLayer != null)
+                _skyLayer.Update(_material);
         }
 
         /// <summary>The Smoother clouds setting is on.</summary>
@@ -1479,6 +1496,8 @@ namespace VolumetricClouds.Sky
                        // 1.5.0: Smoother clouds (frames blended / fresh starts in this line's second).
                        " temporal=" + (_temporal != null && _temporal.Running ? "on(" + _temporal.TakeCounts() + ")" : "off") +
                        " otherCameraDraws=" + TakeOtherCameraDraws() +
+                       // 1.5.0: distant clouds' four rows (cirrus/sheep/far/layers), or off.
+                       " skyLayer=" + (_skyLayer != null ? _skyLayer.Describe() : "none") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
@@ -2010,6 +2029,12 @@ namespace VolumetricClouds.Sky
             {
                 _temporal.Dispose();
                 _temporal = null;
+            }
+
+            if (_skyLayer != null)
+            {
+                _skyLayer.Dispose();
+                _skyLayer = null;
             }
 
             if (_holder != null)
