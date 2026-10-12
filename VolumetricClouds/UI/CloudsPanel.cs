@@ -37,15 +37,28 @@ namespace VolumetricClouds.UI
         private const float TitleBarHeight = 40f;
         private const float BarHeight = ProfileBar.Height;
         private const float TabHeight = 28f;
+
+        /// <summary>The new looks' icon tabs (1.5.0): taller, for icons the author asked to be bigger.</summary>
+        private const float IconTabHeight = 36f;
         private const float Margin = 14f;
 
         private const float HeadingHeight = 24f;
+
+        /// <summary>Room above and below a folding heading's strip (advanced options on; the author: "some margin").</summary>
+        private const float FoldMarginTop = 8f;
+        private const float FoldMarginBottom = 4f;
 
         /// <summary>The reset button's column at the right end of each row, gap included.</summary>
         private const float ResetColumn = 28f;
         private const float NoteHeight = 32f;
 
-        private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
+        /// <summary>The tabs' height in this panel's look: Vanilla's as it always was, the new looks' taller.</summary>
+        private float _tabHeight = TabHeight;
+
+        private float MinContentHeight
+        {
+            get { return PanelHeight - TitleBarHeight - _tabHeight - 2f * Margin; }
+        }
 
         private static readonly PanelPage[] BasicTabs =
         {
@@ -196,6 +209,7 @@ namespace VolumetricClouds.UI
             ReadFolded();
 
             _ui = PanelLook.NewBuilder();
+            _tabHeight = _ui.Skin == Skin.Vanilla ? TabHeight : IconTabHeight;
 
             size = new Vector2(_width, PanelHeight);
             canFocus = true;
@@ -220,7 +234,7 @@ namespace VolumetricClouds.UI
             // The new looks draw each tab as its icon, its name the tooltip and, for the open one,
             // beside the panel's title (SelectPage). Vanilla: named tabs, as before.
             _tabs = _ui.AddTabStrip(this, new Vector3(Margin, TitleBarHeight + BarHeight + 2f), _width - 2f * Margin,
-                TabHeight, _tabNames, SelectPage, icons);
+                _tabHeight, _tabNames, SelectPage, icons);
             FitTabs();
 
             foreach (Tab tab in tabs)
@@ -589,7 +603,7 @@ namespace VolumetricClouds.UI
         {
             UIPanel page = AddUIComponent<UIPanel>();
             page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
-            page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + TabHeight + Margin);
+            page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + _tabHeight + Margin);
             _pages.Add(page);
 
             return page;
@@ -616,7 +630,7 @@ namespace VolumetricClouds.UI
         {
             float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
             _pages[index].height = content;
-            height = TitleBarHeight + BarHeight + TabHeight + 2f * Margin + content;
+            height = TitleBarHeight + BarHeight + _tabHeight + 2f * Margin + content;
 
             // It grows downwards from where it stands: kept on the screen. Centred on the Now tab
             // at the game's own 1080-high UI, the advanced Weather tab (~910 high) ended ~100 under
@@ -662,23 +676,26 @@ namespace VolumetricClouds.UI
                     // With the advanced options on, a click folds the group away (1.5.0).
                     group = row.Group;
                     HeadingRow heading;
+                    float height = HeadingHeight;
                     if (_advanced)
                     {
+                        // Its strip (Builder.FoldHeight), with room above and below it between groups.
                         string captured = group;
                         int pageIndex = _layout.Count;   // this page's, once it is added below
-                        heading = _ui.AddFoldingHeading(page, row.GroupTitle, y + 4f, !IsFolded(group),
-                            open => SetFolded(pageIndex, captured, !open));
+                        heading = _ui.AddFoldingHeading(page, row.GroupTitle, y + FoldMarginTop + Builder.FoldAbove,
+                            !IsFolded(group), open => SetFolded(pageIndex, captured, !open));
+                        height = FoldMarginTop + Builder.FoldHeight + FoldMarginBottom;
                     }
                     else
                     {
                         heading = _ui.AddHeading(page, row.GroupTitle, y + 4f);
                     }
 
-                    Item item = Claim(page, claimed, null, y, HeadingHeight);
+                    Item item = Claim(page, claimed, null, y, height);
                     item.Group = group;
                     item.Heading = heading;
                     items.Add(item);
-                    y += HeadingHeight;
+                    y += height;
                 }
 
                 float top = y;
