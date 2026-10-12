@@ -10,7 +10,9 @@
 // puts the bolt just before them. This is 1.2's shader: 1.3.0 drew the bolt AFTER the clouds,
 // dimmed by only what lies in front of it (a march of the cloud, rain and fog, here), and in-game
 // that looked "in front" of the cloud (the author, 2026-09-30: "Not a fan"). That version is in
-// git history.
+// git history. Since 1.5.0 the cloud pass stops a little BEHIND a bolt on its own pixels
+// (LightningBoltMap.shader, CloudRaymarch BoltStop): its top still fades into its own cloud, but a
+// cloud far behind it no longer cuts it to pieces. This shader is unchanged by that.
 //
 // Mesh layout, four vertices per segment, in WORLD space:
 //   POSITION   the segment's end point this vertex belongs to
@@ -35,9 +37,8 @@ Shader "VolumetricClouds/LightningBolt"
             #pragma fragment frag
             #pragma target 3.0
             #include "UnityCG.cginc"
-
-            // The ribbon is this many core-widths wide: a thin white-hot core inside a soft glow.
-            #define GLOW_SCALE 6.0
+            // RibbonCorner and GLOW_SCALE, shared with LightningBoltMap.shader.
+            #include "LightningRibbon.cginc"
 
             float4 _BoltColor;       // rgb, HDR
             float _BoltIntensity;    // this frame's flicker, 0..1
@@ -62,16 +63,7 @@ Shader "VolumetricClouds/LightningBolt"
                 v2f o;
 
                 float3 world = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0)).xyz;
-                float3 toCamera = _WorldSpaceCameraPos - world;
-                float dist = length(toCamera);
-
-                // Lightning is seen from kilometres away: never let the core go sub-pixel.
-                float width = max(v.shape.y, dist * _PixelAngle * 1.5);
-
-                float3 side = cross(v.tangent, toCamera / max(dist, 1e-3));
-                side /= max(length(side), 1e-3);
-
-                world += side * (width * 0.5 * GLOW_SCALE) * v.shape.x;
+                world = RibbonCorner(world, v.tangent, v.shape, _WorldSpaceCameraPos, _PixelAngle);
 
                 o.pos = mul(UNITY_MATRIX_VP, float4(world, 1.0));
                 o.across = float2(v.shape.x, v.branch.x);

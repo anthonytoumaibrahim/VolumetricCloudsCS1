@@ -27,6 +27,7 @@ public static class BundleBuilder
         "Assets/VolumetricClouds/LightHaloDynamic.shader",
         "Assets/VolumetricClouds/RainDrops.shader",
         "Assets/VolumetricClouds/LightningBolt.shader",
+        "Assets/VolumetricClouds/LightningBoltMap.shader",
         "Assets/VolumetricClouds/Invisible.shader",
         "Assets/VolumetricClouds/FogLamps.shader",
     };

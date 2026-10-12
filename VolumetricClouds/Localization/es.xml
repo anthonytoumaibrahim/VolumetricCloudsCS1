@@ -261,6 +261,7 @@
   <String key="Group.Testing">Pruebas (se quita antes de publicar)</String>
 
   <String key="SkipEmptySkyTest.Label">Saltar el cielo vacío</String>
+  <String key="FarDeckTest.Label">Nubes hasta el horizonte</String>
 
   <String key="Group.Brightness">Brillo de las nubes</String>
 

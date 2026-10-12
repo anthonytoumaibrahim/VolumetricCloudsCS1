@@ -39,6 +39,8 @@ Shader "VolumetricClouds/CloudRaymarch"
             #include "CloudCommon.cginc"
             // The distance fade, the rain curtains, the fog and the jitter (CloudMedia.cginc).
             #include "CloudMedia.cginc"
+            // Where the lightning bolts are: BoltStop (1.5.0).
+            #include "LightningBoltMap.cginc"
 
             // The stretch of ray the fog's step count (Quality^2 / 160) is set for: 9 km, as far as
             // the fog went until its distance became a setting. A longer stretch gets more steps.
@@ -356,10 +358,143 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return light;
             }
 
+            // What the light of a cloud depends on along one view ray: its phases.
+            struct RayLight
+            {
+                float phase;
+                float3 octaves;
+                float2 lobes;
+            };
+
+            RayLight LightAlong(float cosTheta)
+            {
+                RayLight r;
+
+                // Mostly isotropic with a forward lobe: gives the bright rim towards the
+                // sun without leaving clouds black everywhere else.
+                r.phase = 0.65 + 0.35 * min(HenyeyGreenstein(cosTheta, 0.55), 5.0);
+
+                // Cloud detail: three octaves of multiple scattering, each dimmed by a, reaching
+                // deeper (extinction x b) and scattering more evenly (phase flattened by c) --
+                // bright surfaces, soft insides, real shade. Their phases depend on the ray only.
+                r.octaves = 0;
+                if (_DetailAmount > 0.0)
+                {
+                    float a = _DetailLight.x;
+                    float c = _DetailLight.z;
+                    r.octaves = float3(DetailPhase(cosTheta, 1.0), a * DetailPhase(cosTheta, c),
+                                       a * a * DetailPhase(cosTheta, c * c)) * _DetailLight.w;
+                }
+
+                // The Cumulus style: its lobes depend on the ray only (CloudStyle.Single/Multiple).
+                r.lobes = 0;
+                if (_CloudStyle > 0.5)
+                {
+                    float single = _CumulusLobes.x * HenyeyGreenstein(cosTheta, _CumulusLobeG.x)
+                                 + _CumulusLobes.y * HenyeyGreenstein(cosTheta, _CumulusLobeG.y);
+                    float multiple = _CumulusLobes.z * HenyeyGreenstein(cosTheta, _CumulusLobeG.z)
+                                   + _CumulusLobes.w * HenyeyGreenstein(cosTheta, _CumulusLobeG.w);
+                    r.lobes = float2(min(single, _CumulusLight.z), multiple) * _CumulusLight.y;
+                }
+
+                return r;
+            }
+
+            // The far deck's light (MarchFarDeck below) is a thick deck's, not one point's: read off the
+            // noise at one point per direction, it streaked the band and shimmered with the wind.
+            float4 _FarLight;   // at the base: x = the optical depth towards the sun, y = the cloud above
+                                // (density x metres); less of both higher up (h, 0..1 through the layer)
+
+            float FarSunTransmittance(float h)
+            {
+                float tau = _FarLight.x * (1.0 - 0.8 * h);
+                return max(exp(-tau), 0.7 * exp(-tau * 0.25));
+            }
+
+            // The light a cloud at p sends along the ray (before its density). One definition, for
+            // the march and the far deck alike, so the two meet in the same colour. `far`: the far
+            // deck's, from _FarLight's depths instead of looks through the clouds (and no lightning).
+            float3 CloudRadiance(float3 p, float lod, RayLight r, bool far)
+            {
+                bool detail = _DetailAmount > 0.0;
+                bool cumulus = _CloudStyle > 0.5;
+
+                // Sunlight through the clouds (Soak), on both lights below.
+                bool soak = _LightThrough.x > 0.0;
+
+                float h = saturate((p.y - _CloudBottom) / (_CloudTop - _CloudBottom));
+
+                // Undersides get less sky light than tops. (A Cumulus cloud's height is
+                // measured over the whole span its curve runs over, not over the part
+                // the march covers.)
+                float hSky = cumulus ? saturate((p.y - _CloudBottom) * _CumulusLight.w) : h;
+                float3 ambient = _AmbientColor * (0.45 + 0.55 * hSky);
+                float3 sunColor = _SunColor;
+                // Sunset light's Earth shadow, on every light's sun.
+                if (_SunsetEdge.w > 0.0)
+                    sunColor *= EarthShadow(p.y);
+                float3 radiance;
+                if (cumulus)
+                {
+                    float tau = far ? _FarLight.x * (1.0 - 0.8 * h) : SunDepth(p, lod);
+                    float multipleT = exp(-tau * _CumulusLight.x);
+                    if (soak)
+                        multipleT = Soak(multipleT, tau);
+                    float sunLit = r.lobes.x * exp(-tau) + r.lobes.y * multipleT;
+
+                    // The sky light is blocked by the cloud above: two looks straight up.
+                    float above = far ? _FarLight.y * (1.0 - h) : SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
+                                + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
+                    radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                    if (_ShadeLight.y > 0.0)
+                        radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
+                }
+                else if (detail)
+                {
+                    float tau = far ? _FarLight.x * (1.0 - 0.8 * h) : SunDepth(p, lod);
+                    float b = _DetailLight.y;
+                    float octave1T = exp(-tau * b);
+                    float octave2T = exp(-tau * b * b);
+                    if (soak)
+                    {
+                        octave1T = Soak(octave1T, tau);
+                        octave2T = Soak(octave2T, tau);
+                    }
+                    float sunLit = r.octaves.x * exp(-tau) + r.octaves.y * octave1T + r.octaves.z * octave2T;
+
+                    // The sky light is blocked by the cloud above: two looks straight up.
+                    float above = far ? _FarLight.y * (1.0 - h) : SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
+                                + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
+                    radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
+                    if (_ShadeLight.y > 0.0)
+                        radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
+
+                    // A low amount: the old light (detail off's, below) handed over to this
+                    // one, as the old break-up is in CloudCommon -- no step at 0%.
+                    if (_DetailLight2.w < 1.0)
+                        radiance = lerp(sunColor * (far ? FarSunTransmittance(h) : SunTransmittance(p)) * r.phase + ambient, radiance, _DetailLight2.w);
+                }
+                else
+                {
+                    float sun = far ? FarSunTransmittance(h) : SunTransmittance(p);
+                    radiance = sunColor * sun * r.phase + ambient;
+                }
+
+                if (!far && _FlashCount > 0.5)
+                    radiance += Lightning(p);
+
+                // It comes from below: strongest on the base, gone by the top.
+                radiance += _NightGlow * ((1.0 - h) * (1.0 - h));
+
+                return radiance;
+            }
+
             // The cloud slab between tEnter and tExit. Returns premultiplied light in rgb and
             // what is left of the background in a. `skyBehind`: the ray ends in the sky, not on
-            // the ground or a building.
-            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float jitter, float cosTheta, bool skyBehind)
+            // the ground or a building. `tStop`: a lightning bolt's BoltStop (1e9 without one): the
+            // march ends there but keeps the steps of the whole ray, so the cloud in front of a bolt
+            // is marched exactly as on the pixels beside it.
+            float4 MarchClouds(float3 origin, float3 dir, float tEnter, float tExit, float tStop, float jitter, float cosTheta, bool skyBehind)
             {
                 if (tExit <= tEnter)
                     return float4(0, 0, 0, 1);
@@ -370,40 +505,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // Per-pixel jitter trades banding for fine noise, which reads as softness.
                 float t = tEnter + stepLen * jitter;
 
-                // Mostly isotropic with a forward lobe: gives the bright rim towards the
-                // sun without leaving clouds black everywhere else.
-                float phase = 0.65 + 0.35 * min(HenyeyGreenstein(cosTheta, 0.55), 5.0);
-
-                // Cloud detail: three octaves of multiple scattering, each dimmed by a, reaching
-                // deeper (extinction x b) and scattering more evenly (phase flattened by c) --
-                // bright surfaces, soft insides, real shade. Their phases depend on the ray only.
-                bool detail = _DetailAmount > 0.0;
-                float3 octaves = 0;
-                if (detail)
-                {
-                    float a = _DetailLight.x;
-                    float c = _DetailLight.z;
-                    octaves = float3(DetailPhase(cosTheta, 1.0), a * DetailPhase(cosTheta, c),
-                                     a * a * DetailPhase(cosTheta, c * c)) * _DetailLight.w;
-                }
-
-                // The Cumulus style: its lobes depend on the ray only (CloudStyle.Single/Multiple).
-                bool cumulus = _CloudStyle > 0.5;
-                float2 lobes = 0;
-                if (cumulus)
-                {
-                    float single = _CumulusLobes.x * HenyeyGreenstein(cosTheta, _CumulusLobeG.x)
-                                 + _CumulusLobes.y * HenyeyGreenstein(cosTheta, _CumulusLobeG.y);
-                    float multiple = _CumulusLobes.z * HenyeyGreenstein(cosTheta, _CumulusLobeG.z)
-                                   + _CumulusLobes.w * HenyeyGreenstein(cosTheta, _CumulusLobeG.w);
-                    lobes = float2(min(single, _CumulusLight.z), multiple) * _CumulusLight.y;
-                }
-
-                // Sunlight through the clouds (Soak), on both lights below.
-                bool soak = _LightThrough.x > 0.0;
-
-                // Sunset light's Earth shadow, on every light's sun below.
-                bool sunset = _SunsetEdge.w > 0.0;
+                RayLight rayLight = LightAlong(cosTheta);
 
                 float transmittance = 1.0;
                 float3 light = 0;
@@ -418,7 +520,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 [loop]
                 for (int s = 0; s < 192; s++)
                 {
-                    if ((float)s >= steps || transmittance < 0.02)
+                    if ((float)s >= steps || transmittance < 0.02 || t > tStop)
                         break;
 
                     float3 p = origin + dir * t;
@@ -446,68 +548,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     if (d > 0.001)
                     {
-                        float h = saturate((p.y - _CloudBottom) / (_CloudTop - _CloudBottom));
-
-                        // Undersides get less sky light than tops. (A Cumulus cloud's height is
-                        // measured over the whole span its curve runs over, not over the part
-                        // the march covers.)
-                        float hSky = cumulus ? saturate((p.y - _CloudBottom) * _CumulusLight.w) : h;
-                        float3 ambient = _AmbientColor * (0.45 + 0.55 * hSky);
-                        float3 sunColor = _SunColor;
-                        if (sunset)
-                            sunColor *= EarthShadow(p.y);
-                        float3 radiance;
-                        if (cumulus)
-                        {
-                            float tau = SunDepth(p, lod);
-                            float multipleT = exp(-tau * _CumulusLight.x);
-                            if (soak)
-                                multipleT = Soak(multipleT, tau);
-                            float sunLit = lobes.x * exp(-tau) + lobes.y * multipleT;
-
-                            // The sky light is blocked by the cloud above: two looks straight up.
-                            float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
-                                        + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
-                            if (_ShadeLight.y > 0.0)
-                                radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
-                        }
-                        else if (detail)
-                        {
-                            float tau = SunDepth(p, lod);
-                            float b = _DetailLight.y;
-                            float octave1T = exp(-tau * b);
-                            float octave2T = exp(-tau * b * b);
-                            if (soak)
-                            {
-                                octave1T = Soak(octave1T, tau);
-                                octave2T = Soak(octave2T, tau);
-                            }
-                            float sunLit = octaves.x * exp(-tau) + octaves.y * octave1T + octaves.z * octave2T;
-
-                            // The sky light is blocked by the cloud above: two looks straight up.
-                            float above = SampleDensityLod(p + float3(0.0, 15.0, 0.0), false, lod) * 30.0
-                                        + SampleDensityLod(p + float3(0.0, 60.0, 0.0), false, lod) * 60.0;
-                            radiance = sunColor * sunLit + ShadeSky(hSky) * exp(-above * _Absorption * _DetailLight2.x);
-                            if (_ShadeLight.y > 0.0)
-                                radiance += sunColor * (_ShadeLight.y * (1.0 - hSky) * (1.0 - hSky));
-
-                            // A low amount: the old light (detail off's, below) handed over to this
-                            // one, as the old break-up is in CloudCommon -- no step at 0%.
-                            if (_DetailLight2.w < 1.0)
-                                radiance = lerp(sunColor * SunTransmittance(p) * phase + ambient, radiance, _DetailLight2.w);
-                        }
-                        else
-                        {
-                            float sun = SunTransmittance(p);
-                            radiance = sunColor * sun * phase + ambient;
-                        }
-
-                        if (_FlashCount > 0.5)
-                            radiance += Lightning(p);
-
-                        // It comes from below: strongest on the base, gone by the top.
-                        radiance += _NightGlow * ((1.0 - h) * (1.0 - h));
+                        float3 radiance = CloudRadiance(p, lod, rayLight, false);
 
                         float stepT = exp(-d * stepLen * _Absorption);
                         // Energy-conserving integration across the step.
@@ -533,6 +574,140 @@ Shader "VolumetricClouds/CloudRaymarch"
                     sky = SkyGlowPass(dir);
 
                 return float4(light * presence, transmittance + (1.0 - transmittance) * (1.0 - presence) * sky);
+            }
+
+            // THE FAR DECK (Sky/CloudVolume.cs, 1.5.0 trial): the clouds past where the march thins,
+            // out to the horizon. A real deck 2 km up reaches ~160 km, where the Earth's curve takes it
+            // under the horizon; ours ended at the reach (30 km), 4-5 degrees up, and under a deck that
+            // hides the sky the clear band below it showed ("the horizon should be full of clouds").
+            // Not a march: one smooth band. The first trial marched the same clouds out to 250 km, and
+            // the weather map, which repeats every _WeatherTile (13.5 km), came back ~15 times along each
+            // ray, as evenly spaced arcs fanning into the vanishing point ("the clouds curve in a really
+            // ugly way"), grainy from 12 coarse jittered steps. That far out a real deck shows no shapes
+            // anyway: seen edge-on, it closes up into a band, more solid towards the horizon (a line of
+            // sight crosses more and more of the layer). So: how much of the sky the deck covers along
+            // the ray (the cover over the stretch of layer it crosses, its heights measured over the
+            // curved Earth, x + d^2 / 2R), lit as a thick deck by the clouds' own light (nothing read from
+            // the maps or the noise: anything read per direction shows as streaks down the band, and
+            // shimmers as the wind moves it). Under the lowest ray that still crosses it, the band
+            // holds on, so it covers the sky under the map's edge seen from high up, as the sky does.
+            // It is drawn BEHIND the march and begins at a fixed distance, where the near clouds already
+            // thin out seen low over the horizon (their far detail averages away, ~10-13 km for Cumulus).
+            // It began where the march's own fade said, per ray: that moved its edge up as the ray came
+            // down, squeezing the edge's fade into a few pixels, and it came in only after the near
+            // clouds had gone -- a strip of sky and a line between the two ("as if it's a different
+            // layer"). Seen from under the deck, in it or over it (the line of sight's height over the
+            // curved Earth is a parabola: its stretch in the layer is at most two pieces). The near
+            // clouds stay flat.
+            float4 _FarDeck;    // x = how much of it (0: off; the day/night opacity x the cover's 90-95% fade-in),
+                                // y = where it begins (m), z = how far it goes (m), w = the haze it ends in, 0..1
+            float4 _FarDeck2;   // y = how much layer crossed makes it 63% there (m), w = how far out its light
+                                // is worked out (m); x, z unused
+            #define EARTH_RADIUS 6371000.0
+            #define FAR_NEVER 1e10
+            #define FAR_EDGE 0.015
+
+            // Where, across the ground, a ray from height originY rising k metres per metre is at height y
+            // over the curved Earth: the roots of d^2 / 2R + k d + (originY - y) = 0, the nearer first, the
+            // one that would cancel worked out from their product (2 R c). (FAR_NEVER, FAR_NEVER): never.
+            float2 FarLevel(float originY, float k, float y)
+            {
+                float c = originY - y;
+                float disc = k * k - 2.0 * c / EARTH_RADIUS;
+                if (disc < 0.0)
+                    return float2(FAR_NEVER, FAR_NEVER);
+
+                float s = sqrt(disc);
+                float2 d;
+                if (k < 0.0)
+                {
+                    d.y = EARTH_RADIUS * (s - k);
+                    d.x = 2.0 * EARTH_RADIUS * c / d.y;
+                }
+                else
+                {
+                    d.x = -EARTH_RADIUS * (k + s);
+                    d.y = 2.0 * EARTH_RADIUS * c / min(d.x, -1e-3);
+                }
+                return d;
+            }
+
+            // `tStop`: a lightning bolt's BoltStop (1e9 without one), along the ray: no deck behind it.
+            float4 MarchFarDeck(float3 origin, float3 dir, float cosTheta, float tStop)
+            {
+                float lxz = max(length(dir.xz), 1e-4);
+                float2 way = dir.xz / lxz;
+
+                // The ray's rise per metre across the ground, held at the lowest that is at the layer's
+                // top at the far end: under it the band's last row, so it covers the sky under the map's
+                // edge. (Held where it met the base there, it crossed none: a clear strip under the band.)
+                float end = _FarDeck.z;
+                float kLowest = (_CloudTop - origin.y) / end - end / (2.0 * EARTH_RADIUS);
+                float k = max(dir.y / lxz, kLowest);
+
+                // Where the band begins (see above): the same for every ray.
+                float from = _FarDeck.y;
+
+                // In the layer: under the top (between its two levels) and not under the base (outside
+                // its two). Before the ray dips under the base, and after it comes back up.
+                float2 top = FarLevel(origin.y, k, _CloudTop);
+                if (top.x >= FAR_NEVER)
+                    return float4(0, 0, 0, 1);
+                float2 base = FarLevel(origin.y, k, _CloudBottom);
+                float stop = min(end, tStop * lxz);
+                float2 first = float2(max(top.x, from), min(min(top.y, base.x), stop));
+                float2 second = float2(max(max(top.x, base.y), from), min(top.y, stop));
+                float lengthFirst = max(first.y - first.x, 0.0);
+                float lengthSecond = max(second.y - second.x, 0.0);
+                if (lengthFirst + lengthSecond <= 0.0)
+                    return float4(0, 0, 0, 1);
+
+                // It fills up with the layer crossed, from none: a line of sight that only just reaches the
+                // layer meets almost nothing, so lower and lower down the band builds up over degrees.
+                // (Counted per "cloud" at the cover, it was ~90% there within 0.01 degree: a line.) The
+                // same all round: anything read by direction is the same all the way down a column, and
+                // a column-by-column change (the weather map on wide rings) streaked. (The cover needs no
+                // say: the band only shows over a full overcast.)
+                float coveredFirst = 1.0 - exp(-lengthFirst / _FarDeck2.y);
+                float coveredSecond = 1.0 - exp(-lengthSecond / _FarDeck2.y);
+
+                // Each piece thins into the haze by how far out it starts; the nearer in front.
+                float spread = end - _FarDeck.y;
+                float hazeFirst = 1.0 - _FarDeck.w * saturate((first.x - _FarDeck.y) / spread);
+                float hazeSecond = 1.0 - _FarDeck.w * saturate((second.x - _FarDeck.y) / spread);
+                float covered = coveredFirst + (1.0 - coveredFirst) * coveredSecond;
+                float alpha = coveredFirst * hazeFirst + (1.0 - coveredFirst) * coveredSecond * hazeSecond;
+
+                // Its edge -- where the line of sight stops reaching the layer past `from` (from over the
+                // clouds: their own horizon) -- comes in over FAR_EDGE of rise, about 0.9 degrees: there
+                // (seen from in or over the clouds) the layer crossed can grow from nothing to tens of
+                // kilometres within a few thousandths of a degree. The same for every ray of a frame: an
+                // edge that moved with the ray squeezed this fade into a few pixels.
+                float kEdge = (_CloudTop - origin.y) / from - from / (2.0 * EARTH_RADIUS);
+                if (origin.y > _CloudTop)
+                    kEdge = max(kEdge, -sqrt(2.0 * (origin.y - _CloudTop) / EARTH_RADIUS));
+                float edge = 1.0 - smoothstep(kEdge - FAR_EDGE, kEdge, k);
+                // As much of it as is shown (fading in over 90-95% cover, by day as the clouds hide the sky).
+                covered *= edge * _FarDeck.x;
+                alpha *= edge * _FarDeck.x;
+                if (alpha <= 0.001)
+                    return float4(0, 0, 0, 1);
+
+                // The clouds' own light for a thick deck (_FarLight): its bases from under it, its tops from
+                // over it. It changes only with the angle to the sun.
+                float hCamera = saturate((origin.y - _CloudBottom) / (_CloudTop - _CloudBottom));
+                float3 p = float3(origin.x + way.x * _FarDeck2.w,
+                                  _CloudBottom + lerp(0.2, 0.8, hCamera) * (_CloudTop - _CloudBottom),
+                                  origin.z + way.y * _FarDeck2.w);
+                float3 radiance = CloudRadiance(p, 0.0, LightAlong(cosTheta), true);
+
+                // What it thins away by (the haze) lets the sky behind through, but not the sun's glow and
+                // disc (as the near deck's fade). So do its "gaps", as much as it covers: they are an
+                // average, not holes, and a 2% gap still showed a sun low behind a full overcast
+                // (2026-10-12, "can the endless clouds hide the sun too?"). From nothing where it covers
+                // nothing, so no edge round the sun.
+                float sky = _SkyGlowMode.y > 0.5 ? SkyGlowPass(dir) : 1.0;
+                return float4(radiance * alpha, (1.0 - covered) * lerp(1.0, sky, covered) + (covered - alpha) * sky);
             }
 
             // Rain hanging under the clouds: the grey curtains seen from a distance, and the
@@ -873,6 +1048,11 @@ Shader "VolumetricClouds/CloudRaymarch"
                 }
                 tExit = min(tExit, sceneDist);
 
+                // On a lightning bolt's own pixels the clouds, rain and fog end a little behind it
+                // (LightningBoltMap.cginc, 1.5.0): the cloud it comes out of still covers its top, a
+                // cloud far behind it no longer cuts it. 1e9 everywhere else and with no bolt showing.
+                float boltStop = BoltStop(origin, dir);
+
                 float2 screenUV = i.screenPos.xy / i.screenPos.w;
                 float2 pixel = screenUV * _ScreenParams.xy;
                 float jitter = MarchJitter(pixel);
@@ -885,7 +1065,12 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                 float4 clouds = float4(0, 0, 0, 1);
                 if (drawClouds)
-                    clouds = MarchClouds(origin, dir, tEnter, tExit, jitter, cosTheta, sceneDist >= 1e9);
+                    clouds = MarchClouds(origin, dir, tEnter, tExit, boltStop, jitter, cosTheta, sceneDist >= 1e9);
+
+                // The far deck, behind them, wherever there is sky (from any height: until 1.5.0's second
+                // trial only from under the base, and it vanished as the camera rose into the clouds).
+                if (drawClouds && _FarDeck.x > 0.0 && sceneDist >= 1e9)
+                    clouds = Over(clouds, MarchFarDeck(origin, dir, cosTheta, boltStop));
 
                 // The part of the ray under the cloud base: from the camera when it is below
                 // the base, otherwise from where the ray comes down through it.
@@ -898,7 +1083,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 if (dir.y < 0.0)
                     rEnd = min(rEnd, (_RainFloor - origin.y) / dy);
 
-                rEnd = min(rEnd, min(sceneDist, _RainMaxDistance));
+                rEnd = min(rEnd, min(min(sceneDist, boltStop), _RainMaxDistance));
 
                 // The rainbow's arch: where this ray crosses it, before the marches, which say how
                 // much rain and fog stands in front of each crossing.
@@ -926,7 +1111,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                     // can meet either.
                     if (camAbove < _FogBase + _FogHeight || dir.y < 0.0 || (_FogFollowGround > 0.5 && origin.y < _FogCeiling))
                     {
-                        float fEnd = min(sceneDist, _FogMaxDistance);
+                        float fEnd = min(min(sceneDist, boltStop), _FogMaxDistance);
 
                         // With depth occlusion off there is no ground to stop at; use the
                         // lowest ground on the map.

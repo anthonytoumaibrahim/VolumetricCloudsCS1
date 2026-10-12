@@ -2162,6 +2162,20 @@ namespace VolumetricClouds.UI
                 Profiled = false,
                 AfterChange = State("skip the empty sky (test switch)", OnOff(Settings.SkipEmptySkyTest)),
             });
+
+            // TEMPORARY (1.5.0 trial): the far deck on or off in the same build, to judge it in-game
+            // (CloudRaymarch MarchFarDeck; only shows under "Clouds hide the sky by day" or at night).
+            // Before release: keep it (as part of that row) or drop it, then REMOVE this switch.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Advanced,
+                Group = "Testing",
+                Bool = Settings.FarDeckTest,
+                DefaultBool = Settings.Defaults.FarDeckTest,
+                Profiled = false,
+                AfterChange = State("far deck (test switch)", OnOff(Settings.FarDeckTest)),
+            });
         }
 
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>

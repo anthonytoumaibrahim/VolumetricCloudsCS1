@@ -276,6 +276,7 @@
   <String key="Group.Testing">测试（发布前移除）</String>
 
   <String key="SkipEmptySkyTest.Label">跳过空旷天空</String>
+  <String key="FarDeckTest.Label">云层延伸至地平线</String>
 
   <String key="Group.Brightness">云层受光亮度</String>
 

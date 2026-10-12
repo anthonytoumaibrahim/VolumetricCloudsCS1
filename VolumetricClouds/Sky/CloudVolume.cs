@@ -174,6 +174,39 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private const float DayEdgeStart = 0.35f;
         private const float NightEdgeStart = 0.7f;
+
+        // The far deck (1.5.0 trial): out to 250 km (a base 2 km up meets the horizon ~160 km out, a
+        // 3.5 km top ~210 km), thinning by up to half into the sky behind it by then -- the haze of
+        // the air in front of cloud that far.
+        private static readonly int IdFarDeck = Shader.PropertyToID("_FarDeck");
+        private const float FarDeckEnd = 250000f;
+        private const float FarDeckHaze = 0.5f;
+
+        // The far deck is a band, not a march (the march showed the weather map's repeats as arcs). It
+        // begins 12 km out for every ray, where the near clouds already thin seen low over the horizon
+        // (their far detail averages away), and fills up with the layer the line of sight crosses past
+        // that: 63% after 4 km of it, 98% after 16 km -- from the ground it builds up between ~9.5 and
+        // ~5 degrees over the horizon, under the near clouds. (Beginning where their own fade said, per
+        // ray, it came in after they had gone, on a line.) Its light is worked out 40 km out (or at the
+        // reach, from higher up).
+        private static readonly int IdFarDeck2 = Shader.PropertyToID("_FarDeck2");
+        private const float FarDeckFrom = 12000f;
+        private const float FarDeckFill = 4000f;
+        private const float FarDeckLightAt = 40000f;
+
+        // Only for a (nearly) full overcast (the author, 2026-10-12: below 90-95% "it just looks
+        // wrong" -- a broken sky does not close into a band): in from 90% cover, all there at 95%,
+        // so a changing weather fades it rather than switching it.
+        private const float FarDeckCoverFrom = 0.90f;
+        private const float FarDeckCoverFull = 0.95f;
+
+        /// <summary>How much of the far deck the last frame drew, 0..1 (for the frame log line).</summary>
+        private float _farDeckShown;
+
+        // The far deck's light is a thick deck's (reading the noise per direction streaked it): the
+        // sun's optical depth to a point near its base.
+        private static readonly int IdFarLight = Shader.PropertyToID("_FarLight");
+        private const float FarDeckSunDepth = 6f;
         private static readonly int IdNightGlow = Shader.PropertyToID("_NightGlow");
         private static readonly int IdFogAmount = Shader.PropertyToID("_FogAmount");
         private static readonly int IdFogDensity = Shader.PropertyToID("_FogDensity");
@@ -1366,6 +1399,8 @@ namespace VolumetricClouds.Sky
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        // 1.5.0: the share of the weather map's cells the march jumps over (0: not skipping).
                        " emptySky=" + (CloudShaderParams.EmptyShareNow * 100f).ToString("F0") + "%" +
+                       // 1.5.0 trial: how much of the far deck shows (0 under 90% cover).
+                       " farDeck=" + (_farDeckShown * 100f).ToString("F0") + "%" +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
@@ -1478,7 +1513,8 @@ namespace VolumetricClouds.Sky
             // default 0% is night * opacity, as before; both at 100% stay solid round the clock.
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
             float dayOpacity = Settings.CloudDayOpacity != null ? Mathf.Clamp01(Settings.CloudDayOpacity.value) : 0f;
-            _material.SetFloat(IdNightOpacity, Mathf.Lerp(dayOpacity, opacity, night));
+            float shut = Mathf.Lerp(dayOpacity, opacity, night);
+            _material.SetFloat(IdNightOpacity, shut);
 
             // Where the night's opaque clouds end softly: where the march ends (1.3.0). It was the
             // edge of the box they are drawn on, a third of that (~10 km from the city), and past
@@ -1492,7 +1528,26 @@ namespace VolumetricClouds.Sky
             // under it (the author: "the horizon becomes too obvious"). Thinning over a longer stretch
             // is the haze of the air in front of far cloud, and the haze it thins into is whatever sky
             // is behind -- the game's, Real Light's or a cubemap -- so there is no colour to guess.
-            _material.SetFloat(IdEdgeStart, Mathf.Lerp(DayEdgeStart, NightEdgeStart, night));
+            float edgeStart = Mathf.Lerp(DayEdgeStart, NightEdgeStart, night);
+            _material.SetFloat(IdEdgeStart, edgeStart);
+
+            // The far deck (1.5.0 trial, CloudRaymarch MarchFarDeck): the deck out to the horizon, as
+            // much of it as the clouds shut the sky out (0% by day: none, as before), and only over a
+            // full overcast. Behind the near deck, filling in as that thins.
+            bool far = Settings.FarDeckTest == null || Settings.FarDeckTest.value;
+            float cover = Mathf.Clamp01(CloudShaderParams.Coverage);
+            float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
+            _farDeckShown = far ? shut * overcast : 0f;
+            float reach = Reach;
+            // From high over the clouds the reach grows (up to MaxReach): the band always goes past it.
+            float end = Mathf.Max(FarDeckEnd, reach * 1.5f);
+            _material.SetVector(IdFarDeck, new Vector4(_farDeckShown, FarDeckFrom, end, FarDeckHaze));
+            _material.SetVector(IdFarDeck2, new Vector4(0f, FarDeckFill, 0f, Mathf.Max(reach, FarDeckLightAt)));
+
+            // Its light: a thick deck's base -- the sun through FarDeckSunDepth, the cloud above it
+            // at half density over 90 m (the march's two looks up, 30 + 60 m).
+            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
+            _material.SetVector(IdFarLight, new Vector4(FarDeckSunDepth, 0.5f * density * 90f, 0f, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the

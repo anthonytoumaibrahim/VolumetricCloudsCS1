@@ -30,6 +30,7 @@ namespace VolumetricClouds.Sky
         public const string LightHaloDynamic = "VolumetricClouds/LightHaloDynamic";
         public const string RainDrops = "VolumetricClouds/RainDrops";
         public const string LightningBolt = "VolumetricClouds/LightningBolt";
+        public const string LightningBoltMap = "VolumetricClouds/LightningBoltMap";
         public const string Invisible = "VolumetricClouds/Invisible";
         public const string FogLamps = "VolumetricClouds/FogLamps";
 

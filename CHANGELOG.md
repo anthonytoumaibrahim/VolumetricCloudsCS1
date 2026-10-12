@@ -50,6 +50,11 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   100% the far clouds stay solid, and only toward the horizon thin out gently into the haze of
   whatever sky is behind them, so a full overcast doesn't end on a line above the horizon. The Light
   tab's *At night* heading is now *Day and night*.
+- Clouds to the horizon: under a full overcast (95% cover or more, fading in from 90%), the cloud
+  deck now carries on all the way to the horizon, following the curve of the Earth, instead of
+  ending a few degrees above it with clear sky underneath. Seen from high up, it also covers the sky
+  beyond the edge of the map. It hides a low sun too. By day it follows *Clouds hide the sky by
+  day* (0%: no change); at night it follows *Clouds hide the stars at night*.
 
 ### New: wind direction
 
@@ -87,15 +92,21 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   them: the game draws the glowing kind and the smoky kind one after the other, whatever the
   distance (its own draw order has the same fault; since 1.4.0 the fog no longer hides it). They now
   share one draw order, the nearer plume over the farther one.
+- A lightning bolt was cut into pieces wherever clouds far behind it showed through: every cloud on
+  the line of sight was drawn over the bolt, including the ones behind it. Now only the clouds in
+  front of a bolt, and those up to a quarter of its distance behind it, cover it. The bolt still
+  disappears into the cloud it comes out of, as before. The same goes for rain and fog behind a bolt.
 
 ### To do before release (remove this section when 1.5.0 ships)
 
 Not started yet:
 
-- Clouds: smoothing over frames, and the Mixed style again.
+- Clouds: smoothing over frames, high and distant clouds from photographs of real skies (a *High
+  clouds* group, every row off by default), and the Mixed style again.
 - Remove the temporary *Skip the empty sky* test switch (Advanced tab, "Testing" group:
   `Settings.SkipEmptySkyTest`, its catalog row, its texts in all four languages) once its frame
-  times are compared. The skip itself stays.
+  times are compared. The skip itself stays. The same for *Clouds to the horizon* (`FarDeckTest`,
+  see the far clouds item below).
 - Smoke and fire in the fog: since 1.4.0 smoke and fire are drawn on top of the fog instead of
   vanishing in it. They should fade into it with distance, like everything else. Black smoke over
   white steam: NOT fixed by the one queue -- the log (2026-10-12) shows both are 'Alpha Blended',
@@ -116,8 +127,22 @@ Undecided (not agreed yet, decide before building):
   in-game. (A curved layer is not the fix: the real curve is too small over the clouds' reach.)
   First step built 2026-10-12, inside *Clouds hide the sky by day*: by day the far deck thins over
   the last 65% of its reach instead of the last 30%, into whatever sky is behind it (no haze
-  colour to guess: Real Light's sky is 2-3x the game's). Judge it in-game; if a haze COLOUR is
-  still wanted, it comes after.
+  colour to guess: Real Light's sky is 2-3x the game's). Liked in-game, but "at 100% the horizon
+  should be full of clouds". Second step, a TRIAL built 2026-10-12: the far deck. Past where the
+  near deck starts to thin, a smooth band continues to the horizon (250 km at most), its heights
+  measured over the curved Earth so a full deck meets the horizon, and held on below that, so seen
+  from high up it covers the sky under the map's edge. More solid towards the horizon (the line of
+  sight crosses more of the layer), the same cover all round, lit as a thick deck with the clouds'
+  own light (anything read per direction from the maps or the noise showed as streaks down the
+  band and shimmered with the wind). Seen from any height: under, inside or over the clouds (it
+  vanished once the camera rose into them). Only over a full overcast (his call: under 90-95% "it
+  just looks wrong"): in from 90% cover, all there at 95%. It thins by up to half into the sky
+  behind it, and is as strong as the clouds shut the sky out (by day *Clouds hide the sky by day*,
+  at night *Clouds hide the stars at night*: 0% by day = no far deck by day). (Its first version
+  marched the clouds themselves out there: the weather map's 13.5 km repeats showed as arcs
+  fanning into the vanishing point, and it was grainy.) Temporary switch *Clouds to the horizon*
+  (Advanced tab, "Testing", `Settings.FarDeckTest`, on). KEPT (2026-10-12, "We'll keep this"),
+  written up under *Clouds hide the sky by day*; it hides a low sun too. Left: remove the switch.
 
 Then a sweep over every item above before release: each one built or deliberately moved to a
 later version, tested in-game, and written up in this changelog.

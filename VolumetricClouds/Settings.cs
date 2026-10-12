@@ -349,6 +349,12 @@ namespace VolumetricClouds
         /// </summary>
         public static BoolSetting SkipEmptySkyTest { get; private set; }
 
+        /// <summary>
+        /// TEMPORARY (1.5.0 trial, decide before release): the far deck -- the clouds past the reach out
+        /// to the horizon, under a deck that hides the sky (CloudRaymarch MarchFarDeck).
+        /// </summary>
+        public static BoolSetting FarDeckTest { get; private set; }
+
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
         public static IntSetting ShadowMapResolution { get; private set; }
 
@@ -710,6 +716,9 @@ namespace VolumetricClouds
 
             /// <summary>TEMPORARY test switch (remove before release): the skip on, as it will ship.</summary>
             public const bool SkipEmptySkyTest = true;
+
+            /// <summary>TEMPORARY trial switch: the far deck on, to be judged in-game.</summary>
+            public const bool FarDeckTest = true;
             public const int ShadowMapResolution = 2048;
             public const int ShadowMapRate = 20;
 
@@ -951,6 +960,7 @@ namespace VolumetricClouds
                 CloudShadowDarkness = new FloatSetting("CloudShadowDarkness", Defaults.ShadowDarkness);
                 CloudShadowFullness = new FloatSetting("CloudShadowFullness", Defaults.ShadowFullness);
                 SkipEmptySkyTest = new BoolSetting("SkipEmptySkyTest", Defaults.SkipEmptySkyTest);
+                FarDeckTest = new BoolSetting("FarDeckTest", Defaults.FarDeckTest);
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);

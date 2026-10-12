@@ -99,6 +99,8 @@ namespace VolumetricClouds.Sky
         private bool _queueResolved;
 
         private Material _boltMaterial;
+        private BoltMap _boltMap;
+        private readonly List<Mesh> _drawnBolts = new List<Mesh>();
         private Material _invisible;
         private Material _gameBoltMaterial;
         private bool _gameBoltHidden;
@@ -154,6 +156,7 @@ namespace VolumetricClouds.Sky
             Shader bolt = ShaderBundle.Get(ShaderBundle.LightningBolt);
             if (bolt != null)
                 _boltMaterial = new Material(bolt) { name = "VolumetricCloudsLightningBolt" };
+            _boltMap = new BoltMap();
 
             Shader invisible = ShaderBundle.Get(ShaderBundle.Invisible);
             if (invisible != null)
@@ -226,7 +229,8 @@ namespace VolumetricClouds.Sky
                                " ofWhichInView=" + _ownInView +
                                " skippedNoCloud=" + _ownSkippedNoCloud +
                                " | active=" + _active.Count + " flashingReduction=" + _reduction.ToString("F2") +
-                               " gameBolt=" + (_gameBoltHidden ? "hidden" : "shown"));
+                               " gameBolt=" + (_gameBoltHidden ? "hidden" : "shown") +
+                               " | bolt map " + (_boltMap != null ? _boltMap.Describe() : "none"));
                 }
 
                 _gameSeen = 0;
@@ -668,20 +672,22 @@ namespace VolumetricClouds.Sky
             if (_boltMaterial == null)
                 return;
 
-            _boltMaterial.SetFloat(IdPixelAngle,
-                2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight));
+            float pixelAngle = 2f * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, _camera.pixelHeight);
+            _boltMaterial.SetFloat(IdPixelAngle, pixelAngle);
 
             // Drawn BEFORE the clouds, as in 1.2: the cloud pass lays the cloud, the rain and the fog
             // over the channel, so its top fades into the cloud it comes out of. Just before whichever
             // queue the clouds are in -- 3090 before the one draw (the shader's own Transparent+90),
             // 2510 before their early draw under the base, after the game's sky (2501-2503). 1.3.0
             // drew it after them, dimmed by only what is in front, and in-game it looked "in front"
-            // of the cloud (the author, 2026-09-30: "Not a fan").
+            // of the cloud (the author, 2026-09-30: "Not a fan"). Since 1.5.0 the cloud pass stops a
+            // little behind a bolt on its pixels (BoltMap): a cloud far behind no longer cuts it.
             _boltMaterial.renderQueue = CloudVolume.CloudsQueue - BoltBeforeClouds;
 
             float brightness = Settings.LightningBrightness != null ? Mathf.Max(0f, Settings.LightningBrightness.value) : 1f;
             bool replaceGame = _gameBoltHidden;
             bool drawn = false;
+            _drawnBolts.Clear();
 
             foreach (Strike strike in _active)
             {
@@ -699,8 +705,12 @@ namespace VolumetricClouds.Sky
                 _block.SetVector(IdBoltColor, new Vector4(colour.r, colour.g, colour.b, 0f));
                 _block.SetFloat(IdBoltIntensity, strike.Intensity * strike.Power);
                 Graphics.DrawMesh(strike.Bolt, Matrix4x4.identity, _boltMaterial, 0, null, 0, _block);
+                _drawnBolts.Add(strike.Bolt);
                 drawn = true;
             }
+
+            // Where they are, for the cloud pass to stop just behind them (none: it stops reading).
+            _boltMap.Draw(_camera, _drawnBolts, pixelAngle);
 
             // Once per queue a bolt is drawn at, read back from the material (1.3.0's line said
             // "after the clouds" while a copied queue had really put the bolt in theirs).
@@ -708,7 +718,8 @@ namespace VolumetricClouds.Sky
             {
                 _boltQueueLogged = _boltMaterial.renderQueue;
                 Log.Msg("lightning: bolts drawn at queue " + _boltQueueLogged + ", just before the clouds (" +
-                        CloudVolume.CloudsQueue + "), as in 1.2: the clouds, rain and fog are laid over them");
+                        CloudVolume.CloudsQueue + "), as in 1.2: the clouds, rain and fog are laid over them, up to " +
+                        (BoltMap.BehindShare * 100f).ToString("F0") + "% of a bolt's distance behind it");
             }
         }
 
@@ -758,6 +769,9 @@ namespace VolumetricClouds.Sky
             _ownStrikes.Clear();
             _active.Clear();
             _flashCount = 0;
+
+            if (_boltMap != null)
+                _boltMap.Off();
         }
 
         private static void Release(Strike strike)
@@ -778,6 +792,8 @@ namespace VolumetricClouds.Sky
 
             if (_boltMaterial != null)
                 Destroy(_boltMaterial);
+            if (_boltMap != null)
+                _boltMap.Dispose();
             if (_invisible != null)
                 Destroy(_invisible);
         }

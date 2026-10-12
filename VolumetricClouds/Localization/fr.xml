@@ -260,6 +260,7 @@
   <String key="Group.Testing">Tests (retiré avant la publication)</String>
 
   <String key="SkipEmptySkyTest.Label">Sauter le ciel vide</String>
+  <String key="FarDeckTest.Label">Nuages jusqu’à l’horizon</String>
 
   <String key="Group.Brightness">Luminosité des nuages</String>
 

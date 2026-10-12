@@ -300,6 +300,7 @@
   <String key="Group.Testing">Testing (removed before release)</String>
 
   <String key="SkipEmptySkyTest.Label">Skip the empty sky</String>
+  <String key="FarDeckTest.Label">Clouds to the horizon</String>
 
   <String key="Group.Brightness">How brightly the clouds are lit</String>
 
