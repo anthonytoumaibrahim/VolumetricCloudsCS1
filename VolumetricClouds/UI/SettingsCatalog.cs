@@ -50,7 +50,7 @@ namespace VolumetricClouds.UI
     /// depth occlusion -- are the options page's now (the author: "its settings are now in the
     /// pause menu"). A code-only name: nothing stored says which page a row is on.
     /// </summary>
-    public enum OptionsPage { None, Weather, Halos, General, Advanced }
+    public enum OptionsPage { None, Weather, Halos, General }
 
     /// <summary>
     /// One setting, everything either UI needs to draw it, and its default.
@@ -362,6 +362,29 @@ namespace VolumetricClouds.UI
             if (Text != null) Text.value = DefaultText;
         }
 
+        /// <summary>
+        /// A row with a setting of its own the panel's reset button can put back (1.5.0): a slider
+        /// (not a city value), a switch, a choice, a key or a colour.
+        /// </summary>
+        public bool CanReset
+        {
+            get { return Float != null || Bool != null || Int != null || Key != null || Colour != null; }
+        }
+
+        /// <summary>At its shipping default: what fades the row's reset button.</summary>
+        public bool IsAtDefault
+        {
+            get
+            {
+                if (Float != null && !Mathf.Approximately(Float.value, DefaultFloat)) return false;
+                if (Bool != null && Bool.value != DefaultBool) return false;
+                if (Int != null && Int.value != DefaultInt) return false;
+                if (Key != null && Key.value != DefaultKey) return false;
+                if (Colour != null && !IsDefaultColour) return false;
+                return true;
+            }
+        }
+
         /// <summary>A colour row at its default: what greys out its reset button.</summary>
         public bool IsDefaultColour
         {
@@ -470,7 +493,6 @@ namespace VolumetricClouds.UI
                     " Light=" + CountForPanel(PanelPage.Light) +
                     " | advanced Weather=" + CountForOptions(OptionsPage.Weather) +
                     " Halos=" + CountForOptions(OptionsPage.Halos) +
-                    " Advanced=" + CountForOptions(OptionsPage.Advanced) +
                     " | options page=" + CountForOptions(OptionsPage.General) +
                     " | rows with no UI=" + nowhere);
 
@@ -565,6 +587,34 @@ namespace VolumetricClouds.UI
             // Written to disk NOW rather than with the slider changes a second later. A switch
             // is a decision, and "I ticked it and it was off again next time" is the one report
             // a settings page must never earn -- whatever happens to the game in the next second.
+            SettingsXml.SaveNow();
+
+            if (row.AfterChange != null)
+                row.AfterChange();
+
+            RefreshAllUIs();
+        }
+
+        /// <summary>
+        /// A row's reset button in the panel (1.5.0): that one row back to its default, as if the
+        /// player had moved it there -- saved now, its live hook run, both UIs refreshed. A switch
+        /// goes through <see cref="ApplyToggle"/> like a click (the fog's switch included: the
+        /// reset button is the player's own click).
+        /// </summary>
+        public static void ResetRow(Row row)
+        {
+            if (row == null || !row.CanReset || row.IsAtDefault)
+                return;
+
+            Log.Msg("setting: " + row.Name + " reset to its default (the row's reset button)");
+
+            if (row.Kind == RowKind.Toggle && row.Bool != null)
+            {
+                ApplyToggle(row, row.DefaultBool);
+                return;
+            }
+
+            row.ResetToDefault();
             SettingsXml.SaveNow();
 
             if (row.AfterChange != null)
@@ -935,7 +985,6 @@ namespace VolumetricClouds.UI
             BuildWeatherOptions();
             BuildLightOptions();
             BuildHaloOptions();
-            BuildAdvancedOptions();
 
             // The options page, top to bottom: quality and drawing first, then the mod itself.
             BuildRenderingOptions();
@@ -1262,8 +1311,17 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 100f, Step = 5f,
             });
 
-            // Break-up detail (CloudBreakupScale): on the Advanced tab since 1.4.0, with the other
-            // technical rows (see "The Advanced tab" below).
+            // Break-up detail: on an Advanced tab in 1.4.0, back here in 1.5.0 (the author: "Remove the
+            // Advanced tab and move the things in it back to the other tabs").
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Clouds,
+                Float = Settings.CloudBreakupScale,
+                DefaultFloat = Settings.Defaults.BreakupScale,
+                Min = 1.5f, Max = 10f, Step = 0.25f,
+                Format = Times2,
+            });
 
             // Small, thin shreds round the big clouds, same layer and base (Sky.CloudFragments).
             // The number is a real share of the sky; 0 is off. No AfterChange (a slider's runs
@@ -1362,7 +1420,7 @@ namespace VolumetricClouds.UI
             {
                 Kind = RowKind.Toggle,
                 Panel = PanelPage.Fog,
-                HasNote = true,
+                // No warning since 1.5.0 (the author: "plenty of users confirmed it doesn't cost a lot").
                 Bool = Settings.FogEnabled,
                 DefaultBool = Settings.Defaults.FogEnabled,
                 // Only the player's own click turns this off, never an update. "Reset all
@@ -1520,7 +1578,17 @@ namespace VolumetricClouds.UI
                 Enabled = FogLampsOn,
             });
 
-            // Lit radius around a light (FogLampRadius): on the Advanced tab since 1.4.0.
+            // Lit radius around a light: on the Advanced tab in 1.4.0, back here in 1.5.0.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogLampRadius,
+                DefaultFloat = Settings.Defaults.FogLampRadius,
+                Min = 2f, Max = 40f, Step = 1f,
+                Format = Metres,
+                Enabled = FogLampsOn,
+            });
 
             // 1.5.0, asked for by a player: fog that is "not just a fixed density of fog moving
             // around" but changes -- denser on autumn nights, "lowered if the sun shines again",
@@ -1821,7 +1889,17 @@ namespace VolumetricClouds.UI
                 Enabled = ShadowsOn,
             });
 
-            // Shadow fullness (CloudShadowFullness): on the Advanced tab since 1.4.0.
+            // Shadow fullness: on the Advanced tab in 1.4.0, back here in 1.5.0.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Light,
+                Float = Settings.CloudShadowFullness,
+                DefaultFloat = Settings.Defaults.ShadowFullness,
+                Min = 0.5f, Max = 8f, Step = 0.25f,
+                Format = Times2,
+                Enabled = ShadowsOn,
+            });
 
             Add(new Row
             {
@@ -2184,108 +2262,6 @@ namespace VolumetricClouds.UI
             // The "Vehicles and other moving lights" group -- "Vehicle light halos" and "Adjust
             // dynamic lights" with its two sliders -- was here until 1.1.1: removed, see the note
             // in Settings.cs beside HaloNearLightRadius.
-        }
-
-        /// <summary>
-        /// Advanced tab Advanced (1.4.0): the technical rows, moved off the basic tabs to make them
-        /// less crowded (the author: "a new Advanced tab with the settings ... just their position can
-        /// change"). The same settings, names, ranges and defaults: a settings file or profile reads
-        /// exactly as before; only where the slider is changed.
-        /// </summary>
-        private static void BuildAdvancedOptions()
-        {
-            // From Clouds.
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Advanced,
-                Group = "CloudShape",
-                Float = Settings.CloudBreakupScale,
-                DefaultFloat = Settings.Defaults.BreakupScale,
-                Min = 1.5f, Max = 10f, Step = 0.25f,
-                Format = Times2,
-            });
-
-            // From Fog.
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Advanced,
-                Group = "FogLamps",
-                Float = Settings.FogLampRadius,
-                DefaultFloat = Settings.Defaults.FogLampRadius,
-                Min = 2f, Max = 40f, Step = 1f,
-                Format = Metres,
-                Enabled = FogLampsOn,
-            });
-
-            // From Light.
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Options = OptionsPage.Advanced,
-                Group = "Shadows",
-                Float = Settings.CloudShadowFullness,
-                DefaultFloat = Settings.Defaults.ShadowFullness,
-                Min = 0.5f, Max = 8f, Step = 0.25f,
-                Format = Times2,
-                Enabled = ShadowsOn,
-            });
-
-            // TEMPORARY (1.5.0 development): the empty-sky skip on or off in the same build, so the
-            // author can compare frame times (Sky.EmptySky; nothing on screen changes either way).
-            // REMOVE BEFORE RELEASE (CHANGELOG's to-do), with its texts and Settings entry.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Advanced,
-                Group = "Testing",
-                Bool = Settings.SkipEmptySkyTest,
-                DefaultBool = Settings.Defaults.SkipEmptySkyTest,
-                Profiled = false,
-                AfterChange = State("skip the empty sky (test switch)", OnOff(Settings.SkipEmptySkyTest)),
-            });
-
-            // TEMPORARY (1.5.0 trial): the far deck on or off in the same build, to judge it in-game
-            // (CloudRaymarch MarchFarDeck; only shows under "Clouds hide the sky by day" or at night).
-            // Before release: keep it (as part of that row) or drop it, then REMOVE this switch.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Advanced,
-                Group = "Testing",
-                Bool = Settings.FarDeckTest,
-                DefaultBool = Settings.Defaults.FarDeckTest,
-                Profiled = false,
-                AfterChange = State("far deck (test switch)", OnOff(Settings.FarDeckTest)),
-            });
-
-            // TEMPORARY (1.5.0 test): every march's jitter moved on each frame, for a TAA to average
-            // (Sky/CloudTemporal FrameShift). Before release: keep it (decided how) or drop it, then
-            // REMOVE this switch.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Advanced,
-                Group = "Testing",
-                Bool = Settings.JitterEachFrameTest,
-                DefaultBool = Settings.Defaults.JitterEachFrameTest,
-                Profiled = false,
-                AfterChange = State("grain changes every frame (test switch)", OnOff(Settings.JitterEachFrameTest)),
-            });
-
-            // TEMPORARY (1.5.0 test): where Smoother clouds' blend is used (red) and where the clouds are
-            // still marched (blue). REMOVE before release with its texts.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Options = OptionsPage.Advanced,
-                Group = "Testing",
-                Bool = Settings.TemporalTintTest,
-                DefaultBool = Settings.Defaults.TemporalTintTest,
-                Profiled = false,
-                AfterChange = State("smoother clouds tint (test switch)", OnOff(Settings.TemporalTintTest)),
-            });
         }
 
         /// <summary>The game's options page, and nothing else: the mod itself, and the reset button at the very bottom.</summary>

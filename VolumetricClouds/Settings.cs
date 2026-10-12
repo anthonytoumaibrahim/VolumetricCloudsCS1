@@ -351,30 +351,9 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting CloudShadowFullness { get; private set; }
 
-        /// <summary>
-        /// TEMPORARY (1.5.0 development, remove before release): the cloud march skips the empty sky
-        /// (Sky.EmptySky). A switch only to compare frame times in one build; nothing on screen changes.
-        /// </summary>
-        public static BoolSetting SkipEmptySkyTest { get; private set; }
-
-        /// <summary>
-        /// TEMPORARY (1.5.0 trial, decide before release): the far deck -- the clouds past the reach out
-        /// to the horizon, under a deck that hides the sky (CloudRaymarch MarchFarDeck).
-        /// </summary>
-        public static BoolSetting FarDeckTest { get; private set; }
-
-        /// <summary>
-        /// TEMPORARY (1.5.0 test, decide before release): every march's jitter moved on each frame
-        /// (Sky/CloudTemporal FrameShift), so a temporal anti-aliasing (Render It!'s TAA) averages the
-        /// grain. Without one the grain shimmers instead. Off: the jitter as before.
-        /// </summary>
-        public static BoolSetting JitterEachFrameTest { get; private set; }
-
-        /// <summary>
-        /// TEMPORARY (1.5.0 test): Smoother clouds' pixels drawn red, the cloud pixels still marched blue,
-        /// to see where the blend is used. Remove before release.
-        /// </summary>
-        public static BoolSetting TemporalTintTest { get; private set; }
+        // The 1.5.0 test switches (skip the empty sky, clouds to the horizon, grain changes every
+        // frame, tint smoother clouds) were removed before release: the skip and the far deck are
+        // always on, the jitter stays as it was, no tint. Never in a released file.
 
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
         public static IntSetting ShadowMapResolution { get; private set; }
@@ -775,17 +754,6 @@ namespace VolumetricClouds
             public const float ShadowDarkness = 0.85f;
             public const float ShadowFullness = 3f;
 
-            /// <summary>TEMPORARY test switch (remove before release): the skip on, as it will ship.</summary>
-            public const bool SkipEmptySkyTest = true;
-
-            /// <summary>TEMPORARY trial switch: the far deck on, to be judged in-game.</summary>
-            public const bool FarDeckTest = true;
-
-            /// <summary>TEMPORARY test switch: off, the jitter as before.</summary>
-            public const bool JitterEachFrameTest = false;
-
-            /// <summary>TEMPORARY test switch: off, no tint.</summary>
-            public const bool TemporalTintTest = false;
             public const int ShadowMapResolution = 2048;
             public const int ShadowMapRate = 20;
 
@@ -1030,10 +998,6 @@ namespace VolumetricClouds
                 // coverage, so saved values of it are not meaningful.
                 CloudShadowDarkness = new FloatSetting("CloudShadowDarkness", Defaults.ShadowDarkness);
                 CloudShadowFullness = new FloatSetting("CloudShadowFullness", Defaults.ShadowFullness);
-                SkipEmptySkyTest = new BoolSetting("SkipEmptySkyTest", Defaults.SkipEmptySkyTest);
-                FarDeckTest = new BoolSetting("FarDeckTest", Defaults.FarDeckTest);
-                JitterEachFrameTest = new BoolSetting("JitterEachFrameTest", Defaults.JitterEachFrameTest);
-                TemporalTintTest = new BoolSetting("TemporalTintTest", Defaults.TemporalTintTest);
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);

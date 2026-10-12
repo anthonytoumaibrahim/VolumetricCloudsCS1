@@ -184,19 +184,18 @@ namespace VolumetricClouds.Sky
         /// SKIP THE EMPTY SKY (1.5.0, Sky.EmptySky): the cloud march jumps over cells of the weather map
         /// that hold no cloud at this cover. Nothing on screen changes. Off with cloud fragments (they
         /// read the map turned and finer, which a cell's bound says nothing about), off while hardly any
-        /// cell is empty, and off by the temporary test switch. Only the cloud march reads it. Under the
+        /// cell is empty. Only the cloud march reads it. Under the
         /// Mixed style its own copy of the map (CloudMixMap: where the separate clouds reach), and only
         /// while that copy was made from the field's current one.
         /// </summary>
         private static void ApplyEmptySky(Material material, CloudDensityField field)
         {
-            bool test = Settings.SkipEmptySkyTest == null || Settings.SkipEmptySkyTest.value;
             bool fragments = CloudFragments.On;
             bool mixed = CloudStyle.MixedDrawn;
             byte[] mixBytes = mixed && CloudMixMap.EmptySkyFor(field.EmptySkyBytes) ? CloudMixMap.EmptySkyBytes : null;
 
             float share = 0f;
-            if (test && !fragments && mixed)
+            if (!fragments && mixed)
             {
                 // The layer's lowest threshold anywhere (its type varies it): the shader's test (CellEmpty).
                 float lowest = field.GetThreshold(CloudStyle.MixedLayerInLayerArea(Coverage));
@@ -211,7 +210,7 @@ namespace VolumetricClouds.Sky
                 _emptyShareVersion = -1;
                 share = _emptyShare;
             }
-            else if (test && !fragments)
+            else if (!fragments)
             {
                 _emptyShareMixBytes = null;
                 bool cumulus = CloudStyle.Drawn;
@@ -237,7 +236,7 @@ namespace VolumetricClouds.Sky
 
             // Half the share to switch off as to switch on: a cover hovering round it does not flicker
             // the state (and the log).
-            bool on = test && !fragments && share >= (_emptySkyLogged == "on" ? EmptySkyMinShare * 0.5f : EmptySkyMinShare);
+            bool on = !fragments && share >= (_emptySkyLogged == "on" ? EmptySkyMinShare * 0.5f : EmptySkyMinShare);
             int cells = CloudDensityField.Resolution / EmptySky.CellTexels;
             material.SetVector(IdEmptySky, new Vector4(on ? 1f : 0f, cells, EmptySky.CoarseCells, 0f));
             if (on)
@@ -245,7 +244,7 @@ namespace VolumetricClouds.Sky
 
             // Always on the log, once per state: it is the one thing in the march that decides what is
             // NOT looked at, so a hole in the sky after this would start here.
-            string state = on ? "on" : !test ? "test-off" : fragments ? "fragments" : "full";
+            string state = on ? "on" : fragments ? "fragments" : "full";
             if (state != _emptySkyLogged)
             {
                 _emptySkyLogged = state;
@@ -253,11 +252,9 @@ namespace VolumetricClouds.Sky
                     ? "empty-sky skip: on -- map " + cells + "x" + cells + " (cells of " + EmptySky.CellTexels + " and " +
                       EmptySky.CellTexels * EmptySky.CoarseCells + " weather texels), built in " + field.EmptySkyBuildMs.ToString("F1") +
                       " ms; " + (share * 100f).ToString("F0") + "% of the cells are empty now"
-                    : state == "test-off"
-                        ? "empty-sky skip: off (the test switch on the Advanced tab)"
-                        : state == "fragments"
-                            ? "empty-sky skip: off while cloud fragments are on"
-                            : "empty-sky skip: off, almost no cell is empty at this cover");
+                    : state == "fragments"
+                        ? "empty-sky skip: off while cloud fragments are on"
+                        : "empty-sky skip: off, almost no cell is empty at this cover");
             }
         }
 

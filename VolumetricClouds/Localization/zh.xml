@@ -40,7 +40,6 @@
   <String key="Tab.Weather">天气</String>
   <String key="Tab.Light">光照</String>
   <String key="Tab.Halos">光晕</String>
-  <String key="Tab.Advanced">高级</String>
   <String key="Tab.General">常规</String>
 
   <String key="Key.Press">按下一个键</String>
@@ -144,7 +143,6 @@
 
   <String key="CloudBreakup.Label">破碎度（整体→零散）</String>
 
-  <String key="Group.CloudShape">云层形状</String>
   <String key="CloudBreakupScale.Label">破碎细节（粗→细）</String>
 
   <String key="CloudFragments.Label">云层碎片</String>
@@ -176,14 +174,11 @@
   <String key="Colour.Copy">复制</String>
   <String key="Colour.Copied">已复制</String>
   <String key="Colour.Paste">粘贴</String>
-  <String key="Colour.Reset">默认</String>
+  <String key="Reset.Tooltip">恢复默认值</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
-  <String key="FogEnabled.Label">体积雾（极耗性能）</String>
-  <String key="FogEnabled.Note">
-    警告：此设置可能大幅降低游戏性能，仅推荐高性能电脑使用。
-  </String>
+  <String key="FogEnabled.Label">体积雾</String>
 
   <String key="FogLampsEnabled.Label">城市灯光照亮雾气</String>
 
@@ -217,7 +212,6 @@
   <String key="MistAfterRain.Label">雨后薄雾</String>
   <String key="FogOverWater.Label">水面雾</String>
 
-  <String key="Group.FogLamps">城市灯光照亮雾气</String>
   <String key="FogLampRadius.Label">灯光照雾半径</String>
 
   <!-- ==================== Advanced: Weather ==================== -->
@@ -279,13 +273,6 @@
   <String key="CloudShadowDarkness.Label">阴影深度</String>
 
   <String key="CloudShadowFullness.Label">阴影饱满度</String>
-
-  <String key="Group.Testing">测试（发布前移除）</String>
-
-  <String key="SkipEmptySkyTest.Label">跳过空旷天空</String>
-  <String key="FarDeckTest.Label">云层延伸至地平线</String>
-  <String key="JitterEachFrameTest.Label">颗粒感每帧变化</String>
-  <String key="TemporalTintTest.Label">为平滑云层着色（红色 = 已混合，蓝色 = 未混合）</String>
 
   <String key="Group.Brightness">云层受光亮度</String>
 
@@ -385,7 +372,7 @@
   <String key="PanelSkin.SeeThrough">半透明</String>
   <String key="PanelSkin.Frosted">磨砂玻璃</String>
   <String key="PanelSkin.GameBlue">蓝色</String>
-  <String key="PanelSkin.Vanilla">游戏原版</String>
+  <String key="PanelSkin.Vanilla">原版</String>
 
   <String key="ShowInUnifiedUI.Label">在 Unified UI 中显示图标</String>
 

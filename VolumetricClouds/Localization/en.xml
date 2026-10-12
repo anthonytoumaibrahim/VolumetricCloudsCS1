@@ -60,7 +60,6 @@
   <String key="Tab.Weather">Weather</String>
   <String key="Tab.Light">Light</String>
   <String key="Tab.Halos">Halos</String>
-  <String key="Tab.Advanced">Advanced</String>
   <String key="Tab.General">General</String>
 
   <String key="Key.Press">Press a key</String>
@@ -167,7 +166,6 @@
 
   <String key="CloudBreakup.Label">Break-up (solid to ragged)</String>
 
-  <String key="Group.CloudShape">Cloud shape</String>
   <String key="CloudBreakupScale.Label">Break-up detail (big to fine)</String>
 
   <String key="CloudFragments.Label">Cloud fragments</String>
@@ -199,15 +197,11 @@
   <String key="Colour.Copy">Copy</String>
   <String key="Colour.Copied">Copied</String>
   <String key="Colour.Paste">Paste</String>
-  <String key="Colour.Reset">Default</String>
+  <String key="Reset.Tooltip">Back to the default</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
-  <String key="FogEnabled.Label">Volumetric fog (VERY heavy on performance)</String>
-  <String key="FogEnabled.Note">
-    WARNING: This setting can slow the game down a lot. Only recommended for powerful
-    computers.
-  </String>
+  <String key="FogEnabled.Label">Volumetric fog</String>
 
   <String key="FogLampsEnabled.Label">Fog lit by the city's lights</String>
 
@@ -241,7 +235,6 @@
   <String key="MistAfterRain.Label">Mist after rain</String>
   <String key="FogOverWater.Label">Fog over water</String>
 
-  <String key="Group.FogLamps">Fog lit by the city's lights</String>
   <String key="FogLampRadius.Label">Lit radius around a light</String>
 
   <!-- ==================== Advanced: Weather ==================== -->
@@ -303,13 +296,6 @@
   <String key="CloudShadowDarkness.Label">Shadow darkness</String>
 
   <String key="CloudShadowFullness.Label">Shadow fullness</String>
-
-  <String key="Group.Testing">Testing (removed before release)</String>
-
-  <String key="SkipEmptySkyTest.Label">Skip the empty sky</String>
-  <String key="FarDeckTest.Label">Clouds to the horizon</String>
-  <String key="JitterEachFrameTest.Label">Grain changes every frame</String>
-  <String key="TemporalTintTest.Label">Tint smoother clouds (red = blended, blue = not)</String>
 
   <String key="Group.Brightness">How brightly the clouds are lit</String>
 
@@ -409,7 +395,7 @@
   <String key="PanelSkin.SeeThrough">See-through</String>
   <String key="PanelSkin.Frosted">Frosted glass</String>
   <String key="PanelSkin.GameBlue">Blue</String>
-  <String key="PanelSkin.Vanilla">Like the game</String>
+  <String key="PanelSkin.Vanilla">Vanilla</String>
 
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
 

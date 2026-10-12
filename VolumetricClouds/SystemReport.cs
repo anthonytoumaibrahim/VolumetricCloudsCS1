@@ -73,10 +73,8 @@ namespace VolumetricClouds
                         " sunsetLight=" + (Sky.SunsetLight.Setting * 100f).ToString("F0") + "%" +
                         // 1.5.0: changes what shows through the far clouds by day.
                         " hideSkyByDay=" + Percent(Settings.CloudDayOpacity, Settings.Defaults.DayOpacity) +
-                        " farDeck=" + On(Settings.FarDeckTest, Settings.Defaults.FarDeckTest) +
-                        // 1.5.0: Smoother clouds, and the "grain changes every frame" test switch.
+                        // 1.5.0: Smoother clouds.
                         " smootherClouds=" + On(Settings.CloudTemporal, Settings.Defaults.Temporal) +
-                        " jitterEachFrame=" + On(Settings.JitterEachFrameTest, Settings.Defaults.JitterEachFrameTest) +
                         " fragments=" + Sky.CloudFragments.Describe() +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
                         " fogDistance=" + (Sky.CloudFog.Reach / 1000f).ToString("F1") + "km" +

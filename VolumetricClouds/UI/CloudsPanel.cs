@@ -40,6 +40,9 @@ namespace VolumetricClouds.UI
         private const float Margin = 14f;
 
         private const float HeadingHeight = 24f;
+
+        /// <summary>The reset button's column at the right end of each row, gap included.</summary>
+        private const float ResetColumn = 28f;
         private const float NoteHeight = 32f;
 
         private const float MinContentHeight = PanelHeight - TitleBarHeight - TabHeight - 2f * Margin;
@@ -48,7 +51,7 @@ namespace VolumetricClouds.UI
 
         private static readonly OptionsPage[] AdvancedTabs =
         {
-            OptionsPage.Weather, OptionsPage.Halos, OptionsPage.Advanced,
+            OptionsPage.Weather, OptionsPage.Halos,
         };
 
         /// <summary>One tab: a basic page, or an advanced one.</summary>
@@ -110,6 +113,9 @@ namespace VolumetricClouds.UI
             public SliderRow Slider;
             public ChoiceRow Choice;
             public UICheckBox Check;
+            public UIButton Reset;
+            public KeyRow Key;
+            public string KeyShown;
             public UILabel Status;
             public ColourRow Colour;
             public readonly List<UIComponent> Parts = new List<UIComponent>();
@@ -151,6 +157,9 @@ namespace VolumetricClouds.UI
             // Only the title bar: the profile bar under it is controls.
             _ui.AddFrame(this, Mod.DisplayName, Hide);
             BuildProfileBar();
+
+            // Every setting row ends in its reset button (1.5.0): room for it on every row.
+            _ui.ResetColumn = ResetColumn;
 
             List<Tab> tabs = Tabs(advanced);
             List<string> names = new List<string>();
@@ -267,6 +276,21 @@ namespace VolumetricClouds.UI
                     // It keeps its own guard: its swatch fires events when set.
                     if (control.Colour != null)
                         control.Colour.Refresh();
+
+                    // A key reset by its button, the options page or a reset all.
+                    if (control.Key != null && row.Key != null)
+                    {
+                        string shown = row.Key.ToLocalizedString("KEYNAME");
+                        if (shown != control.KeyShown && !control.Key.Button.hasFocus)
+                        {
+                            control.KeyShown = shown;
+                            control.Key.Button.text = shown;
+                        }
+                    }
+
+                    // Lit while the row is off its default (and not greyed out).
+                    if (control.Reset != null)
+                        Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtDefault);
                 }
             }
             finally
@@ -474,6 +498,20 @@ namespace VolumetricClouds.UI
             List<Item> items = new List<Item>();
             HashSet<UIComponent> claimed = new HashSet<UIComponent>();
 
+            // The names' column, per page: as wide as the page's longest name needs (capitals in
+            // Frosted take more room), at least the skin's 196, at most 46% of the page. A name
+            // still too long is drawn smaller, then on two lines, never cut off (Builder.AddName).
+            float widest = 0f;
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                if (tab.Shows(row) && UsesNameColumn(row.Kind))
+                    widest = Mathf.Max(widest, _ui.NameWidth(row.Label));
+            }
+
+            _ui.LabelWidth = Mathf.Clamp(Mathf.Ceil(widest) + 8f, _ui.Theme.LabelWidth, Mathf.Floor(page.width * 0.46f));
+            Log.Msg("panel: " + (tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString()) +
+                    " tab names " + _ui.LabelWidth.ToString("F0") + " wide (longest " + widest.ToString("F0") + ")");
+
             foreach (Row row in SettingsCatalog.Rows)
             {
                 // A line of text has no control (the profile's name: the bar above is its UI).
@@ -525,7 +563,43 @@ namespace VolumetricClouds.UI
             return item;
         }
 
+        /// <summary>The rows whose name stands in the names' column (a tick box left of its name does not).</summary>
+        private bool UsesNameColumn(RowKind kind)
+        {
+            switch (kind)
+            {
+                case RowKind.Status:
+                case RowKind.Button:
+                case RowKind.Text:
+                    return false;
+                case RowKind.Toggle:
+                    return _ui.Theme.Toggle != ToggleShape.TickLeft;
+                default:
+                    return true;
+            }
+        }
+
         private Control Build(UIPanel page, Row row, float y)
+        {
+            Control control = BuildControl(page, row, y);
+
+            // The row's reset button. A colour row has its own (it logs the pick its own way).
+            if (row.CanReset && row.Kind != RowKind.Colour && row.Kind != RowKind.Status &&
+                row.Kind != RowKind.Button && row.Kind != RowKind.Text)
+            {
+                control.Reset = _ui.AddReset(page, y, Localization.Get("Reset.Tooltip"));
+                if (control.Reset != null)
+                {
+                    Row captured = row;
+                    control.Reset.eventClick += (component, e) => SettingsCatalog.ResetRow(captured);
+                    Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtDefault);
+                }
+            }
+
+            return control;
+        }
+
+        private Control BuildControl(UIPanel page, Row row, float y)
         {
             Control control = new Control { Source = row };
 
@@ -572,6 +646,8 @@ namespace VolumetricClouds.UI
                 {
                     KeyRow key = _ui.AddKeyBinding(page, y, row.Label, row.Key, Localization.Get("Key.Press"),
                         SettingsXml.SaveNow);
+                    control.Key = key;
+                    control.KeyShown = key.Button.text;
                     control.Parts.AddRange(key.Parts);
                     break;
                 }

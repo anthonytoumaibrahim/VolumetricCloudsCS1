@@ -32,7 +32,6 @@
   <String key="Tab.Weather">Clima</String>
   <String key="Tab.Light">Luz</String>
   <String key="Tab.Halos">Halos</String>
-  <String key="Tab.Advanced">Avanzado</String>
   <String key="Tab.General">General</String>
 
   <String key="Key.Press">Pulsa una tecla</String>
@@ -131,7 +130,6 @@
 
   <String key="CloudBreakup.Label">Nubes (sólidas a irregulares)</String>
 
-  <String key="Group.CloudShape">Forma de nubes</String>
   <String key="CloudBreakupScale.Label">Fragmentación (grande a fina)</String>
 
   <String key="CloudFragments.Label">Fragmentos de nubes</String>
@@ -163,12 +161,11 @@
   <String key="Colour.Copy">Copiar</String>
   <String key="Colour.Copied">Copiado</String>
   <String key="Colour.Paste">Pegar</String>
-  <String key="Colour.Reset">Predeterminado</String>
+  <String key="Reset.Tooltip">Volver al valor predeterminado</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
-  <String key="FogEnabled.Label">Niebla volumétrica (MUY exigente)</String>
-  <String key="FogEnabled.Note">ADVERTENCIA: este ajuste puede ralentizar mucho el juego. Solo se recomienda para equipos potentes.</String>
+  <String key="FogEnabled.Label">Niebla volumétrica</String>
 
   <String key="FogLampsEnabled.Label">Niebla con luces urbanas</String>
 
@@ -202,7 +199,6 @@
   <String key="MistAfterRain.Label">Neblina tras la lluvia</String>
   <String key="FogOverWater.Label">Niebla sobre el agua</String>
 
-  <String key="Group.FogLamps">Niebla con luces urbanas</String>
   <String key="FogLampRadius.Label">Radio iluminado</String>
 
   <!-- ==================== Advanced: Weather ==================== -->
@@ -264,13 +260,6 @@
   <String key="CloudShadowDarkness.Label">Oscuridad sombras</String>
 
   <String key="CloudShadowFullness.Label">Fuerza de sombras</String>
-
-  <String key="Group.Testing">Pruebas (se quita antes de publicar)</String>
-
-  <String key="SkipEmptySkyTest.Label">Saltar el cielo vacío</String>
-  <String key="FarDeckTest.Label">Nubes hasta el horizonte</String>
-  <String key="JitterEachFrameTest.Label">El grano cambia en cada fotograma</String>
-  <String key="TemporalTintTest.Label">Teñir las nubes suavizadas (rojo = mezcladas, azul = no)</String>
 
   <String key="Group.Brightness">Brillo de las nubes</String>
 
@@ -370,7 +359,7 @@
   <String key="PanelSkin.SeeThrough">Transparente</String>
   <String key="PanelSkin.Frosted">Vidrio esmerilado</String>
   <String key="PanelSkin.GameBlue">Azul</String>
-  <String key="PanelSkin.Vanilla">Como el juego</String>
+  <String key="PanelSkin.Vanilla">Original</String>
 
   <String key="ShowInUnifiedUI.Label">Mostrar icono en Unified UI</String>
 

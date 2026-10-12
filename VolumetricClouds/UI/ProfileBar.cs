@@ -43,7 +43,8 @@ namespace VolumetricClouds.UI
     {
         public const float Height = 38f;
 
-        private const float LabelWidth = 58f;
+        /// <summary>"Profile" and a little room before the dropdown (1.5.0: was 58, the name touched it).</summary>
+        private const float LabelWidth = 72f;
         private const float DropWidth = 230f;
         private const float ControlHeight = 30f;
         private const float SaveWidth = 50f;

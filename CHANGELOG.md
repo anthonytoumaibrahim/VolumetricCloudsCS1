@@ -27,10 +27,15 @@ Cities: Skylines II: blue-grey glass over a blurred view of the city, a dark tit
 open one in blue, names in capitals with a faint line between rows, choices as a row of buttons (a
 list when the names don't fit), thin sliders with a blue fill, and *Save* turning blue while there
 are unsaved changes. *Panel look* on the options page (under *The in-game panel*) picks it, or
-*See-through* (a dark panel the sky shows through, switches, values in a small box), *Blue*, or *Like
-the game*, the panel exactly as it was. What every row stores is unchanged, so settings, profiles and
+*See-through* (a dark panel the sky shows through, switches, values in a small box), *Blue*, or
+*Vanilla*, the panel exactly as it was. What every row stores is unchanged, so settings, profiles and
 saved cities are untouched. *Frosted glass* blurs a small copy of the screen only while the panel is
 open.
+
+Every setting in the panel now ends in a small reset button (a round arrow) that puts that one
+setting back to its default; it is faded while the setting is already there. The colour rows' text
+button *Default* is now the same icon. Long setting names are no longer cut off: each tab's name
+column is as wide as its longest name needs, and a name that still doesn't fit is drawn smaller.
 
 ### New: changing fog
 
@@ -151,6 +156,11 @@ reading it ignores that one line and draws *Classic*.
 
 ### Changed
 
+- The *Advanced* tab of the in-game panel is gone: its three rows are back where they were before
+  1.4.0, *Break-up detail* on the Clouds tab, *Lit radius around a light* on the Fog tab and *Shadow
+  fullness* on the Light tab. Their settings are unchanged.
+- *Volumetric fog* no longer warns that it is very heavy on performance: players have found it
+  costs little.
 - The clouds are cheaper to draw where the sky is clear: the mod no longer works through stretches
   of sky that can't hold any cloud at the current cover. Nothing on screen changes. It helps most at
   fair weather and when looking up; at a full overcast there is nothing to skip. Off while *Cloud
@@ -169,12 +179,9 @@ reading it ignores that one line and draws *Classic*.
 
 ### To do before release (remove this section when 1.5.0 ships)
 
-Not started yet:
-
-- Remove the temporary *Skip the empty sky* test switch (Advanced tab, "Testing" group:
-  `Settings.SkipEmptySkyTest`, its catalog row, its texts in all four languages) once its frame
-  times are compared. The skip itself stays. The same for *Clouds to the horizon* (`FarDeckTest`,
-  see the far clouds item below).
+The four temporary test switches (*Skip the empty sky*, *Clouds to the horizon*, *Grain changes every
+frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (the author: "we already
+tested with them"): the skip and the far deck are always on, the jitter stays as it was, no tint.
 
 Built, awaiting the in-game test:
 
@@ -186,7 +193,9 @@ Built, awaiting the in-game test:
   names in capitals fit (Spanish and French). Default: Frosted glass (the author's call, 2026-10-12). Before the
   1.5.0 commits are pushed: ModsLibCS1 public (a public repo can't build with a private submodule),
   release.ps1 checks the submodule (committed, pinned commit pushed), README: clone with
-  `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15).
+  `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15). 2026-10-13:
+  the reset buttons (`ResetRow`; the colour rows keep their own), the names' column per tab (log:
+  `panel: <tab> tab names N wide`), "Profile" given room; check every tab's names in every language.
 
 - *Mixed* (written up above), rebuilt 2026-10-12 from the 2026-10-05 version that looked good but cost
   too much. Cheaper now: one map texture (the type in its alpha, no id map), one noise for every cloud
@@ -201,12 +210,8 @@ Built, awaiting the in-game test:
   in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
   by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to
   learn whether it saves time where the clouds are the cost (then say so above, or not); remove the
-  temporary *Tint smoother clouds* switch (`Settings.TemporalTintTest`, its row, its texts in all four
-  languages) and the camera diagnostics (`otherCameraDraws` in the frame line).
-- Temporary test switch *Grain changes every frame* (Advanced tab, "Testing",
-  `Settings.JitterEachFrameTest`, off): every march's jitter moves on each frame, so a temporal
-  anti-aliasing (Render It!'s TAA) can average the grain. Without one the grain shimmers instead.
-  Decide (keep, and how, or drop), then remove the switch with its texts in all four languages.
+  camera diagnostics (`otherCameraDraws` in the frame line). (Its tint switch is gone; the shader's
+  `_TemporalTint` branch is left unused until the next bundle build.)
 - Smoke and fire in the fog: since 1.4.0 smoke and fire are drawn on top of the fog instead of
   vanishing in it. They should fade into it with distance, like everything else. Black smoke over
   white steam: NOT fixed by the one queue -- the log (2026-10-12) shows both are 'Alpha Blended',
@@ -240,9 +245,9 @@ Undecided (not agreed yet, decide before building):
   behind it, and is as strong as the clouds shut the sky out (by day *Clouds hide the sky by day*,
   at night *Clouds hide the stars at night*: 0% by day = no far deck by day). (Its first version
   marched the clouds themselves out there: the weather map's 13.5 km repeats showed as arcs
-  fanning into the vanishing point, and it was grainy.) Temporary switch *Clouds to the horizon*
-  (Advanced tab, "Testing", `Settings.FarDeckTest`, on). KEPT (2026-10-12, "We'll keep this"),
-  written up under *Clouds hide the sky by day*; it hides a low sun too. Left: remove the switch.
+  fanning into the vanishing point, and it was grainy.) KEPT (2026-10-12, "We'll keep this"),
+  written up under *Clouds hide the sky by day*; it hides a low sun too. Its switch was removed
+  2026-10-13: always on.
 
 Then a sweep over every item above before release: each one built or deliberately moved to a
 later version, tested in-game, and written up in this changelog.

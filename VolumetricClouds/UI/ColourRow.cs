@@ -24,7 +24,6 @@ namespace VolumetricClouds.UI
     /// </remarks>
     internal sealed class ColourRow
     {
-        private const float LabelWidth = 196f;
         private const float SwatchSize = 26f;
         private const float TextWidth = 116f;
         private const float ButtonWidth = 62f;
@@ -60,10 +59,11 @@ namespace VolumetricClouds.UI
             _shown = Current;
             _logged = ColorText.Format(_shown);
 
-            UILabel name = _ui.AddName(parent, row.Label, new Vector3(0f, y + 8f), LabelWidth);
+            // The page's names' column (CloudsPanel widens it for long names).
+            UILabel name = _ui.AddName(parent, row.Label, new Vector3(0f, y + 8f), _ui.LabelWidth);
             _parts.Add(name);
 
-            float x = LabelWidth + 4f;
+            float x = _ui.LabelWidth + 4f;
 
             _swatch = CreateSwatch(parent, new Vector3(x, y + 4f));
             if (_swatch != null)
@@ -108,19 +108,23 @@ namespace VolumetricClouds.UI
             paste.eventClick += (component, e) => Paste();
             _parts.Add(paste);
 
-            // Right-aligned. Not in Parts: it greys out on its own rule (already the default).
-            _reset = CreateReset(parent, y);
+            // The row's reset: the same icon as every other row's (1.5.0; before, a "Default" text
+            // button), right-aligned. Not in Parts: it fades on its own rule (already the default).
+            _reset = _ui.AddReset(parent, y, Localization.Get("Reset.Tooltip"));
+            if (_reset != null)
+            {
+                _reset.eventClick += (component, e) =>
+                {
+                    if (_row.IsDefaultColour)
+                        return;
+
+                    Store(_row.DefaultColour);
+                    Commit("reset to the default");
+                };
+            }
 
             // The faint line under the row, in the looks that draw one.
             _ui.AddRowLine(parent, y);
-            _reset.eventClick += (component, e) =>
-            {
-                if (_row.IsDefaultColour)
-                    return;
-
-                Store(_row.DefaultColour);
-                Commit("reset to the default");
-            };
 
             Probe();
             Refresh();
@@ -167,7 +171,7 @@ namespace VolumetricClouds.UI
                     _copy.text = _ui.Caps(Localization.Get("Colour.Copy"));
                 }
 
-                _reset.isEnabled = ResetWanted;
+                Builder.SetResetEnabled(_reset, ResetWanted);
             }
             finally
             {
@@ -196,7 +200,7 @@ namespace VolumetricClouds.UI
                 _refreshing = false;
             }
 
-            _reset.isEnabled = ResetWanted;
+            Builder.SetResetEnabled(_reset, ResetWanted);
         }
 
         /// <summary>
@@ -342,19 +346,6 @@ namespace VolumetricClouds.UI
             }
         }
 
-        /// <summary>
-        /// A "Default" text button, right-aligned. Text on purpose: the plan was the game's
-        /// IconUndo sprite, which turned out to be in its asset data but not in the in-game atlas,
-        /// and on seeing the text fallback in-game the author preferred it ("it's actually
-        /// better like this"). Do not bring the icon back.
-        /// </summary>
-        private UIButton CreateReset(UIComponent parent, float y)
-        {
-            UIButton button = _ui.AddButton(parent, Localization.Get("Colour.Reset"),
-                new Vector2(ButtonWidth, 26f), new Vector3(parent.width - ButtonWidth, y + 4f));
-            button.canFocus = false;
-            return button;
-        }
 
         /// <summary>Once per launch: whether the game's picker was found, so a plain-looking row explains itself.</summary>
         private void Probe()

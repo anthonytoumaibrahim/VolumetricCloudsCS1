@@ -154,9 +154,6 @@ namespace VolumetricClouds.Sky
         // over the frames for the main camera, run from the box's OnWillRenderObject (CloudTemporalHook).
         private CloudTemporal _temporal;
         private static readonly int IdTemporalOn = Shader.PropertyToID("_TemporalOn");
-        private static readonly int IdTemporalTint = Shader.PropertyToID("_TemporalTint");
-        private static readonly int IdJitterShift = Shader.PropertyToID("_VCJitterShift");
-        private bool _jitterShiftLogged;
 
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
         private static readonly int IdMaxDistance = Shader.PropertyToID("_MaxDistance");
@@ -490,16 +487,6 @@ namespace VolumetricClouds.Sky
             // Smoother clouds switched off (or no clouds to draw): nothing of it runs or stays.
             if (_temporal != null && _temporal.Running && (!wanted || !TemporalWanted))
                 _temporal.Release();
-
-            // The "grain changes every frame" test switch (1.5.0): every march's jitter moved on each
-            // frame, for a temporal anti-aliasing to average away. 0: the jitter as before.
-            bool shift = Settings.JitterEachFrameTest != null && Settings.JitterEachFrameTest.value;
-            Shader.SetGlobalFloat(IdJitterShift, shift ? CloudTemporal.FrameShift(Time.frameCount) : 0f);
-            if (shift != _jitterShiftLogged)
-            {
-                _jitterShiftLogged = shift;
-                Log.Msg("grain changes every frame (test switch): " + (shift ? "on -- the march's jitter moves on each frame" : "off -- the jitter as before"));
-            }
 
             _renderer.enabled = wanted;
             IsActive = wanted;
@@ -970,9 +957,6 @@ namespace VolumetricClouds.Sky
             ApplyLighting();
             ApplyDetailLight();
             CloudLightning.ApplyTo(_material);
-
-            // TEMPORARY test switch (1.5.0): smoother clouds' pixels red, marched cloud pixels blue.
-            _material.SetFloat(IdTemporalTint, Settings.TemporalTintTest != null && Settings.TemporalTintTest.value ? 1f : 0f);
         }
 
         /// <summary>
@@ -1624,13 +1608,12 @@ namespace VolumetricClouds.Sky
             float edgeStart = Mathf.Lerp(DayEdgeStart, NightEdgeStart, night);
             _material.SetFloat(IdEdgeStart, edgeStart);
 
-            // The far deck (1.5.0 trial, CloudRaymarch MarchFarDeck): the deck out to the horizon, as
-            // much of it as the clouds shut the sky out (0% by day: none, as before), and only over a
-            // full overcast. Behind the near deck, filling in as that thins.
-            bool far = Settings.FarDeckTest == null || Settings.FarDeckTest.value;
+            // The far deck (1.5.0, CloudRaymarch MarchFarDeck): the deck out to the horizon, as much of
+            // it as the clouds shut the sky out (0% by day: none, as before), and only over a full
+            // overcast. Behind the near deck, filling in as that thins.
             float cover = Mathf.Clamp01(CloudShaderParams.Coverage);
             float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
-            _farDeckShown = far ? shut * overcast : 0f;
+            _farDeckShown = shut * overcast;
             float reach = Reach;
             // From high over the clouds the reach grows (up to MaxReach): the band always goes past it.
             float end = Mathf.Max(FarDeckEnd, reach * 1.5f);
@@ -2027,9 +2010,6 @@ namespace VolumetricClouds.Sky
                 _temporal.Dispose();
                 _temporal = null;
             }
-
-            // Ours, a global: back to "the jitter as before" for anything still drawn.
-            Shader.SetGlobalFloat(IdJitterShift, 0f);
 
             if (_holder != null)
                 Destroy(_holder);
