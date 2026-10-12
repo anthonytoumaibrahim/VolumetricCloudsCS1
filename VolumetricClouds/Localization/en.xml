@@ -405,6 +405,12 @@
 
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
 
+  <String key="PanelSkin.Label">Panel look</String>
+  <String key="PanelSkin.SeeThrough">See-through</String>
+  <String key="PanelSkin.Frosted">Frosted glass</String>
+  <String key="PanelSkin.GameBlue">Blue</String>
+  <String key="PanelSkin.Vanilla">Like the game</String>
+
   <String key="ShowInUnifiedUI.Label">Show icon in Unified UI</String>
 
   <String key="Group.Diagnostics">Diagnostics</String>

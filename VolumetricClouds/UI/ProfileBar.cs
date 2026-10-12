@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ColossalFramework.UI;
+using ModsLibCS1.UI;
 using UnityEngine;
 
 namespace VolumetricClouds.UI
@@ -15,7 +16,7 @@ namespace VolumetricClouds.UI
     /// tabs"), a dropdown at the top left with + and - beside it, "- disabled if no profiles
     /// exist" -- "basically mirror RenderIt". Save came with his first test (2026-09-29): a profile
     /// is a saved sky, and Save writes the sky into the picked one (<see cref="Profiles"/>). The
-    /// dropdown is Render It!'s own recipe (<see cref="UIBuilder.AddDropDown"/>); should its
+    /// dropdown is Render It!'s own recipe (ModsLibCS1's Builder.AddDropDown); should its
     /// sprites ever be missing, a button that shows the picked profile and moves to the next one
     /// on each click takes its place.
     ///
@@ -59,6 +60,7 @@ namespace VolumetricClouds.UI
 
         private static bool _loggedFallback;
 
+        private readonly Builder _ui;
         private readonly UIDropDown _drop;
         private readonly UIButton _cycle;
         private readonly UITextField _field;
@@ -79,6 +81,7 @@ namespace VolumetricClouds.UI
 
         private bool _refreshing;
         private bool _naming;
+        private bool _saveLit;
         private bool _refreshFailed;
 
         /// <summary>Read the folder again at the next refresh with the list closed (never from inside its own click).</summary>
@@ -94,18 +97,17 @@ namespace VolumetricClouds.UI
         private float _invalidUntil = -1f;
         private string _lasting;
 
-        public ProfileBar(UIComponent parent, float x, float y, float width)
+        public ProfileBar(Builder ui, UIComponent parent, float x, float y, float width)
         {
-            UILabel label = UIBuilder.AddLabel(parent, Localization.Get("Profiles.Label"), new Vector3(x, y + 12f), 0.8f);
-            label.autoSize = false;
-            label.size = new Vector2(LabelWidth, 20f);
+            _ui = ui;
+            _ui.AddName(parent, Localization.Get("Profiles.Label"), new Vector3(x, y + 12f), LabelWidth);
 
             float left = x + LabelWidth;
             Vector3 at = new Vector3(left, y + 4f);
             Vector2 size = new Vector2(DropWidth, ControlHeight);
 
             string missing;
-            _drop = UIBuilder.AddDropDown(parent, size, at, VisibleItems, out missing);
+            _drop = _ui.AddDropDown(parent, size, at, VisibleItems, out missing);
             if (_drop != null)
             {
                 _drop.eventSelectedIndexChanged += (component, index) =>
@@ -126,7 +128,7 @@ namespace VolumetricClouds.UI
             }
             else
             {
-                _cycle = UIBuilder.AddButton(parent, string.Empty, size, at);
+                _cycle = _ui.AddButton(parent, string.Empty, size, at);
                 _cycle.canFocus = false;
                 _cycle.eventClick += (component, e) => Cycle();
 
@@ -138,35 +140,35 @@ namespace VolumetricClouds.UI
                 }
             }
 
-            _field = UIBuilder.AddTextField(parent, size, at, ProfileName.MaxLength);
+            _field = _ui.AddTextField(parent, size, at, ProfileName.MaxLength);
             _field.isVisible = false;
             _field.eventTextSubmitted += (component, text) => Submitted(text);
             _field.eventTextCancelled += (component, text) => StopNaming(null);
 
             left += DropWidth + Gap;
-            _save = UIBuilder.AddButton(parent, Localization.Get("Profiles.Save"), new Vector2(SaveWidth, ControlHeight), new Vector3(left, y + 4f));
+            _save = _ui.AddButton(parent, Localization.Get("Profiles.Save"), new Vector2(SaveWidth, ControlHeight), new Vector3(left, y + 4f));
             _save.canFocus = false;
             _save.eventClick += (component, e) => SaveClicked();
 
             left += SaveWidth + 4f;
-            _revert = UIBuilder.AddButton(parent, Localization.Get("Profiles.Revert"), new Vector2(RevertWidth, ControlHeight), new Vector3(left, y + 4f));
+            _revert = _ui.AddButton(parent, Localization.Get("Profiles.Revert"), new Vector2(RevertWidth, ControlHeight), new Vector3(left, y + 4f));
             _revert.canFocus = false;
             _revert.eventClick += (component, e) => RevertClicked();
 
             left += RevertWidth + 4f;
-            _add = UIBuilder.AddButton(parent, "+", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
+            _add = _ui.AddButton(parent, "+", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _add.textScale = 1.1f;
             _add.canFocus = false;
             _add.eventClick += (component, e) => StartNaming();
 
             left += ButtonWidth + 4f;
-            _remove = UIBuilder.AddButton(parent, "-", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
+            _remove = _ui.AddButton(parent, "-", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _remove.textScale = 1.1f;
             _remove.canFocus = false;
             _remove.eventClick += (component, e) => ConfirmRemove();
 
             left += ButtonWidth + Gap + 2f;
-            _message = UIBuilder.AddLabel(parent, string.Empty, new Vector3(left, y + 4f), 0.7f);
+            _message = _ui.AddLabel(parent, string.Empty, new Vector3(left, y + 4f), 0.7f);
             _message.autoSize = false;
             _message.wordWrap = true;
             _message.verticalAlignment = UIVerticalAlignment.Middle;
@@ -224,7 +226,7 @@ namespace VolumetricClouds.UI
             if (_invalidUntil >= 0f && now > _invalidUntil)
             {
                 _invalidUntil = -1f;
-                _field.textColor = UIBuilder.TextFieldColour;
+                _field.textColor = _ui.Theme.FieldText;
             }
 
             if (_messageUntil >= 0f && now > _messageUntil)
@@ -244,7 +246,7 @@ namespace VolumetricClouds.UI
                 if (lasting != _lasting)
                 {
                     _lasting = lasting;
-                    _message.textColor = UIBuilder.WarningColour;
+                    _message.textColor = _ui.Theme.Warning;
                     _message.text = lasting;
                 }
             }
@@ -252,6 +254,14 @@ namespace VolumetricClouds.UI
 
         private void RefreshButtons(bool unsaved)
         {
+            // Lit, in the new looks, while there is something to save.
+            bool lit = !_naming && unsaved;
+            if (lit != _saveLit)
+            {
+                _saveLit = lit;
+                _ui.SetAccent(_save, lit);
+            }
+
             _save.isEnabled = !_naming && unsaved;
             _revert.isEnabled = !_naming && unsaved && Profiles.State == Profiles.Status.Selected;
             _add.isEnabled = !_naming;
@@ -454,11 +464,11 @@ namespace VolumetricClouds.UI
             if (name == DefaultsEntry)
             {
                 if (!Profiles.SelectDefaults())
-                    Say(Localization.Get("Profiles.Failed"), UIBuilder.WarningColour);
+                    Say(Localization.Get("Profiles.Failed"), _ui.Theme.Warning);
             }
             else if (!Profiles.Select(name))
             {
-                Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
+                Say(Localization.Get("Profiles.Unreadable"), _ui.Theme.Warning);
             }
 
             _resync = true;
@@ -486,9 +496,9 @@ namespace VolumetricClouds.UI
             try
             {
                 if (Profiles.SaveSelected())
-                    Say(Localization.Get("Profiles.Saved"), UIBuilder.StatusColour);
+                    Say(Localization.Get("Profiles.Saved"), _ui.Theme.Status);
                 else
-                    Say(Localization.Get("Profiles.Failed"), UIBuilder.WarningColour);
+                    Say(Localization.Get("Profiles.Failed"), _ui.Theme.Warning);
 
                 RefreshButtons(Profiles.HasUnsavedChanges);
             }
@@ -508,9 +518,9 @@ namespace VolumetricClouds.UI
             try
             {
                 if (Profiles.Revert())
-                    Say(Localization.Get("Profiles.Reverted"), UIBuilder.StatusColour);
+                    Say(Localization.Get("Profiles.Reverted"), _ui.Theme.Status);
                 else
-                    Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
+                    Say(Localization.Get("Profiles.Unreadable"), _ui.Theme.Warning);
 
                 _resync = true;
                 RefreshButtons(Profiles.HasUnsavedChanges);
@@ -539,12 +549,12 @@ namespace VolumetricClouds.UI
                 RefreshButtons(false);
 
                 _field.text = ProfileName.NextFree(Profiles.List(), Localization.Get("Profiles.NewName"));
-                _field.textColor = UIBuilder.TextFieldColour;
+                _field.textColor = _ui.Theme.FieldText;
                 _invalidUntil = -1f;
                 _field.Show();
                 _field.Focus(); // selects the whole name (selectOnFocus): typing replaces it
 
-                Say(Localization.Get("Profiles.Naming"), UIBuilder.StatusColour, 0f);
+                Say(Localization.Get("Profiles.Naming"), _ui.Theme.Status, 0f);
             }
             catch (Exception e)
             {
@@ -575,9 +585,9 @@ namespace VolumetricClouds.UI
                 if (byEnter)
                 {
                     // It stays open, in red, with the reason beside it: fix the name, or Escape.
-                    _field.textColor = UIBuilder.InvalidColour;
+                    _field.textColor = _ui.Theme.Invalid;
                     _invalidUntil = Time.realtimeSinceStartup + InvalidShownFor;
-                    Say(error, UIBuilder.WarningColour, 0f);
+                    Say(error, _ui.Theme.Warning, 0f);
                     _field.Focus();
                     return;
                 }
@@ -585,7 +595,7 @@ namespace VolumetricClouds.UI
                 // A click elsewhere with a name that cannot be used: nothing is made, and the bar
                 // says why.
                 StopNaming(null);
-                Say(error, UIBuilder.WarningColour);
+                Say(error, _ui.Theme.Warning);
             }
             catch (Exception e)
             {
@@ -608,9 +618,9 @@ namespace VolumetricClouds.UI
             RefreshButtons(Profiles.Selected.Length > 0 && Profiles.HasUnsavedChanges);
 
             if (message != null)
-                Say(message, UIBuilder.StatusColour);
+                Say(message, _ui.Theme.Status);
             else
-                Say(string.Empty, UIBuilder.StatusColour);
+                Say(string.Empty, _ui.Theme.Status);
         }
 
         // ---- - ---------------------------------------------------------------------------------
@@ -635,7 +645,7 @@ namespace VolumetricClouds.UI
                         try
                         {
                             if (!Profiles.Remove(name))
-                                Say(Localization.Get("Profiles.Failed"), UIBuilder.WarningColour);
+                                Say(Localization.Get("Profiles.Failed"), _ui.Theme.Warning);
 
                             Relist();
                             SettingsCatalog.RefreshAllUIs();

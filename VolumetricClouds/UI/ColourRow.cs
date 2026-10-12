@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ColossalFramework;
 using ColossalFramework.UI;
+using ModsLibCS1.UI;
 using UnityEngine;
 
 namespace VolumetricClouds.UI
@@ -38,6 +39,7 @@ namespace VolumetricClouds.UI
 
         private static bool _probed;
 
+        private readonly Builder _ui;
         private readonly Row _row;
         private readonly UIColorField _swatch;
         private readonly UITextField _text;
@@ -51,15 +53,14 @@ namespace VolumetricClouds.UI
         private float _invalidUntil = -1f;
         private float _copiedUntil = -1f;
 
-        public ColourRow(UIComponent parent, float y, Row row)
+        public ColourRow(Builder ui, UIComponent parent, float y, Row row)
         {
+            _ui = ui;
             _row = row;
             _shown = Current;
             _logged = ColorText.Format(_shown);
 
-            UILabel name = UIBuilder.AddLabel(parent, row.Label, new Vector3(0f, y + 8f), 0.8f);
-            name.autoSize = false;
-            name.size = new Vector2(LabelWidth, 20f);
+            UILabel name = _ui.AddName(parent, row.Label, new Vector3(0f, y + 8f), LabelWidth);
             _parts.Add(name);
 
             float x = LabelWidth + 4f;
@@ -87,7 +88,7 @@ namespace VolumetricClouds.UI
 
             x += SwatchSize + Gap;
 
-            _text = UIBuilder.AddTextField(parent, new Vector2(TextWidth, 26f), new Vector3(x, y + 4f), 64);
+            _text = _ui.AddTextField(parent, new Vector2(TextWidth, 26f), new Vector3(x, y + 4f), 64);
             _text.text = ColorText.Format(_shown);
             _text.eventTextSubmitted += (component, text) => Submit(text);
             _text.eventTextCancelled += (component, text) => ShowValid();
@@ -95,20 +96,23 @@ namespace VolumetricClouds.UI
 
             x += TextWidth + Gap;
 
-            _copy = UIBuilder.AddButton(parent, Localization.Get("Colour.Copy"), new Vector2(ButtonWidth, 26f), new Vector3(x, y + 4f));
+            _copy = _ui.AddButton(parent, Localization.Get("Colour.Copy"), new Vector2(ButtonWidth, 26f), new Vector3(x, y + 4f));
             _copy.canFocus = false;
             _copy.eventClick += (component, e) => Copy();
             _parts.Add(_copy);
 
             x += ButtonWidth + Gap;
 
-            UIButton paste = UIBuilder.AddButton(parent, Localization.Get("Colour.Paste"), new Vector2(ButtonWidth, 26f), new Vector3(x, y + 4f));
+            UIButton paste = _ui.AddButton(parent, Localization.Get("Colour.Paste"), new Vector2(ButtonWidth, 26f), new Vector3(x, y + 4f));
             paste.canFocus = false;
             paste.eventClick += (component, e) => Paste();
             _parts.Add(paste);
 
             // Right-aligned. Not in Parts: it greys out on its own rule (already the default).
             _reset = CreateReset(parent, y);
+
+            // The faint line under the row, in the looks that draw one.
+            _ui.AddRowLine(parent, y);
             _reset.eventClick += (component, e) =>
             {
                 if (_row.IsDefaultColour)
@@ -160,7 +164,7 @@ namespace VolumetricClouds.UI
                 if (_copiedUntil >= 0f && now > _copiedUntil)
                 {
                     _copiedUntil = -1f;
-                    _copy.text = Localization.Get("Colour.Copy");
+                    _copy.text = _ui.Caps(Localization.Get("Colour.Copy"));
                 }
 
                 _reset.isEnabled = ResetWanted;
@@ -241,7 +245,7 @@ namespace VolumetricClouds.UI
             try
             {
                 Clipboard.text = ColorText.Format(Current);
-                _copy.text = Localization.Get("Colour.Copied");
+                _copy.text = _ui.Caps(Localization.Get("Colour.Copied"));
                 _copiedUntil = Time.realtimeSinceStartup + CopiedShownFor;
             }
             catch (Exception e)
@@ -280,7 +284,7 @@ namespace VolumetricClouds.UI
         {
             _invalidUntil = -1f;
             _text.text = ColorText.Format(_shown);
-            _text.textColor = UIBuilder.TextFieldColour;
+            _text.textColor = _ui.Theme.FieldText;
         }
 
         /// <summary>What could not be read stays on show in red for a moment, then goes back.</summary>
@@ -291,7 +295,7 @@ namespace VolumetricClouds.UI
                 shown = shown.Substring(0, 40);
 
             _text.text = shown;
-            _text.textColor = UIBuilder.InvalidColour;
+            _text.textColor = _ui.Theme.Invalid;
             _invalidUntil = Time.realtimeSinceStartup + InvalidShownFor;
         }
 
@@ -344,9 +348,9 @@ namespace VolumetricClouds.UI
         /// and on seeing the text fallback in-game the author preferred it ("it's actually
         /// better like this"). Do not bring the icon back.
         /// </summary>
-        private static UIButton CreateReset(UIComponent parent, float y)
+        private UIButton CreateReset(UIComponent parent, float y)
         {
-            UIButton button = UIBuilder.AddButton(parent, Localization.Get("Colour.Reset"),
+            UIButton button = _ui.AddButton(parent, Localization.Get("Colour.Reset"),
                 new Vector2(ButtonWidth, 26f), new Vector3(parent.width - ButtonWidth, y + 4f));
             button.canFocus = false;
             return button;

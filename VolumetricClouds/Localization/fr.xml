@@ -365,6 +365,12 @@
 
   <String key="ShowAdvancedInPanel.Label">Afficher les options avancées dans le panneau</String>
 
+  <String key="PanelSkin.Label">Apparence du panneau</String>
+  <String key="PanelSkin.SeeThrough">Transparent</String>
+  <String key="PanelSkin.Frosted">Verre dépoli</String>
+  <String key="PanelSkin.GameBlue">Bleu</String>
+  <String key="PanelSkin.Vanilla">Comme le jeu</String>
+
   <String key="ShowInUnifiedUI.Label">Afficher l’icône dans Unified UI</String>
 
   <String key="Group.Diagnostics">Diagnostic</String>

@@ -381,6 +381,12 @@
 
   <String key="ShowAdvancedInPanel.Label">在游戏内面板显示高级选项</String>
 
+  <String key="PanelSkin.Label">面板外观</String>
+  <String key="PanelSkin.SeeThrough">半透明</String>
+  <String key="PanelSkin.Frosted">磨砂玻璃</String>
+  <String key="PanelSkin.GameBlue">蓝色</String>
+  <String key="PanelSkin.Vanilla">游戏原版</String>
+
   <String key="ShowInUnifiedUI.Label">在 Unified UI 中显示图标</String>
 
   <String key="Group.Diagnostics">诊断</String>

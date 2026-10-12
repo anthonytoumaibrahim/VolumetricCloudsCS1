@@ -2336,6 +2336,30 @@ namespace VolumetricClouds.UI
                 },
             });
 
+            // The panel's look (1.5.0, ModsLibCS1). Stored by value, append only; listed with the
+            // default (Frosted glass) first and the old look last. A change rebuilds the panel where
+            // it stands and the HUD button, which wears the skin too.
+            Add(new Row
+            {
+                Kind = RowKind.Choice,
+                Options = OptionsPage.General,
+                Int = Settings.PanelSkin,
+                DefaultInt = Settings.Defaults.PanelSkin,
+                ChoiceKeys = new[] { "PanelSkin.Frosted", "PanelSkin.SeeThrough", "PanelSkin.GameBlue", "PanelSkin.Vanilla" },
+                ChoiceValues = new[]
+                {
+                    (int)ModsLibCS1.UI.Skin.Frosted, (int)ModsLibCS1.UI.Skin.SeeThrough,
+                    (int)ModsLibCS1.UI.Skin.GameBlue, (int)ModsLibCS1.UI.Skin.Vanilla,
+                },
+                Profiled = false,
+                AfterChange = () =>
+                {
+                    Log.Msg("setting: panel skin = " + PanelLook.Skin);
+                    ModController.RebuildPanel();
+                    ModController.RefreshButton();
+                },
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Toggle,

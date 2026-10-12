@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ColossalFramework.UI;
+using ModsLibCS1.UI;
 using UnityEngine;
 
 namespace VolumetricClouds.UI
@@ -24,6 +25,9 @@ namespace VolumetricClouds.UI
     /// one-word edit rather than a second copy of the row.
     ///
     /// Under the title, on every tab: the profile bar (1.3.0, <see cref="ProfileBar"/>).
+    ///
+    /// Every control comes from ModsLibCS1 (1.5.0), in the skin the "Panel look" row picks
+    /// (<see cref="PanelLook"/>); Vanilla is the panel as it was before.
     /// </remarks>
     public class CloudsPanel : UIPanel
     {
@@ -67,7 +71,8 @@ namespace VolumetricClouds.UI
         /// <summary>Where to open, when replacing a panel that was already on screen. Null = centred.</summary>
         public Vector3? InitialPosition;
 
-        private readonly List<UIButton> _tabs = new List<UIButton>();
+        private Builder _ui;
+        private TabStrip _tabs;
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
         private readonly List<Control> _controls = new List<Control>();
@@ -102,9 +107,9 @@ namespace VolumetricClouds.UI
         private class Control
         {
             public Row Source;
-            public UISlider Slider;
+            public SliderRow Slider;
+            public ChoiceRow Choice;
             public UICheckBox Check;
-            public UILabel Readout;
             public UILabel Status;
             public ColourRow Colour;
             public readonly List<UIComponent> Parts = new List<UIComponent>();
@@ -136,22 +141,30 @@ namespace VolumetricClouds.UI
             bool advanced = Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
             _width = advanced ? AdvancedWidth : BasicWidth;
 
-            atlas = UIBuilder.Atlas;
-            backgroundSprite = "MenuPanel2";
+            _ui = PanelLook.NewBuilder();
+
             size = new Vector2(_width, PanelHeight);
             canFocus = true;
             isInteractive = true;
 
-            BuildTitleBar();
+            // Background, title, close button; dragging the title bar moves the whole panel.
+            // Only the title bar: the profile bar under it is controls.
+            _ui.AddFrame(this, Mod.DisplayName, Hide);
             BuildProfileBar();
 
-            foreach (Tab tab in Tabs(advanced))
+            List<Tab> tabs = Tabs(advanced);
+            List<string> names = new List<string>();
+            foreach (Tab tab in tabs)
+                names.Add(tab.Name);
+
+            _tabs = _ui.AddTabStrip(this, new Vector3(Margin, TitleBarHeight + BarHeight + 2f), _width - 2f * Margin,
+                TabHeight, names, SelectPage);
+
+            foreach (Tab tab in tabs)
             {
                 _tabIds.Add(tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString());
-                _contentHeights.Add(BuildPage(AddPage(tab.Name), tab));
+                _contentHeights.Add(BuildPage(AddPage(), tab));
             }
-
-            LayoutTabs();
 
             // Every row is built where it would be if all were shown; the ones hidden now go, and
             // the pages close up, before the first one is shown.
@@ -170,7 +183,7 @@ namespace VolumetricClouds.UI
             };
 
             Log.Msg("panel built: " + _controls.Count + " controls over " + _pages.Count + " tabs (" +
-                    (advanced ? "advanced" : "basic") + ")");
+                    (advanced ? "advanced" : "basic") + ", " + _ui.Skin + ")");
         }
 
         private static List<Tab> Tabs(bool advanced)
@@ -228,20 +241,21 @@ namespace VolumetricClouds.UI
                 {
                     Row row = control.Source;
 
+                    // Both set quietly: the row's own callback never runs for a refresh.
                     if (control.Slider != null)
                     {
-                        float display = row.Kind == RowKind.Choice
-                            ? row.ChoiceIndex
-                            : Mathf.Clamp(row.Display, row.Min, row.Max);
-
-                        if (!Mathf.Approximately(control.Slider.value, display))
+                        float display = Mathf.Clamp(row.Display, row.Min, row.Max);
+                        if (!Mathf.Approximately(control.Slider.Slider.value, display))
                         {
-                            control.Slider.value = display;
+                            control.Slider.SetValue(display);
                             touched++;
-
-                            if (control.Readout != null)
-                                control.Readout.text = ReadoutText(row, display);
                         }
+                    }
+
+                    if (control.Choice != null && control.Choice.Index != row.ChoiceIndex)
+                    {
+                        control.Choice.SetIndex(row.ChoiceIndex);
+                        touched++;
                     }
 
                     if (control.Check != null && row.Bool != null && control.Check.isChecked != row.Bool.value)
@@ -377,17 +391,6 @@ namespace VolumetricClouds.UI
             item.HiddenByUs.Clear();
         }
 
-        private static string ReadoutText(Row row, float display)
-        {
-            if (row.Kind != RowKind.Choice)
-                return row.FormatDisplay(display);
-
-            int index = Mathf.RoundToInt(display);
-            return row.Choices != null && index >= 0 && index < row.Choices.Length
-                ? row.Choices[index]
-                : string.Empty;
-        }
-
         /// <summary>Greys the rows whose switch is off, e.g. every fog row while fog is off.</summary>
         private void RefreshEnabled()
         {
@@ -407,34 +410,11 @@ namespace VolumetricClouds.UI
             }
         }
 
-        private void BuildTitleBar()
-        {
-            UILabel title = UIBuilder.AddLabel(this, Mod.DisplayName,new Vector3(Margin, Margin), 1.1f);
-            title.autoSize = false;
-            title.size = new Vector2(_width - TitleBarHeight, TitleBarHeight);
-
-            UIButton close = AddUIComponent<UIButton>();
-            close.atlas = atlas;
-            close.size = new Vector2(32f, 32f);
-            close.relativePosition = new Vector3(_width - 36f, 4f);
-            close.normalBgSprite = "buttonclose";
-            close.hoveredBgSprite = "buttonclosehover";
-            close.pressedBgSprite = "buttonclosepressed";
-            close.eventClick += (component, e) => Hide();
-
-            // Dragging the title bar moves the whole panel. Only the title bar: the profile bar
-            // under it is controls.
-            UIDragHandle drag = AddUIComponent<UIDragHandle>();
-            drag.target = this;
-            drag.size = new Vector2(_width - 40f, TitleBarHeight);
-            drag.relativePosition = Vector3.zero;
-        }
-
         private void BuildProfileBar()
         {
             try
             {
-                _bar = new ProfileBar(this, Margin, TitleBarHeight, _width - 2f * Margin);
+                _bar = new ProfileBar(_ui, this, Margin, TitleBarHeight, _width - 2f * Margin);
             }
             catch (System.Exception e)
             {
@@ -444,14 +424,8 @@ namespace VolumetricClouds.UI
             }
         }
 
-        private UIPanel AddPage(string tabName)
+        private UIPanel AddPage()
         {
-            int index = _pages.Count;
-
-            UIButton tab = UIBuilder.AddTab(this, tabName, new Vector2(10f, TabHeight), Vector3.zero);
-            tab.eventClick += (component, e) => SelectPage(index);
-            _tabs.Add(tab);
-
             UIPanel page = AddUIComponent<UIPanel>();
             page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
             page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + TabHeight + Margin);
@@ -460,27 +434,14 @@ namespace VolumetricClouds.UI
             return page;
         }
 
-        private void LayoutTabs()
-        {
-            float width = (_width - 2f * Margin) / _tabs.Count;
-
-            for (int i = 0; i < _tabs.Count; i++)
-            {
-                _tabs[i].size = new Vector2(width, TabHeight);
-                _tabs[i].relativePosition = new Vector3(Margin + i * width, TitleBarHeight + BarHeight + 2f);
-            }
-        }
-
         private void SelectPage(int index)
         {
             _selected = index;
 
             for (int i = 0; i < _pages.Count; i++)
-            {
                 _pages[i].isVisible = i == index;
-                UIBuilder.SetTabSelected(_tabs[i], i == index);
-            }
 
+            _tabs.Select(index);
             FitPage(index);
         }
 
@@ -521,7 +482,7 @@ namespace VolumetricClouds.UI
 
                 if (row.Group != null)
                 {
-                    UIBuilder.AddHeading(page, row.GroupTitle, y + 4f);
+                    _ui.AddHeading(page, row.GroupTitle, y + 4f);
                     items.Add(Claim(page, claimed, null, y, HeadingHeight));
                     y += HeadingHeight;
                 }
@@ -529,11 +490,11 @@ namespace VolumetricClouds.UI
                 float top = y;
                 Control control = Build(page, row, y);
                 _controls.Add(control);
-                y += UIBuilder.RowHeight;
+                y += _ui.RowHeight;
 
                 if (row.Note != null)
                 {
-                    UILabel note = UIBuilder.AddNote(page, row.Note, y - 4f, NoteHeight, UIBuilder.WarningColour);
+                    UILabel note = _ui.AddNote(page, row.Note, y - 4f, NoteHeight, _ui.Theme.Warning);
                     control.Parts.Add(note);
                     y += NoteHeight;
                 }
@@ -571,16 +532,12 @@ namespace VolumetricClouds.UI
             switch (row.Kind)
             {
                 case RowKind.Status:
-                    control.Status = UIBuilder.AddLabel(page,
-                        row.StatusText != null ? row.StatusText() : string.Empty, new Vector3(0f, y + 8f), 0.8f);
-                    control.Status.autoSize = false;
-                    control.Status.size = new Vector2(page.width, 20f);
-                    control.Status.textColor = UIBuilder.StatusColour;
+                    control.Status = _ui.AddStatus(page, y, row.StatusText != null ? row.StatusText() : string.Empty);
                     break;
 
                 case RowKind.Button:
                 {
-                    UIButton button = UIBuilder.AddButton(page, row.Label, new Vector2(page.width, 26f),
+                    UIButton button = _ui.AddButton(page, row.Label, new Vector2(page.width, 26f),
                         new Vector3(0f, y + 4f));
                     Row captured = row;
                     button.eventClick += (component, e) =>
@@ -598,7 +555,7 @@ namespace VolumetricClouds.UI
                 case RowKind.Toggle:
                 {
                     Row captured = row;
-                    UICheckBox box = UIBuilder.AddCheckbox(page, y, row.Label,
+                    ToggleRow toggle = _ui.AddToggle(page, y, row.Label,
                         row.Bool != null && row.Bool.value, isChecked =>
                         {
                             if (_refreshing)
@@ -606,55 +563,51 @@ namespace VolumetricClouds.UI
 
                             SettingsCatalog.ApplyToggle(captured, isChecked);
                         });
-                    control.Check = box;
-                    control.Parts.Add(box);
+                    control.Check = toggle.Check;
+                    control.Parts.AddRange(toggle.Parts);
                     break;
                 }
 
                 case RowKind.Key:
                 {
-                    UIButton button = UIBuilder.AddKeyBinding(page, y, row.Label, row.Key);
-                    control.Parts.Add(button);
+                    KeyRow key = _ui.AddKeyBinding(page, y, row.Label, row.Key, Localization.Get("Key.Press"),
+                        SettingsXml.SaveNow);
+                    control.Parts.AddRange(key.Parts);
                     break;
                 }
 
                 case RowKind.Colour:
                 {
-                    control.Colour = new ColourRow(page, y, row);
+                    control.Colour = new ColourRow(_ui, page, y, row);
                     control.Parts.AddRange(control.Colour.Parts);
                     break;
                 }
 
                 case RowKind.Choice:
                 {
-                    // A slider over the choices, with the choice's name as the readout. A
-                    // dropdown would need sprite names nobody has read out of the atlas; this
-                    // needs none, and three or four positions drag perfectly well.
+                    // Vanilla: a slider over the choices, the choice's name as its value. The new
+                    // looks: a row of buttons, or a dropdown when the names don't fit (measured,
+                    // so it follows the language). Either way the row hands back an index, and
+                    // what is stored is that choice's VALUE (choice rows are stored by value).
                     Row captured = row;
-                    int count = row.Choices != null ? row.Choices.Length : 1;
+                    ChoiceRow choice = _ui.AddChoice(page, y, row.Label, row.Choices, row.ChoiceIndex, index =>
+                    {
+                        if (_refreshing || captured.Int == null || captured.ChoiceValues == null)
+                            return;
 
-                    UISlider slider = UIBuilder.AddSlider(page, y, row.Label, 0f, Mathf.Max(1, count - 1), 1f,
-                        row.ChoiceIndex,
-                        v => ReadoutText(captured, v),
-                        v =>
-                        {
-                            if (_refreshing || captured.Int == null || captured.ChoiceValues == null)
-                                return;
-
-                            int index = Mathf.Clamp(Mathf.RoundToInt(v), 0, captured.ChoiceValues.Length - 1);
-                            captured.Int.value = captured.ChoiceValues[index];
-                            Changed(captured);
-                        });
-                    control.Slider = slider;
-                    control.Parts.Add(slider);
-                    AddSiblings(page, control, slider);
+                        index = Mathf.Clamp(index, 0, captured.ChoiceValues.Length - 1);
+                        captured.Int.value = captured.ChoiceValues[index];
+                        Changed(captured);
+                    });
+                    control.Choice = choice;
+                    control.Parts.AddRange(choice.Parts);
                     break;
                 }
 
                 default:
                 {
                     Row captured = row;
-                    UISlider slider = UIBuilder.AddSlider(page, y, row.Label, row.Min, row.Max, row.Step,
+                    SliderRow slider = _ui.AddSlider(page, y, row.Label, row.Min, row.Max, row.Step,
                         Mathf.Clamp(row.Display, row.Min, row.Max),
                         row.FormatDisplay,
                         v =>
@@ -666,10 +619,7 @@ namespace VolumetricClouds.UI
                             Changed(captured);
                         });
                     control.Slider = slider;
-                    control.Parts.Add(slider);
-
-                    // The label and the readout are siblings of the slider, not children of it.
-                    AddSiblings(page, control, slider);
+                    control.Parts.AddRange(slider.Parts);
                     break;
                 }
             }
@@ -690,40 +640,6 @@ namespace VolumetricClouds.UI
 
             row.AfterChange();
             SettingsCatalog.RefreshAllUIs();
-        }
-
-        /// <summary>
-        /// Picks the name label and the value readout out of the page so the whole row greys
-        /// out together. AddSlider makes exactly three components, in that order.
-        /// </summary>
-        private static void AddSiblings(UIPanel page, Control control, UISlider slider)
-        {
-            int index = -1;
-            for (int i = 0; i < page.components.Count; i++)
-            {
-                if (page.components[i] == slider)
-                {
-                    index = i;
-                    break;
-                }
-            }
-
-            if (index <= 0)
-                return;
-
-            UILabel name = page.components[index - 1] as UILabel;
-            if (name != null)
-                control.Parts.Add(name);
-
-            if (index + 1 < page.components.Count)
-            {
-                UILabel readout = page.components[index + 1] as UILabel;
-                if (readout != null)
-                {
-                    control.Readout = readout;
-                    control.Parts.Add(readout);
-                }
-            }
         }
 
         private void CenterOnScreen()

@@ -59,6 +59,14 @@ namespace VolumetricClouds
         public static BoolSetting ShowAdvancedInPanel { get; private set; }
 
         /// <summary>
+        /// THE PANEL'S LOOK (1.5.0, ModsLibCS1.UI.Skin), stored by VALUE (append only): 0
+        /// See-through, 1 Game blue, 2 Vanilla (the panel as it was), 3 Frosted, the default. The
+        /// default reaches existing files on purpose (no OlderFileInt): the new look is part of the
+        /// update, Vanilla one pick away. Never profiled: it is the machine's, not the sky's.
+        /// </summary>
+        public static IntSetting PanelSkin { get; private set; }
+
+        /// <summary>
         /// Writes every periodic line to the log. Off for subscribers: each Log call is an
         /// open-write-close plus a Unity stack trace, which is fine for a ten-minute test
         /// session and wrong for a four-hour one.
@@ -624,6 +632,9 @@ namespace VolumetricClouds
             public const bool ShowAdvancedInPanel = false;
             public const bool DetailedLogging = false;
 
+            /// <summary>Frosted glass (ModsLibCS1.UI.Skin.Frosted), for existing players too (the author's call).</summary>
+            public const int PanelSkin = 3;
+
             /// <summary>Where the button always stood before it could be dragged.</summary>
             public const float HudButtonX = 10f;
             public const float HudButtonY = 60f;
@@ -930,6 +941,7 @@ namespace VolumetricClouds
                 ShowInUnifiedUI = new BoolSetting("ShowInUnifiedUI", Defaults.ShowInUnifiedUI);
                 ToggleKey = new SavedInputKey("ToggleKey", InMemory, DefaultToggleKey, false);
                 ShowAdvancedInPanel = new BoolSetting("ShowAdvancedInPanel", Defaults.ShowAdvancedInPanel);
+                PanelSkin = new IntSetting("PanelSkin", Defaults.PanelSkin);
                 DetailedLogging = new BoolSetting("DetailedLogging", Defaults.DetailedLogging);
                 Language = new IntSetting("Language", Defaults.Language);
 

@@ -7,9 +7,11 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.5.0 — unreleased
 
-Fog that changes on its own, a third cloud style, more say over cumulus clouds, clouds that can hide
-the sky by day, smoother clouds, a wind direction of your own, and the mod's defaults in the profile
-list. `VolumetricClouds.xml` gains fifteen lines: `FogChangesWithWeather`, `MorningFog`,
+A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
+cumulus clouds, clouds that can hide the sky by day, smoother clouds, a wind direction of your own,
+and the mod's defaults in the profile list. `VolumetricClouds.xml` gains sixteen lines: `PanelSkin`
+(3: the new *Frosted glass* look, the one change everybody sees; *Like the game* puts the old panel
+back), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
@@ -17,6 +19,18 @@ only under the new *Mixed* style). At those values the fog, the clouds and the w
 before, so nothing changes for anyone until they move one. Profiles saved before read the new
 sliders at those values. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
 the update. Nothing in saved cities changes.
+
+### New: the panel's look
+
+The in-game panel and the mod's button have a new look, *Frosted glass*, after the photo mode of
+Cities: Skylines II: blue-grey glass over a blurred view of the city, a dark title bar, tabs with the
+open one in blue, names in capitals with a faint line between rows, choices as a row of buttons (a
+list when the names don't fit), thin sliders with a blue fill, and *Save* turning blue while there
+are unsaved changes. *Panel look* on the options page (under *The in-game panel*) picks it, or
+*See-through* (a dark panel the sky shows through, switches, values in a small box), *Blue*, or *Like
+the game*, the panel exactly as it was. What every row stores is unchanged, so settings, profiles and
+saved cities are untouched. *Frosted glass* blurs a small copy of the screen only while the panel is
+open.
 
 ### New: changing fog
 
@@ -163,6 +177,16 @@ Not started yet:
   see the far clouds item below).
 
 Built, awaiting the in-game test:
+
+- *Panel look* (written up above), built 2026-10-12 on ModsLibCS1 (git submodule at the repo root,
+  compiled into the DLL). Look at every skin: basic and advanced, every tab, a profile save (Save
+  turns blue), the key row, a colour pick, a skin change with the panel open, the HUD button. Check
+  in the log: `ui: atlas ... built`, `panel look:`, the `choice '...'` lines (buttons or list), any
+  `drawing Vanilla instead`. Frosted: the blur's brightness and that it is not upside down; whether
+  names in capitals fit (Spanish and French). Default: Frosted glass (the author's call, 2026-10-12). Before the
+  1.5.0 commits are pushed: ModsLibCS1 public (a public repo can't build with a private submodule),
+  release.ps1 checks the submodule (committed, pinned commit pushed), README: clone with
+  `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15).
 
 - *Mixed* (written up above), rebuilt 2026-10-12 from the 2026-10-05 version that looked good but cost
   too much. Cheaper now: one map texture (the type in its alpha, no id map), one noise for every cloud
