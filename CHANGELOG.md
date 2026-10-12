@@ -20,7 +20,7 @@ back), `PanelFoldedGroups` (the advanced panel's folded headings), `FogChangesWi
 only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
 before, so nothing changes for anyone until they move one. Profiles saved before read the new
 sliders at those values. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
-the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 3 MB (the
+the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
 photographed skies).
 
 ### New: the panel's look
@@ -145,8 +145,10 @@ streaks), *Sheep clouds* (small puffs in fields), *Cumulus on the horizon* and *
 the clouds are taken from the photographs: the game's sun and sky light them, so they turn gold at
 sunset, keep the light longest the higher they stand, glow round the sun, and go dark at night,
 where they hide the stars. Everything else in the sky, the mod's clouds, the rain, the fog and
-lightning, stands in front of them. They drift a little with the wind and stay in place overall;
-each city sees them turned its own way.
+lightning, stands in front of them. They travel with the wind at half the speed of the mod's
+clouds, and slowly change as they go: the sky never repeats. Each city sees them turned its own
+way. The photographs are taken at their full sharpness, and the sun's glare and starburst in them
+are left out.
 
 Each slider walks through its photographs, thinnest first: *Cirrus* shows a faint sky at 33%, sharp
 streaks at 67% and a sky full of swirls at 100%; the other three have two photographs (one at 50%,
@@ -247,6 +249,13 @@ Built, awaiting the in-game test:
   Its own shader (`SkyLayer.shader`, queue 2507). To judge in-game: each slider at 100%, the light at
   noon, sunset and night, the horizon, the tab names fitting (log: `panel: tab '...' drawn at`).
   Before release: the Workshop description could thank Poly Haven (CC0 needs no credit).
+  Then, the same day, after "too blurry", "sun rays visible" and "make the distant clouds move": the
+  pictures at 4096x1024 (all a 4K photo holds; JPEG 85, 4.7 MB, the DLL 5.95 MB), the starbursts of
+  far-1 and cirrus-2 taken out by the maker (an opening across the bearing round the sun for the
+  faint, then each ring's median veil), and the motion: a flat layer 2 km up carried at half the
+  wind's drift, two copies taking turns (8 km lives, faded in and out over a quarter each, a new turn
+  per life). To judge: the motion overhead and at the horizon, the crossfade, a 0.3-0.5 s load stall
+  when a slider first leaves 0 (four times the pixels to decode).
 - *Smoother clouds* (written up above), built 2026-10-12, tested: works (the tint showed the blend
   in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
   by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to

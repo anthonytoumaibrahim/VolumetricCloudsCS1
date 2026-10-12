@@ -11,16 +11,19 @@ namespace VolumetricClouds.Sky
     /// a sky of several layers -- as Cities: Skylines II draws its distant clouds (Unity HDRP's Cloud
     /// Layer): a picture of the whole sky per kind, a slider each, and they add up. The pictures are cut
     /// out of CC0 photographs (Poly Haven) by tools/make-skylayer.ps1 and embedded as grey JPEGs
-    /// (Resources/SkyLayer, ~1.7 MB for all eight: the author's cap is the whole mod around 5 MB).
+    /// (Resources/SkyLayer, 4096x1024 each since 2026-10-13 -- 2048 was "too blurry" -- ~4.7 MB for all
+    /// eight at quality 85; the author's cap is the whole mod around 5 MB, "we have some leeway").
     /// </summary>
     /// <remarks>
     /// A child of the cloud box with its own shader (SkyLayer.shader) and queue: after the game's stars,
     /// before the lightning bolt and the clouds, so everything else in the sky lays itself over it. Lit
     /// with the clouds' own light, copied from their material each frame (their brightness and tints
     /// included, invariant 8). Nothing of it exists until a row is above 0: then the eight pictures are
-    /// decoded once (two RGBA textures, ~11 MB of graphics memory with mips) and kept for the session.
-    /// The pictures are turned per city (its seed), and flow a little way along the wind and back
-    /// (HDRP's distortion): clouds that move, a sky that never drifts away. Not touched: rain,
+    /// decoded once (two RGBA textures, ~45 MB of graphics memory with mips) and kept for the session.
+    /// The pictures are turned per city (its seed), and carried by the wind at half the volumetric
+    /// clouds' speed (2026-10-13; first built as HDRP's distortion, a little way along the wind and
+    /// back, which read as still): two copies take turns, each carried for a life and faded out, then
+    /// started again turned another way, so the sky travels and slowly changes. Not touched: rain,
     /// lightning, the rainbow, the shadows.
     /// </remarks>
     public sealed class SkyLayer
@@ -28,11 +31,24 @@ namespace VolumetricClouds.Sky
         /// <summary>After the game's stars (2503), before the bolt (the clouds' queue - 10) and the clouds (2520 or 3100).</summary>
         public const int Queue = 2507;
 
-        /// <summary>Metres the wind carries the clouds for one cycle of the flow.</summary>
-        private const double FlowPeriod = 20000.0;
+        /// <summary>
+        /// The distant clouds move at this share of the wind that carries the volumetric clouds
+        /// (2026-10-13, the author: "maybe at half the movement speed of the volumetric clouds").
+        /// </summary>
+        private const double Speed = 0.5;
 
-        /// <summary>How far the flow carries the pictures, radians (about 2.3 degrees).</summary>
-        private const float FlowReach = 0.04f;
+        /// <summary>How high the layer the pictures lie on is taken to be (m): overhead they move like a cloud this high.</summary>
+        private const float LayerHeight = 2000f;
+
+        /// <summary>
+        /// Metres one copy of the pictures is carried before it has faded out and starts again (turned
+        /// another way); the other copy is half a lifetime behind. 8 km on a 2 km layer: overhead a copy
+        /// travels some 75 degrees of sky in its life.
+        /// </summary>
+        private const double Lifetime = 8000.0;
+
+        /// <summary>The share of a copy's life spent fading in, and again fading out.</summary>
+        private const float FadeShare = 0.25f;
 
         /// <summary>A drift step longer than this in one frame is a jump (a save read, a reset), not wind.</summary>
         private const double FlowJump = 2000.0;
@@ -53,7 +69,8 @@ namespace VolumetricClouds.Sky
         private static readonly int IdPicturesB = Shader.PropertyToID("_SkyPicturesB");
         private static readonly int IdWeights = Shader.PropertyToID("_SkyWeights");
         private static readonly int IdKinds = Shader.PropertyToID("_SkyKinds");
-        private static readonly int IdTurn = Shader.PropertyToID("_SkyTurn");
+        private static readonly int IdCopy0 = Shader.PropertyToID("_SkyCopy0");
+        private static readonly int IdCopy1 = Shader.PropertyToID("_SkyCopy1");
         private static readonly int IdFlow = Shader.PropertyToID("_SkyFlow");
         private static readonly int IdSunDir = Shader.PropertyToID("_SunDir");
         private static readonly int IdSunColor = Shader.PropertyToID("_SunColor");
@@ -71,10 +88,16 @@ namespace VolumetricClouds.Sky
         private readonly float[] _scratch = new float[SkyLayerMix.Pictures.Length];
         private readonly Vector4[] _weights = new Vector4[2 * SkyLayerMix.Kinds];
 
-        private double _flowMetres;
+        // The motion: how far the wind has carried the distant clouds this session (m, along its path),
+        // where they are (m, x and z: Speed x the wind's drift), and per copy where it started and in
+        // which life (a new life = a new turn).
+        private double _travel;
         private double _lastX;
         private double _lastZ;
         private bool _haveLast;
+        private readonly double[] _anchorX = new double[2];
+        private readonly double[] _anchorZ = new double[2];
+        private readonly long[] _life = { long.MinValue, long.MinValue };
 
         private string _logged;
         private bool _loggedOn;
@@ -148,17 +171,11 @@ namespace VolumetricClouds.Sky
             _material.SetTexture(IdPicturesA, _picturesA);
             _material.SetTexture(IdPicturesB, _picturesB);
 
-            // This city's turn of the pictures, from its pattern seed: cities don't share one sky, and
-            // "Reset cloud pattern" turns it too.
-            uint hash = unchecked((uint)SkyPattern.FieldSeed * 2654435761u);
-            float turn = hash / 4294967296f * 2f * Mathf.PI;
-            _material.SetVector(IdTurn, new Vector4(Mathf.Cos(turn), Mathf.Sin(turn), 0f, 0f));
-
-            Vector3 wind = CloudWeather.WindDirection;
-            Vector2 flat = new Vector2(wind.x, wind.z);
-            if (flat.sqrMagnitude > 1e-6f)
-                flat.Normalize();
-            _material.SetVector(IdFlow, new Vector4(Drift.Phase(_flowMetres, FlowPeriod), flat.x * FlowReach, flat.y * FlowReach, 0f));
+            // The two copies: how far each has been carried, its turn, its weight.
+            float w0, w1;
+            _material.SetVector(IdCopy0, Copy(0, out w0));
+            _material.SetVector(IdCopy1, Copy(1, out w1));
+            _material.SetVector(IdFlow, new Vector4(w0, w1, LayerHeight, 0f));
 
             // The clouds' own light (CloudVolume.ApplyLighting set it this frame).
             _material.SetVector(IdSunDir, clouds.GetVector(IdSunDir));
@@ -170,22 +187,61 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The flow's own clock: the metres the wind has carried the clouds this session, from the wind's
-        /// drift (sim time: it stops with the game). A jump of the drift (a save read) is not wind.
+        /// The motion's clock: how far the wind has carried the distant clouds this session, from the
+        /// volumetric clouds' drift (sim time: it stops with the game) times <see cref="Speed"/>. A jump of
+        /// the drift (a save read, a reset) is not wind: both copies start again from where they are.
         /// </summary>
         private void AdvanceFlow()
         {
-            double x = CloudWind.X, z = CloudWind.Z;
+            double x = CloudWind.X * Speed, z = CloudWind.Z * Speed;
             if (_haveLast)
             {
                 double dx = x - _lastX, dz = z - _lastZ;
                 double step = Math.Sqrt(dx * dx + dz * dz);
                 if (step < FlowJump)
-                    _flowMetres += step;
+                {
+                    _travel += step;
+                }
+                else
+                {
+                    for (int c = 0; c < 2; c++)
+                    {
+                        _anchorX[c] += dx;
+                        _anchorZ[c] += dz;
+                    }
+                }
             }
             _lastX = x;
             _lastZ = z;
             _haveLast = true;
+        }
+
+        /// <summary>
+        /// Copy <paramref name="c"/> for the shader: xy = how far it has been carried in this life (m,
+        /// small: invariant 13), zw = cos, sin of its turn; and its weight, 0 at the ends of its life.
+        /// </summary>
+        private Vector4 Copy(int c, out float weight)
+        {
+            double age = _travel / Lifetime + 0.5 * c;
+            long life = (long)Math.Floor(age);
+            if (life != _life[c])
+            {
+                // A new life: carried from here, turned another way. This city's own turn (its pattern
+                // seed: cities don't share one sky, and "Reset cloud pattern" turns it too), then the
+                // golden angle per life, so no two lives in a row look alike.
+                _life[c] = life;
+                _anchorX[c] = _lastX;
+                _anchorZ[c] = _lastZ;
+            }
+
+            float f = (float)(age - life);
+            float fadeIn = Mathf.Clamp01(f / FadeShare), fadeOut = Mathf.Clamp01((1f - f) / FadeShare);
+            weight = fadeIn * fadeIn * (3f - 2f * fadeIn) * fadeOut * fadeOut * (3f - 2f * fadeOut);
+
+            uint hash = unchecked((uint)SkyPattern.FieldSeed * 2654435761u);
+            double turn = hash / 4294967296.0 * 2.0 * Math.PI + (2 * life + c) * 2.399963229728653;
+            return new Vector4((float)(_lastX - _anchorX[c]), (float)(_lastZ - _anchorZ[c]),
+                               (float)Math.Cos(turn), (float)Math.Sin(turn));
         }
 
         /// <summary>The rows' state: on the log when the layer comes on or goes off, other changes on the detailed log.</summary>

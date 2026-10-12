@@ -200,7 +200,7 @@ public static class SkyLayerMaker
     /// cloud; 0 = only the disc. <paramref name="sunFill"/>: degrees round the sun filled smoothly from
     /// round it (at least the disc and the core of its glare, found by brightness).
     /// </summary>
-    public static Cut Extract(Sky sky, float horizonCut, float horizonFade, float sunClear, float sunFill)
+    public static Cut Extract(Sky sky, float horizonCut, float horizonFade, float sunClear, float sunFill, bool rays)
     {
         int w = sky.Width, h = sky.Height;
         var notes = new StringBuilder();
@@ -359,6 +359,18 @@ public static class SkyLayerMaker
                 }
             }
             notes.AppendFormat("glare cleared to {0:F0} deg; ", sunClear);
+        }
+
+        // The sun's rays (2026-10-13, the author: "some maps have the sun rays visible in them, which
+        // looks really bad"): a starburst's streaks and its bokeh dots reach 25-40 degrees out, past any
+        // circle that could be cleared without the real clouds round the sun. They are long and thin
+        // ALONG the bearing round the sun, a cloud is wide: an opening (the least, then the most) across
+        // that bearing takes out anything narrower than RayWidth and gives a wider cloud its shape back.
+        // Only for a sky with a starburst: round a sun in a sky of small puffs it would thin the puffs.
+        if (sunVisible && rays)
+        {
+            int opened = OpenAcrossRays(cloud, w, h, sx, sy, sz, RayReach, RayWidth);
+            notes.AppendFormat("rays opened to {0:F0} deg ({1} texels); ", RayReach, opened);
         }
 
         // What stands over the horizon: painted over from the cloud beside it.
@@ -665,6 +677,158 @@ public static class SkyLayerMaker
     }
 
     // Laplace fill of the holes from their edges (successive over-relaxation, in the holes' box).
+    /// <summary>How far round the sun its rays are looked for (degrees); faded back to the cut over the last 10.</summary>
+    public static float RayReach = 50f;
+
+    /// <summary>Anything narrower than this across the bearing round the sun (degrees of arc) is a ray.</summary>
+    public static float RayWidth = 3f;
+
+    /// <summary>
+    /// A morphological opening of <paramref name="cloud"/> across the bearing round the sun (s): each
+    /// texel within <paramref name="reach"/> takes the least of its neighbours turned round the sun axis
+    /// by up to half <paramref name="width"/> of arc either way, then the most of those. Returns how many
+    /// texels it lowered.
+    /// </summary>
+    private static int OpenAcrossRays(float[] cloud, int w, int h, double sx, double sy, double sz,
+        float reach, float width)
+    {
+        const int Steps = 6;
+        float cosReach = (float)Math.Cos(reach * Math.PI / 180.0);
+        var eroded = (float[])cloud.Clone();
+        var inside = new bool[w * h];
+
+        for (int pass = 0; pass < 2; pass++)
+        {
+            float[] src = pass == 0 ? cloud : eroded;
+            var dst = new float[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float el = ElevationOf(y, h);
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    double dx, dy, dz;
+                    Direction(AzimuthOf(x, w), el, out dx, out dy, out dz);
+                    double c = dx * sx + dy * sy + dz * sz;
+                    if (c < cosReach)
+                    {
+                        dst[i] = src[i];
+                        continue;
+                    }
+                    inside[i] = true;
+
+                    // The texel's angle from the sun; the bearing turn that spans half the width of arc.
+                    double gamma = Math.Acos(Math.Min(1.0, c));
+                    double half = Math.Min(Math.PI / 4.0, (width * 0.5 * Math.PI / 180.0) / Math.Max(Math.Sin(gamma), 0.02));
+                    float best = src[i];
+                    for (int k = -Steps; k <= Steps; k++)
+                    {
+                        if (k == 0)
+                            continue;
+                        double a = half * k / Steps;
+                        double rx, ry, rz;
+                        Rotate(dx, dy, dz, sx, sy, sz, a, out rx, out ry, out rz);
+                        if (ry <= 0.0)
+                            continue;
+                        int j = TexelOf(rx, ry, rz, w, h);
+                        best = pass == 0 ? Math.Min(best, src[j]) : Math.Max(best, src[j]);
+                    }
+                    dst[i] = best;
+                }
+            }
+            eroded = dst;   // after the second pass: the opened field
+        }
+
+        // Only the faint is taken (rays are faint, 0.1-0.25; a cloud's body is bright, and opened it came
+        // out smeared round the sun in bands), back to the cut over the last 10 degrees of the reach.
+        int lowered = 0;
+        for (int y = 0; y < h; y++)
+        {
+            float el = ElevationOf(y, h);
+            for (int x = 0; x < w; x++)
+            {
+                int i = y * w + x;
+                if (!inside[i])
+                    continue;
+                double dx, dy, dz;
+                Direction(AzimuthOf(x, w), el, out dx, out dy, out dz);
+                float gamma = (float)(Math.Acos(Math.Max(-1.0, Math.Min(1.0, dx * sx + dy * sy + dz * sz))) * 180.0 / Math.PI);
+                float t = Clamp01((reach - gamma) / 10f);
+                float f = Clamp01((0.5f - cloud[i]) / 0.25f);
+                float v = cloud[i] + (Math.Min(eroded[i], cloud[i]) - cloud[i]) * (t * t * (3f - 2f * t)) * (f * f * (3f - 2f * f));
+                if (v < cloud[i] - 0.01f)
+                    lowered++;
+                cloud[i] = v;
+            }
+        }
+
+        // The glare's veil: the same all round the sun, so per ring (half a degree from the sun) its
+        // median is the veil there, taken off (a cloud keeps all but that), back over the last 10 degrees.
+        const float Bin = 0.5f;
+        int bins = (int)Math.Ceiling(reach / Bin);
+        var rings = new List<float>[bins];
+        var ringOf = new int[w * h];
+        for (int i = 0; i < ringOf.Length; i++)
+            ringOf[i] = -1;
+        for (int y = 0; y < h; y++)
+        {
+            float el = ElevationOf(y, h);
+            for (int x = 0; x < w; x++)
+            {
+                int i = y * w + x;
+                if (!inside[i])
+                    continue;
+                double dx, dy, dz;
+                Direction(AzimuthOf(x, w), el, out dx, out dy, out dz);
+                float gamma = (float)(Math.Acos(Math.Max(-1.0, Math.Min(1.0, dx * sx + dy * sy + dz * sz))) * 180.0 / Math.PI);
+                int b = Math.Min(bins - 1, (int)(gamma / Bin));
+                ringOf[i] = b;
+                if (rings[b] == null)
+                    rings[b] = new List<float>();
+                rings[b].Add(cloud[i]);
+            }
+        }
+        var veil = new float[bins];
+        for (int b = 0; b < bins; b++)
+        {
+            if (rings[b] == null || rings[b].Count == 0)
+                continue;
+            rings[b].Sort();
+            float t = Clamp01((reach - (b + 0.5f) * Bin) / 10f);
+            veil[b] = rings[b][rings[b].Count / 2] * t * t * (3f - 2f * t);
+        }
+        for (int i = 0; i < cloud.Length; i++)
+            if (ringOf[i] >= 0)
+                cloud[i] = Math.Max(0f, cloud[i] - veil[ringOf[i]]);
+
+        return lowered;
+    }
+
+    /// <summary>(d) turned by <paramref name="angle"/> radians round the unit axis (a) (Rodrigues).</summary>
+    private static void Rotate(double dx, double dy, double dz, double ax, double ay, double az, double angle,
+        out double rx, out double ry, out double rz)
+    {
+        double c = Math.Cos(angle), s = Math.Sin(angle), dot = dx * ax + dy * ay + dz * az;
+        double cx = ay * dz - az * dy, cy = az * dx - ax * dz, cz = ax * dy - ay * dx;
+        rx = dx * c + cx * s + ax * dot * (1 - c);
+        ry = dy * c + cy * s + ay * dot * (1 - c);
+        rz = dz * c + cz * s + az * dot * (1 - c);
+    }
+
+    /// <summary>The texel a direction above the horizon falls in (the inverse of AzimuthOf/ElevationOf).</summary>
+    private static int TexelOf(double dx, double dy, double dz, int w, int h)
+    {
+        double az = Math.Atan2(dz, dx) * 180.0 / Math.PI;
+        if (az < 0)
+            az += 360.0;
+        double el = Math.Asin(Math.Max(-1.0, Math.Min(1.0, dy))) * 180.0 / Math.PI;
+        int x = (int)(az / 360.0 * w);
+        int y = (int)((1.0 - el / 90.0) * h);
+        x = ((x % w) + w) % w;
+        y = Math.Max(0, Math.Min(h - 1, y));
+        return y * w + x;
+    }
+
     private static int Inpaint(float[] cloud, bool[] hole, int w, int h)
     {
         int x0 = w, x1 = -1, y0 = h, y1 = -1;

@@ -82,7 +82,7 @@ foreach ($p in $M::Pictures) {
     Check "embedded file for $p" (Test-Path (Join-Path $folder "$p.jpg"))
 }
 $bytes = (Get-ChildItem $folder -Filter *.jpg | Measure-Object Length -Sum).Sum
-Check "pictures within 2 MB together" ($bytes -lt 2MB) ("{0:N0} bytes" -f $bytes)
+Check "pictures within 5 MB together" ($bytes -lt 5MB) ("{0:N0} bytes" -f $bytes)
 
 if ($failed -gt 0) { Write-Host "$failed FAILED"; exit 1 }
 Write-Host "all passed"
