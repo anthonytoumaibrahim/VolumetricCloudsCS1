@@ -166,6 +166,14 @@ namespace VolumetricClouds.Sky
         private static readonly int IdRainSun = Shader.PropertyToID("_RainSun");
         private static readonly int IdNightOpacity = Shader.PropertyToID("_NightOpacity");
         private static readonly int IdCloudExtent = Shader.PropertyToID("_CloudExtent");
+        private static readonly int IdEdgeStart = Shader.PropertyToID("_EdgeStart");
+
+        /// <summary>
+        /// Where the clouds that hide the sky start to thin out towards the end of the march, as a
+        /// share of it: by day (1.5.0, into the haze) and at night (as since 1.3.0).
+        /// </summary>
+        private const float DayEdgeStart = 0.35f;
+        private const float NightEdgeStart = 0.7f;
         private static readonly int IdNightGlow = Shader.PropertyToID("_NightGlow");
         private static readonly int IdFogAmount = Shader.PropertyToID("_FogAmount");
         private static readonly int IdFogDensity = Shader.PropertyToID("_FogDensity");
@@ -184,6 +192,13 @@ namespace VolumetricClouds.Sky
         private static readonly int IdFogFloor = Shader.PropertyToID("_FogFloor");
         private static readonly int IdFogBreakup = Shader.PropertyToID("_FogBreakup");
         private static readonly int IdTerrainTex = Shader.PropertyToID("_TerrainTex");
+        private static readonly int IdFogPlaceTex = Shader.PropertyToID("_FogPlaceTex");
+        private static readonly int IdFogValley = Shader.PropertyToID("_FogValley");
+        private static readonly int IdFogValleyDepth = Shader.PropertyToID("_FogValleyDepth");
+        private static readonly int IdFogValleyGather = Shader.PropertyToID("_FogValleyGather");
+        private static readonly int IdFogWater = Shader.PropertyToID("_FogWater");
+        private static readonly int IdFogWaterThreshold = Shader.PropertyToID("_FogWaterThreshold");
+        private static readonly int IdFogWaterPush = Shader.PropertyToID("_FogWaterPush");
         private static readonly int IdTerrainMapSize = Shader.PropertyToID("_TerrainMapSize");
         private static readonly int IdFogHeight = Shader.PropertyToID("_FogHeight");
         private static readonly int IdFogBase = Shader.PropertyToID("_FogBase");
@@ -893,6 +908,9 @@ namespace VolumetricClouds.Sky
                 Texture terrain = TerrainHeightMap.Texture;
                 if (terrain != null)
                     _airMaterial.SetTexture(IdTerrainTex, terrain);
+                Texture places = TerrainHeightMap.Places;
+                if (places != null)
+                    _airMaterial.SetTexture(IdFogPlaceTex, places);
                 CloudShadowMap map = CloudShadowMap.Current;
                 if (map != null && map.Texture != null)
                     _airMaterial.SetTexture(IdCloudShadowTex, map.Texture);
@@ -1346,6 +1364,8 @@ namespace VolumetricClouds.Sky
                        " style=" + (CloudStyle.Drawn ? "Cumulus(layer " + (CloudStyle.LayerAmount * 100f).ToString("F0") + "%)" : "Classic") +
                        " detail=" + CloudDetail.Describe() +
                        " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
+                       // 1.5.0: the share of the weather map's cells the march jumps over (0: not skipping).
+                       " emptySky=" + (CloudShaderParams.EmptyShareNow * 100f).ToString("F0") + "%" +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
                        " shadows=" + Settings.ShadowsCast +
@@ -1451,17 +1471,28 @@ namespace VolumetricClouds.Sky
             return sun != null ? -Mathf.Asin(Mathf.Clamp(sun.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg : -90f;
         }
 
-        /// <summary>Clouds that hide the stars, and a faint pale glow on their undersides.</summary>
+        /// <summary>Clouds that hide the stars (and the sky by day), and a faint pale glow on their undersides.</summary>
         private void ApplyNight(float night, Color shadeTint)
         {
+            // The day's twin (1.5.0, "Clouds hide the sky by day") through the same twilight. Its
+            // default 0% is night * opacity, as before; both at 100% stay solid round the clock.
             float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
-            _material.SetFloat(IdNightOpacity, night * opacity);
+            float dayOpacity = Settings.CloudDayOpacity != null ? Mathf.Clamp01(Settings.CloudDayOpacity.value) : 0f;
+            _material.SetFloat(IdNightOpacity, Mathf.Lerp(dayOpacity, opacity, night));
 
             // Where the night's opaque clouds end softly: where the march ends (1.3.0). It was the
             // edge of the box they are drawn on, a third of that (~10 km from the city), and past
             // it the lowest few degrees of sky showed through the clouds -- with the game fog's
             // horizon band on it: "it hides far away clouds" (GameHorizon takes the band off).
             _material.SetFloat(IdCloudExtent, Reach);
+
+            // How soon before that they start to thin: the last 30% at night, as always (the stars stay
+            // hidden). By day (1.5.0), with the clouds hiding the sky, the last 65%: over the last 30%
+            // alone a full deck ended on a line a degree above the horizon, dark against the bright sky
+            // under it (the author: "the horizon becomes too obvious"). Thinning over a longer stretch
+            // is the haze of the air in front of far cloud, and the haze it thins into is whatever sky
+            // is behind -- the game's, Real Light's or a cubemap -- so there is no colour to guess.
+            _material.SetFloat(IdEdgeStart, Mathf.Lerp(DayEdgeStart, NightEdgeStart, night));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the
@@ -1573,6 +1604,12 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
+        /// Metres "Fog over water"'s banks are carried downwind of the water (1.5.0): they come
+        /// ashore on the downwind coast and thin out a few hundred metres inland.
+        /// </summary>
+        private const float WaterBankPush = 350f;
+
+        /// <summary>
         /// The fog layer. (The shadow map it is lit through: <see cref="ApplyShadowLookup"/>.)
         /// </summary>
         private void ApplyFog(Color lightAmbient, Color baseSun)
@@ -1602,8 +1639,27 @@ namespace VolumetricClouds.Sky
             Texture terrain = TerrainHeightMap.Texture;
             bool ready = terrain != null;
 
-            _material.SetFloat(IdFogAmount, ready ? CloudFog.Amount : 0f);
+            // Where fog gathers by itself (1.5.0, Sky.FogPlaces): valleys, and banks over the water.
+            // Both 0 until the place texture exists, and at 0% the shader's branches for them are
+            // off -- the march as before. The banks are fog of their own: the march runs while
+            // there is either (_FogAmount), each with its own threshold.
+            Texture places = TerrainHeightMap.Places;
+            float valleys = places != null ? CloudFog.Valleys : 0f;
+            float water = places != null ? CloudFog.WaterAmount : 0f;
+
+            _material.SetFloat(IdFogAmount, ready ? Mathf.Max(CloudFog.Amount, water) : 0f);
             _material.SetFloat(IdFogDensity, CloudFog.BaseExtinction * density);
+            _material.SetFloat(IdFogValley, valleys);
+            _material.SetFloat(IdFogValleyDepth, valleys * TerrainHeightMap.DeepestHollow);
+            // A deep hollow holds more of the weather's fog: none while there is none (the banks
+            // over the water must not bring valley fog inland), faded in as FogStrength fades it.
+            _material.SetFloat(IdFogValleyGather, 0.35f * valleys * Mathf.Clamp01(CloudFog.Amount * 5f));
+            _material.SetFloat(IdFogWater, water > 0f ? 1f : 0f);
+            _material.SetFloat(IdFogWaterThreshold, water > 0f ? _field.GetThresholdAsDrawn(water, CloudFog.CoverSoftness) : 2f);
+            Vector3 wind = CloudWeather.WindDirection;
+            _material.SetVector(IdFogWaterPush, new Vector4(wind.x * WaterBankPush, wind.z * WaterBankPush, 0f, 0f));
+            if (places != null)
+                _material.SetTexture(IdFogPlaceTex, places);
 
             // Where there is fog comes from the clouds' weather field, thresholded for the share
             // of the map it should cover. The threshold is solved against the field AS THE GPU

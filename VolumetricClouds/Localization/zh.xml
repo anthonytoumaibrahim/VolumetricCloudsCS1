@@ -50,7 +50,10 @@
 
   <String key="Profiles.Label">配置</String>
   <String key="Profiles.None">（无配置）</String>
+  <String key="Profiles.Defaults">（模组默认）</String>
   <String key="Profiles.Save">保存</String>
+  <String key="Profiles.Revert">还原</String>
+  <String key="Profiles.Reverted">已还原为保存的配置。</String>
   <String key="Profiles.NewName">配置 {0}</String>
   <String key="Profiles.Naming">输入名称。Enter 保存，Esc 取消。</String>
   <String key="Profiles.Added">已保存为新配置。</String>
@@ -72,6 +75,7 @@
   <String key="Profiles.Invalid.Character">名称不能包含 &lt; &gt; : " / \ | ? *。</String>
   <String key="Profiles.Invalid.Dot">名称不能以句点开头或结尾。</String>
   <String key="Profiles.Invalid.Reserved">Windows 保留了该名称。</String>
+  <String key="Profiles.Invalid.Parentheses">括号中的名称保留给列表自带的条目。</String>
   <String key="Profiles.Invalid.Exists">已有同名配置。</String>
 
   <!-- ==================== In-game panel: Now ==================== -->
@@ -87,6 +91,11 @@
   <String key="Coverage.Label">固定强度</String>
 
   <String key="WindSpeed.Label">移动速度</String>
+  <String key="WindDirection.Label">风向</String>
+  <String key="WindDirection.Follow">跟随游戏</String>
+  <String key="WindDirection.Slowly">缓慢跟随游戏</String>
+  <String key="WindDirection.Fixed">固定</String>
+  <String key="WindAngle.Label">固定风向</String>
 
   <String key="Status.Fog.Off">体积雾已关闭</String>
   <String key="Status.Fog.Waiting">体积雾：等待云层</String>
@@ -94,6 +103,7 @@
   <String key="Status.Fog.Share">地图 {0} 区域有雾</String>
   <String key="Status.Fog.ShareMorning">地图 {0} 区域有晨雾</String>
   <String key="Status.Fog.ShareMist">地图 {0} 区域有雨后薄雾</String>
+  <String key="Status.Fog.ShareWater">水面 {0} 区域有雾</String>
   <String key="Status.Fog.Manual">已覆盖：{0}（游戏为 {1}）</String>
   <String key="Status.Fog.Following">跟随游戏：雾 {0} → {1}</String>
 
@@ -174,6 +184,8 @@
 
   <String key="FogFollowsGround.Label">雾贴合地面</String>
 
+  <String key="FogInValleys.Label">雾填满山谷</String>
+
   <String key="FogBase.Label">雾起始高度</String>
 
   <String key="FogHeight.Label">雾层高度</String>
@@ -196,6 +208,7 @@
   <String key="FogChangesWithWeather.Label">雾随天气变化</String>
   <String key="MorningFog.Label">晨雾</String>
   <String key="MistAfterRain.Label">雨后薄雾</String>
+  <String key="FogOverWater.Label">水面雾</String>
 
   <String key="Group.FogLamps">城市灯光照亮雾气</String>
   <String key="FogLampRadius.Label">灯光照雾半径</String>
@@ -260,6 +273,10 @@
 
   <String key="CloudShadowFullness.Label">阴影饱满度</String>
 
+  <String key="Group.Testing">测试（发布前移除）</String>
+
+  <String key="SkipEmptySkyTest.Label">跳过空旷天空</String>
+
   <String key="Group.Brightness">云层受光亮度</String>
 
   <String key="CloudBrightnessAuto.Label">亮度跟随云层强度</String>
@@ -288,7 +305,9 @@
 
   <String key="SunsetLight.Label">日落光照</String>
 
-  <String key="Group.Night">夜间</String>
+  <String key="Group.DayAndNight">白天与夜间</String>
+
+  <String key="CloudDayOpacity.Label">白天云层遮住天空</String>
 
   <String key="CloudNightOpacity.Label">夜间云层遮住星星</String>
 
@@ -385,6 +404,7 @@
   <String key="Unit.Metres">{0} 米</String>
   <String key="Unit.Kilometres">{0} 公里</String>
   <String key="Unit.Times">{0}x</String>
+  <String key="Unit.Degrees">{0}°</String>
   <String key="Unit.Hz">{0} Hz</String>
   <String key="Readout.Off">关闭</String>
   <String key="Readout.Neutral">中性</String>

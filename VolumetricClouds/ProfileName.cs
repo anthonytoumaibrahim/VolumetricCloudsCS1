@@ -47,8 +47,9 @@ namespace VolumetricClouds
 
         /// <summary>
         /// Null when the name can be used; otherwise the language key of the reason, one of
-        /// "Profiles.Invalid.Empty", ".Long", ".Character", ".Dot", ".Reserved". Whether the name
-        /// is taken is the caller's to ask (<see cref="Contains"/>): it needs the folder.
+        /// "Profiles.Invalid.Empty", ".Long", ".Character", ".Dot", ".Reserved", ".Parentheses".
+        /// Whether the name is taken is the caller's to ask (<see cref="Contains"/>): it needs the
+        /// folder.
         /// </summary>
         public static string Why(string typed)
         {
@@ -72,7 +73,22 @@ namespace VolumetricClouds
             if (IsDevice(name))
                 return "Profiles.Invalid.Reserved";
 
+            if (IsInParentheses(name))
+                return "Profiles.Invalid.Parentheses";
+
             return null;
+        }
+
+        /// <summary>
+        /// A whole name in parentheses, "(no profile)" or "(Mod defaults)", is the list's own entries'
+        /// (1.5.0), in every language -- the Chinese ones are in full-width parentheses. A file
+        /// already named so is still listed (these rules are for making one), as its own entry.
+        /// </summary>
+        private static bool IsInParentheses(string name)
+        {
+            char first = name[0];
+            char last = name[name.Length - 1];
+            return (first == '(' || first == '（') && (last == ')' || last == '）');
         }
 
         /// <summary>Two names are one profile when they differ only by case.</summary>

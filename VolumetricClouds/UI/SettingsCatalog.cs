@@ -703,6 +703,11 @@ namespace VolumetricClouds.UI
             return Localization.Get("Unit.Times", value.ToString("F1"));
         }
 
+        private static string Degrees(float value)
+        {
+            return Localization.Get("Unit.Degrees", value.ToString("F0"));
+        }
+
         private static string Times2(float value)
         {
             return Localization.Get("Unit.Times", value.ToString("F2"));
@@ -865,8 +870,12 @@ namespace VolumetricClouds.UI
             if (Settings.FogOverride != null) Settings.FogOverride.value = false;
             if (Settings.LightningOverride != null) Settings.LightningOverride.value = false;
 
+            // A fixed wind is an override of the game's too (1.5.0). "Slowly" still follows it.
+            if (Settings.WindDirection != null && CloudWeather.WindMode == CloudWeather.WindFixed)
+                Settings.WindDirection.value = CloudWeather.WindFollow;
+
             SettingsXml.SaveNow();
-            Log.Msg("setting: every override cleared; the weather, the fog and the lightning all follow the game again");
+            Log.Msg("setting: every override cleared; the weather, the fog, the lightning and the wind all follow the game again");
         }
 
         /// <summary>
@@ -990,6 +999,34 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 5f, Step = 0.1f,
                 Format = Times,
                 Profiled = false,
+            });
+
+            // 1.5.0 (the author: "the whole clouds just shift direction suddenly"): the game's wind as
+            // always, the game's wind turning slowly, or a fixed direction (Sky.CloudWeather). Beside
+            // the movement speed and, like it, the weather of the moment: not in a profile (his call).
+            // Stored by value, append-only.
+            Add(new Row
+            {
+                Kind = RowKind.Choice,
+                Panel = PanelPage.Now,
+                Int = Settings.WindDirection,
+                DefaultInt = Settings.Defaults.WindDirection,
+                ChoiceKeys = new[] { "WindDirection.Follow", "WindDirection.Slowly", "WindDirection.Fixed" },
+                ChoiceValues = new[] { CloudWeather.WindFollow, CloudWeather.WindSlowly, CloudWeather.WindFixed },
+                Profiled = false,
+                // No AfterChange: CloudWeather.AdvanceWind logs each new pick, with the game's wind.
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Now,
+                Float = Settings.WindAngle,
+                DefaultFloat = Settings.Defaults.WindAngle,
+                Min = 0f, Max = 355f, Step = 5f,
+                Format = Degrees,
+                Profiled = false,
+                Shown = () => CloudWeather.WindMode == CloudWeather.WindFixed,
             });
 
             Add(new Row
@@ -1296,6 +1333,20 @@ namespace VolumetricClouds.UI
                 AfterChange = State("fog follows the ground", OnOff(Settings.FogFollowsGround)),
             });
 
+            // 1.5.0 (his pick, 2026-10-04): fog gathers in valleys, river gorges and at the foot of
+            // slopes, up towards the level of the land round them (Sky.FogPlaces). Only with the fog
+            // following the ground: a level fog fills low ground by itself. 0% for everyone = the fog
+            // as before.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogInValleys,
+                DefaultFloat = Settings.Defaults.FogInValleys,
+                Min = 0f, Max = 100f, Step = 5f,
+                Enabled = () => FogOn() && CloudFog.FollowsGround,
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Value,
@@ -1433,6 +1484,19 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Fog,
                 Float = Settings.MistAfterRain,
                 DefaultFloat = Settings.Defaults.MistAfterRain,
+                Min = 0f, Max = 100f, Step = 5f,
+                Enabled = FogOn,
+            });
+
+            // 1.5.0 (his pick, 2026-10-04): fog banks over the sea, lakes and rivers, drifting ashore
+            // with the wind. Fog of its own, in the layer's look, so under the same heading: never
+            // more than the sliders above. 0% for everyone = no banks.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogOverWater,
+                DefaultFloat = Settings.Defaults.FogOverWater,
                 Min = 0f, Max = 100f, Step = 5f,
                 Enabled = FogOn,
             });
@@ -1824,11 +1888,25 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 200f, Step = 5f,
             });
 
+            // 1.5.0, asked for by a player with a daytime cubemap: its sky, sun included, showed through
+            // a full overcast, where the far clouds fade into whatever is behind them. The night row's
+            // twin, by day (CloudVolume.ApplyNight); 0% for everyone = the clouds as before. Not
+            // switched on by itself for a sky that is not the game's: that would change a cubemap
+            // player's look without asking.
             Add(new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
-                Group = "Night",
+                Group = "DayAndNight",
+                Float = Settings.CloudDayOpacity,
+                DefaultFloat = Settings.Defaults.DayOpacity,
+                Min = 0f, Max = 100f, Step = 5f,
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Light,
                 Float = Settings.CloudNightOpacity,
                 DefaultFloat = Settings.Defaults.NightOpacity,
                 Min = 0f, Max = 100f, Step = 5f,
@@ -2069,6 +2147,20 @@ namespace VolumetricClouds.UI
                 Min = 0.5f, Max = 8f, Step = 0.25f,
                 Format = Times2,
                 Enabled = ShadowsOn,
+            });
+
+            // TEMPORARY (1.5.0 development): the empty-sky skip on or off in the same build, so the
+            // author can compare frame times (Sky.EmptySky; nothing on screen changes either way).
+            // REMOVE BEFORE RELEASE (CHANGELOG's to-do), with its texts and Settings entry.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Advanced,
+                Group = "Testing",
+                Bool = Settings.SkipEmptySkyTest,
+                DefaultBool = Settings.Defaults.SkipEmptySkyTest,
+                Profiled = false,
+                AfterChange = State("skip the empty sky (test switch)", OnOff(Settings.SkipEmptySkyTest)),
             });
         }
 

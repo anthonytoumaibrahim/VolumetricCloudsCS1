@@ -103,15 +103,137 @@ namespace VolumetricClouds.Sky
         /// publishes _WindDirection as (sin a, 0, cos a) with a = m_windDirection in degrees,
         /// and the rain shaders slant along it -- so clouds drift the way the rain falls.
         /// </summary>
+        /// <remarks>
+        /// 1.5.0, "Wind direction" (Now tab): the game's wind (the default, exactly as before), the
+        /// game's wind turning slowly, or a fixed direction. The game's wind never settles: once it
+        /// is within 0.2 deg of its target it picks a new one anywhere on the compass and eases into
+        /// it (WeatherManager.SimulationStepImpl, IL), so the whole sky swings round every few minutes
+        /// -- the author: "it does not look good the way the whole clouds just shift direction
+        /// suddenly". The clouds, the fog and the rain all read this one wind. The game's own
+        /// snowflakes (kept on winter maps) lean with the game's wind, which is never written.
+        /// </remarks>
         public static Vector3 WindDirection
         {
             get
             {
+                if (_windStarted && WindMode != WindFollow)
+                    return FromAngle(_windAngle);
+
+                if (WindMode == WindFixed)
+                    return FromAngle(FixedAngle);
+
                 if (!Singleton<WeatherManager>.exists)
                     return CloudWind.DefaultDirection;
 
                 float angle = Singleton<WeatherManager>.instance.m_windDirection * Mathf.Deg2Rad;
                 return new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+            }
+        }
+
+        public const int WindFollow = 0;
+        public const int WindSlowly = 1;
+        public const int WindFixed = 2;
+
+        /// <summary>
+        /// "Follow the game slowly": how long the wind takes to make most of a turn the game makes,
+        /// in seconds of simulation at 1x (paused: it holds). The game's own turn takes about 1000
+        /// simulation steps; this is many times slower, and never faster than <see cref="SlowTurnMost"/>.
+        /// Starting points, tuned in-game.
+        /// </summary>
+        private const float SlowTurnSeconds = 300f;
+
+        /// <summary>The fastest the slow wind turns, degrees per second of simulation at 1x.</summary>
+        private const float SlowTurnMost = 0.25f;
+
+        private static float _windAngle;
+        private static bool _windStarted;
+        private static int _loggedWindMode = -1;
+
+        /// <summary>The "Wind direction" row's pick; an unknown value (typed by hand) follows the game.</summary>
+        public static int WindMode
+        {
+            get
+            {
+                int mode = Settings.WindDirection != null ? Settings.WindDirection.value : Settings.Defaults.WindDirection;
+                return mode == WindSlowly || mode == WindFixed ? mode : WindFollow;
+            }
+        }
+
+        /// <summary>The game's wind, degrees; the default direction's without a WeatherManager.</summary>
+        public static float GameWindAngle
+        {
+            get
+            {
+                if (Singleton<WeatherManager>.exists)
+                    return Singleton<WeatherManager>.instance.m_windDirection;
+
+                Vector3 d = CloudWind.DefaultDirection;
+                return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            }
+        }
+
+        private static float FixedAngle
+        {
+            get { return Settings.WindAngle != null ? Settings.WindAngle.value : Settings.Defaults.WindAngle; }
+        }
+
+        private static Vector3 FromAngle(float degrees)
+        {
+            float angle = degrees * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+        }
+
+        /// <summary>
+        /// Once per frame, before anything moves along the wind (CloudLighting, the one place).
+        /// <paramref name="simulationSeconds"/>: real seconds x the simulation speed, 0 while paused.
+        /// A city starts on the game's wind (or the fixed one); a change of pick carries on from the
+        /// direction there was, so "slowly" turns from a fixed wind towards the game's.
+        /// </summary>
+        public static void AdvanceWind(float simulationSeconds)
+        {
+            int mode = WindMode;
+            float game = GameWindAngle;
+
+            if (mode == WindFollow)
+            {
+                _windAngle = game;
+            }
+            else if (mode == WindFixed)
+            {
+                _windAngle = FixedAngle;
+            }
+            else if (!_windStarted)
+            {
+                _windAngle = game;
+            }
+            else
+            {
+                float seconds = Mathf.Max(0f, simulationSeconds);
+                float turn = Mathf.DeltaAngle(_windAngle, game) * (1f - Mathf.Exp(-seconds / SlowTurnSeconds));
+                float most = SlowTurnMost * seconds;
+                _windAngle = Mathf.Repeat(_windAngle + Mathf.Clamp(turn, -most, most), 360f);
+            }
+
+            _windStarted = true;
+
+            if (mode != _loggedWindMode)
+            {
+                _loggedWindMode = mode;
+                Log.Msg("wind: " + DescribeWind() + " (the game's wind is " + game.ToString("F0") + " deg)");
+            }
+        }
+
+        /// <summary>For the logs: "follows the game", "follows the game slowly, now 132 deg", "fixed at 90 deg".</summary>
+        public static string DescribeWind()
+        {
+            switch (WindMode)
+            {
+                case WindSlowly:
+                    return "follows the game slowly, now " + _windAngle.ToString("F0") + " deg";
+                case WindFixed:
+                    return "fixed at " + FixedAngle.ToString("F0") + " deg";
+                default:
+                    return "follows the game";
             }
         }
 
@@ -148,6 +270,8 @@ namespace VolumetricClouds.Sky
         public static void Reset()
         {
             _started = false;
+            _windStarted = false;
+            _loggedWindMode = -1;
         }
 
         /// <summary>Where the cover is heading: the slider, or the weather's verdict.</summary>

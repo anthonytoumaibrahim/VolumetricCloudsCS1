@@ -42,7 +42,10 @@
 
   <String key="Profiles.Label">Perfil</String>
   <String key="Profiles.None">(sin perfil)</String>
+  <String key="Profiles.Defaults">(Valores del mod)</String>
   <String key="Profiles.Save">Guardar</String>
+  <String key="Profiles.Revert">Revertir</String>
+  <String key="Profiles.Reverted">Perfil guardado restaurado.</String>
   <String key="Profiles.NewName">Perfil {0}</String>
   <String key="Profiles.Naming">Escribe un nombre. Enter guarda, Esc cancela.</String>
   <String key="Profiles.Added">Guardado como perfil nuevo.</String>
@@ -58,6 +61,7 @@
   <String key="Profiles.Invalid.Character">El nombre no puede contener &lt; &gt; : " / \ | ? *.</String>
   <String key="Profiles.Invalid.Dot">El nombre no puede empezar ni acabar con un punto.</String>
   <String key="Profiles.Invalid.Reserved">Windows reserva ese nombre.</String>
+  <String key="Profiles.Invalid.Parentheses">Los nombres entre paréntesis están reservados para las entradas propias de la lista.</String>
   <String key="Profiles.Invalid.Exists">Ya existe un perfil con ese nombre.</String>
 
   <!-- ==================== In-game panel: Now ==================== -->
@@ -73,6 +77,11 @@
   <String key="Coverage.Label">Intensidad fija</String>
 
   <String key="WindSpeed.Label">Velocidad</String>
+  <String key="WindDirection.Label">Dirección del viento</String>
+  <String key="WindDirection.Follow">Seguir el juego</String>
+  <String key="WindDirection.Slowly">Seguir el juego despacio</String>
+  <String key="WindDirection.Fixed">Fija</String>
+  <String key="WindAngle.Label">Dirección fija del viento</String>
 
   <String key="Status.Fog.Off">La niebla volumétrica está desactivada</String>
   <String key="Status.Fog.Waiting">Niebla volumétrica: esperando a las nubes</String>
@@ -80,6 +89,7 @@
   <String key="Status.Fog.Share">niebla en {0} del mapa</String>
   <String key="Status.Fog.ShareMorning">niebla matinal en {0} del mapa</String>
   <String key="Status.Fog.ShareMist">neblina tras la lluvia en {0} del mapa</String>
+  <String key="Status.Fog.ShareWater">niebla en {0} del agua</String>
   <String key="Status.Fog.Manual">FORZADO: {0}  (el juego indica {1})</String>
   <String key="Status.Fog.Following">Siguiendo el juego: niebla {0}  -&gt;  {1}</String>
 
@@ -159,6 +169,8 @@
 
   <String key="FogFollowsGround.Label">La niebla sigue el terreno</String>
 
+  <String key="FogInValleys.Label">La niebla llena los valles</String>
+
   <String key="FogBase.Label">Inicio de niebla</String>
 
   <String key="FogHeight.Label">Altura de niebla</String>
@@ -181,6 +193,7 @@
   <String key="FogChangesWithWeather.Label">La niebla cambia con el clima</String>
   <String key="MorningFog.Label">Niebla matinal</String>
   <String key="MistAfterRain.Label">Neblina tras la lluvia</String>
+  <String key="FogOverWater.Label">Niebla sobre el agua</String>
 
   <String key="Group.FogLamps">Niebla con luces urbanas</String>
   <String key="FogLampRadius.Label">Radio iluminado</String>
@@ -245,6 +258,10 @@
 
   <String key="CloudShadowFullness.Label">Fuerza de sombras</String>
 
+  <String key="Group.Testing">Pruebas (se quita antes de publicar)</String>
+
+  <String key="SkipEmptySkyTest.Label">Saltar el cielo vacío</String>
+
   <String key="Group.Brightness">Brillo de las nubes</String>
 
   <String key="CloudBrightnessAuto.Label">El brillo sigue la intensidad de nubes</String>
@@ -273,7 +290,9 @@
 
   <String key="SunsetLight.Label">Luz del atardecer</String>
 
-  <String key="Group.Night">De noche</String>
+  <String key="Group.DayAndNight">De día y de noche</String>
+
+  <String key="CloudDayOpacity.Label">Las nubes ocultan el cielo de día</String>
 
   <String key="CloudNightOpacity.Label">Las nubes ocultan las estrellas</String>
 
@@ -364,6 +383,7 @@
   <String key="Unit.Metres">{0} m</String>
   <String key="Unit.Kilometres">{0} km</String>
   <String key="Unit.Times">{0}x</String>
+  <String key="Unit.Degrees">{0}°</String>
   <String key="Unit.Hz">{0} Hz</String>
   <String key="Readout.Off">desactivado</String>
   <String key="Readout.Neutral">neutro</String>

@@ -15,10 +15,15 @@ float3 _SunDir;        // towards the light
 
 // Night. Clouds dissolve into the distance by going TRANSPARENT, which by day lets
 // sky colour through and reads as haze -- and by night lets the stars through.
-// _NightOpacity (0 by day) takes that transparency away, out to where the march
-// ends (_CloudExtent, the reach), where they still have to end softly.
+// _NightOpacity takes that transparency away, out to where the march ends
+// (_CloudExtent, the reach), where they still have to end softly. By day it is
+// "Clouds hide the sky by day" (1.5.0; 0 unless a player sets it: a cubemap's sky
+// and painted sun showed through a full overcast), through twilight to the night's.
 float _NightOpacity;
 float _CloudExtent;
+float _EdgeStart;          // where that soft end starts, a share of _CloudExtent (1.5.0): 0.7 at night, as
+                           // always; by day further in, so a deck that hides the sky does not end on a
+                           // line above the horizon but thins into the haze behind it
 
 // The same towards the sun, by day: a far cloud faded to 20% lets 20% of the sky behind it
 // through, and there that sky is the sun's disc and its glow -- so bright that the clouds burned
@@ -150,6 +155,18 @@ sampler2D _TerrainTex;     // TerrainHeightMap: ground (or water) height in metr
 float _TerrainMapSize;
 float _FogFloor;           // just under the lowest ground on the map
 
+// Where fog gathers by itself (1.5.0, Sky/FogPlaces; TerrainHeightMap.Places, the terrain map's
+// layout): r = how far the ground lies below the land round it, metres / 255; g = how much of the
+// ground nearby is water. Both rows are uniform branches, off at 0%: the fog as before.
+sampler2D _FogPlaceTex;
+float _FogValley;          // "Fog fills valleys", 0..1 (0 for a level fog)
+float _FogValleyDepth;     // _FogValley x the deepest hollow on the map: how much higher valley fog reaches
+float _FogValleyGather;    // how much more of the weather's fog a deep hollow holds: 0.35 x _FogValley,
+                           // faded in with the weather's fog (no weather fog, none to gather)
+float _FogWater;           // 1 while "Fog over water" has banks to show
+float _FogWaterThreshold;  // weather-field threshold for the banks' share of the water
+float2 _FogWaterPush;      // metres the banks are carried downwind of the water
+
 float Hash12(float2 p)
 {
     return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453);
@@ -165,6 +182,63 @@ float MarchJitter(float2 pixel)
     return _BlueNoiseScale > 0.0
         ? tex2Dlod(_BlueNoiseTex, float4(pixel * _BlueNoiseScale, 0, 0)).a
         : Hash12(pixel);
+}
+
+// SKIP THE EMPTY SKY (1.5.0, Sky/EmptySky): per cell of the weather map, the most cloud it can
+// hold, so the march jumps whole steps over cells that hold none -- only samples that would have
+// been exactly 0, so the picture is the same. 96 x 96, point-filtered, repeating like the weather
+// map; a fine cell is 4 x 4 of its texels and the ones round it (bilinear reads them), a coarse one
+// 4 x 4 fine cells. r, g = the most weather (as read, rounded up) in the fine and the coarse cell;
+// b, a = the same for the Cumulus score.
+sampler2D _EmptySkyTex;
+float4 _EmptySky;          // x = 1: skip (0 with fragments, at a full cover, or by the test switch),
+                           // y = fine cells along a weather tile, z = fine cells along a coarse cell
+
+// No cloud at all in a cell with these most-weather and most-score: the layer is cut at _Threshold
+// (SampleDensityLod, LayerDensity), and under Cumulus the heaps' coverage line (CumulusDensity) is
+// at or under 0 at its highest score -- it only rises with the score, which the C# side checks
+// is so (_CumulusShape.y >= 0).
+bool CellEmpty(float weather, float score)
+{
+    if (weather > _Threshold)
+        return false;
+
+    if (_CloudStyle > 0.5)
+        return _CumulusShape.y >= 0.0 && _CumulusShape.x + _CumulusShape.y * score <= 0.0;
+
+    return true;
+}
+
+// How far along the ray (in t) from c -- a place in fine cells -- to the far wall of the cell
+// [lo, lo + size)^2; dc is the ray in fine cells per unit t. 1e9 along an axis it does not move on.
+float CellExit(float2 c, float2 dc, float2 lo, float size)
+{
+    float2 hi = lo + size;
+    float tx = dc.x > 1e-12 ? (hi.x - c.x) / dc.x : (dc.x < -1e-12 ? (lo.x - c.x) / dc.x : 1e9);
+    float ty = dc.y > 1e-12 ? (hi.y - c.y) / dc.y : (dc.y < -1e-12 ? (lo.y - c.y) / dc.y : 1e9);
+    return min(tx, ty);
+}
+
+// How far the ray can go from p before it can meet cloud: 0 if it can here. When it can, `askAgain`
+// says how far it can go before the map has anything new to say (the fine cell's far wall). The
+// map's texel is read at its centre, picked by the same floor that finds the cell's walls: the GPU
+// rounding a point on a wall the other way can never pair one cell's bound with another's walls.
+float EmptyAhead(float3 p, float2 dc, out float askAgain)
+{
+    askAgain = 0.0;
+    float2 c = (p.xz / _WeatherTile - _WeatherPhase) * _EmptySky.y;
+    float2 fine = floor(c);
+    float4 most = tex2Dlod(_EmptySkyTex, float4((fine + 0.5) / _EmptySky.y, 0, 0));
+
+    if (CellEmpty(most.g, most.a))
+        return CellExit(c, dc, floor(fine / _EmptySky.z) * _EmptySky.z, _EmptySky.z);
+
+    float fineExit = CellExit(c, dc, fine, 1.0);
+    if (CellEmpty(most.r, most.b))
+        return fineExit;
+
+    askAgain = fineExit;
+    return 0.0;
 }
 
 // The noise's mip level at distance t from this pixel's footprint (the detail's, or the Cumulus
@@ -187,7 +261,7 @@ float CloudPresence(float tEnter)
     float fade = saturate(1.0 - tEnter / _MaxDistance);
     fade *= fade;
 
-    float edge = 1.0 - smoothstep(0.7, 1.0, tEnter / max(_CloudExtent, 1.0));
+    float edge = 1.0 - smoothstep(_EdgeStart, 1.0, tEnter / max(_CloudExtent, 1.0));
     return lerp(fade, max(fade, edge), _NightOpacity);
 }
 
@@ -234,11 +308,40 @@ bool InFogLayer(float above)
     return above < _FogBase + _FogHeight && (_FogBase <= 0.0 || above >= _FogBase);
 }
 
-// Fog density at p, 0..1 before _FogDensity: the clouds' recipe, lying on the ground.
-// `above` is p's height over FogGround(p), which every caller already has.
-float FogAt(float3 p, float above, bool detailed)
+// How far the ground at p lies below the land round it, metres (1.5.0, "Fog fills valleys").
+float HollowAt(float3 p)
 {
-    float h = (above - _FogBase) / _FogHeight;
+    return tex2Dlod(_FogPlaceTex, float4(p.xz / _TerrainMapSize + 0.5, 0, 0)).r * 255.0;
+}
+
+// InFogLayer at p, where valley fog may stand taller than the layer (1.5.0).
+bool InFogLayerAt(float3 p, float above)
+{
+    float extra = 0.0;
+    if (_FogValley > 0.0)
+        extra = _FogValley * HollowAt(p);
+
+    return above < _FogBase + _FogHeight + extra && (_FogBase <= 0.0 || above >= _FogBase);
+}
+
+// Fog density at p, 0..1 before _FogDensity: the clouds' recipe, lying on the ground.
+// `above` is p's height over FogGround(p), which every caller already has. `layerHeight` comes
+// back with the layer's height at p: _FogHeight, or more in a valley (1.5.0).
+float FogAt(float3 p, float above, bool detailed, out float layerHeight)
+{
+    // In a valley the layer reaches up towards the level of the land round it (1.5.0): the top is
+    // where the fog is, not how much of it there is, so this one goes past "Fog height" on purpose.
+    // The march's ceiling still holds: the ground plus its hollow is the land round it, never
+    // higher than the highest ground.
+    layerHeight = _FogHeight;
+    float hollow = 0.0;
+    if (_FogValley > 0.0)
+    {
+        hollow = HollowAt(p);
+        layerHeight += _FogValley * hollow;
+    }
+
+    float h = (above - _FogBase) / layerHeight;
     if (h >= 1.0 || h < -0.25)
         return 0.0;
 
@@ -263,7 +366,31 @@ float FogAt(float3 p, float above, bool detailed)
     float2 uv = p.xz / _FogTile - _FogPhase + float2(0.37, 0.61);
     float weather = tex2Dlod(_WeatherTex, float4(uv, 0, 0)).r;
     float pooling = saturate((_FogPool - (p.y - above)) / 150.0) * 0.1;
-    float cover = saturate((weather + pooling - _FogThreshold) / 0.1);
+    float gathered = weather + pooling;
+
+    // Valleys (1.5.0): the weather's fog gathers in hollows -- more of it there -- and leaves the
+    // open high ground, all of it at 100%.
+    float valley = 0.0;
+    if (_FogValley > 0.0)
+    {
+        valley = saturate(hollow / 40.0);
+        gathered += _FogValleyGather * valley;
+    }
+
+    float cover = saturate((gathered - _FogThreshold) / 0.1);
+    if (_FogValley > 0.0)
+        cover *= lerp(1.0, valley, _FogValley);
+
+    // Banks over the water (1.5.0): fog of their own, from the same weather read with their own
+    // threshold, near the water as it lies upwind -- so they come ashore downwind and thin out a few
+    // hundred metres inland. Open water is no valley, so the valley's rule above leaves them be.
+    if (_FogWater > 0.5)
+    {
+        float2 wuv = (p.xz - _FogWaterPush) / _TerrainMapSize + 0.5;
+        float near = smoothstep(0.05, 0.6, tex2Dlod(_FogPlaceTex, float4(wuv, 0, 0)).g);
+        cover = max(cover, saturate((weather - _FogWaterThreshold) / 0.1) * near);
+    }
+
     if (cover <= 0.0)
         return 0.0;
 

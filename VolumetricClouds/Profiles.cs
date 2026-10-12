@@ -29,6 +29,12 @@ namespace VolumetricClouds
     /// a complete sky), the fog switch included: the player's own click on a sky they saved or
     /// chose, like "Reset all" (invariant 12).
     ///
+    /// "(Mod defaults)" (1.5.0, asked for by the author): a fixed entry that is the mod's own
+    /// defaults -- it cannot be saved over or deleted. Picking it puts every default in; changing
+    /// anything afterwards shows "(no profile)"; picking it again throws those changes away. It is
+    /// never a file nor a name in &lt;Profile&gt; (players already have profiles called "Default"):
+    /// the bar shows it whenever no profile is picked and the sky is the defaults.
+    ///
     /// Each profile is VolumetricCloudsProfiles\&lt;name&gt;.xml beside the settings file, in the
     /// settings file's own format: a player can send one to a friend, write one by hand, or drop
     /// one in the folder with the game running (the list is read again each time it opens). The
@@ -84,6 +90,12 @@ namespace VolumetricClouds
         /// </summary>
         private static Dictionary<string, string> _kept;
 
+        /// <summary>
+        /// The mod's defaults in <see cref="SettingsXml.ProfileValues"/>'s words, worked out once
+        /// (they are constants): what "(Mod defaults)" is (<see cref="SkyIsDefaults"/>).
+        /// </summary>
+        private static Dictionary<string, string> _defaults;
+
         private static string _lastListError;
         private static bool _loggedOddFile;
 
@@ -118,22 +130,51 @@ namespace VolumetricClouds
         {
             get
             {
-                if (_kept == null)
-                    return true;
-
                 Dictionary<string, string> now = SettingsXml.ProfileValues();
-                if (now.Count != _kept.Count)
-                    return true;
+                if (_kept != null && SameValues(now, _kept))
+                    return false;
 
-                foreach (KeyValuePair<string, string> pair in now)
-                {
-                    string kept;
-                    if (!_kept.TryGetValue(pair.Key, out kept) || kept != pair.Value)
-                        return true;
-                }
-
-                return false;
+                // With none picked, a sky at the mod's defaults is kept too: "(Mod defaults)" brings
+                // it back (1.5.0).
+                return Selected.Length > 0 || !SameValues(now, DefaultValues);
             }
+        }
+
+        /// <summary>
+        /// The built-in "(Mod defaults)" entry (1.5.0): no profile is picked and every value a profile
+        /// carries is the mod's default. Not stored anywhere -- &lt;Profile&gt; stays empty, so an older
+        /// version reads the file as "no profile" -- but seen: change anything and the bar says
+        /// "(no profile)"; pick it again (<see cref="SelectDefaults"/>) and the changes go.
+        /// </summary>
+        public static bool SkyIsDefaults
+        {
+            get { return Selected.Length == 0 && SameValues(SettingsXml.ProfileValues(), DefaultValues); }
+        }
+
+        private static Dictionary<string, string> DefaultValues
+        {
+            get
+            {
+                if (_defaults == null)
+                    _defaults = SettingsXml.DefaultProfileValues();
+
+                return _defaults;
+            }
+        }
+
+        private static bool SameValues(Dictionary<string, string> a, Dictionary<string, string> b)
+        {
+            if (a.Count != b.Count)
+                return false;
+
+            foreach (KeyValuePair<string, string> pair in a)
+            {
+                string other;
+                if (!b.TryGetValue(pair.Key, out other) || other != pair.Value)
+                    return false;
+            }
+
+            return true;
         }
 
         public static string PathOf(string name)
@@ -151,7 +192,7 @@ namespace VolumetricClouds
                 case Status.Unreadable:
                     return "'" + Selected + "' (its file cannot be read: " + _problem + ")";
                 default:
-                    return "none";
+                    return SkyIsDefaults ? "none (the sky is the mod's defaults)" : "none";
             }
         }
 
@@ -243,6 +284,44 @@ namespace VolumetricClouds
         }
 
         /// <summary>
+        /// "(Mod defaults)" (1.5.0): the picked profile is let go (its file kept) and every value a
+        /// profile carries goes back to the mod's default -- a profile pick's rows only: the Now tab
+        /// and the computer's rows stay (invariant 11). The player's own click, as a profile pick is,
+        /// so the volumetric fog goes off with it (invariant 12). Nothing records it: the bar shows
+        /// the entry while the sky is still the defaults (<see cref="SkyIsDefaults"/>). Asking first
+        /// about unsaved changes is the bar's business. Never throws.
+        /// </summary>
+        public static bool SelectDefaults()
+        {
+            try
+            {
+                string previous = Selected;
+                if (previous.Length > 0 || _file != null)
+                    LetGo();
+
+                var changed = new List<Row>();
+                List<string> changes = SettingsXml.ResetProfiled(changed);
+
+                Log.Msg("profile: picked the mod's defaults (picked in the panel" +
+                        (previous.Length > 0 ? "; '" + previous + "' let go, its file kept" : "") + ") -- " +
+                        (changes.Count == 0 ? "no value changed" : changes.Count + " changed: " + Joined(changes)) +
+                        "; what a profile does not carry (the Now tab, quality, the panel) is left as it is");
+
+                SettingsXml.RunAfterChange(changed, "the mod's defaults");
+                _kept = SettingsXml.ProfileValues();
+
+                SettingsXml.SaveNow();
+                SettingsCatalog.RefreshAllUIs();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Error("profile: putting the mod's defaults in failed", e);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// "(no profile)": lets the picked profile go. No value changes and its file stays: the
         /// settings file alone runs the sky again. The caller saves.
         /// </summary>
@@ -315,6 +394,29 @@ namespace VolumetricClouds
             catch (Exception e)
             {
                 Log.Warn("profile: could not save '" + name + "' (" + _file.Path + "): " + e.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// "Revert" (1.5.0, asked for by the author): the picked profile's saved sky put back, the
+        /// changes made since thrown away -- picking it again, as the dropdown would. False when none
+        /// is picked or its file cannot be read, and then nothing has changed; the log says why. The
+        /// button is the player's own "throw them away", so the bar asks nothing. Never throws.
+        /// </summary>
+        public static bool Revert()
+        {
+            string name = Selected;
+            if (name.Length == 0 || _file == null || _state != Status.Selected)
+                return false;
+
+            try
+            {
+                return SelectFrom(name, "Revert: its saved sky put back");
+            }
+            catch (Exception e)
+            {
+                Log.Error("profile: reverting to '" + name + "' failed; the sky is left as it is", e);
                 return false;
             }
         }

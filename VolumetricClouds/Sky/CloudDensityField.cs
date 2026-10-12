@@ -170,6 +170,78 @@ namespace VolumetricClouds.Sky
         /// <summary>The normal scores the texture holds run over -ScoreRange .. +ScoreRange.</summary>
         public const float ScoreRange = 3f;
 
+        private Texture2D _emptySkyTexture;
+        private byte[] _emptySky;
+        private int _emptySkyVersion = -1;
+        private bool _emptySkySrgb;
+
+        /// <summary>
+        /// SKIP THE EMPTY SKY (1.5.0, Sky.EmptySky): per cell of this map, the most cloud it can hold,
+        /// for the cloud march to jump over cells that hold none. LINEAR ARGB32, point-filtered,
+        /// repeating like the weather map, 96 x 96. Built on first use, again for a new pattern
+        /// (Adopt) or once the GPU's decoding is measured (built before, its bounds are only looser:
+        /// decoding lowers a value). Main thread.
+        /// </summary>
+        public Texture2D EmptySkyTexture
+        {
+            get
+            {
+                EnsureEmptySky();
+                return _emptySkyTexture;
+            }
+        }
+
+        /// <summary>Milliseconds the empty-sky map last took to build, for the log.</summary>
+        public float EmptySkyBuildMs { get; private set; }
+
+        /// <summary>
+        /// The share of the map's cells that hold no cloud at this threshold (and, under Cumulus, this
+        /// heap line): what the skip has to jump over (Sky.EmptySky.EmptyShare).
+        /// </summary>
+        public float EmptyShare(float threshold, bool cumulus, float lineA, float lineB)
+        {
+            EnsureEmptySky();
+            return EmptySky.EmptyShare(_emptySky, threshold, cumulus, lineA, lineB);
+        }
+
+        private void EnsureEmptySky()
+        {
+            if (_emptySkyTexture != null && _emptySkyVersion == Version && _emptySkySrgb == GpuReadsSrgb)
+                return;
+
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
+            // The bytes the weather texture holds (UploadDensity), and the score texture's.
+            byte[] stored = new byte[_density.Length];
+            for (int i = 0; i < stored.Length; i++)
+                stored[i] = (byte)(Mathf.Clamp01(_density[i]) * 255f);
+
+            _emptySky = EmptySky.Build(stored, ScoreBytes(), Resolution, GpuReadsSrgb);
+
+            int size = Resolution / EmptySky.CellTexels;
+            if (_emptySkyTexture == null)
+            {
+                _emptySkyTexture = new Texture2D(size, size, TextureFormat.ARGB32, false, true)
+                {
+                    name = "VolumetricCloudsEmptySky",
+                    wrapMode = TextureWrapMode.Repeat,
+                    filterMode = FilterMode.Point,
+                    anisoLevel = 0,
+                };
+            }
+
+            var pixels = new Color32[size * size];
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color32(_emptySky[i * 4], _emptySky[i * 4 + 1], _emptySky[i * 4 + 2], _emptySky[i * 4 + 3]);
+
+            _emptySkyTexture.SetPixels32(pixels);
+            _emptySkyTexture.Apply(false);
+
+            _emptySkyVersion = Version;
+            _emptySkySrgb = GpuReadsSrgb;
+            EmptySkyBuildMs = (float)watch.Elapsed.TotalMilliseconds;
+        }
+
         private void UploadScores()
         {
             byte[] scores = ScoreBytes();

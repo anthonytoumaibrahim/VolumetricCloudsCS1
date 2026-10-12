@@ -167,6 +167,11 @@ namespace VolumetricClouds.Sky
             CloudWeather.Advance(Time.deltaTime);
 
             float simulationRate = SimulationRate();
+
+            // The wind's direction first (1.5.0: the game's, turning slowly, or fixed): everything
+            // below that moves along the wind reads it.
+            CloudWeather.AdvanceWind(Time.deltaTime * simulationRate);
+
             float speed = Settings.WindSpeed != null ? Settings.WindSpeed.value : Settings.Defaults.WindSpeed;
             CloudWind.Advance(CloudWeather.WindDirection,
                               Time.deltaTime * speed * 10f * CloudWeather.WindSpeedFactor * simulationRate);
@@ -200,7 +205,8 @@ namespace VolumetricClouds.Sky
                         " overcast=" + CloudWeather.Overcast.ToString("F2") +
                         " map=" + CloudWeather.FairEnd.ToString("F2") + ".." + CloudWeather.RainEnd.ToString("F2") +
                         " target=" + CloudWeather.Target().ToString("F2") +
-                        " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ")" +
+                        " | wind=(" + wind.x.ToString("F2") + "," + wind.z.ToString("F2") + ") " + CloudWeather.DescribeWind() +
+                        " game=" + CloudWeather.GameWindAngle.ToString("F0") + "deg" +
                         " x" + CloudWeather.WindSpeedFactor.ToString("F2"));
                 Log.Detail("fog: " + (!CloudFog.Active ? "off (the game's)" : CloudFog.Overridden ? "OVERRIDDEN" : "followed") +
                         " gameFog=" + CloudFog.GameFog.ToString("F2") +

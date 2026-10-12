@@ -207,6 +207,19 @@ namespace VolumetricClouds
         public static BoolSetting FogFollowsGround { get; private set; }
 
         /// <summary>
+        /// 0..1 (1.5.0), with <see cref="FogFollowsGround"/>: fog gathers in valleys and low ground,
+        /// filling them up towards the level of the land round them, and leaves open high ground.
+        /// 1 = fog only in hollows (Sky.FogPlaces). 0, the default, is the fog as it always was.
+        /// </summary>
+        public static FloatSetting FogInValleys { get; private set; }
+
+        /// <summary>
+        /// 0..1 (1.5.0): the share of the water with fog banks on it, drifting ashore with the wind.
+        /// Fog of its own, whatever the weather's; it takes the layer's look. 0 = none.
+        /// </summary>
+        public static FloatSetting FogOverWater { get; private set; }
+
+        /// <summary>
         /// Metres from the reference (sea level, or the ground) to the UNDERSIDE of the fog.
         /// 0 = it starts at the reference; 200 = fog only from 200 m up.
         /// </summary>
@@ -281,6 +294,13 @@ namespace VolumetricClouds
         public static FloatSetting FogLampRadius { get; private set; }
 
         /// <summary>
+        /// 0..1 (1.5.0): the same as <see cref="CloudNightOpacity"/>, by day. At 1 the sky behind
+        /// a far cloud cannot be seen through it -- a cubemap's painted sun included. 0, the
+        /// default, is the clouds as they always were: by day they fade into the sky behind.
+        /// </summary>
+        public static FloatSetting CloudDayOpacity { get; private set; }
+
+        /// <summary>
         /// How much of the clouds' distance transparency is taken away at night, 0..1. At 1
         /// the stars cannot be seen through a cloud; by day this has no effect at all.
         /// </summary>
@@ -291,6 +311,19 @@ namespace VolumetricClouds
 
         /// <summary>Multiplier on how fast cloud shadows drift.</summary>
         public static FloatSetting WindSpeed { get; private set; }
+
+        /// <summary>
+        /// Which way the clouds, the fog and the rain move (1.5.0): Sky.CloudWeather.WindFollow (the
+        /// game's wind, as always), WindSlowly (the game's wind, turning gradually) or WindFixed
+        /// (<see cref="WindAngle"/>). Stored by value, append-only.
+        /// </summary>
+        public static IntSetting WindDirection { get; private set; }
+
+        /// <summary>
+        /// With a fixed wind direction (1.5.0): degrees, in the game's own convention -- the weather
+        /// moves along (sin a, 0, cos a), as WeatherManager.m_windDirection says.
+        /// </summary>
+        public static FloatSetting WindAngle { get; private set; }
 
         /// <summary>
         /// World-space size of one weather tile, in metres. Shared by the shadow cookie and
@@ -309,6 +342,12 @@ namespace VolumetricClouds
         /// edges cast a fuller shadow, so more of the ground reads as shaded.
         /// </summary>
         public static FloatSetting CloudShadowFullness { get; private set; }
+
+        /// <summary>
+        /// TEMPORARY (1.5.0 development, remove before release): the cloud march skips the empty sky
+        /// (Sky.EmptySky). A switch only to compare frame times in one build; nothing on screen changes.
+        /// </summary>
+        public static BoolSetting SkipEmptySkyTest { get; private set; }
 
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
         public static IntSetting ShadowMapResolution { get; private set; }
@@ -562,6 +601,15 @@ namespace VolumetricClouds
             public const float OvercastCoverage = 0.98f;
 
             public const float WindSpeed = 3f;
+
+            /// <summary>
+            /// Following the game's wind (1.5.0): what every player had, so the new row changes
+            /// nothing until they pick. Asked for by the author: "the whole clouds just shift
+            /// direction suddenly", so a way to stop it.
+            /// </summary>
+            public const int WindDirection = 0;
+            public const float WindAngle = 0f;
+
             public const float WeatherTileSize = 13500f;
 
             // ---- the clouds ----
@@ -645,6 +693,13 @@ namespace VolumetricClouds
             public const float NightBrightnessOvercast = BrightnessOvercast;
             public const float NightBrightnessFixed = Brightness;
 
+            /// <summary>
+            /// 0 (1.5.0): by day the far clouds fade into the sky behind them, as they always have.
+            /// Asked for by a player whose cubemap (and its sun) showed through a full overcast.
+            /// The price of 100%: a solid far deck loses its haze into the distance -- why the night's
+            /// twin was night-only.
+            /// </summary>
+            public const float DayOpacity = 0f;
             public const float NightOpacity = 1f;
             public const float NightGlow = 0.5f;
 
@@ -652,6 +707,9 @@ namespace VolumetricClouds
             public const bool CloudShadows = true;
             public const float ShadowDarkness = 0.85f;
             public const float ShadowFullness = 3f;
+
+            /// <summary>TEMPORARY test switch (remove before release): the skip on, as it will ship.</summary>
+            public const bool SkipEmptySkyTest = true;
             public const int ShadowMapResolution = 2048;
             public const int ShadowMapRate = 20;
 
@@ -734,6 +792,10 @@ namespace VolumetricClouds
             public const float FogChangesWithWeather = 0f;
             public const float MorningFog = 0f;
             public const float MistAfterRain = 0f;
+
+            /// <summary>Both 0 (1.5.0), for the same reason: the shader's branches for them are off at 0.</summary>
+            public const float FogInValleys = 0f;
+            public const float FogOverWater = 0f;
 
             /// <summary>
             /// 150% (1.4.0, the author's own value): brighter than the 95% that put a new
@@ -851,6 +913,7 @@ namespace VolumetricClouds
                 // terrain level"); 100% is now a third of that.
                 FogDensity = new FloatSetting("FogDensity", Defaults.FogDensity, "FogDensityScale");
                 FogFollowsGround = new BoolSetting("FogFollowsGround", Defaults.FogFollowsGround);
+                FogInValleys = new FloatSetting("FogInValleys", Defaults.FogInValleys);
                 FogBase = new FloatSetting("FogBase", Defaults.FogBase, "FogBaseHeight");
                 // The layer's THICKNESS. Its .cgs key "FogTopHeight" was kept when that changed,
                 // because with the base at 0 (every saved file) the two are the same number.
@@ -866,15 +929,19 @@ namespace VolumetricClouds
                 FogChangesWithWeather = new FloatSetting("FogChangesWithWeather", Defaults.FogChangesWithWeather);
                 MorningFog = new FloatSetting("MorningFog", Defaults.MorningFog);
                 MistAfterRain = new FloatSetting("MistAfterRain", Defaults.MistAfterRain);
+                FogOverWater = new FloatSetting("FogOverWater", Defaults.FogOverWater);
                 FogLampsEnabled = new BoolSetting("FogLampsEnabled", Defaults.FogLampsEnabled);
                 FogLampLight = new FloatSetting("FogLampLight", Defaults.FogLampLight);
                 FogLampRadius = new FloatSetting("FogLampRadius", Defaults.FogLampRadius);
 
+                CloudDayOpacity = new FloatSetting("CloudDayOpacity", Defaults.DayOpacity);
                 CloudNightOpacity = new FloatSetting("CloudNightOpacity", Defaults.NightOpacity);
                 // "NightCloudGlow" in the .cgs, not "CityGlow": that scaled an orange projection of
                 // the city's buildings. This is an even pale luminance, and a much smaller one.
                 NightGlow = new FloatSetting("NightGlow", Defaults.NightGlow, "NightCloudGlow");
                 WindSpeed = new FloatSetting("WindSpeed", Defaults.WindSpeed);
+                WindDirection = new IntSetting("WindDirection", Defaults.WindDirection);
+                WindAngle = new FloatSetting("WindAngle", Defaults.WindAngle);
                 // Not the old "CookieTileSize": its 2000 m default was saved into existing
                 // settings files and is far too small for cloud-sized features.
                 WeatherTileSize = new FloatSetting("WeatherTileSize", Defaults.WeatherTileSize);
@@ -883,6 +950,7 @@ namespace VolumetricClouds
                 // coverage, so saved values of it are not meaningful.
                 CloudShadowDarkness = new FloatSetting("CloudShadowDarkness", Defaults.ShadowDarkness);
                 CloudShadowFullness = new FloatSetting("CloudShadowFullness", Defaults.ShadowFullness);
+                SkipEmptySkyTest = new BoolSetting("SkipEmptySkyTest", Defaults.SkipEmptySkyTest);
                 ShadowMapResolution = new IntSetting("ShadowMapResolution", Defaults.ShadowMapResolution);
                 ShadowMapRate = new IntSetting("ShadowMapRate", Defaults.ShadowMapRate);
                 QualityPreset = new IntSetting("QualityPreset", Defaults.Preset);

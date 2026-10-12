@@ -624,6 +624,73 @@ namespace VolumetricClouds
             return Read(text, out error, IsProfiled, true, false, changedRows);
         }
 
+        /// <summary>
+        /// The mod's defaults as <see cref="ProfileValues"/> gives a sky (1.5.0, the built-in
+        /// "(Mod defaults)" entry): each row a profile carries at its default, worked out without
+        /// changing the sky, as <see cref="ProfileValuesOf"/> does.
+        /// </summary>
+        internal static Dictionary<string, string> DefaultProfileValues()
+        {
+            var held = new List<KeyValuePair<Row, object>>();
+            var seen = new HashSet<object>();
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting != null && seen.Add(setting) && row.Profiled)
+                    held.Add(new KeyValuePair<Row, object>(row, RawValue(row)));
+            }
+
+            _loading = true;
+            try
+            {
+                foreach (KeyValuePair<Row, object> pair in held)
+                    pair.Key.ResetToDefault();
+
+                return ProfileValues();
+            }
+            finally
+            {
+                try
+                {
+                    foreach (KeyValuePair<Row, object> pair in held)
+                        SetRawValue(pair.Key, pair.Value);
+                }
+                finally
+                {
+                    _loading = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Puts every row a profile carries back to its default (1.5.0, picking "(Mod defaults)"):
+        /// what an empty profile would put in, but the default itself even for a row with a
+        /// <see cref="Row.OlderFileInt"/>. The rows a profile does not carry -- the computer's,
+        /// the Now tab -- are left alone (invariant 11). What changed, as "Name was -> now".
+        /// </summary>
+        internal static List<string> ResetProfiled(List<Row> changedRows)
+        {
+            var changes = new List<string>();
+            var seen = new HashSet<object>();
+            foreach (Row row in SettingsCatalog.Rows)
+            {
+                object setting = SettingOf(row);
+                if (setting == null || !seen.Add(setting) || !row.Profiled)
+                    continue;
+
+                string was = ValueText(row);
+                row.ResetToDefault();
+                string now = ValueText(row);
+                if (now != was)
+                {
+                    changes.Add(row.Name + " " + was + " -> " + now);
+                    changedRows.Add(row);
+                }
+            }
+
+            return changes;
+        }
+
         // ---- applying values ------------------------------------------------------------------
 
         /// <summary>What one read of a file did, for the log.</summary>

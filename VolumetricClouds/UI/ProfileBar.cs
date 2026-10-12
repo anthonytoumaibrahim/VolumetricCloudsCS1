@@ -8,7 +8,7 @@ namespace VolumetricClouds.UI
     /// <summary>
     /// The profile bar of the in-game panel (1.3.0), under the title and above the tabs, so it is
     /// there on every tab:
-    ///   Profile  [ Storm           v ]  [Save] [+] [-]   a short message
+    ///   Profile  [ Storm           v ]  [Save] [Revert] [+] [-]   a short message
     /// </summary>
     /// <remarks>
     /// The author's design (2026-09-24): no Profiles tab ("we already have what seems as too many
@@ -18,6 +18,12 @@ namespace VolumetricClouds.UI
     /// dropdown is Render It!'s own recipe (<see cref="UIBuilder.AddDropDown"/>); should its
     /// sprites ever be missing, a button that shows the picked profile and moves to the next one
     /// on each click takes its place.
+    ///
+    /// Under "(no profile)" the list has "(Mod defaults)" (1.5.0): the mod's own defaults, shown
+    /// while no profile is picked and the sky is the defaults; Save and "-" stay off for it.
+    ///
+    /// Revert (1.5.0, the author's ask) is lit with Save: the picked profile's saved sky put back,
+    /// the unsaved changes thrown away. It asks nothing -- throwing them away is all it does.
     ///
     /// Picking asks nothing -- it is what you do ten times while comparing skies -- unless the sky
     /// has changes not saved anywhere, which the pick would throw away: then it asks first. Save
@@ -40,6 +46,7 @@ namespace VolumetricClouds.UI
         private const float DropWidth = 230f;
         private const float ControlHeight = 30f;
         private const float SaveWidth = 50f;
+        private const float RevertWidth = 60f;
         private const float ButtonWidth = 28f;
         private const float Gap = 6f;
         private const int VisibleItems = 12;
@@ -56,11 +63,18 @@ namespace VolumetricClouds.UI
         private readonly UIButton _cycle;
         private readonly UITextField _field;
         private readonly UIButton _save;
+        private readonly UIButton _revert;
         private readonly UIButton _add;
         private readonly UIButton _remove;
         private readonly UILabel _message;
 
-        /// <summary>What each entry of the list is: "" for "(no profile)", then the names.</summary>
+        /// <summary>
+        /// The second entry, "(Mod defaults)" (1.5.0): a name no file in the folder can have (the
+        /// folder lists no name with a control character, <see cref="ProfileName.IsListable"/>).
+        /// </summary>
+        private const string DefaultsEntry = "\u0001defaults";
+
+        /// <summary>What each entry of the list is: "" for "(no profile)", <see cref="DefaultsEntry"/>, then the names.</summary>
         private readonly List<string> _entries = new List<string>();
 
         private bool _refreshing;
@@ -135,6 +149,11 @@ namespace VolumetricClouds.UI
             _save.eventClick += (component, e) => SaveClicked();
 
             left += SaveWidth + 4f;
+            _revert = UIBuilder.AddButton(parent, Localization.Get("Profiles.Revert"), new Vector2(RevertWidth, ControlHeight), new Vector3(left, y + 4f));
+            _revert.canFocus = false;
+            _revert.eventClick += (component, e) => RevertClicked();
+
+            left += RevertWidth + 4f;
             _add = UIBuilder.AddButton(parent, "+", new Vector2(ButtonWidth, ControlHeight), new Vector3(left, y + 4f));
             _add.textScale = 1.1f;
             _add.canFocus = false;
@@ -183,7 +202,7 @@ namespace VolumetricClouds.UI
         private void RefreshNow()
         {
             string picked = Profiles.Selected;
-            int index = IndexOf(picked);
+            int index = ShownIndex();
 
             // Picked some other way -- a hand edit, a reset, a file gone -- or new since the list
             // was read; or a pick that did not work or waits for an answer, which shows the one in
@@ -192,7 +211,7 @@ namespace VolumetricClouds.UI
             {
                 _resync = false;
                 Relist();
-                index = IndexOf(picked);
+                index = ShownIndex();
             }
 
             if (index >= 0 && !ListOpen)
@@ -234,17 +253,19 @@ namespace VolumetricClouds.UI
         private void RefreshButtons(bool unsaved)
         {
             _save.isEnabled = !_naming && unsaved;
+            _revert.isEnabled = !_naming && unsaved && Profiles.State == Profiles.Status.Selected;
             _add.isEnabled = !_naming;
             _remove.isEnabled = !_naming && Profiles.Selected.Length > 0;
         }
 
         // ---- the list --------------------------------------------------------------------------
 
-        /// <summary>Reads the folder and puts "(no profile)" and every name in the list, the pick selected.</summary>
+        /// <summary>Reads the folder and puts "(no profile)", "(Mod defaults)" and every name in the list, the pick selected.</summary>
         private void Relist()
         {
             _entries.Clear();
             _entries.Add(string.Empty);
+            _entries.Add(DefaultsEntry);
             _entries.AddRange(Profiles.List());
 
             // A pick the folder does not list (its file went a moment ago) stays in view until it
@@ -256,9 +277,8 @@ namespace VolumetricClouds.UI
             if (_drop != null)
             {
                 var shown = new string[_entries.Count];
-                shown[0] = Localization.Get("Profiles.None");
-                for (int i = 1; i < shown.Length; i++)
-                    shown[i] = Shorten(_entries[i]);
+                for (int i = 0; i < shown.Length; i++)
+                    shown[i] = EntryText(i);
 
                 _refreshing = true;
                 try
@@ -271,7 +291,31 @@ namespace VolumetricClouds.UI
                 }
             }
 
-            ShowPick(Mathf.Max(0, IndexOf(picked)));
+            ShowPick(Mathf.Max(0, ShownIndex()));
+        }
+
+        /// <summary>
+        /// The entry the bar shows: the picked profile, or with none picked "(Mod defaults)" while the
+        /// sky is the defaults and "(no profile)" otherwise. -1 for a pick the list does not have.
+        /// </summary>
+        private int ShownIndex()
+        {
+            string picked = Profiles.Selected;
+            if (picked.Length == 0)
+                return Profiles.SkyIsDefaults ? 1 : 0;
+
+            return IndexOf(picked);
+        }
+
+        private string EntryText(int index)
+        {
+            if (index == 0)
+                return Localization.Get("Profiles.None");
+
+            if (_entries[index] == DefaultsEntry)
+                return Localization.Get("Profiles.Defaults");
+
+            return Shorten(_entries[index]);
         }
 
         private void ShowPick(int index)
@@ -293,7 +337,7 @@ namespace VolumetricClouds.UI
             }
             else if (_cycle != null)
             {
-                string text = index > 0 ? Shorten(_entries[index]) : Localization.Get("Profiles.None");
+                string text = EntryText(index);
                 if (_cycle.text != text)
                     _cycle.text = text;
             }
@@ -304,7 +348,7 @@ namespace VolumetricClouds.UI
             if (string.IsNullOrEmpty(name))
                 return 0;
 
-            for (int i = 1; i < _entries.Count; i++)
+            for (int i = 2; i < _entries.Count; i++)
             {
                 if (ProfileName.Same(_entries[i], name))
                     return i;
@@ -328,8 +372,17 @@ namespace VolumetricClouds.UI
 
                 string name = _entries[index];
                 string picked = Profiles.Selected;
-                if (name.Length == 0 ? picked.Length == 0 : ProfileName.Same(name, picked) && Profiles.State == Profiles.Status.Selected)
+                bool defaults = name == DefaultsEntry;
+
+                // "(no profile)" while the sky is the defaults lets nothing go: the bar shows
+                // "(Mod defaults)" again at the next refresh, which is what the sky is.
+                if (defaults ? Profiles.SkyIsDefaults
+                    : name.Length == 0 ? picked.Length == 0
+                    : ProfileName.Same(name, picked) && Profiles.State == Profiles.Status.Selected)
+                {
+                    _resync = true;
                     return;
+                }
 
                 if (name.Length == 0)
                 {
@@ -343,8 +396,8 @@ namespace VolumetricClouds.UI
                 // inside the list's own click, and re-listing closes it.
                 _resync = true;
 
-                // Picking puts the profile's sky in: ask first when that throws away changes kept
-                // nowhere else.
+                // Picking puts the profile's sky in (or the defaults): ask first when that throws away
+                // changes kept nowhere else.
                 if (Profiles.HasUnsavedChanges)
                 {
                     AskBeforePicking(name, picked);
@@ -362,9 +415,10 @@ namespace VolumetricClouds.UI
 
         private void AskBeforePicking(string name, string picked)
         {
+            string shown = name == DefaultsEntry ? Localization.Get("Profiles.Defaults") : name;
             string question = picked.Length > 0
-                ? Localization.Get("Profiles.Confirm.Discard", picked, name)
-                : Localization.Get("Profiles.Confirm.Replace", name);
+                ? Localization.Get("Profiles.Confirm.Discard", picked, shown)
+                : Localization.Get("Profiles.Confirm.Replace", shown);
 
             try
             {
@@ -372,7 +426,8 @@ namespace VolumetricClouds.UI
                 {
                     if (result != 1)
                     {
-                        Log.Msg("profile: picking '" + name + "' cancelled; the sky keeps its changes");
+                        Log.Msg("profile: picking " + (name == DefaultsEntry ? "the mod's defaults" : "'" + name + "'") +
+                                " cancelled; the sky keeps its changes");
                         return;
                     }
 
@@ -396,8 +451,15 @@ namespace VolumetricClouds.UI
         /// <summary>Nothing changed when it fails, and the bar says so.</summary>
         private void PickNow(string name)
         {
-            if (!Profiles.Select(name))
+            if (name == DefaultsEntry)
+            {
+                if (!Profiles.SelectDefaults())
+                    Say(Localization.Get("Profiles.Failed"), UIBuilder.WarningColour);
+            }
+            else if (!Profiles.Select(name))
+            {
                 Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
+            }
 
             _resync = true;
         }
@@ -409,7 +471,7 @@ namespace VolumetricClouds.UI
             if (_entries.Count < 2)
                 return;
 
-            int next = (Mathf.Max(0, IndexOf(Profiles.Selected)) + 1) % _entries.Count;
+            int next = (Mathf.Max(0, ShownIndex()) + 1) % _entries.Count;
             Picked(next);
             Relist();
         }
@@ -433,6 +495,29 @@ namespace VolumetricClouds.UI
             catch (Exception e)
             {
                 Log.Error("profile bar: saving the profile failed", e);
+            }
+        }
+
+        // ---- Revert -----------------------------------------------------------------------------
+
+        private void RevertClicked()
+        {
+            if (_naming || Profiles.Selected.Length == 0)
+                return;
+
+            try
+            {
+                if (Profiles.Revert())
+                    Say(Localization.Get("Profiles.Reverted"), UIBuilder.StatusColour);
+                else
+                    Say(Localization.Get("Profiles.Unreadable"), UIBuilder.WarningColour);
+
+                _resync = true;
+                RefreshButtons(Profiles.HasUnsavedChanges);
+            }
+            catch (Exception e)
+            {
+                Log.Error("profile bar: reverting the profile failed", e);
             }
         }
 

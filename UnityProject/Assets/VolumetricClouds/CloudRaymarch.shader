@@ -408,6 +408,12 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float transmittance = 1.0;
                 float3 light = 0;
 
+                // Skip the empty sky (1.5.0, CloudMedia EmptyAhead): the ray in the map's fine cells per
+                // metre, and where it asks the map next -- not again inside a cell that may hold cloud.
+                bool skipEmpty = _EmptySky.x > 0.5;
+                float2 dc = dir.xz * (_EmptySky.y / _WeatherTile);
+                float askAt = -1.0;
+
                 // 192: the Quality setting's 96 at most, twice that under Cumulus (CloudStyle.StepFactor).
                 [loop]
                 for (int s = 0; s < 192; s++)
@@ -416,6 +422,23 @@ Shader "VolumetricClouds/CloudRaymarch"
                         break;
 
                     float3 p = origin + dir * t;
+
+                    if (skipEmpty && t >= askAt)
+                    {
+                        float askAgain;
+                        float empty = EmptyAhead(p, dc, askAgain);
+                        if (empty > 0.0)
+                        {
+                            // This sample and every whole step still inside the empty cell would find
+                            // nothing: go past them. The 0.999 keeps the last one off the cell's wall.
+                            float n = min(floor(empty * 0.999 / stepLen), steps);
+                            s += (int)n;
+                            t += (n + 1.0) * stepLen;
+                            continue;
+                        }
+
+                        askAt = t + askAgain;
+                    }
 
                     // The noise's mip level from this pixel's footprint here (CloudMedia).
                     float lod = CloudLod(t);
@@ -633,8 +656,12 @@ Shader "VolumetricClouds/CloudRaymarch"
                     return float4(0, 0, 0, 1);
 
                 float top = _FogBase + _FogHeight;
-                bool fromInside = InFogLayer(camAbove);
+                bool fromInside = InFogLayerAt(origin, camAbove);
                 float tStart = -1.0;
+
+                // Valley fog stands up to this much taller (1.5.0, "Fog fills valleys"; 0 without):
+                // the walks below look for it that much higher. Its ceiling is _FogCeiling's still.
+                float reach = top + _FogValleyDepth;
 
                 if (_FogFollowGround < 0.5)
                 {
@@ -661,14 +688,15 @@ Shader "VolumetricClouds/CloudRaymarch"
                     if (tEnd <= tLow)
                         return float4(0, 0, 0, 1);
 
-                    if (camAbove < top)
+                    if (camAbove < reach)
                     {
                         tStart = 0.0;
 
                         // Under a raised layer, looking up: there is nothing before the ray reaches
                         // the underside. Where that is assumes level ground from here, so the start
-                        // is pulled well in for ground that falls away ahead.
-                        if (!fromInside && dir.y > 0.02)
+                        // is pulled well in for ground that falls away ahead. (Over the layer's top
+                        // but under a valley's, the march starts here.)
+                        if (!fromInside && camAbove < _FogBase && dir.y > 0.02)
                             tStart = 0.6 * (_FogBase - camAbove) / dir.y;
 
                         // A climbing ray leaves the layer over level ground for good soon after: what
@@ -680,7 +708,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (dir.y > 0.02)
                         {
                             float startAbove = max(camAbove, 0.0) + tStart * dir.y;
-                            float tLevel = tStart + (top - startAbove + top * 0.5 + 60.0) / dir.y;
+                            float tLevel = tStart + (reach - startAbove + top * 0.5 + 60.0) / dir.y;
                             if (tLevel < tEnd)
                             {
                                 float stride = (tEnd - tLevel) / 14.0;
@@ -694,7 +722,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                                     // Within the top here, or within what the ray climbs between two
                                     // looks of it: a hill between them.
-                                    if (p.y - GroundAt(p) < top + dir.y * stride)
+                                    if (p.y - GroundAt(p) < reach + dir.y * stride)
                                         tFar = min(t + stride, tEnd);
                                 }
 
@@ -717,7 +745,7 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                             // Within the top here -- or, climbing, within what the ray climbed since
                             // the last look: a hill between two looks.
-                            if (p.y - GroundAt(p) < top + max(dir.y, 0.0) * (t - tBefore))
+                            if (p.y - GroundAt(p) < reach + max(dir.y, 0.0) * (t - tBefore))
                             {
                                 tStart = tBefore;
                                 break;
@@ -767,7 +795,8 @@ Shader "VolumetricClouds/CloudRaymarch"
 
                     float3 p = origin + dir * t;
                     float above = p.y - FogGround(p);
-                    float d = FogAt(p, above, true);
+                    float layerHeight;
+                    float d = FogAt(p, above, true, layerHeight);
 
                     if (d > 0.001)
                     {
@@ -778,10 +807,13 @@ Shader "VolumetricClouds/CloudRaymarch"
                         // look a short way towards it. This is what gives the billows form --
                         // lit tops and flanks, dim hollows -- instead of an even glow.
                         float3 sunward = p + _SunDir * (_FogHeight * 0.4);
-                        float shade = FogAt(sunward, sunward.y - FogGround(sunward), false);
+                        float sunwardHeight;
+                        float shade = FogAt(sunward, sunward.y - FogGround(sunward), false, sunwardHeight);
                         float sun = exp(-shade * strength * _FogHeight * 0.9);
 
-                        float h = saturate((above - _FogBase) / _FogHeight);
+                        // Lit by how high in the layer it is -- the valley's taller layer where there
+                        // is one (1.5.0).
+                        float h = saturate((above - _FogBase) / layerHeight);
                         float3 lit = _FogAmbient * (0.55 + 0.45 * h)
                                    + _FogSun * (SunShaft(p) * sun * phase);
 
@@ -885,7 +917,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 if (drawAir && _FogAmount > 0.001 && _FogDensity > 0.0)
                 {
                     float camAbove = origin.y - FogGround(origin);
-                    cameraInFog = InFogLayer(camAbove);
+                    cameraInFog = InFogLayerAt(origin, camAbove);
 
                     // A ray that starts above a LEVEL fog and never descends will not meet it. One
                     // that follows the ground can drape a hill higher than the camera, so there only

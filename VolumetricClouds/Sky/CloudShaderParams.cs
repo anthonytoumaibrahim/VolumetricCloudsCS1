@@ -142,6 +142,90 @@ namespace VolumetricClouds.Sky
             ApplyStyle(material, field, weatherTile, thickness, detailScale);
             ApplyFragments(material, field, weatherTile, thickness);
             ApplyDetail(material, detailScale);
+            ApplyEmptySky(material, field);
+        }
+
+        private static readonly int IdEmptySkyTex = Shader.PropertyToID("_EmptySkyTex");
+        private static readonly int IdEmptySky = Shader.PropertyToID("_EmptySky");
+
+        /// <summary>
+        /// Below this share of empty cells the skip is not asked for: at a full overcast a ray would
+        /// only pay for asking (one look per cell it crosses) and never jump.
+        /// </summary>
+        private const float EmptySkyMinShare = 0.02f;
+
+        private static string _emptySkyLogged;
+        private static float _emptyShareThreshold = float.NaN;
+        private static float _emptyShareLineA, _emptyShareLineB;
+        private static bool _emptyShareCumulus;
+        private static int _emptyShareVersion = -1;
+        private static float _emptyShare;
+
+        /// <summary>
+        /// SKIP THE EMPTY SKY (1.5.0, Sky.EmptySky): the cloud march jumps over cells of the weather map
+        /// that hold no cloud at this cover. Nothing on screen changes. Off with cloud fragments (they
+        /// read the map turned and finer, which a cell's bound says nothing about), off while hardly any
+        /// cell is empty, and off by the temporary test switch. Only the cloud march reads it.
+        /// </summary>
+        private static void ApplyEmptySky(Material material, CloudDensityField field)
+        {
+            bool test = Settings.SkipEmptySkyTest == null || Settings.SkipEmptySkyTest.value;
+            bool fragments = CloudFragments.On;
+
+            float share = 0f;
+            if (test && !fragments)
+            {
+                bool cumulus = CloudStyle.Drawn;
+                float threshold = field.GetThreshold(LayerCoverage);
+                float lineA = 0f, lineB = 0f;
+                if (cumulus)
+                    CloudStyle.Line(CloudStyle.HeapEdge(Coverage), out lineA, out lineB);
+
+                // Worked out again only when what it depends on moves: three materials ask every frame.
+                if (threshold != _emptyShareThreshold || cumulus != _emptyShareCumulus || lineA != _emptyShareLineA ||
+                    lineB != _emptyShareLineB || field.Version != _emptyShareVersion)
+                {
+                    _emptyShare = field.EmptyShare(threshold, cumulus, lineA, lineB);
+                    _emptyShareThreshold = threshold;
+                    _emptyShareCumulus = cumulus;
+                    _emptyShareLineA = lineA;
+                    _emptyShareLineB = lineB;
+                    _emptyShareVersion = field.Version;
+                }
+
+                share = _emptyShare;
+            }
+
+            // Half the share to switch off as to switch on: a cover hovering round it does not flicker
+            // the state (and the log).
+            bool on = test && !fragments && share >= (_emptySkyLogged == "on" ? EmptySkyMinShare * 0.5f : EmptySkyMinShare);
+            int cells = CloudDensityField.Resolution / EmptySky.CellTexels;
+            material.SetVector(IdEmptySky, new Vector4(on ? 1f : 0f, cells, EmptySky.CoarseCells, 0f));
+            if (on)
+                material.SetTexture(IdEmptySkyTex, field.EmptySkyTexture);
+
+            // Always on the log, once per state: it is the one thing in the march that decides what is
+            // NOT looked at, so a hole in the sky after this would start here.
+            string state = on ? "on" : !test ? "test-off" : fragments ? "fragments" : "full";
+            if (state != _emptySkyLogged)
+            {
+                _emptySkyLogged = state;
+                Log.Msg(state == "on"
+                    ? "empty-sky skip: on -- map " + cells + "x" + cells + " (cells of " + EmptySky.CellTexels + " and " +
+                      EmptySky.CellTexels * EmptySky.CoarseCells + " weather texels), built in " + field.EmptySkyBuildMs.ToString("F1") +
+                      " ms; " + (share * 100f).ToString("F0") + "% of the cells are empty now"
+                    : state == "test-off"
+                        ? "empty-sky skip: off (the test switch on the Advanced tab)"
+                        : state == "fragments"
+                            ? "empty-sky skip: off while cloud fragments are on"
+                            : "empty-sky skip: off, almost no cell is empty at this cover");
+            }
+        }
+
+        /// <summary>The share of the weather map's cells the cloud march can skip now, 0..1 (0 while it skips none).</summary>
+        public static float EmptyShareNow
+        {
+            get { return _emptySkyLogged == "on" ? _emptyShare : 0f; }
         }
 
         /// <summary>

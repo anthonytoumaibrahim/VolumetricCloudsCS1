@@ -7,10 +7,12 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.5.0 — unreleased
 
-Fog that changes on its own. `VolumetricClouds.xml` gains three lines, `FogChangesWithWeather`,
-`MorningFog` and `MistAfterRain`, all at 0%: at 0% the fog is exactly as before, so nothing changes
-for anyone until they move one. Profiles saved before read them as 0%. Nothing in saved cities
-changes.
+Fog that changes on its own, clouds that can hide the sky by day, a wind direction of your own, and
+the mod's defaults in the profile list. `VolumetricClouds.xml` gains eight lines:
+`FogChangesWithWeather`, `MorningFog`, `MistAfterRain`, `FogInValleys`, `FogOverWater` and
+`CloudDayOpacity`, all at 0%, and `WindDirection` (0: follow the game) with `WindAngle`. At those values the fog, the clouds and the
+wind are exactly as before, so nothing changes for anyone until they move one. Profiles saved before
+read the new sliders as 0%. Nothing in saved cities changes.
 
 ### New: changing fog
 
@@ -28,6 +30,97 @@ you get: these only ever make it thinner, lower or wispier than that.
   ground dries over the next few hours. Not after snow.
 
 Light halos glow in the fog by how thick it is, so thin mist blooms them less than heavy fog.
+
+### New: fog in valleys and over water
+
+Two more sliders on the Fog tab, 0% to 100%, 0% by default.
+
+- *Fog fills valleys*, under *Fog follows the ground* (it needs it): fog gathers in valleys, river
+  gorges and at the foot of slopes, filling them up towards the level of the land around them,
+  while hilltops and open high ground stay clear. At 100% there is fog only in hollows.
+- *Fog over water*, last under *Changing fog*: fog banks over the sea, lakes and rivers that drift
+  ashore with the wind and thin out a few hundred meters inland. The number is how much of the
+  water has banks. They come whatever the weather, and take the fog's look.
+
+### New: clouds hide the sky by day
+
+- *Clouds hide the sky by day* on the Light tab, 0% to 100%, 0% by default: the daytime twin of
+  *Clouds hide the stars at night*. Far clouds fade into the sky behind them, so with a cubemap (or
+  any sky that isn't the game's) that sky, its sun included, showed through a full overcast. At
+  100% the far clouds stay solid, and only toward the horizon thin out gently into the haze of
+  whatever sky is behind them, so a full overcast doesn't end on a line above the horizon. The Light
+  tab's *At night* heading is now *Day and night*.
+
+### New: wind direction
+
+- *Wind direction* on the Now tab, under *Movement speed*: *Follow the game* (the default, as
+  before), *Follow the game slowly* or *Fixed*. The game's wind never settles: every few minutes it
+  picks a new direction and the whole sky swings round to it. *Follow the game slowly* follows the
+  same wind but turns gradually; *Fixed* keeps one direction, set with *Fixed wind direction*. The
+  clouds, the fog and the rain all move with it. On winter maps the game's own snowflakes still lean
+  with the game's wind. *Follow the game's weather* sets a fixed wind back to *Follow the game*.
+  Like the rest of the Now tab, it isn't saved in profiles.
+
+### New: the mod's defaults in the profile list
+
+- The profile list has a fixed entry under *(no profile)*: *(Mod defaults)*. Picking it puts every
+  setting a profile holds back to the mod's default; like picking a profile, it leaves the Now tab
+  and the quality settings alone, and turns the volumetric fog off (its default). Change anything
+  afterwards and the list shows *(no profile)*; pick *(Mod defaults)* again to throw those changes
+  away. It can't be saved over or deleted. The list shows it whenever no profile is picked and the
+  sky is at the defaults, so a new player starts on it.
+- A new profile's name can't be all in parentheses, like *(no profile)*: those are the list's own.
+  Profiles you already have keep their names.
+- **Revert**, beside **Save**: while the picked profile has unsaved changes, it puts the profile's
+  saved sky back and throws the changes away.
+
+### Changed
+
+- The clouds are cheaper to draw where the sky is clear: the mod no longer works through stretches
+  of sky that can't hold any cloud at the current cover. Nothing on screen changes. It helps most at
+  fair weather and when looking up; at a full overcast there is nothing to skip. Off while *Cloud
+  fragments* are on.
+
+### Fixed
+
+- Fire, explosions and fireworks were always drawn under every smoke plume, even one far behind
+  them: the game draws the glowing kind and the smoky kind one after the other, whatever the
+  distance (its own draw order has the same fault; since 1.4.0 the fog no longer hides it). They now
+  share one draw order, the nearer plume over the farther one.
+
+### To do before release (remove this section when 1.5.0 ships)
+
+Not started yet:
+
+- Clouds: smoothing over frames, and the Mixed style again.
+- Remove the temporary *Skip the empty sky* test switch (Advanced tab, "Testing" group:
+  `Settings.SkipEmptySkyTest`, its catalog row, its texts in all four languages) once its frame
+  times are compared. The skip itself stays.
+- Smoke and fire in the fog: since 1.4.0 smoke and fire are drawn on top of the fog instead of
+  vanishing in it. They should fade into it with distance, like everything else. Black smoke over
+  white steam: NOT fixed by the one queue -- the log (2026-10-12) shows both are 'Alpha Blended',
+  so they always shared a queue and Unity already sorts them, by each plume's centre, not per
+  particle. A big plume whose centre is nearer covers steam in front of its far end. Only the
+  fire/explosion order was fixed (see Fixed).
+
+Undecided (not agreed yet, decide before building):
+
+- Start a few seconds after loading: the clouds start only once the city has been running for a
+  couple of seconds, after every mod has finished loading, instead of in that busy moment.
+- Crash marker and safe mode: if the game closed unexpectedly while the mod was starting up, say so
+  at the next launch and offer to start with the heavy features off.
+- Far clouds fade into the horizon haze (needs experimenting): far clouds would take on the color of
+  the haze instead of turning see-through. Seen from high up, the clouds would then blend into the
+  horizon instead of ending in a hard line, and a cubemap would no longer show through a far
+  overcast. Might replace or merge with *Clouds hide the sky by day*. Off by default, judged
+  in-game. (A curved layer is not the fix: the real curve is too small over the clouds' reach.)
+  First step built 2026-10-12, inside *Clouds hide the sky by day*: by day the far deck thins over
+  the last 65% of its reach instead of the last 30%, into whatever sky is behind it (no haze
+  colour to guess: Real Light's sky is 2-3x the game's). Judge it in-game; if a haze COLOUR is
+  still wanted, it comes after.
+
+Then a sweep over every item above before release: each one built or deliberately moved to a
+later version, tested in-game, and written up in this changelog.
 
 ## 1.4.0 — 2026-10-06
 

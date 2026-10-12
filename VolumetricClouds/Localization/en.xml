@@ -70,7 +70,10 @@
 
   <String key="Profiles.Label">Profile</String>
   <String key="Profiles.None">(no profile)</String>
+  <String key="Profiles.Defaults">(Mod defaults)</String>
   <String key="Profiles.Save">Save</String>
+  <String key="Profiles.Revert">Revert</String>
+  <String key="Profiles.Reverted">Back to the saved profile.</String>
   <String key="Profiles.NewName">Profile {0}</String>
   <String key="Profiles.Naming">Type a name. Enter saves, Esc cancels.</String>
   <String key="Profiles.Added">Saved as a new profile.</String>
@@ -95,6 +98,7 @@
   <String key="Profiles.Invalid.Character">A name cannot have &lt; &gt; : " / \ | ? * in it.</String>
   <String key="Profiles.Invalid.Dot">A name cannot start or end with a dot.</String>
   <String key="Profiles.Invalid.Reserved">Windows keeps that name for itself.</String>
+  <String key="Profiles.Invalid.Parentheses">Names in parentheses are kept for the list's own entries.</String>
   <String key="Profiles.Invalid.Exists">There is already a profile of that name.</String>
 
   <!-- ==================== In-game panel: Now ==================== -->
@@ -110,6 +114,11 @@
   <String key="Coverage.Label">Fixed intensity</String>
 
   <String key="WindSpeed.Label">Movement speed</String>
+  <String key="WindDirection.Label">Wind direction</String>
+  <String key="WindDirection.Follow">Follow the game</String>
+  <String key="WindDirection.Slowly">Follow the game slowly</String>
+  <String key="WindDirection.Fixed">Fixed</String>
+  <String key="WindAngle.Label">Fixed wind direction</String>
 
   <String key="Status.Fog.Off">Volumetric fog is off</String>
   <String key="Status.Fog.Waiting">Volumetric fog: waiting for the clouds</String>
@@ -117,6 +126,7 @@
   <String key="Status.Fog.Share">fog over {0} of the map</String>
   <String key="Status.Fog.ShareMorning">morning fog over {0} of the map</String>
   <String key="Status.Fog.ShareMist">mist after rain over {0} of the map</String>
+  <String key="Status.Fog.ShareWater">fog over {0} of the water</String>
   <String key="Status.Fog.Manual">OVERRIDDEN: {0}  (the game says {1})</String>
   <String key="Status.Fog.Following">Following the game: fog {0}  ->  {1}</String>
 
@@ -198,6 +208,8 @@
 
   <String key="FogFollowsGround.Label">Fog follows the ground</String>
 
+  <String key="FogInValleys.Label">Fog fills valleys</String>
+
   <String key="FogBase.Label">Fog starts at</String>
 
   <String key="FogHeight.Label">Fog height</String>
@@ -220,6 +232,7 @@
   <String key="FogChangesWithWeather.Label">Fog changes with the weather</String>
   <String key="MorningFog.Label">Morning fog</String>
   <String key="MistAfterRain.Label">Mist after rain</String>
+  <String key="FogOverWater.Label">Fog over water</String>
 
   <String key="Group.FogLamps">Fog lit by the city's lights</String>
   <String key="FogLampRadius.Label">Lit radius around a light</String>
@@ -284,6 +297,10 @@
 
   <String key="CloudShadowFullness.Label">Shadow fullness</String>
 
+  <String key="Group.Testing">Testing (removed before release)</String>
+
+  <String key="SkipEmptySkyTest.Label">Skip the empty sky</String>
+
   <String key="Group.Brightness">How brightly the clouds are lit</String>
 
   <String key="CloudBrightnessAuto.Label">Brightness follows the cloud intensity</String>
@@ -312,7 +329,9 @@
 
   <String key="SunsetLight.Label">Sunset light</String>
 
-  <String key="Group.Night">At night</String>
+  <String key="Group.DayAndNight">Day and night</String>
+
+  <String key="CloudDayOpacity.Label">Clouds hide the sky by day</String>
 
   <String key="CloudNightOpacity.Label">Clouds hide the stars at night</String>
 
@@ -416,6 +435,7 @@
   <String key="Unit.Metres">{0} m</String>
   <String key="Unit.Kilometres">{0} km</String>
   <String key="Unit.Times">{0}x</String>
+  <String key="Unit.Degrees">{0}°</String>
   <String key="Unit.Hz">{0} Hz</String>
   <String key="Readout.Off">off</String>
   <String key="Readout.Neutral">neutral</String>

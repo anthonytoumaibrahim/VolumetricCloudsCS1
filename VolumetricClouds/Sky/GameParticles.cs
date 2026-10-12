@@ -38,12 +38,28 @@ namespace VolumetricClouds.Sky
         private bool _rootLogged;
 
         /// <summary>
-        /// The queue a particle material moves to: 3000 -> AirQueue + 2, 3001 -> AirQueue + 3, earlier
-        /// and later ones at either end, so their order among themselves and with the rain streaks
-        /// (LateQueue + 10) is kept and all of them stay before the clouds' late draw.
+        /// The queue a particle material moves to: the game's two particle queues, 3000 and 3001,
+        /// both to AirQueue + 2; earlier and later ones at either end, so their order with the rest
+        /// and with the rain streaks (LateQueue + 10) is kept and all of them stay before the clouds'
+        /// late draw.
         /// </summary>
+        /// <remarks>
+        /// One queue for both since 1.5.0. The game's shaders fix the queues -- 'Additive (Soft)' 3000
+        /// (fire, explosions, fireworks), 'Alpha Blended' 3001 (smoke, steam, dust: the log, 2026-10-12)
+        /// -- and a queue is drawn whole before the next, whatever the distance, so every smoke plume
+        /// covered every fire. In one queue Unity sorts the systems back to front (by each system's
+        /// position, not per particle). It does NOT cure "black smoke draws over white steam"
+        /// (reported): both are 'Alpha Blended', always one queue, already sorted -- by plume centre. For everyone: the game's own order
+        /// has the same fault, the fog only stopped hiding it. Only those two queues: an effect asset
+        /// that picked another one on purpose keeps its place. Other mods checked 2026-10-12: Vehicle
+        /// Effects sets only the default sorting layer and order; Missile Disaster's sorted trails are
+        /// its own objects, not under "Particle Effects", so never moved.
+        /// </remarks>
         public static int QueueFor(int original)
         {
+            if (original == 3000 || original == 3001)
+                return CloudVolume.AirQueue + 2;
+
             return Mathf.Clamp(original - 3000 + CloudVolume.AirQueue + 2,
                                CloudVolume.AirQueue + 1, CloudVolume.LateQueue - 1);
         }

@@ -30,6 +30,20 @@ namespace VolumetricClouds.Sky
 
         public static Texture2D Texture { get; private set; }
 
+        /// <summary>
+        /// Where fog gathers on its own (1.5.0, Sky.FogPlaces), same layout as <see cref="Texture"/>:
+        /// r = how far the ground lies below the land round it (metres / 255, "Fog fills valleys"),
+        /// g = how much of the ground nearby is water ("Fog over water"). ARGB32, linear. Built at the
+        /// end of each full pass, so it is there whenever <see cref="Ready"/> is.
+        /// </summary>
+        public static Texture2D Places { get; private set; }
+
+        /// <summary>The deepest hollow on the map, metres (0..255): how much higher valley fog can reach.</summary>
+        public static float DeepestHollow { get; private set; }
+
+        /// <summary>The share of the map that is water, 0..1, for the log.</summary>
+        public static float WaterShare { get; private set; }
+
         /// <summary>True once the first full pass has been uploaded.</summary>
         public static bool Ready { get; private set; }
 
@@ -50,7 +64,12 @@ namespace VolumetricClouds.Sky
         public static float SeaLevel { get; private set; }
 
         private readonly float[] _heights = new float[Resolution * Resolution];
+
+        /// <summary>The ground without its water (1.5.0): what the water's depth is measured from.</summary>
+        private readonly float[] _ground = new float[Resolution * Resolution];
+
         private readonly byte[] _raw = new byte[Resolution * Resolution * 4];
+        private Color32[] _placePixels;
         private float[] _sorted;
         private int _row;
         private float _nextPass;
@@ -121,6 +140,16 @@ namespace VolumetricClouds.Sky
                 anisoLevel = 0,
             };
 
+            // Linear, like every data texture of the mod (the weather texture's gamma decoding is
+            // the one exception, and kept only because the clouds were tuned through it).
+            Places = new Texture2D(Resolution, Resolution, TextureFormat.ARGB32, false, true)
+            {
+                name = "VolumetricCloudsFogPlaces",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                anisoLevel = 0,
+            };
+
             _row = 0;
             _nextPass = 0f;
             Ready = false;
@@ -135,9 +164,22 @@ namespace VolumetricClouds.Sky
 
             Destroy(Texture);
             Texture = null;
+            DestroyPlaces();
             Ready = false;
             _row = 0;
             Log.Msg("terrain map: released (volumetric fog is off)");
+        }
+
+        private static void DestroyPlaces()
+        {
+            if (Places != null)
+            {
+                Destroy(Places);
+                Places = null;
+            }
+
+            DeepestHollow = 0f;
+            WaterShare = 0f;
         }
 
         private void SampleRows()
@@ -154,8 +196,10 @@ namespace VolumetricClouds.Sky
                         ((x + 0.5f) / Resolution - 0.5f) * MapSize, 0f,
                         ((z + 0.5f) / Resolution - 0.5f) * MapSize);
 
-                    // With water: fog sits ON a lake, not on its bed.
+                    // With water: fog sits ON a lake, not on its bed. And without (1.5.0): the
+                    // difference is the water's depth, for the fog over water.
                     _heights[z * Resolution + x] = terrain.SampleRawHeightSmoothWithWater(position, false, 0f);
+                    _ground[z * Resolution + x] = terrain.SampleRawHeightSmooth(position);
                 }
             }
 
@@ -166,6 +210,8 @@ namespace VolumetricClouds.Sky
             Buffer.BlockCopy(_heights, 0, _raw, 0, _raw.Length);
             Texture.LoadRawTextureData(_raw);
             Texture.Apply(false);
+
+            float placesMs = BuildPlaces();
 
             if (_sorted == null)
                 _sorted = new float[_heights.Length];
@@ -184,11 +230,42 @@ namespace VolumetricClouds.Sky
                 Log.Msg("terrain map: ready. " + Resolution + "x" + Resolution + " heights " + Lowest.ToString("F0") + ".." +
                         Highest.ToString("F0") + " m, median " + _sorted[_sorted.Length / 2].ToString("F0") +
                         " m; a level fog is measured from " + SeaLevel.ToString("F0") +
-                        " m; a ground-following one pools below " + PoolLevel.ToString("F0") + " m");
+                        " m; a ground-following one pools below " + PoolLevel.ToString("F0") + " m" +
+                        "; deepest hollow " + DeepestHollow.ToString("F0") + " m, water " + (WaterShare * 100f).ToString("F0") +
+                        "% of the map (places worked out in " + placesMs.ToString("F1") + " ms)");
             }
 
             Ready = true;
             _nextPass = Time.time + RefreshInterval;
+        }
+
+        /// <summary>
+        /// The place texture (1.5.0, Sky.FogPlaces): the hollows and the water, from the heights just
+        /// measured. Milliseconds it took, for the log.
+        /// </summary>
+        private float BuildPlaces()
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
+            float[] hollows = FogPlaces.Hollows(_heights, Resolution, FogPlaces.Texels(FogPlaces.HollowRadiusMetres, Resolution, MapSize));
+            float[] water = FogPlaces.Water(_heights, _ground, Resolution, FogPlaces.Texels(FogPlaces.WaterBlurMetres, Resolution, MapSize));
+
+            if (_placePixels == null)
+                _placePixels = new Color32[Resolution * Resolution];
+
+            for (int i = 0; i < _placePixels.Length; i++)
+                _placePixels[i] = new Color32(FogPlaces.HollowByte(hollows[i]), FogPlaces.ShareByte(water[i]), 0, 255);
+
+            DeepestHollow = Mathf.Min(FogPlaces.Max(hollows), FogPlaces.HollowMost);
+            WaterShare = FogPlaces.Mean(water);
+
+            if (Places != null)
+            {
+                Places.SetPixels32(_placePixels);
+                Places.Apply(false);
+            }
+
+            return (float)watch.Elapsed.TotalMilliseconds;
         }
 
         private void OnDestroy()
@@ -200,6 +277,8 @@ namespace VolumetricClouds.Sky
                 Destroy(Texture);
                 Texture = null;
             }
+
+            DestroyPlaces();
         }
     }
 }

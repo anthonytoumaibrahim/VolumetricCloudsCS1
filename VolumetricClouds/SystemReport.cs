@@ -71,6 +71,8 @@ namespace VolumetricClouds
                         " detail=" + Sky.CloudDetail.Describe() +
                         " lightInside=" + (Sky.LightThrough.Setting * 100f).ToString("F0") + "%" +
                         " sunsetLight=" + (Sky.SunsetLight.Setting * 100f).ToString("F0") + "%" +
+                        // 1.5.0: changes what shows through the far clouds by day.
+                        " hideSkyByDay=" + Percent(Settings.CloudDayOpacity, Settings.Defaults.DayOpacity) +
                         " fragments=" + Sky.CloudFragments.Describe() +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
                         " fogDistance=" + (Sky.CloudFog.Reach / 1000f).ToString("F1") + "km" +
@@ -79,10 +81,14 @@ namespace VolumetricClouds
                         " fogChangesWithWeather=" + (Sky.CloudFog.ChangeWithWeather * 100f).ToString("F0") + "%" +
                         " morningFog=" + (Sky.CloudFog.MorningSetting * 100f).ToString("F0") + "%" +
                         " mistAfterRain=" + (Sky.CloudFog.MistSetting * 100f).ToString("F0") + "%" +
+                        " fogInValleys=" + Percent(Settings.FogInValleys, Settings.Defaults.FogInValleys) +
+                        (Sky.CloudFog.FollowsGround ? "" : " (level fog: none)") +
+                        " fogOverWater=" + (Sky.CloudFog.WaterSetting * 100f).ToString("F0") + "%" +
                         " lightHalos=" + On(Settings.HaloEnabled, false) +
                         " | overrides: weather=" + On(Settings.CoverageOverride, false) +
                         " fog=" + On(Settings.FogOverride, false) +
                         " lightning=" + On(Settings.LightningOverride, false) +
+                        " wind=" + Sky.CloudWeather.DescribeWind() +
                         " | advancedPanel=" + On(Settings.ShowAdvancedInPanel, false) +
                         // The grading changes the picture, so it is in the quiet log too.
                         " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +

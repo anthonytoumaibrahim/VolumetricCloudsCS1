@@ -20,7 +20,9 @@ namespace VolumetricClouds.Sky
     /// 1.5.0: the weather's fog is one of three sources, with the morning fog and the mist after
     /// rain; Amount is the largest. Each gives the fog a LOOK (Sky.FogSources) -- how low, thin and
     /// wispy it is inside the room the fog sliders give it, which they never exceed. With the three
-    /// "Changing fog" rows at 0% the look is neutral and everything here is as it was.
+    /// "Changing fog" rows at 0% the look is neutral and everything here is as it was. Two more
+    /// rows say WHERE fog gathers by itself (Sky.FogPlaces): in valleys, and over water, whose banks
+    /// are fog of their own (<see cref="WaterAmount"/>) in the layer's look.
     ///
     /// History, because this took three attempts: a height-limited blanket, then soft
     /// kilometre-wide banks with an exponential falloff. Both were called "a coating the
@@ -85,6 +87,13 @@ namespace VolumetricClouds.Sky
         private static float _morningAmount;
         private static float _mistAmount;
         private static FogLook _look = FogLook.Neutral;
+
+        // 1.5.0: "Fog over water" -- the share of the water with banks on it, eased like the rest. Not
+        // a source of the look (the banks take the layer's), not in Amount (the halos and the save
+        // read that), not saved: worked out afresh from the slider when the fog shows.
+        private static float _waterAmount;
+        private static bool _watery;
+        private static float _loggedValleys = -1f;
 
         // What the one-shot lines last said, so each is said once per change.
         private static int _morningPhase;
@@ -154,6 +163,28 @@ namespace VolumetricClouds.Sky
         public static float MistSetting
         {
             get { return Settings.MistAfterRain != null ? Mathf.Clamp01(Settings.MistAfterRain.value) : Settings.Defaults.MistAfterRain; }
+        }
+
+        /// <summary>"Fog fills valleys" as drawn, 0..1: the slider, while the fog follows the ground; 0 for a level fog.</summary>
+        public static float Valleys
+        {
+            get
+            {
+                float slider = Settings.FogInValleys != null ? Mathf.Clamp01(Settings.FogInValleys.value) : Settings.Defaults.FogInValleys;
+                return FollowsGround ? slider : 0f;
+            }
+        }
+
+        /// <summary>"Fog over water", 0..1.</summary>
+        public static float WaterSetting
+        {
+            get { return Settings.FogOverWater != null ? Mathf.Clamp01(Settings.FogOverWater.value) : Settings.Defaults.FogOverWater; }
+        }
+
+        /// <summary>The share of the water with fog banks now, 0..1, eased (1.5.0).</summary>
+        public static float WaterAmount
+        {
+            get { return _waterAmount; }
         }
 
         public static bool Overridden
@@ -333,6 +364,7 @@ namespace VolumetricClouds.Sky
                 _weatherAmount = 0f;
                 _morningAmount = 0f;
                 _mistAmount = 0f;
+                _waterAmount = 0f;
                 _look = FogLook.Neutral;
                 _holdAmount = false;
 
@@ -340,6 +372,8 @@ namespace VolumetricClouds.Sky
                 // scratch when it is switched back on.
                 _morningPhase = 0;
                 _misty = false;
+                _watery = false;
+                _loggedValleys = -1f;
                 Report();
                 return;
             }
@@ -414,6 +448,11 @@ namespace VolumetricClouds.Sky
             _mistAmount = appearing ? mistTarget : Follow(_mistAmount, mistTarget, k);
             _amount = Mathf.Max(_weatherAmount, Mathf.Max(_morningAmount, _mistAmount));
 
+            // The fog over water (1.5.0) follows its slider the same way; a city opens with its banks
+            // already lying there.
+            float waterTarget = Active ? WaterSetting : 0f;
+            _waterAmount = appearing ? waterTarget : Follow(_waterAmount, waterTarget, k);
+
             // The look: the weather's fog's, moved by "Fog changes with the weather", blended with
             // the morning fog's and the mist's by how much of each there is. The SLIDERS are applied
             // where it is used (LayerBase...), so dragging one is as immediate as ever.
@@ -466,6 +505,29 @@ namespace VolumetricClouds.Sky
                     Log.Msg("fog: morning fog gone at " + hour.ToString("F1") + "h");
 
                 _morningPhase = phase;
+            }
+
+            // The two places fog gathers by itself (1.5.0): once per change, with the terrain's say.
+            bool watery = _waterAmount > 0f;
+            if (watery != _watery)
+            {
+                _watery = watery;
+                Log.Msg(watery
+                    ? "fog: fog over water on, " + Percent100(WaterSetting) + " of the water (water is " +
+                      Percent100(TerrainHeightMap.WaterShare) + " of the map), drifting ashore with the wind"
+                    : "fog: fog over water gone");
+            }
+
+            float valleys = Valleys;
+            if (Active && !Mathf.Approximately(valleys, _loggedValleys))
+            {
+                bool wasOff = _loggedValleys <= 0f;
+                _loggedValleys = valleys;
+                if (valleys > 0f && wasOff)
+                    Log.Msg("fog: fills valleys, " + Percent100(valleys) + " (the deepest hollow is " +
+                            TerrainHeightMap.DeepestHollow.ToString("F0") + " m below the land round it)");
+                else if (valleys <= 0f && !wasOff)
+                    Log.Msg("fog: no longer fills valleys" + (FollowsGround ? "" : " (the fog is level)"));
             }
 
             bool misty = mistTarget > 0f;
@@ -552,8 +614,12 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static string DescribeSources()
         {
+            // The places fog gathers by itself (1.5.0): only while one of the two rows is in use.
+            string places = (Valleys > 0f ? " | fills valleys " + Percent100(Valleys) : "") +
+                            (WaterSetting > 0f || _waterAmount > 0f ? " | over water " + Percent100(_waterAmount) + " of the water" : "");
+
             if (ChangeWithWeather <= 0f && MorningSetting <= 0f && MistSetting <= 0f && _look.IsNeutral)
-                return "";
+                return places;
 
             float breakup = Settings.FogBreakup != null ? Mathf.Clamp01(Settings.FogBreakup.value) : Settings.Defaults.FogBreakup;
             return " | sources: weather " + Percent100(_weatherAmount) + ", morning fog " + Percent100(_morningAmount) +
@@ -561,7 +627,7 @@ namespace VolumetricClouds.Sky
                    " | look: density " + Percent100(_look.Density) + " of the slider, break-up " + Percent100(breakup) +
                    " -> " + Percent100(LayerBreakup(breakup)) +
                    " (changes with the weather " + Percent100(ChangeWithWeather) + ", morning fog " + Percent100(MorningSetting) +
-                   ", mist after rain " + Percent100(MistSetting) + ")";
+                   ", mist after rain " + Percent100(MistSetting) + ")" + places;
         }
 
         private static string Percent100(float fraction)
@@ -575,6 +641,7 @@ namespace VolumetricClouds.Sky
             _weatherAmount = 0f;
             _morningAmount = 0f;
             _mistAmount = 0f;
+            _waterAmount = 0f;
             _look = FogLook.Neutral;
             _holdAmount = false;
             Active = false;
@@ -582,6 +649,8 @@ namespace VolumetricClouds.Sky
 
             _morningPhase = 0;
             _misty = false;
+            _watery = false;
+            _loggedValleys = -1f;
             _toldNoDayNight = false;
             _toldSnow = false;
             _lastCycle = uint.MaxValue;
@@ -634,6 +703,10 @@ namespace VolumetricClouds.Sky
                 shareKey = "Status.Fog.ShareMist";
 
             string share = Localization.Get(shareKey, Percent(_amount));
+
+            // With no other fog about, the banks over the water are what there is (1.5.0).
+            if (_amount <= 0.005f && _waterAmount > 0.005f)
+                share = Localization.Get("Status.Fog.ShareWater", Percent(_waterAmount));
 
             return Overridden
                 ? Localization.Get("Status.Fog.Manual", share, Percent(GameFog))

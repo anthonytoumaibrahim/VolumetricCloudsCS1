@@ -104,6 +104,13 @@ Check "COM1"                        (Why "COM1")                  "Profiles.Inva
 Check "LPT9"                        (Why "lpt9")                  "Profiles.Invalid.Reserved"
 Check "COM10 is not a device"       (Why "COM10")                 "usable"
 Check "CONSOLE is not a device"     (Why "Console")               "usable"
+# 1.5.0: a whole name in parentheses is the list's own ("(no profile)", "(Mod defaults)").
+$fullWidth = [string][char]0xFF08 + "defaults" + [char]0xFF09
+Check "(Mod defaults)"              (Why "(Mod defaults)")        "Profiles.Invalid.Parentheses"
+Check "(no profile), spaced"        (Why "  (no profile) ")       "Profiles.Invalid.Parentheses"
+Check "full-width parentheses"      (Why $fullWidth)              "Profiles.Invalid.Parentheses"
+Check "parentheses inside are fine" (Why "Storm (heavy)")         "usable"
+Check "one opening one is fine"     (Why "(draft")                "usable"
 Check "a Clean that fails is null"  ($names::Clean("a/b") -eq $null) "True"
 
 # ---- the same name, the next free one ----------------------------------------------------------
