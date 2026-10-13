@@ -52,11 +52,7 @@ have headings of their own now (*Height and shape*; *Thickness and height*, *Loo
 away and back. Each tab starts with its first heading open and the rest folded (also open:
 *Cloud brightness* on the Light tab, *Cloud position* on Weather, *Near lights* on Halos), so the
 advanced panel opens about as short as the basic one. Which are open is kept in `PanelOpenGroups`,
-never in a profile. In the new looks the panel is the same height on every tab and the settings
-scroll inside it (a thin bar at the right, or the mouse wheel anywhere over them; the wheel no
-longer moves a slider it passes over), so switching tabs or opening a heading no longer makes the
-panel jump; each tab remembers how far it was scrolled, and a heading opened at the bottom scrolls
-into view. *Vanilla* still grows with each tab. *Frosted glass* no longer loses its blur in cities where another mod keeps something in
+never in a profile. *Frosted glass* no longer loses its blur in cities where another mod keeps something in
 the screen's alpha.
 
 ### New: changing fog
@@ -276,11 +272,9 @@ Built, awaiting the in-game test:
   2026-10-13 later: folding headings (advanced only; log `panel: <Group> folded/opened (open now: ...)`), icon tabs
   and the tab's name beside the title (log `tabs: drawn as icons`), the blur kept solid (log
   `frosted: first frame ...`, `effects in order`, `cameras drawing now`: if the blur is still gone in
-  the author's main city, these name the mod). Later still: one height for every tab with the
-  settings scrolling (log `panel: every tab N high, the rest scrolling`): the wheel over a slider,
-  a dropdown and a colour row; dragging the thumb, clicking the track; rows scrolled under the tabs
-  must not take clicks; a heading opened at the bottom scrolls into view. Then: 570 wide, the window
-  as tall as the first tab opens (log `every tab N high (the Now tab's ...)`), the readouts' column
+  the author's main city, these name the mod). Later still (a fixed height with the settings
+  scrolling was tried and undone the same day, "it was better before": the panel grows with each tab
+  again): 570 wide, the readouts' column
   per tab (log `tab names ... values N`), choice buttons and colour rows reaching left into a wide
   names' column (log `choice '...': ... buttons, reaching N into the names' column`; Cloud style
   had become a dropdown), the profile dropdown a little narrower. The reset buttons go back
