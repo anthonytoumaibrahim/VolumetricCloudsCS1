@@ -27,12 +27,21 @@ namespace VolumetricClouds.UI
     /// Under the title, on every tab: the profile bar (1.3.0, <see cref="ProfileBar"/>).
     ///
     /// Every control comes from ModsLibCS1 (1.5.0), in the skin the "Panel look" row picks
-    /// (<see cref="PanelLook"/>); Vanilla is the panel as it was before.
+    /// (<see cref="PanelLook"/>); Vanilla is the panel as it was before. In the new looks the panel
+    /// has one height for every tab and the pages scroll inside it (ModsLibCS1's ScrollView);
+    /// Vanilla grows with each tab.
     /// </remarks>
     public class CloudsPanel : UIPanel
     {
         private const float BasicWidth = 600f;
         private const float AdvancedWidth = 680f;   // was for seven tabs; Weather and Halos are laid out at it
+
+        /// <summary>
+        /// The new looks' width (1.5.0), basic or advanced: the icon tabs need no room, the names keep
+        /// their full size and the sliders give way (the author: "decrease the width ... the sliders
+        /// themselves can be smaller", then "reduce the window width just a bit more").
+        /// </summary>
+        private const float NewLooksWidth = 570f;
         private const float PanelHeight = 408f;
         private const float TitleBarHeight = 40f;
         private const float BarHeight = ProfileBar.Height;
@@ -54,6 +63,28 @@ namespace VolumetricClouds.UI
         /// <summary>The shortest a slider gets in the new looks, where the names take what they need.</summary>
         private const float MinSlider = 70f;
         private const float NoteHeight = 32f;
+
+        /// <summary>
+        /// The new looks' readout column, per page: as wide as the page's widest readout plus this
+        /// (a readout can run a little wider than the ones measured), never narrower than
+        /// <see cref="MinValueWidth"/>, never wider than the skin's own. Narrow readouts ("47%") left
+        /// a wide empty column after every slider (the author: "a bit empty space around the sliders").
+        /// </summary>
+        private const float ReadoutRoom = 8f;
+        private const float MinValueWidth = 40f;
+
+        /// <summary>
+        /// The new looks' settings window (1.5.0): one height for every tab, the rest scrolling (the
+        /// author: "a max/fixed height ... to prevent jumping between tabs that have a lot of options
+        /// and those that don't"). As tall as the first tab opens (<see cref="FitWindow"/>: at 600 the
+        /// Now tab, ~300 high, looked "too empty at the bottom ... I don't want to give the impression
+        /// to the user that something is wrong"), never shorter than the panel always was, never taller
+        /// than this or the screen.
+        /// </summary>
+        private const float ScrollHeight = 600f;
+
+        /// <summary>Kept free above and below the panel when the screen is too short for <see cref="ScrollHeight"/>.</summary>
+        private const float ScreenRoom = 20f;
 
         /// <summary>The tabs' height in this panel's look: Vanilla's as it always was, the new looks' taller.</summary>
         private float _tabHeight = TabHeight;
@@ -123,6 +154,9 @@ namespace VolumetricClouds.UI
         private Builder _ui;
         private Frame _frame;
         private TabStrip _tabs;
+
+        /// <summary>The new looks' window the pages scroll in; null in Vanilla, which grows with each tab.</summary>
+        private ScrollView _scroll;
         private readonly List<string> _tabNames = new List<string>();
         private readonly List<UIPanel> _pages = new List<UIPanel>();
         private readonly List<float> _contentHeights = new List<float>();
@@ -217,10 +251,9 @@ namespace VolumetricClouds.UI
             _ui = PanelLook.NewBuilder();
             _tabHeight = _ui.Skin == Skin.Vanilla ? TabHeight : IconTabHeight;
 
-            // Vanilla as it always was. The new looks: the basic width with the advanced options too
-            // (the icon tabs need no room; the author: "decrease the width ... the sliders themselves
-            // can be smaller"), the names keeping their full size (BuildPage).
-            _width = _ui.Skin == Skin.Vanilla && advanced ? AdvancedWidth : BasicWidth;
+            // Vanilla as it always was. The new looks: one width, basic or advanced (NewLooksWidth),
+            // the names keeping their full size (BuildPage).
+            _width = _ui.Skin != Skin.Vanilla ? NewLooksWidth : advanced ? AdvancedWidth : BasicWidth;
 
             size = new Vector2(_width, PanelHeight);
             canFocus = true;
@@ -248,6 +281,11 @@ namespace VolumetricClouds.UI
                 _tabHeight, _tabNames, SelectPage, icons);
             FitTabs();
 
+            // The new looks: one height for every tab, the settings scrolling inside it. Vanilla
+            // grows with each tab as it always did (FitPage).
+            if (_ui.Skin != Skin.Vanilla)
+                BuildScrollView();
+
             foreach (Tab tab in tabs)
             {
                 _tabIds.Add(tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString());
@@ -257,12 +295,15 @@ namespace VolumetricClouds.UI
             // Every row is built where it would be if all were shown; the ones hidden now go, and
             // the pages close up, before the first one is shown.
             RefreshShown();
+            FitWindow();
             SelectPage(0);
 
             if (InitialPosition.HasValue)
                 relativePosition = InitialPosition.Value;
             else
                 CenterOnScreen();
+
+            KeepOnScreen();
 
             eventVisibilityChanged += (component, visible) =>
             {
@@ -500,6 +541,28 @@ namespace VolumetricClouds.UI
             Log.Msg("panel: " + group + " " + (folded ? "folded" : "opened") + " (open now: " +
                     (_openRead.Length > 0 ? _openRead : "none") + ")");
             Relayout(page);
+
+            // Opened at the bottom of the window: scrolled up just enough to show it, heading first.
+            if (!folded && _scroll != null && page == _selected)
+                RevealGroup(page, group);
+        }
+
+        /// <summary>Scrolls a group's heading and rows into the window, as far as they fit.</summary>
+        private void RevealGroup(int page, string group)
+        {
+            float top = -1f, bottom = 0f;
+            foreach (Item item in _layout[page])
+            {
+                if (item.Group != group || !item.Shown)
+                    continue;
+
+                if (top < 0f)
+                    top = item.Y;
+                bottom = item.Y + item.Height;
+            }
+
+            if (top >= 0f)
+                _scroll.Reveal(top, bottom);
         }
 
         /// <summary>
@@ -623,13 +686,59 @@ namespace VolumetricClouds.UI
             }
         }
 
+        /// <summary>
+        /// The window the new looks' pages scroll in: as wide as the pages, its bar in the right
+        /// margin, at first as high as <see cref="ScrollHeight"/> or the screen allows -- the most it
+        /// gets; <see cref="FitWindow"/> sets its height once the pages are built.
+        /// </summary>
+        private void BuildScrollView()
+        {
+            float top = TitleBarHeight + BarHeight + _tabHeight + Margin;
+            float window = ScrollHeight;
+            UIView view = GetUIView();
+            if (view != null)
+                window = Mathf.Min(window, Mathf.Floor(view.fixedHeight - 2f * ScreenRoom - top - Margin));
+            window = Mathf.Max(window, MinContentHeight);
+
+            height = top + window + Margin;
+            _scroll = _ui.AddScrollView(this, new Vector3(Margin, top), new Vector2(_width - 2f * Margin, window),
+                _width - Margin + 4f);
+        }
+
+        /// <summary>
+        /// The window as tall as the first tab opens (its rows as shown now), never shorter than the
+        /// panel always was (<see cref="MinContentHeight"/>), never taller than it was built: the
+        /// panel opens with nothing empty under its rows. The panel's height is set here, once.
+        /// </summary>
+        private void FitWindow()
+        {
+            if (_scroll == null || _contentHeights.Count == 0)
+                return;
+
+            float most = _scroll.Viewport.height;
+            float window = Mathf.Clamp(Mathf.Ceil(_contentHeights[0]), Mathf.Min(MinContentHeight, most), most);
+            _scroll.Resize(window);
+            height = TitleBarHeight + BarHeight + _tabHeight + 2f * Margin + window;
+            Log.Msg("panel: every tab " + window.ToString("F0") + " high (the " + _tabIds[0] + " tab's " +
+                    _contentHeights[0].ToString("F0") + ", at most " + most.ToString("F0") + "), the rest scrolling (panel " +
+                    height.ToString("F0") + " high" + (_scroll.Bar == null ? ", no bar: the library's sheet is missing" : "") + ")");
+        }
+
         private UIPanel AddPage()
         {
-            UIPanel page = AddUIComponent<UIPanel>();
-            page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
-            page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + _tabHeight + Margin);
-            _pages.Add(page);
+            UIPanel page;
+            if (_scroll != null)
+            {
+                page = _scroll.AddPage();
+            }
+            else
+            {
+                page = AddUIComponent<UIPanel>();
+                page.size = new Vector2(_width - 2f * Margin, MinContentHeight);
+                page.relativePosition = new Vector3(Margin, TitleBarHeight + BarHeight + _tabHeight + Margin);
+            }
 
+            _pages.Add(page);
             return page;
         }
 
@@ -646,19 +755,36 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// The panel is as tall as the selected page needs, and never shorter than it started:
-        /// most pages fit, the Halos one has half as many rows again. Again whenever rows of the
-        /// page are shown or hidden.
+        /// Vanilla: the panel is as tall as the selected page needs, and never shorter than it
+        /// started: most pages fit, the Halos one has half as many rows again. The new looks: the
+        /// panel keeps its one height and the page scrolls inside it (<see cref="BuildScrollView"/>).
+        /// Again whenever rows of the page are shown or hidden.
         /// </summary>
         private void FitPage(int index)
         {
-            float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
-            _pages[index].height = content;
-            height = TitleBarHeight + BarHeight + _tabHeight + 2f * Margin + content;
+            if (_scroll != null)
+            {
+                _pages[index].height = Mathf.Max(_contentHeights[index], _scroll.Viewport.height);
+                _scroll.Show(_pages[index], _contentHeights[index]);
+            }
+            else
+            {
+                float content = Mathf.Max(MinContentHeight, _contentHeights[index]);
+                _pages[index].height = content;
+                height = TitleBarHeight + BarHeight + _tabHeight + 2f * Margin + content;
+            }
 
-            // It grows downwards from where it stands: kept on the screen. Centred on the Now tab
-            // at the game's own 1080-high UI, the advanced Weather tab (~910 high) ended ~100 under
-            // the bottom edge, its last rows out of reach.
+            KeepOnScreen();
+        }
+
+        /// <summary>
+        /// It grows downwards from where it stands: kept on the screen. Centred on the Now tab at
+        /// the game's own 1080-high UI, the advanced Weather tab (~910 high) ended ~100 under the
+        /// bottom edge, its last rows out of reach. (The new looks' panel, of one height, can still
+        /// open where a shorter Vanilla one stood.)
+        /// </summary>
+        private void KeepOnScreen()
+        {
             UIView view = GetUIView();
             if (view != null && relativePosition.y + height > view.fixedHeight)
                 relativePosition = new Vector3(relativePosition.x, Mathf.Max(0f, Mathf.Floor(view.fixedHeight - height)));
@@ -681,18 +807,30 @@ namespace VolumetricClouds.UI
             // sliders give way). A name still too long is drawn smaller, then on two lines, never
             // cut off (Builder.AddName).
             float widest = 0f;
+            float widestValue = 0f;
             foreach (Row row in SettingsCatalog.Rows)
             {
-                if (tab.Shows(row) && UsesNameColumn(row.Kind))
+                if (!tab.Shows(row))
+                    continue;
+
+                if (UsesNameColumn(row.Kind))
                     widest = Mathf.Max(widest, _ui.NameWidth(row.Label));
+                if (row.Kind == RowKind.Percent || row.Kind == RowKind.Value)
+                    widestValue = Mathf.Max(widestValue, WidestReadout(row));
             }
+
+            // The new looks: the readouts' column as wide as this page's readouts need, before the
+            // names take theirs; the slider gets the rest. Vanilla keeps the skin's.
+            if (_ui.Skin != Skin.Vanilla)
+                _ui.ValueWidth = Mathf.Clamp(widestValue + ReadoutRoom, MinValueWidth, _ui.Theme.ValueWidth);
 
             float most = _ui.Skin == Skin.Vanilla
                 ? Mathf.Floor(page.width * 0.46f)
-                : page.width - ResetColumn - _ui.Theme.ValueWidth - 3f * _ui.Theme.Gap - MinSlider;
+                : page.width - ResetColumn - _ui.ValueWidth - 3f * _ui.Theme.Gap - MinSlider;
             _ui.LabelWidth = Mathf.Clamp(Mathf.Ceil(widest) + 8f, _ui.Theme.LabelWidth, most);
             Log.Msg("panel: " + (tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString()) +
-                    " tab names " + _ui.LabelWidth.ToString("F0") + " wide (longest " + widest.ToString("F0") + ")");
+                    " tab names " + _ui.LabelWidth.ToString("F0") + " wide (longest " + widest.ToString("F0") +
+                    "), values " + _ui.ValueWidth.ToString("F0") + " (widest " + widestValue.ToString("F0") + ")");
 
             foreach (Row row in SettingsCatalog.Rows)
             {
@@ -765,6 +903,19 @@ namespace VolumetricClouds.UI
             }
 
             return item;
+        }
+
+        /// <summary>
+        /// The widest a slider row's readout is drawn, over its range (both ends, the quarters
+        /// between them, and where it stands now): its text follows the value ("9 km", "20.0 km").
+        /// </summary>
+        private float WidestReadout(Row row)
+        {
+            float widest = _ui.ReadoutWidth(row.FormatDisplay(Mathf.Clamp(row.Display, row.Min, row.Max)));
+            for (int i = 0; i <= 4; i++)
+                widest = Mathf.Max(widest, _ui.ReadoutWidth(row.FormatDisplay(Mathf.Lerp(row.Min, row.Max, i * 0.25f))));
+
+            return widest;
         }
 
         /// <summary>The rows whose name stands in the names' column (a tick box left of its name does not).</summary>

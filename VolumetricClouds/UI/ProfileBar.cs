@@ -46,6 +46,10 @@ namespace VolumetricClouds.UI
         /// <summary>"Profile" and a little room before the dropdown (1.5.0: was 58, the name touched it).</summary>
         private const float LabelWidth = 72f;
         private const float DropWidth = 230f;
+
+        /// <summary>The narrowest the dropdown gets, and the least room the message keeps.</summary>
+        private const float MinDropWidth = 180f;
+        private const float MinMessageWidth = 70f;
         private const float ControlHeight = 30f;
         private const float SaveWidth = 50f;
         private const float RevertWidth = 60f;
@@ -105,7 +109,12 @@ namespace VolumetricClouds.UI
 
             float left = x + LabelWidth;
             Vector3 at = new Vector3(left, y + 4f);
-            Vector2 size = new Vector2(DropWidth, ControlHeight);
+
+            // Fixed (the author's call), but narrower in a narrow panel (the new looks', 1.5.0) so the
+            // message after the buttons keeps room for "Unsaved changes".
+            const float buttons = Gap + SaveWidth + 4f + RevertWidth + 4f + ButtonWidth + 4f + ButtonWidth + Gap + 2f;
+            float dropWidth = Mathf.Clamp(width - LabelWidth - buttons - MinMessageWidth, MinDropWidth, DropWidth);
+            Vector2 size = new Vector2(dropWidth, ControlHeight);
 
             string missing;
             _drop = _ui.AddDropDown(parent, size, at, VisibleItems, out missing);
@@ -146,7 +155,7 @@ namespace VolumetricClouds.UI
             _field.eventTextSubmitted += (component, text) => Submitted(text);
             _field.eventTextCancelled += (component, text) => StopNaming(null);
 
-            left += DropWidth + Gap;
+            left += dropWidth + Gap;
             _save = _ui.AddButton(parent, Localization.Get("Profiles.Save"), new Vector2(SaveWidth, ControlHeight), new Vector3(left, y + 4f));
             _save.canFocus = false;
             _save.eventClick += (component, e) => SaveClicked();

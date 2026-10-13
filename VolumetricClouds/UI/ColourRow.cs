@@ -63,7 +63,16 @@ namespace VolumetricClouds.UI
             UILabel name = _ui.AddName(parent, row.Label, new Vector3(0f, y + 8f), _ui.LabelWidth);
             _parts.Add(name);
 
-            float x = _ui.LabelWidth + 4f;
+            // The parts end where every row's controls end (before the reset). Beside a wide names'
+            // column (the Clouds tab's, in the narrower panel) they reach left into it as far as the
+            // row's own name leaves room, as a choice row's buttons do: past it, Paste ran under the
+            // reset icon and off the page.
+            const float parts = SwatchSize + Gap + TextWidth + Gap + ButtonWidth + Gap + ButtonWidth;
+            float column = _ui.LabelWidth + 4f;
+            float x = Mathf.Max(Mathf.Min(column, parent.width - _ui.ResetColumn - parts),
+                _ui.NameWidth(row.Label) + ChoiceFit.NameRoom);
+            if (x < column)
+                name.width = x - 4f;
 
             _swatch = CreateSwatch(parent, new Vector3(x, y + 4f));
             if (_swatch != null)
