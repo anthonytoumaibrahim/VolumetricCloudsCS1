@@ -189,13 +189,9 @@ namespace VolumetricClouds.Sky
         // of the air in front of cloud that far. (Half until 2026-10-13: the bright sky under it made
         // the band read whiter than the clouds, "just a hue".)
         private static readonly int IdFarDeck = Shader.PropertyToID("_FarDeck");
-
-        // The deck's own light and dark (CloudRaymarch FarDeckPattern, 2026-10-13: the band read as
-        // "just a hue"): the weather map where the line of sight meets the layer, blurred to what a
-        // pixel covers there. How much one spread of the map darkens (from under the deck) or
-        // brightens (from over it) the deck's light; 0 = the even band as before.
-        private static readonly int IdFarPattern = Shader.PropertyToID("_FarPattern");
-        private const float FarPatternStrength = 0.4f;
+        // (The band stays one even light. A pattern of its own -- the weather map where the line of
+        // sight meets the layer -- was built and undone 2026-10-13: under the horizon it showed as a
+        // "stretched band", the streaks of the 2026-10-12 light read per direction again.)
         private const float FarDeckEnd = 250000f;
         private const float FarDeckHaze = 0.25f;
 
@@ -1654,14 +1650,6 @@ namespace VolumetricClouds.Sky
             float end = Mathf.Max(FarDeckEnd, reach * 1.5f);
             _material.SetVector(IdFarDeck, new Vector4(_farDeckShown, FarDeckFrom, end, FarDeckHaze));
             _material.SetVector(IdFarDeck2, new Vector4(0f, FarDeckFill, 0f, Mathf.Max(reach, FarDeckLightAt)));
-
-            // Its pattern: the map's values measured against their mean and spread as the GPU reads
-            // them (the band's light stays what it was on average), and the map's texels in metres
-            // (for how far to blur it).
-            float mapMean, mapSpread;
-            _field.ReadStats(out mapMean, out mapSpread);
-            _material.SetVector(IdFarPattern, new Vector4(FarPatternStrength, mapMean, 1f / Mathf.Max(mapSpread, 0.01f),
-                _field.Tile / Mathf.Max(1, _field.Resolution)));
 
             // Its light: a thick deck's base -- the sun through FarDeckSunDepth, the cloud above it
             // at half density over 90 m (the march's two looks up, 30 + 60 m).

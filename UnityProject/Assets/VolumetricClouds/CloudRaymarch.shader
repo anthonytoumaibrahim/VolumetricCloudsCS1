@@ -750,9 +750,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                                 // y = where it begins (m), z = how far it goes (m), w = the haze it ends in, 0..1
             float4 _FarDeck2;   // y = how much layer crossed makes it 63% there (m), w = how far out its light
                                 // is worked out (m); x, z unused
-            float4 _FarPattern; // its light and dark (FarDeckPattern): x = how strong (0: an even band, as
-                                // before), y = the weather map's mean as read, z = 1 / its spread,
-                                // w = the map's texels in metres
             #define EARTH_RADIUS 6371000.0
             #define FAR_NEVER 1e10
             #define FAR_EDGE 0.015
@@ -780,45 +777,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                     d.y = 2.0 * EARTH_RADIUS * c / min(d.x, -1e-3);
                 }
                 return d;
-            }
-
-            // The weather map at a point of the far deck, blurred to `lod`: as the near clouds read it
-            // (moving with them), and again turned 53 degrees and 1/0.618 as large, still -- so its
-            // 13.5 km repeat never comes back in rows along the horizon (the march out there drew it
-            // as arcs fanning into the vanishing point).
-            float FarWeather(float2 xz, float lod)
-            {
-                float2 uv = xz / _WeatherTile - _WeatherPhase;
-                float2 turned = float2(0.6018 * xz.x - 0.7986 * xz.y, 0.7986 * xz.x + 0.6018 * xz.y) * (0.618 / _WeatherTile);
-                return 0.5 * (tex2Dlod(_WeatherTex, float4(uv, 0, lod)).r
-                            + tex2Dlod(_WeatherTex, float4(turned, 0, max(lod - 0.694, 0.0))).r);
-            }
-
-            // The far deck's own light and dark (1.5.0; 2026-10-13, the author: the band was "just a
-            // hue"), as a factor on its light: the weather map where the line of sight meets the layer,
-            // `d` metres out across the ground, blurred by the map's mips to what one pixel covers there
-            // -- so it squeezes into the horizon as far cloud does and never shimmers. Thicker cloud is
-            // a darker base from under the deck and a brighter top from over it, measured against the
-            // whole map's mean, so the band's light stays what it was on average. A few texture reads
-            // on the band's own pixels: nothing marches.
-            float FarDeckPattern(float2 originXZ, float2 way, float lxz, float k, float d, float hCamera)
-            {
-                // What one pixel covers there: across the line of sight, the distance times a pixel's
-                // angle; along it, that over the line's slope to the curved layer (long and thin towards
-                // the horizon).
-                float pixel = 2.0 / (unity_CameraProjection._m11 * _ScreenParams.y);
-                float across = d / lxz * pixel;
-                float along = across / max(abs(k + d / EARTH_RADIUS), 1e-4);
-
-                // Three reads along it, each blurred to a third of it: blurred to all of it the band's
-                // nearer part smeared; blurred to its width alone it shimmered.
-                float lod = log2(max(max(across, along / 3.0) / _FarPattern.w, 1.0));
-                float2 at = originXZ + way * d;
-                float2 apart = way * (along / 3.0);
-                float v = (FarWeather(at - apart, lod) + FarWeather(at, lod) + FarWeather(at + apart, lod)) / 3.0;
-
-                float z = (v - _FarPattern.y) * _FarPattern.z;
-                return clamp(1.0 - _FarPattern.x * z * (1.0 - 2.0 * hCamera), 0.5, 1.5);
             }
 
             // `tStop`: a lightning bolt's BoltStop (1e9 without one), along the ray: no deck behind it.
@@ -889,8 +847,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                                   _CloudBottom + lerp(0.2, 0.8, hCamera) * (_CloudTop - _CloudBottom),
                                   origin.z + way.y * _FarDeck2.w);
                 float3 radiance = CloudRadiance(p, 0.0, LightAlong(cosTheta), true);
-                if (_FarPattern.x > 0.0)
-                    radiance *= FarDeckPattern(origin.xz, way, lxz, k, lengthFirst > 0.0 ? first.x : second.x, hCamera);
 
                 // What it thins away by (the haze) lets the sky behind through, but not the sun's glow and
                 // disc (as the near deck's fade). So do its "gaps", as much as it covers: they are an

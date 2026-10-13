@@ -197,23 +197,17 @@ namespace VolumetricClouds.Sky
         /// rather than a texture rewrite -- and it is the same data the cookie is cut from,
         /// so the clouds and their shadows share one weather pattern.
         /// </summary>
-        /// <remarks>
-        /// With mips (1.5.0) for the far deck's pattern, which reads it blurred to what a pixel covers
-        /// out there (CloudRaymarch FarDeckPattern). Every other read asks for level 0 by name
-        /// (tex2Dlod ... 0), so the clouds, rain and shadows read exactly what they did; the GPU's
-        /// decoding is measured off a texture of its own (<see cref="MeasureGpuDecoding"/>).
-        /// </remarks>
         public Texture2D DensityTexture
         {
             get
             {
                 if (_densityTexture == null)
                 {
-                    _densityTexture = new Texture2D(Resolution, Resolution, TextureFormat.ARGB32, true)
+                    _densityTexture = new Texture2D(Resolution, Resolution, TextureFormat.ARGB32, false)
                     {
                         name = "VolumetricCloudsWeather",
                         wrapMode = TextureWrapMode.Repeat,
-                        filterMode = FilterMode.Trilinear,
+                        filterMode = FilterMode.Bilinear,
                         anisoLevel = 0,
                     };
 
@@ -234,49 +228,7 @@ namespace VolumetricClouds.Sky
             }
 
             _densityTexture.SetPixels32(pixels);
-            _densityTexture.Apply(true);
-        }
-
-        private int _readStatsVersion = -1;
-        private bool _readStatsSrgb;
-        private float _readMean, _readSpread;
-
-        /// <summary>
-        /// The map's values as the shaders read them -- the texture's byte, decoded where the GPU
-        /// decodes it (<see cref="GpuReadsSrgb"/>) -- their mean and spread: what the far deck's
-        /// pattern measures its light and dark against (1.5.0, CloudVolume). Once per map and decoding.
-        /// </summary>
-        public void ReadStats(out float mean, out float spread)
-        {
-            if (_readStatsVersion != Version || _readStatsSrgb != GpuReadsSrgb)
-            {
-                // Counted per byte (the texture holds bytes), each byte decoded once: the larger map
-                // has 2.4 million texels, and this runs on the main thread.
-                bool srgb = GpuReadsSrgb;
-                long[] counts = new long[256];
-                for (int i = 0; i < _density.Length; i++)
-                    counts[(byte)(Mathf.Clamp01(_density[i]) * 255f)]++;
-
-                double sum = 0, sum2 = 0;
-                for (int b = 0; b < 256; b++)
-                {
-                    double v = srgb ? SrgbToLinear(b / 255f) : b / 255.0;
-                    sum += counts[b] * v;
-                    sum2 += counts[b] * v * v;
-                }
-
-                double n = System.Math.Max(1, _density.Length);
-                _readMean = (float)(sum / n);
-                _readSpread = (float)System.Math.Sqrt(System.Math.Max(0.0, sum2 / n - (sum / n) * (sum / n)));
-                _readStatsVersion = Version;
-                _readStatsSrgb = srgb;
-                Log.Msg("weather map as the shaders read it (" + (srgb ? "decoded" : "undecoded") + "): mean " +
-                        _readMean.ToString("F3") + ", spread " + _readSpread.ToString("F3") +
-                        " -- the far deck's light and dark are measured against these");
-            }
-
-            mean = _readMean;
-            spread = _readSpread;
+            _densityTexture.Apply(false);
         }
 
         /// <summary>
@@ -558,17 +510,11 @@ namespace VolumetricClouds.Sky
         private bool _decodingMeasured;
 
         /// <summary>
-        /// Blits the density texture's values to a LINEAR render target and reads them back. The
-        /// texture holds the same value in all four channels, and a GPU only ever gamma-decodes RGB,
+        /// Blits the density texture to a LINEAR render target and reads it back. The texture
+        /// holds the same value in all four channels, and a GPU only ever gamma-decodes RGB,
         /// never alpha -- so if red comes back darker than alpha, shaders see decoded values.
-        /// Main thread, once.
+        /// Main thread, once; needs nothing but the texture.
         /// </summary>
-        /// <remarks>
-        /// Since 1.5.0 the density texture has mips, and a blit of it to 64x64 would read them
-        /// (averaged levels). So the blit reads a 64x64 texture of its own made exactly as the
-        /// density texture was before -- the same format, sRGB, no mips -- holding every
-        /// (Resolution / 64)-th texel of the map, as the blit used to land on: read 1:1, level 0.
-        /// </remarks>
         public void MeasureGpuDecoding()
         {
             if (_decodingMeasured)
@@ -581,34 +527,10 @@ namespace VolumetricClouds.Sky
                 RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture previous = RenderTexture.active;
             Texture2D readback = null;
-            Texture2D sample = null;
 
             try
             {
-                sample = new Texture2D(size, size, TextureFormat.ARGB32, false)
-                {
-                    name = "VolumetricCloudsWeatherSample",
-                    wrapMode = TextureWrapMode.Repeat,
-                    filterMode = FilterMode.Bilinear,
-                    anisoLevel = 0,
-                };
-
-                int resolution = Resolution;
-                int stride = Mathf.Max(1, resolution / size);
-                Color32[] values = new Color32[size * size];
-                for (int y = 0; y < size; y++)
-                {
-                    for (int x = 0; x < size; x++)
-                    {
-                        int at = Mathf.Min(y * stride, resolution - 1) * resolution + Mathf.Min(x * stride, resolution - 1);
-                        byte v = (byte)(Mathf.Clamp01(_density[at]) * 255f);
-                        values[y * size + x] = new Color32(v, v, v, v);
-                    }
-                }
-
-                sample.SetPixels32(values);
-                sample.Apply(false);
-                Graphics.Blit(sample, target);
+                Graphics.Blit(DensityTexture, target);
 
                 readback = new Texture2D(size, size, TextureFormat.ARGB32, false, true);
                 RenderTexture.active = target;
@@ -659,8 +581,6 @@ namespace VolumetricClouds.Sky
                 RenderTexture.ReleaseTemporary(target);
                 if (readback != null)
                     UnityEngine.Object.Destroy(readback);
-                if (sample != null)
-                    UnityEngine.Object.Destroy(sample);
             }
         }
 

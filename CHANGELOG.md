@@ -246,16 +246,14 @@ detail to the last 30% of their reach by day too, as at night (they thinned over
 was so a deck hiding the sky didn't end on a line over bright sky, which the band now covers), and
 the band thins by up to a quarter into the sky behind instead of half. C# only. Liked ("I do see
 the clouds extend down much more") but "too short still"; marching further was ruled out (the
-author: "we need performance to not be affected"). So the band got a pattern of its own
-(CloudRaymarch FarDeckPattern): the weather map where the line of sight meets the layer, blurred
-by the map's mips (the weather texture has mips now; every other read asks for level 0, and the
-GPU decoding check reads a 64x64 copy of its own) to what a pixel covers there, three reads along
-the footprint; read twice, as the clouds read it and turned 53 degrees at 1/0.618 the size, so its
-13.5 km repeat does not come back in rows along the horizon. Darker where thicker from under the
-deck, brighter from over it, against the map's mean (log `weather map as the shaders read it`), at
-FarPatternStrength 0.4. A few texture reads on the band's pixels; AMD check passes. To judge: the
-band from ~4 degrees down, any repeat or rows, shimmer as the camera moves, the seam with the near
-clouds, from under and over the deck.
+author: "we need performance to not be affected"). A pattern of the band's own (the weather map
+where the line of sight meets the layer, blurred by the map's mips) was built the same afternoon
+and UNDONE: under the horizon it read as "a stretched band", the streaks of the 2026-10-12 light
+read per direction again. Shader, bundles and the weather texture (no mips) are back to before it;
+the two C# changes above stay. The far deck's code was unchanged from the version kept on
+2026-10-12 until that pattern; what changed between "love it" and "undone" was the sky it was seen
+in: Cumulus then, Mixed now, plus *Smoother clouds* and *Distant clouds* (which draws nothing at or
+under the horizon). To judge: the band as on 2026-10-12, then the same view in Cumulus.
 
 Built, awaiting the in-game test:
 
