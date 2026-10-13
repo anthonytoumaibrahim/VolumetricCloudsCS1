@@ -14,7 +14,7 @@ defaults in the profile list.
 `VolumetricClouds.xml` gains twenty-three lines: `LargerWeatherPattern` (off), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
-back), `PanelFoldedGroups` (the advanced panel's folded headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
+back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
@@ -47,10 +47,10 @@ the open tab's name stands beside the panel's title; *Vanilla* keeps its named t
 the panel is Lucide's (ISC licence, credited in THIRD-PARTY-NOTICES.md). The *Clouds* and *Fog* tabs
 have headings of their own now (*Height and shape*; *Thickness and height*, *Look and movement*,
 *City lights in the fog*). With *Show advanced options* on, a click on a heading folds its settings
-away and back; the technical groups start folded (the weather's mapping, the cloud position, the
-city lights in the fog, the light inside the clouds, day and night, the near lamps), so the advanced
-panel opens about as short as the basic one. Which are folded is kept in `PanelFoldedGroups`, never in
-a profile. *Frosted glass* no longer loses its blur in cities where another mod keeps something in
+away and back. Each tab starts with its first heading open and the rest folded (also open:
+*Cloud brightness* on the Light tab, *Cloud position* on Weather, *Near lights* on Halos), so the
+advanced panel opens about as short as the basic one. Which are open is kept in `PanelOpenGroups`,
+never in a profile. *Frosted glass* no longer loses its blur in cities where another mod keeps something in
 the screen's alpha.
 
 ### New: changing fog
@@ -263,7 +263,7 @@ Built, awaiting the in-game test:
   `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15). 2026-10-13:
   the reset buttons (`ResetRow`; the colour rows keep their own), the names' column per tab (log:
   `panel: <tab> tab names N wide`), "Profile" given room; check every tab's names in every language.
-  2026-10-13 later: folding headings (advanced only; log `panel: <Group> folded/opened`), icon tabs
+  2026-10-13 later: folding headings (advanced only; log `panel: <Group> folded/opened (open now: ...)`), icon tabs
   and the tab's name beside the title (log `tabs: drawn as icons`), the blur kept solid (log
   `frosted: first frame ...`, `effects in order`, `cameras drawing now`: if the blur is still gone in
   the author's main city, these name the mod).

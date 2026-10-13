@@ -196,7 +196,7 @@
   <String key="Group.FogLamps">雾中的城市灯光</String>
   <String key="FogLampLight.Label">受光雾亮度</String>
 
-  <String key="Group.FogChanges">变化的雾（不超过上方设置）</String>
+  <String key="Group.FogChanges">变化的雾</String>
   <String key="DynamicFog.Label">动态雾</String>
   <String key="FogChangesWithWeather.Label">雾随天气变化</String>
   <String key="MorningFog.Label">晨雾</String>
@@ -267,7 +267,7 @@
 
   <String key="CloudShadowFullness.Label">阴影饱满度</String>
 
-  <String key="Group.Brightness">云层受光亮度</String>
+  <String key="Group.Brightness">云层亮度</String>
 
   <String key="CloudBrightnessAuto.Label">亮度跟随云层强度</String>
 
@@ -395,7 +395,7 @@
 
   <String key="HudButtonX.Label">模组按钮（不使用 Unified UI）：距左边缘</String>
   <String key="HudButtonY.Label">模组按钮（不使用 Unified UI）：距上边缘</String>
-  <String key="PanelFoldedGroups.Label">游戏内面板中折叠的标题（启用高级选项时），以逗号分隔</String>
+  <String key="PanelOpenGroups.Label">游戏内面板中展开的标题（启用高级选项时），以逗号分隔</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

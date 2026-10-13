@@ -182,7 +182,7 @@
   <String key="Group.FogLamps">Luces de la ciudad en la niebla</String>
   <String key="FogLampLight.Label">Brillo de niebla</String>
 
-  <String key="Group.FogChanges">Niebla cambiante (nunca más de lo fijado arriba)</String>
+  <String key="Group.FogChanges">Niebla cambiante</String>
   <String key="DynamicFog.Label">Niebla dinámica</String>
   <String key="FogChangesWithWeather.Label">La niebla cambia con el clima</String>
   <String key="MorningFog.Label">Niebla matinal</String>
@@ -375,7 +375,7 @@
 
   <String key="HudButtonX.Label">Botón del mod (sin Unified UI): distancia desde la izquierda</String>
   <String key="HudButtonY.Label">Botón del mod (sin Unified UI): distancia desde arriba</String>
-  <String key="PanelFoldedGroups.Label">Encabezados plegados del panel del juego (opciones avanzadas activadas), separados por comas</String>
+  <String key="PanelOpenGroups.Label">Encabezados abiertos del panel del juego (opciones avanzadas activadas), separados por comas</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

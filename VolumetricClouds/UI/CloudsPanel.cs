@@ -193,11 +193,12 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// The groups folded away (Settings.PanelFoldedGroups, 1.5.0), as last read: only while the
-        /// advanced options are on -- the basic panel is short enough, and its headings stay plain.
+        /// The groups left open (Settings.PanelOpenGroups, 1.5.0), as last read; every other one is
+        /// folded away. Only while the advanced options are on -- the basic panel is short enough,
+        /// and its headings stay plain.
         /// </summary>
-        private readonly List<string> _folded = new List<string>();
-        private string _foldedRead;
+        private readonly List<string> _open = new List<string>();
+        private string _openRead;
         private bool _advanced;
 
         public override void Start()
@@ -208,7 +209,7 @@ namespace VolumetricClouds.UI
 
             bool advanced = Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
             _advanced = advanced;
-            ReadFolded();
+            ReadOpen();
 
             _ui = PanelLook.NewBuilder();
             _tabHeight = _ui.Skin == Skin.Vanilla ? TabHeight : IconTabHeight;
@@ -412,10 +413,10 @@ namespace VolumetricClouds.UI
         /// </summary>
         private void RefreshShown()
         {
-            // The folded groups changed under the panel: a reset, a hand edit of the file.
-            if (Settings.PanelFoldedGroups != null && Settings.PanelFoldedGroups.value != _foldedRead)
+            // The open groups changed under the panel: a reset, a hand edit of the file.
+            if (Settings.PanelOpenGroups != null && Settings.PanelOpenGroups.value != _openRead)
             {
-                ReadFolded();
+                ReadOpen();
                 foreach (List<Item> items in _layout)
                 {
                     foreach (Item item in items)
@@ -447,41 +448,41 @@ namespace VolumetricClouds.UI
 
         private bool IsFolded(string group)
         {
-            return _advanced && group != null && _folded.Contains(group);
+            return _advanced && group != null && !_open.Contains(group);
         }
 
-        private void ReadFolded()
+        private void ReadOpen()
         {
-            _folded.Clear();
-            _foldedRead = Settings.PanelFoldedGroups != null ? Settings.PanelFoldedGroups.value : string.Empty;
-            if (string.IsNullOrEmpty(_foldedRead))
+            _open.Clear();
+            _openRead = Settings.PanelOpenGroups != null ? Settings.PanelOpenGroups.value : string.Empty;
+            if (string.IsNullOrEmpty(_openRead))
                 return;
 
-            foreach (string name in _foldedRead.Split(','))
+            foreach (string name in _openRead.Split(','))
             {
                 string group = name.Trim();
-                if (group.Length > 0 && !_folded.Contains(group))
-                    _folded.Add(group);
+                if (group.Length > 0 && !_open.Contains(group))
+                    _open.Add(group);
             }
         }
 
         /// <summary>A heading clicked: its group folded or opened, kept in the settings file, the page closed up.</summary>
         private void SetFolded(int page, string group, bool folded)
         {
-            if (folded == _folded.Contains(group))
+            if (folded != _open.Contains(group))
                 return;
 
             if (folded)
-                _folded.Add(group);
+                _open.Remove(group);
             else
-                _folded.Remove(group);
+                _open.Add(group);
 
-            _foldedRead = string.Join(",", _folded.ToArray());
-            Settings.PanelFoldedGroups.value = _foldedRead;
+            _openRead = string.Join(",", _open.ToArray());
+            Settings.PanelOpenGroups.value = _openRead;
             SettingsXml.SaveNow();
 
-            Log.Msg("panel: " + group + " " + (folded ? "folded" : "opened") + " (folded now: " +
-                    (_foldedRead.Length > 0 ? _foldedRead : "none") + ")");
+            Log.Msg("panel: " + group + " " + (folded ? "folded" : "opened") + " (open now: " +
+                    (_openRead.Length > 0 ? _openRead : "none") + ")");
             Relayout(page);
         }
 

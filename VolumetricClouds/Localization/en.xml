@@ -219,7 +219,7 @@
   <String key="Group.FogLamps">City lights in the fog</String>
   <String key="FogLampLight.Label">Lit fog brightness</String>
 
-  <String key="Group.FogChanges">Changing fog (never more than set above)</String>
+  <String key="Group.FogChanges">Changing fog</String>
   <String key="DynamicFog.Label">Dynamic fog</String>
   <String key="FogChangesWithWeather.Label">Fog changes with the weather</String>
   <String key="MorningFog.Label">Morning fog</String>
@@ -290,7 +290,7 @@
 
   <String key="CloudShadowFullness.Label">Shadow fullness</String>
 
-  <String key="Group.Brightness">How brightly the clouds are lit</String>
+  <String key="Group.Brightness">Cloud brightness</String>
 
   <String key="CloudBrightnessAuto.Label">Brightness follows the cloud intensity</String>
 
@@ -425,7 +425,7 @@
 
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
-  <String key="PanelFoldedGroups.Label">The in-game panel's folded headings (advanced options on), comma separated</String>
+  <String key="PanelOpenGroups.Label">The in-game panel's open headings (advanced options on), comma separated</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

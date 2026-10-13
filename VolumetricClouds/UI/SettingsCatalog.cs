@@ -2418,13 +2418,13 @@ namespace VolumetricClouds.UI
                 AfterChange = ModController.PlaceHudButton,
             });
 
-            // 1.5.0: the panel's folded group headings (advanced options on). Its headings are its UI;
+            // 1.5.0: the panel's open group headings (advanced options on). Its headings are its UI;
             // the panel reads the value on every refresh, so a hand edit or a reset shows at once.
             Add(new Row
             {
                 Kind = RowKind.Text,
-                Text = Settings.PanelFoldedGroups,
-                DefaultText = Settings.Defaults.PanelFoldedGroups,
+                Text = Settings.PanelOpenGroups,
+                DefaultText = Settings.Defaults.PanelOpenGroups,
                 Profiled = false,
             });
         }

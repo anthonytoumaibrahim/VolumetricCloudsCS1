@@ -182,7 +182,7 @@
   <String key="Group.FogLamps">Lumières de la ville dans le brouillard</String>
   <String key="FogLampLight.Label">Luminosité du brouillard éclairé</String>
 
-  <String key="Group.FogChanges">Brouillard changeant (jamais plus que réglé ci-dessus)</String>
+  <String key="Group.FogChanges">Brouillard changeant</String>
   <String key="DynamicFog.Label">Brouillard dynamique</String>
   <String key="FogChangesWithWeather.Label">Le brouillard suit la météo</String>
   <String key="MorningFog.Label">Brouillard matinal</String>
@@ -375,7 +375,7 @@
 
   <String key="HudButtonX.Label">Bouton du mod (sans Unified UI) : distance depuis le bord gauche</String>
   <String key="HudButtonY.Label">Bouton du mod (sans Unified UI) : distance depuis le bord supérieur</String>
-  <String key="PanelFoldedGroups.Label">Titres repliés du panneau en jeu (options avancées activées), séparés par des virgules</String>
+  <String key="PanelOpenGroups.Label">Titres ouverts du panneau en jeu (options avancées activées), séparés par des virgules</String>
 
   <!-- ==================== Slider readouts ==================== -->
 
