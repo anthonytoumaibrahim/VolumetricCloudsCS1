@@ -9,8 +9,9 @@ below; the mods list shows it after the mod's name, and the first line of
 
 A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
-clouds, a wind direction of your own, and the mod's defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-two lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
+defaults in the profile list.
+`VolumetricClouds.xml` gains twenty-three lines: `LargerWeatherPattern` (off), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
 back), `PanelFoldedGroups` (the advanced panel's folded headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
@@ -175,6 +176,19 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   with the game's wind. *Follow the game's weather* sets a fixed wind back to *Follow the game*.
   Like the rest of the Now tab, it isn't saved in profiles.
 
+### New: larger weather pattern
+
+- *Larger weather pattern (same cloud size)* on the Weather tab (advanced panel), under *Weather
+  pattern size*, off by default. The clouds are laid out from one pattern that repeats every 13.5 km
+  (*Weather pattern size*); zoomed far out, with a camera mod such as ACME, the same layout shows up
+  several times across the screen. With this on, the pattern repeats four times further apart (54 km
+  at the default size) and the clouds stay the same size. *Weather pattern size* keeps doing what it
+  did: it makes the clouds bigger or smaller. Switching it gives the city a new layout of clouds, made
+  from the same seed in a few seconds; switching it off brings the city's own clouds back exactly. It
+  is off for everyone after the update, so no city's clouds change. It isn't saved in profiles, so
+  picking one leaves it as it is. With it on the mod uses a few more MB of memory, and a city takes a
+  moment longer to load; the clouds cost no more to draw.
+
 ### New: the mod's defaults in the profile list
 
 - The profile list has a fixed entry under *(no profile)*: *(Mod defaults)*. Picking it puts every
@@ -222,6 +236,21 @@ frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (t
 tested with them"): the skip and the far deck are always on, the jitter stays as it was, no tint.
 
 Built, awaiting the in-game test:
+
+- *Larger weather pattern* (written up above; not profiled), built 2026-10-13 for a subscriber's comment ("the
+  clouds always have the same shape, which looks quite strange when zooming out": ACME goes 44 km
+  out). The weather map 1536^2 instead of 384^2, the noise's periods 4x, so the same clouds per
+  metre; Mixed's cloud map 2048^2 and its type pattern 4x finer to match. Off = the usual map bit for
+  bit (checked against the 11:50 build: map, thresholds, scores, Mixed type and bakes identical).
+  Offline at 4x: the map in ~0.4 s on 8 threads (the city's first map is built on the main thread at
+  load), Mixed's bake ~60 ms and its type pattern ~0.3 s on a worker; cover as drawn at the low end
+  of what different seeds give at 1x (25/50/75%: 2.2-2.7 / 6.7-8.0 / 17-19%; 1x seeds 2.3-4.8 /
+  6.0-12.5 / 16-30%). Check in the log: `sky: weather map 1536^2 ... built in N ms on N threads`, after
+  a switch `sky: Larger weather pattern on -- building ...`, and under Mixed `cloud map baked ...
+  uploaded in N ms (2048^2)` -- the upload is on the main thread, 16 MB, repeated as the weather
+  moves: if it hitches, say so. Look zoomed out with ACME, and at the ground: rain, wet roads,
+  lightning and rainbows must still sit under the clouds. Run the build on a copy of the author's
+  XML (invariant 15: the new line, nothing ignored).
 
 - *Panel look* (written up above), built 2026-10-12 on ModsLibCS1 (git submodule at the repo root,
   compiled into the DLL). Look at every skin: basic and advanced, every tab, a profile save (Save

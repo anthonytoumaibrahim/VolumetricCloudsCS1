@@ -32,7 +32,10 @@ namespace VolumetricClouds.Sky
         /// <summary>A bake threw: the style is drawn Classic for the rest of the session, said once.</summary>
         public static bool Failed { get; private set; }
 
-        /// <summary>The weather repeat the map on the GPU was baked for: the shader's scales must be its.</summary>
+        /// <summary>
+        /// The pattern size (the slider) the map on the GPU was baked for: the shader's scales must be
+        /// its. With Larger weather pattern the map spans the field's Scale x it.
+        /// </summary>
         public static float BakedTile
         {
             get { return _uploaded != null ? _uploaded.Tile : 0f; }
@@ -70,6 +73,9 @@ namespace VolumetricClouds.Sky
             public int Generation;
             public int Step;
             public float Tile;
+            public int Scale;        // the field's (Larger weather pattern): the map is MapSizeFor it
+            public bool Stale;       // the field changed size under the bake: nothing to upload
+            public int UploadMs;
             public int Seed;
             public CloudMix.Shape Shape;
             public float Tallest;
@@ -101,6 +107,7 @@ namespace VolumetricClouds.Sky
         private static int _scoresVersion = -1;
         private static byte[] _scores;
         private static int _typeSeed;
+        private static int _typeScale;
         private static byte[] _type;
 
         private static bool _loggedFirst;
@@ -122,6 +129,14 @@ namespace VolumetricClouds.Sky
                 Finish(done);
             }
 
+            // A map baked for the other size (Larger weather pattern just switched) would draw every
+            // cloud four times too big or too small: drawn Classic until the new one is up.
+            if (_uploaded != null && _uploaded.Scale != field.Scale)
+            {
+                Ready = false;
+                _loggedFirst = false;   // the first bake at the new size goes on the log
+            }
+
             if (_working || Failed)
                 return;
 
@@ -131,6 +146,7 @@ namespace VolumetricClouds.Sky
                 Generation = _generation,
                 Step = step,
                 Tile = weatherTile,
+                Scale = field.Scale,
                 Seed = seed,
                 Shape = shape ?? CloudMix.Shape.Plain,
                 FieldVersion = field.Version,
@@ -139,7 +155,8 @@ namespace VolumetricClouds.Sky
             };
 
             Job have = _asked ?? _uploaded;
-            if (have != null && have.Step == want.Step && Mathf.Approximately(have.Tile, want.Tile) && have.Seed == want.Seed &&
+            if (have != null && have.Step == want.Step && Mathf.Approximately(have.Tile, want.Tile) && have.Scale == want.Scale &&
+                have.Seed == want.Seed &&
                 have.Shape.SameAs(want.Shape) &&
                 have.FieldVersion == want.FieldVersion && ReferenceEquals(have.Field, want.Field) &&
                 ReferenceEquals(have.EmptyBase, want.EmptyBase))
@@ -191,28 +208,45 @@ namespace VolumetricClouds.Sky
                     _scoresVersion = job.FieldVersion;
                 }
 
-                float seedX, seedZ;
-                CloudMix.SeedOffsets(job.Seed, out seedX, out seedZ);
-                if (_type == null || _typeSeed != job.Seed)
+                // The field may have been given a map of another size since the job was asked for
+                // (Larger weather pattern switched): these scores are then not the job's. The next
+                // frame asks again, for the field as it is.
+                int scoreSize = CloudDensityField.BaseResolution * job.Scale;
+                int mapSize = CloudMix.MapSizeFor(job.Scale);
+                int cells = scoreSize / EmptySky.CellTexels;
+                if (_scores.Length != scoreSize * scoreSize || job.EmptyBase == null || job.EmptyBase.Length != cells * cells * 4)
                 {
-                    _type = CloudMix.BakeType(CloudMix.MapSize, seedX, seedZ);
-                    _typeSeed = job.Seed;
+                    _scoresField = null;
+                    job.Stale = true;
                 }
-
-                int cells = CloudDensityField.Resolution / EmptySky.CellTexels;
-                if (_baker == null)
+                else
                 {
-                    _baker = new CloudMix.Baker(CloudMix.MapSize, cells);
-                    _mapColours = new Color32[CloudMix.MapSize * CloudMix.MapSize];
-                    _emptyColours = new Color32[cells * cells];
+                    float seedX, seedZ;
+                    CloudMix.SeedOffsets(job.Seed, out seedX, out seedZ);
+                    if (_type == null || _typeSeed != job.Seed || _typeScale != job.Scale)
+                    {
+                        _type = CloudMix.BakeType(mapSize, seedX, seedZ, job.Scale);
+                        _typeSeed = job.Seed;
+                        _typeScale = job.Scale;
+                    }
+
+                    if (_baker == null || _baker.Size != mapSize)
+                    {
+                        _baker = null;
+                        _mapColours = null;
+                        _emptyColours = null;
+                        _baker = new CloudMix.Baker(mapSize, cells);
+                        _mapColours = new Color32[mapSize * mapSize];
+                        _emptyColours = new Color32[cells * cells];
+                    }
+
+                    _baker.Bake(_scores, scoreSize, _type, job.Step * CloudMix.BakeStep, job.Tile, seedX, seedZ, job.Shape, job.Scale);
+                    job.Tallest = _baker.TallestTop;
+                    ToColours(_baker.Map, _mapColours);
+
+                    job.EmptyBytes = EmptySky.WithPresence(job.EmptyBase, _baker.Presence, cells);
+                    ToColours(job.EmptyBytes, _emptyColours);
                 }
-
-                _baker.Bake(_scores, CloudDensityField.Resolution, _type, job.Step * CloudMix.BakeStep, job.Tile, seedX, seedZ, job.Shape);
-                job.Tallest = _baker.TallestTop;
-                ToColours(_baker.Map, _mapColours);
-
-                job.EmptyBytes = EmptySky.WithPresence(job.EmptyBase, _baker.Presence, cells);
-                ToColours(job.EmptyBytes, _emptyColours);
             }
             catch (Exception e)
             {
@@ -238,11 +272,33 @@ namespace VolumetricClouds.Sky
                 return;
             }
 
+            // Baked for a field that has since changed size: the next Update asks again.
+            if (job.Stale)
+            {
+                if (ReferenceEquals(_asked, job))
+                    _asked = null;
+                return;
+            }
+
+            int mapSize = _baker.Size;
+            int cells = _baker.PresenceSize;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                int cells = CloudDensityField.Resolution / EmptySky.CellTexels;
+                // Made again at another size (Larger weather pattern switched).
+                if (Map != null && Map.width != mapSize)
+                {
+                    DestroyTexture(Map);
+                    Map = null;
+                }
+                if (EmptySkyTexture != null && EmptySkyTexture.width != cells)
+                {
+                    DestroyTexture(EmptySkyTexture);
+                    EmptySkyTexture = null;
+                }
+
                 if (Map == null)
-                    Map = NewTexture("VolumetricCloudsMixMap", CloudMix.MapSize, FilterMode.Bilinear);
+                    Map = NewTexture("VolumetricCloudsMixMap", mapSize, FilterMode.Bilinear);
                 if (EmptySkyTexture == null)
                     EmptySkyTexture = NewTexture("VolumetricCloudsMixEmptySky", cells, FilterMode.Point);
 
@@ -265,11 +321,14 @@ namespace VolumetricClouds.Sky
             if (ReferenceEquals(_asked, job))
                 _asked = null;
             Ready = true;
+            job.UploadMs = (int)watch.Elapsed.TotalMilliseconds;
 
-            int cellCount = (CloudDensityField.Resolution / EmptySky.CellTexels) * (CloudDensityField.Resolution / EmptySky.CellTexels);
+            // The upload is on the main thread: with Larger weather pattern the map is 16x the bytes,
+            // so its time is on the line too.
+            int cellCount = cells * cells;
             string text = "mixed style: cloud map baked for " + (job.Step * CloudMix.BakeStep * 100f).ToString("F1") + "% in " +
-                          job.Milliseconds + " ms -- " + _baker.Clouds + " clouds over " +
-                          (100f * _baker.Covered / (CloudMix.MapSize * CloudMix.MapSize)).ToString("F1") + "% of the map, the tallest " +
+                          job.Milliseconds + " ms, uploaded in " + job.UploadMs + " ms (" + mapSize + "^2) -- " + _baker.Clouds + " clouds over " +
+                          (100f * _baker.Covered / (mapSize * mapSize)).ToString("F1") + "% of the map, the tallest " +
                           job.Tallest.ToString("F0") + " m, reaching " +
                           (100f * _baker.CellsReached / cellCount).ToString("F0") + "% of the empty-sky cells";
             if (!_loggedFirst)

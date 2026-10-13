@@ -201,6 +201,8 @@
 
   <String key="WeatherTileSize.Label">Taille du motif météo</String>
 
+  <String key="LargerWeatherPattern.Label">Motif météo plus grand (nuages de même taille)</String>
+
   <String key="Group.CloudPosition">Position des nuages (cette ville, sauvegardée)</String>
 
   <String key="CloudPositionX.Label">Position X des nuages</String>

@@ -163,7 +163,8 @@ own rarely identifies the cause.
 ## How it works
 
 1. **Noise is generated on the CPU at load**: a tiling 384² Perlin-Worley *weather field*
-   (where the clouds are) and a tiling 64³ 3D noise (their shape and erosion).
+   (where the clouds are; 1536² over four times the distance with *Larger weather pattern*) and a
+   tiling 64³ 3D noise (their shape and erosion).
 2. **One density function.** `SampleDensity` in `CloudCommon.cginc` is the only definition of
    the cloud volume; the visible pass and the shadow pass both march it, so clouds and shadows
    cannot drift apart.

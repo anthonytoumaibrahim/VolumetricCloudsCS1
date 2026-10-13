@@ -126,7 +126,10 @@ namespace VolumetricClouds.Sky
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
             float tile = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
             float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
-            float weatherTile = Mathf.Max(500f, tile);
+            // The map's repeat (Larger weather pattern: 4x the slider's, the map 4x the texels), and
+            // the slider's own size, which the Mixed style's clouds are shaped for.
+            float weatherTile = field.TileFor(tile);
+            float patternSize = Mathf.Max(500f, tile);
             float detailScale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
 
             material.SetTexture(IdWeatherTex, field.DensityTexture);
@@ -157,7 +160,7 @@ namespace VolumetricClouds.Sky
 
             // The layer is drawn in both styles, with all of Classic's settings: its fragments and
             // its detail too. Under Cumulus the heaps come on top (ApplyStyle).
-            ApplyStyle(material, field, weatherTile, thickness, detailScale);
+            ApplyStyle(material, field, patternSize, thickness, detailScale);
             ApplyFragments(material, field, weatherTile, thickness);
             ApplyDetail(material, detailScale);
             ApplyEmptySky(material, field);
@@ -237,7 +240,7 @@ namespace VolumetricClouds.Sky
             // Half the share to switch off as to switch on: a cover hovering round it does not flicker
             // the state (and the log).
             bool on = !fragments && share >= (_emptySkyLogged == "on" ? EmptySkyMinShare * 0.5f : EmptySkyMinShare);
-            int cells = CloudDensityField.Resolution / EmptySky.CellTexels;
+            int cells = field.Resolution / EmptySky.CellTexels;
             material.SetVector(IdEmptySky, new Vector4(on ? 1f : 0f, cells, EmptySky.CoarseCells, 0f));
             if (on)
                 material.SetTexture(IdEmptySkyTex, mixed ? CloudMixMap.EmptySkyTexture : field.EmptySkyTexture);
@@ -269,11 +272,12 @@ namespace VolumetricClouds.Sky
         /// writes 0 and nothing else: every use of the Cumulus uniforms sits behind that branch, and
         /// every use of the Mixed ones behind _CloudStyle 2.
         /// </summary>
-        private static void ApplyStyle(Material material, CloudDensityField field, float weatherTile, float thickness, float breakupScale)
+        private static void ApplyStyle(Material material, CloudDensityField field, float patternSize, float thickness, float breakupScale)
         {
-            // Mixed: its cloud map is baked off the main thread as the weather moves (once a frame at most).
+            // Mixed: its cloud map is baked off the main thread as the weather moves (once a frame at most),
+            // over the whole map (Larger weather pattern: field.Scale x the pattern size).
             if (CloudStyle.MixedWanted)
-                CloudMixMap.Update(field, Coverage, weatherTile, SkyPattern.FieldSeed, CloudStyle.MixShape);
+                CloudMixMap.Update(field, Coverage, patternSize, SkyPattern.FieldSeed, CloudStyle.MixShape);
 
             bool drawn = CloudStyle.Drawn;
             bool mixed = CloudStyle.MixedDrawn;
@@ -287,7 +291,7 @@ namespace VolumetricClouds.Sky
             {
                 _styleLogged = state;
                 Log.Msg(state == "mixed"
-                    ? "cloud style: Mixed -- " + CloudMix.DescribeShape(weatherTile, CloudStyle.MixShape)
+                    ? "cloud style: Mixed -- " + CloudMix.DescribeShape(patternSize, CloudStyle.MixShape, field.Scale)
                     : state == "cumulus"
                         ? "cloud style: Cumulus -- " + CloudStyle.DescribeShape()
                         : state == "classic"

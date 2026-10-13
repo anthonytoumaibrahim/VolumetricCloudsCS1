@@ -353,6 +353,13 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting WeatherTileSize { get; private set; }
 
+        /// <summary>
+        /// LARGER WEATHER PATTERN (1.5.0, off): the weather map 4x wider in texels and in metres, so
+        /// it repeats 4x further apart with the clouds the same size (Sky.CloudDensityField.LargerScale).
+        /// For zooming far out (ACME). Off by default so no city's pattern changes with the update.
+        /// </summary>
+        public static BoolSetting LargerWeatherPattern { get; private set; }
+
         /// <summary>Clouds cast shadows on the ground.</summary>
         public static BoolSetting CloudShadows { get; private set; }
 
@@ -679,6 +686,9 @@ namespace VolumetricClouds
             public const float WindAngle = 0f;
 
             public const float WeatherTileSize = 13500f;
+
+            /// <summary>Off: every city keeps the pattern it had (the author: "By default let's not change it").</summary>
+            public const bool LargerWeatherPattern = false;
 
             // ---- the clouds ----
             public const bool CloudsVisible = true;
@@ -1032,6 +1042,7 @@ namespace VolumetricClouds
                 // Not the old "CookieTileSize": its 2000 m default was saved into existing
                 // settings files and is far too small for cloud-sized features.
                 WeatherTileSize = new FloatSetting("WeatherTileSize", Defaults.WeatherTileSize);
+                LargerWeatherPattern = new BoolSetting("LargerWeatherPattern", Defaults.LargerWeatherPattern);
                 CloudShadows = new BoolSetting("CloudShadows", Defaults.CloudShadows);
                 // Not the old "CloudShadowStrength": that slider had almost no effect at high
                 // coverage, so saved values of it are not meaningful.

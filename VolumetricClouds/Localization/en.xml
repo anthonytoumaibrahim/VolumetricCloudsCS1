@@ -238,6 +238,8 @@
 
   <String key="WeatherTileSize.Label">Weather pattern size</String>
 
+  <String key="LargerWeatherPattern.Label">Larger weather pattern (same cloud size)</String>
+
   <String key="Group.CloudPosition">Cloud position (this city only, saved with it)</String>
 
   <String key="CloudPositionX.Label">Cloud position X</String>

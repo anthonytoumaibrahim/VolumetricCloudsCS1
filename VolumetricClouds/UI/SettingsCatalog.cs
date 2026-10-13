@@ -1650,6 +1650,23 @@ namespace VolumetricClouds.UI
                 Format = Kilometres,
             });
 
+            // 1.5.0, asked for by a player zooming far out with ACME, where the 13.5 km pattern came
+            // back about five times across the screen: the map 4x wider, the clouds the same size
+            // (Sky.CloudDensityField.LargerScale). A separate switch because the slider above stretches
+            // the one map (bigger clouds); its number keeps that meaning (invariant 15). Off: no
+            // city's pattern changes. ModController builds the map again when it flips.
+            // Not in profiles: it is about how far the player's camera goes, not a look, and every
+            // flip lays the city's clouds out anew -- a profile from before 1.5.0 would switch it off.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Weather,
+                Bool = Settings.LargerWeatherPattern,
+                DefaultBool = Settings.Defaults.LargerWeatherPattern,
+                Profiled = false,
+                AfterChange = State("larger weather pattern", OnOff(Settings.LargerWeatherPattern)),
+            });
+
             // 1.3.0 (asked for: "edit the X and Y values" of the clouds' position, "for advanced
             // settings"): moves THIS city's clouds, all of them together (CloudWind.SetShift),
             // saved with the city (SkyState version 2) -- not a setting: every city's pattern is its

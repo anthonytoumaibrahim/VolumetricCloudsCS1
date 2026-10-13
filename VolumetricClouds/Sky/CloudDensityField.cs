@@ -9,7 +9,19 @@ namespace VolumetricClouds.Sky
     /// </summary>
     public class CloudDensityField
     {
-        public const int Resolution = 384;
+        /// <summary>Texels per side of the map at <see cref="Scale"/> 1: the map as it has always been.</summary>
+        public const int BaseResolution = 384;
+
+        /// <summary>
+        /// LARGER WEATHER PATTERN (1.5.0, off by default): the map this many times wider, in texels
+        /// AND in metres, so it repeats this many times further apart with its clouds the same size
+        /// (a 4x repeat: 54 km at the default pattern size). Asked for by a player who zooms out
+        /// with ACME, which goes 44 km out (about 70 km of ground across the screen): the default
+        /// map came back about five times side by side. The noise's periods grow with it, so every
+        /// feature keeps its size in metres; only where they lie is new, so a city's seed draws a
+        /// different sky with the switch on (with it off, its own sky, bit for bit).
+        /// </summary>
+        public const int LargerScale = 4;
 
         private const int ValueOctaves = 5;
         private const int WorleyOctaves = 3;
@@ -20,10 +32,11 @@ namespace VolumetricClouds.Sky
         // Not readonly: "Reset cloud pattern" swaps in a field generated on a worker thread
         // (Adopt). The simulation thread reads the density and the table (SampleCloud), so they
         // are replaced by reference, never filled in place.
-        private float[] _density = new float[Resolution * Resolution];
-        private readonly Color32[] _pixels = new Color32[Resolution * Resolution];
+        private float[] _density;
+        private Color32[] _pixels;
         private int[] _histogram = new int[HistogramBins];
         private float[] _thresholdTable = new float[ThresholdSteps + 1];
+        private int _scale;
 
         private Texture2D _texture;
         private Texture2D _densityTexture;
@@ -33,11 +46,71 @@ namespace VolumetricClouds.Sky
         /// Builds the field for a seed. Pure managed maths and arrays, no Unity objects (the
         /// textures are made on first use), so it may run on a worker thread. A seed gives the
         /// same field every time, which is how a save brings its sky back: changing anything in
-        /// <see cref="Generate"/> or <see cref="Resolution"/> changes every saved sky.
+        /// <see cref="Generate"/> or <see cref="BaseResolution"/> changes every saved sky.
         /// </summary>
-        public CloudDensityField(int seed)
+        public CloudDensityField(int seed) : this(seed, 1)
         {
+        }
+
+        /// <summary>
+        /// The same at <paramref name="scale"/> x the size (1, or <see cref="LargerScale"/> for
+        /// Larger weather pattern). Scale 1 is the field as it has always been built, on one thread.
+        /// </summary>
+        public CloudDensityField(int seed, int scale)
+        {
+            _scale = Mathf.Max(1, scale);
+            int n = Resolution;
+            _density = new float[n * n];
+            _pixels = new Color32[n * n];
+
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             Generate(seed);
+            BuildMs = (float)watch.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>How many times the usual size this map is: 1, or <see cref="LargerScale"/>.</summary>
+        public int Scale
+        {
+            get { return _scale; }
+        }
+
+        /// <summary>Texels per side of this map.</summary>
+        public int Resolution
+        {
+            get { return BaseResolution * _scale; }
+        }
+
+        /// <summary>Milliseconds the pattern took to build, and on how many threads (for the log).</summary>
+        public float BuildMs { get; private set; }
+        public int BuildThreads { get; private set; }
+
+        /// <summary>
+        /// Metres per repeat of THIS map for a "Weather pattern size" of <paramref name="patternSize"/>
+        /// (the slider, at least 500 m): <see cref="Scale"/> times it.
+        /// </summary>
+        public float TileFor(float patternSize)
+        {
+            return Mathf.Max(500f, patternSize) * _scale;
+        }
+
+        /// <summary>
+        /// The map's repeat as drawn, in metres. Everything that looks this field up -- the shaders'
+        /// _WeatherTile, the rain mask's C# twin, lightning, the rainbow, the fallback cookie --
+        /// takes it from here, never from the slider: while a larger map is being built the slider's
+        /// switch already says one size and the map still has the other.
+        /// </summary>
+        public float Tile
+        {
+            get { return TileFor(Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize); }
+        }
+
+        /// <summary>The map for the log: its size, its repeat, how long it took.</summary>
+        public string Describe()
+        {
+            return Resolution + "^2, repeating every " + (Tile / 1000f).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + " km" +
+                   (_scale > 1 ? " (Larger weather pattern: " + _scale + "x the usual, the clouds the same size)" : "") +
+                   ", built in " + BuildMs.ToString("F0", System.Globalization.CultureInfo.InvariantCulture) + " ms" +
+                   (BuildThreads > 1 ? " on " + BuildThreads + " threads" : "");
         }
 
         /// <summary>
@@ -47,26 +120,52 @@ namespace VolumetricClouds.Sky
         public int Version { get; private set; }
 
         /// <summary>
-        /// Takes over another field's pattern ("Reset cloud pattern"). Main thread. Everything
-        /// holding a reference to THIS field -- the materials, the rain snapshot, lightning --
-        /// sees the new pattern without being told; the density texture is rewritten in place.
+        /// Takes over another field's pattern ("Reset cloud pattern", or Larger weather pattern
+        /// switched). Main thread. Everything holding a reference to THIS field -- the materials,
+        /// the rain snapshot, lightning -- sees the new pattern without being told; the textures are
+        /// rewritten in place, or, for a map of another size, made again at their next use (every
+        /// material is given them again each frame, the sun its cookie too).
         /// </summary>
         public void Adopt(CloudDensityField other)
         {
+            bool resized = other._scale != _scale;
+
+            _scoreCache = other._scoreCache;
             _density = other._density;
             _histogram = other._histogram;
             _thresholdTable = other._thresholdTable;
+            _scale = other._scale;
+            BuildMs = other.BuildMs;
+            BuildThreads = other.BuildThreads;
 
             // The drawn tables are solved from the density: rebuild them on next use (a null
             // histogram forgets every table's softness too).
             _drawnHistogram = null;
 
-            if (_densityTexture != null)
-                UploadDensity();
-            if (_scoreTexture != null)
-                UploadScores();
+            if (resized)
+            {
+                _pixels = new Color32[_density.Length];
+                DestroyTexture(ref _texture);
+                DestroyTexture(ref _densityTexture);
+                DestroyTexture(ref _scoreTexture);
+                DestroyTexture(ref _emptySkyTexture);
+            }
+            else
+            {
+                if (_densityTexture != null)
+                    UploadDensity();
+                if (_scoreTexture != null)
+                    UploadScores();
+            }
 
             Version++;
+        }
+
+        private static void DestroyTexture(ref Texture2D texture)
+        {
+            if (texture != null)
+                UnityEngine.Object.Destroy(texture);
+            texture = null;
         }
 
         /// <summary>The cookie texture. Alpha carries the value a directional light samples.</summary>
@@ -270,14 +369,43 @@ namespace VolumetricClouds.Sky
             _scoreTexture.Apply(false);
         }
 
+        // The scores of one density array, kept: a larger map's take ~16x as long, and the score
+        // texture, the empty-sky map and the Mixed style's bake each ask. One reference, so the
+        // bytes and the array they belong to are always read together.
+        private sealed class ScoreCache
+        {
+            public float[] Density;
+            public byte[] Bytes;
+        }
+
+        private volatile ScoreCache _scoreCache;
+
         /// <summary>
         /// Every texel's normal score as the texture stores it. Pure managed maths (the offline
         /// preview and tests read it): the rank from the histogram, with the place inside the bin.
+        /// Worked out once per pattern; never write into the array it returns.
         /// </summary>
         public byte[] ScoreBytes()
         {
             float[] density = _density;
             int[] histogram = _histogram;
+
+            ScoreCache cache = _scoreCache;
+            if (cache != null && ReferenceEquals(cache.Density, density))
+                return cache.Bytes;
+
+            byte[] bytes = Scores(density, histogram);
+
+            // Kept only if the pattern did not change while they were worked out (a worker thread
+            // can ask while the main thread adopts a new one): density and histogram one pattern's.
+            if (ReferenceEquals(density, _density) && ReferenceEquals(histogram, _histogram))
+                _scoreCache = new ScoreCache { Density = density, Bytes = bytes };
+
+            return bytes;
+        }
+
+        private static byte[] Scores(float[] density, int[] histogram)
+        {
             int n = density.Length;
 
             // How many texels lie in the bins below each bin.
@@ -349,9 +477,20 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public float SampleCloud(float u, float v, float coverage)
         {
-            int x = Wrap(Mathf.FloorToInt(u * Resolution), Resolution);
-            int y = Wrap(Mathf.FloorToInt(v * Resolution), Resolution);
-            return Mathf.Clamp01((AsTheGpuReadsIt(_density[y * Resolution + x]) - Threshold(coverage)) / Softness);
+            // The side from the array itself: a larger map can be adopted on the main thread between
+            // two reads here, and the array and its size must be one pattern's.
+            float[] density = _density;
+            int n = SideOf(density);
+            int x = Wrap(Mathf.FloorToInt(u * n), n);
+            int y = Wrap(Mathf.FloorToInt(v * n), n);
+            return Mathf.Clamp01((AsTheGpuReadsIt(density[y * n + x]) - Threshold(coverage)) / Softness);
+        }
+
+        private static int SideOf(float[] density)
+        {
+            return density.Length == BaseResolution * BaseResolution
+                ? BaseResolution
+                : (int)(System.Math.Sqrt(density.Length) + 0.5);
         }
 
         /// <summary>
@@ -665,12 +804,35 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private void Generate(int seed)
         {
-            for (int y = 0; y < Resolution; y++)
+            // A larger map's periods grow with it: the same cells per metre, so the same clouds.
+            int n = Resolution;
+            int basePeriod = BasePeriod * _scale;
+
+            // A larger map is LargerScale^2 the work, and the city's first map is built on the main
+            // thread at load: its rows are split over the cores. The usual map: one thread, as always.
+            if (_scale == 1)
             {
-                for (int x = 0; x < Resolution; x++)
+                GenerateRows(seed, 0, n, n, basePeriod);
+                BuildThreads = 1;
+            }
+            else
+            {
+                BuildThreads = ParallelRows.Run(n, "VolumetricClouds weather map", (first, end) => GenerateRows(seed, first, end, n, basePeriod));
+            }
+
+            Normalise();
+            BuildThresholdTable();
+        }
+
+        /// <summary>Rows <paramref name="y0"/> to <paramref name="y1"/> (exclusive). Each texel is its own: any thread may do any rows.</summary>
+        private void GenerateRows(int seed, int y0, int y1, int n, int basePeriod)
+        {
+            for (int y = y0; y < y1; y++)
+            {
+                for (int x = 0; x < n; x++)
                 {
-                    float value = ValueFbm(x, y, seed);
-                    float billow = WorleyFbm(x, y, seed);
+                    float value = ValueFbm(x, y, seed, n, basePeriod);
+                    float billow = WorleyFbm(x, y, seed, n, basePeriod);
 
                     // Remap the value noise by the billow floor: where billow is high the
                     // cloud is solid, where it is low the value noise carves it away.
@@ -678,24 +840,21 @@ namespace VolumetricClouds.Sky
                     // 2-billow, bounded to [1,2]. Dividing by billow itself lets the result
                     // explode wherever billow approaches zero, and those outliers squash
                     // the whole field once it is normalised.
-                    _density[y * Resolution + x] = Remap(value, billow - 1f, 1f, 0f, 1f);
+                    _density[y * n + x] = Remap(value, billow - 1f, 1f, 0f, 1f);
                 }
             }
-
-            Normalise();
-            BuildThresholdTable();
         }
 
-        private static float ValueFbm(int x, int y, int seed)
+        private static float ValueFbm(int x, int y, int seed, int n, int basePeriod)
         {
             float sum = 0f;
             float amplitude = 1f;
             float total = 0f;
-            int period = BasePeriod;
+            int period = basePeriod;
 
             for (int octave = 0; octave < ValueOctaves; octave++)
             {
-                sum += ValueNoise(x * period / (float)Resolution, y * period / (float)Resolution,
+                sum += ValueNoise(x * period / (float)n, y * period / (float)n,
                                   period, seed + octave) * amplitude;
                 total += amplitude;
                 amplitude *= 0.5f;
@@ -705,17 +864,17 @@ namespace VolumetricClouds.Sky
             return sum / total;
         }
 
-        private static float WorleyFbm(int x, int y, int seed)
+        private static float WorleyFbm(int x, int y, int seed, int n, int basePeriod)
         {
             float sum = 0f;
             float amplitude = 1f;
             float total = 0f;
-            int period = BasePeriod;
+            int period = basePeriod;
 
             for (int octave = 0; octave < WorleyOctaves; octave++)
             {
                 // Inverted: near a feature point means dense, not sparse.
-                float worley = 1f - Worley(x * period / (float)Resolution, y * period / (float)Resolution,
+                float worley = 1f - Worley(x * period / (float)n, y * period / (float)n,
                                            period, seed + 101 + octave);
                 sum += worley * amplitude;
                 total += amplitude;

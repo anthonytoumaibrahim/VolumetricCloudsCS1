@@ -148,7 +148,7 @@ namespace VolumetricClouds.Sky
             bool raining = Active && Amount > 0f;
             bool localised = raining && (Settings.RainLocalised == null || Settings.RainLocalised.value);
 
-            float tile = Mathf.Max(500f, Value(Settings.WeatherTileSize, Settings.Defaults.WeatherTileSize));
+            float tile = field != null ? field.Tile : Mathf.Max(500f, Value(Settings.WeatherTileSize, Settings.Defaults.WeatherTileSize));
             Vector2 phase = CloudWind.WeatherPhase(tile);
 
             Snapshot now = !raining ? null : new Snapshot

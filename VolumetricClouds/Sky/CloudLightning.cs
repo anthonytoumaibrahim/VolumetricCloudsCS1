@@ -481,7 +481,7 @@ namespace VolumetricClouds.Sky
         /// <summary>Cloud amount above a point, 0..1, from the same field and wind as the clouds.</summary>
         private float CloudAt(Vector3 position)
         {
-            float tile = Mathf.Max(500f, Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize);
+            float tile = _field.Tile;
             Vector2 phase = CloudWind.WeatherPhase(tile);
             return _field.SampleCloud(position.x / tile - phase.x,
                                       position.z / tile - phase.y,

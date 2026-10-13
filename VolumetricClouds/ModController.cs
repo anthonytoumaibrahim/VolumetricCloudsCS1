@@ -61,8 +61,10 @@ namespace VolumetricClouds
             // This city's pattern: its save's, or a new one. Before anything is generated.
             SkySaveData.BeginCity();
 
-            // One field feeds both the shadow cookie and the visible clouds.
-            _field = new CloudDensityField(SkyPattern.FieldSeed);
+            // One field feeds both the shadow cookie and the visible clouds. At the size the settings
+            // ask for (Larger weather pattern), so the city never opens on the other one.
+            _field = new CloudDensityField(SkyPattern.FieldSeed, SkyPattern.WantedScale);
+            Log.Msg("sky: weather map " + _field.Describe());
 
             _lighting = gameObject.AddComponent<CloudLighting>();
             _lighting.Initialise(_field);
@@ -202,9 +204,17 @@ namespace VolumetricClouds
             {
                 if (_field != null)
                     _field.Adopt(field);
-                if (_volume != null)
+
+                // (A map built again at another size comes without noise: the noise stays.)
+                if (_volume != null && noise != null)
                     _volume.ReplaceNoise(noise, detail, cumulus);
             }
+
+            // Larger weather pattern switched -- from the row, a profile or the settings file: the
+            // map is built again at the size asked for, from the same seed, and lands like a new
+            // pattern. One build at a time; a reset under way finishes first and is caught up after.
+            if (_field != null && SkyPattern.WantsRescale(_field.Scale))
+                SkyPattern.RequestScale(SkyPattern.WantedScale);
 
             // The button greys out while a pattern is on its way; give it back.
             if (wasWorking && !SkyPattern.Working)

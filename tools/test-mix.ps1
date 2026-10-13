@@ -77,6 +77,27 @@ public static class MixBytes
 
     static int Wrap(int v, int n) { int r = v % n; return r < 0 ? r + n : r; }
 
+    public static bool SameF(float[] a, float[] b)
+    {
+        if (a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++) if (BitConverter.DoubleToInt64Bits(a[i]) != BitConverter.DoubleToInt64Bits(b[i])) return false;
+        return true;
+    }
+
+    // The largest step between neighbouring texels of a square byte map, across its wrap too.
+    public static int MaxStep(byte[] map, int size)
+    {
+        int most = 0;
+        for (int j = 0; j < size; j++)
+            for (int i = 0; i < size; i++)
+            {
+                int v = map[j * size + i];
+                most = Math.Max(most, Math.Abs(v - map[j * size + (i + 1) % size]));
+                most = Math.Max(most, Math.Abs(v - map[((j + 1) % size) * size + i]));
+            }
+        return most;
+    }
+
     // The carving's mean over a noise volume at one profile (the shader's formula; the test checks it
     // is the DLL's twin, CloudMix.CarvedDensity, before trusting it).
     public static double Mean(byte[] noise, double profile, double cc, double ed, double hard, double mid, double con)
@@ -216,7 +237,7 @@ Check ($typeBytes.Length -eq 64 * 64) "the type pattern bakes one byte per texel
 $fieldType = $asm.GetType("VolumetricClouds.Sky.CloudDensityField")
 $field = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345))
 $scores = [byte[]]$fieldType.GetMethod("ScoreBytes").Invoke($field, @())
-$res = [int]$fieldType.GetField("Resolution").GetValue($null)
+$res = [int]$fieldType.GetField("BaseResolution").GetValue($null)
 $emptyType = $asm.GetType("VolumetricClouds.Sky.EmptySky")
 $cells = [int]($res / [int]$emptyType.GetField("CellTexels").GetValue($null))
 $bakerType = $mix.GetNestedType("Baker")
@@ -326,6 +347,38 @@ foreach ($lv in 0, 2) {
         if ($lv -eq 0 -and $s % 5 -eq 0) { $fitLine += (" {0:F2}: {1:F3}/{2:F3}" -f $pr, $mean, $fit) } } }
 "  profile: mean/fit$fitLine"
 Check ($worstFit -lt 0.02) ("the fit is within {0:F3} of the carving's mean on the Cumulus noise (levels 0 and 2)" -f $worstFit)
+
+"=== Larger weather pattern (1.5.0: the weather map and this map 4x wider, the clouds the same size) ==="
+$larger = [int]$fieldType.GetField("LargerScale").GetValue($null)
+$sw = [Diagnostics.Stopwatch]::StartNew()
+$big = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345, $larger))
+$bigMs = $sw.Elapsed.TotalMilliseconds
+$bigRes = [int]$fieldType.GetProperty("Resolution").GetValue($big)
+$big2 = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345, $larger))
+$anyField = [Reflection.BindingFlags]"Instance,NonPublic"
+Check ($bigRes -eq $res * $larger -and [MixBytes]::SameF([single[]]$fieldType.GetField("_density", $anyField).GetValue($big), [single[]]$fieldType.GetField("_density", $anyField).GetValue($big2))) ("the larger weather map is {0}^2 and the same for the same seed, whatever the threads ({1:F0} ms on {2})" -f $bigRes, $bigMs, $fieldType.GetProperty("BuildThreads").GetValue($big))
+Check ([double]$fieldType.GetMethod("TileFor").Invoke($big, @([single]13500)) -eq 13500 * $larger -and [double]$fieldType.GetMethod("TileFor").Invoke($field, @([single]13500)) -eq 13500) "it repeats 4x further apart; the usual map at the slider's size"
+$bigScores = [byte[]]$fieldType.GetMethod("ScoreBytes").Invoke($big, @())
+$bigCells = [int]($bigRes / [int]$emptyType.GetField("CellTexels").GetValue($null))
+$bigSize = [int](Call "MapSizeFor" @($larger))
+$bigType = [byte[]](Call "BakeType" @([int]$bigSize, $sx, $sz, $larger))
+$typeStep = [MixBytes]::MaxStep($bigType, $bigSize); $smallStep = [MixBytes]::MaxStep($type, $size)
+Check ($bigType.Length -eq $bigSize * $bigSize -and [Math]::Abs($typeStep - $smallStep) -le 2) ("the larger type pattern: a byte per texel, as smooth per texel (so per metre) as the usual one, seamless over its repeat (largest step {0}, usual {1})" -f $typeStep, $smallStep)
+$bigBaker = [Activator]::CreateInstance($bakerType, [object[]]@($bigSize, $bigCells))
+$bake9 = @($bakerType.GetMethods() | Where-Object { $_.Name -eq "Bake" -and $_.GetParameters().Count -eq 9 })[0]
+$plain = $mix.GetNestedType("Shape").GetField("Plain").GetValue($null)
+$sw = [Diagnostics.Stopwatch]::StartNew()
+[void]$bake9.Invoke($bigBaker, [object[]]@($bigScores, $bigRes, $bigType, [single]0.47, [single]13500, $sx, $sz, $plain, $larger))
+$bigBakeMs = $sw.Elapsed.TotalMilliseconds
+Bake $b 0.47
+$expected = $b.Clouds * $larger * $larger
+Check ([Math]::Abs($bigBaker.Clouds - $expected) -lt 0.2 * $expected) ("about {0}x the clouds over {0}x the map: {1} (the usual map's x {0}: {2}), {3:F0} ms" -f ($larger * $larger), $bigBaker.Clouds, $expected, $bigBakeMs)
+$shareSmall = $b.Covered / [double]($size * $size); $shareBig = $bigBaker.Covered / [double]($bigSize * $bigSize)
+Check ([Math]::Abs($shareBig - $shareSmall) -lt 0.35 * $shareSmall) ("the same share of the sky under them: {0:P1} (the usual map: {1:P1})" -f $shareBig, $shareSmall)
+$bigTall = [double]$bigBaker.TallestTop; $smallTall = [double]$b.TallestTop
+Check ($bigTall -le [double](Call "Tallest" @([single]13500, $plain)) + 1) ("no cloud taller than the shape allows: the tallest {0} m (the usual map's {1} m)" -f $bigTall, $smallTall)
+Check ([MixBytes]::Missed([byte[]]$bigBaker.Map, $bigSize, [byte[]]$bigBaker.Presence, $bigCells) -eq 0) "every cloud texel of the larger map is in a marked empty-sky cell"
+"  " + [string](Call "DescribeShape" @([single]13500, $plain, $larger))
 
 "=== the log ==="
 $shape = [string](Call "DescribeShape" @([single]13500))

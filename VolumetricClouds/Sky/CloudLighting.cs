@@ -51,7 +51,7 @@ namespace VolumetricClouds.Sky
             }
 
             if (_field == null)
-                _field = new CloudDensityField(SkyPattern.FieldSeed);
+                _field = new CloudDensityField(SkyPattern.FieldSeed, SkyPattern.WantedScale);
 
             _originalCookie = _sun.cookie;
             _originalCookieSize = _sun.cookieSize;
@@ -120,7 +120,7 @@ namespace VolumetricClouds.Sky
                 _mode = "flat-cookie";
                 RebuildFlatCookie();
                 _sun.cookie = _field.Texture;
-                _sun.cookieSize = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
+                _sun.cookieSize = _field.Tile;
                 t.position = _originalSunPosition + CloudWind.Offset;
             }
 

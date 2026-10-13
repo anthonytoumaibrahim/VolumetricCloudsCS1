@@ -201,6 +201,8 @@
 
   <String key="WeatherTileSize.Label">Tamaño del patrón</String>
 
+  <String key="LargerWeatherPattern.Label">Patrón más grande (nubes del mismo tamaño)</String>
+
   <String key="Group.CloudPosition">Posición de nubes (solo esta ciudad, se guarda)</String>
 
   <String key="CloudPositionX.Label">Posición X de nubes</String>

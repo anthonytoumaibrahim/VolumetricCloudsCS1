@@ -336,8 +336,18 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static float TypeAt(float u, float v, float seedX, float seedZ)
         {
-            float a = ValueNoise(u * TypePeriodA, v * TypePeriodA, TypePeriodA, 40f, seedX, seedZ);
-            float b = ValueNoise(u * TypePeriodB, v * TypePeriodB, TypePeriodB, 41f, seedX, seedZ);
+            return TypeAt(u, v, seedX, seedZ, 1);
+        }
+
+        /// <summary>
+        /// The same over a map <paramref name="scale"/> pattern sizes wide (Larger weather pattern):
+        /// its periods that many times more, so each stretch of sky keeps its size in metres.
+        /// </summary>
+        public static float TypeAt(float u, float v, float seedX, float seedZ, int scale)
+        {
+            int periodA = TypePeriodA * scale, periodB = TypePeriodB * scale;
+            float a = ValueNoise(u * periodA, v * periodA, periodA, 40f, seedX, seedZ);
+            float b = ValueNoise(u * periodB, v * periodB, periodB, 41f, seedX, seedZ);
             float t = Clamp01(0.5f + (a * TypeWeightA + b * TypeWeightB - 0.5f) * TypeContrast);
             return t * t * (3f - 2f * t);
         }
@@ -349,6 +359,15 @@ namespace VolumetricClouds.Sky
 
         /// <summary>Texels per side of the cloud map, over one weather repeat (26 m at 13.5 km).</summary>
         public const int MapSize = 512;
+
+        /// <summary>
+        /// The cloud map over a weather map <paramref name="scale"/> pattern sizes wide (Larger
+        /// weather pattern): as many times the texels, each still 26 m at 13.5 km.
+        /// </summary>
+        public static int MapSizeFor(int scale)
+        {
+            return MapSize * scale;
+        }
 
         /// <summary>The bake is redone when the intensity moves by this much (a cloud's radius then moves by metres).</summary>
         public const float BakeStep = 0.005f;
@@ -362,12 +381,28 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static byte[] BakeType(int size, float seedX, float seedZ)
         {
+            return BakeType(size, seedX, seedZ, 1);
+        }
+
+        /// <summary>The same over a map <paramref name="scale"/> pattern sizes wide (<see cref="TypeAt(float, float, float, float, int)"/>).</summary>
+        public static byte[] BakeType(int size, float seedX, float seedZ, int scale)
+        {
             byte[] bytes = new byte[size * size];
-            for (int j = 0; j < size; j++)
-                for (int i = 0; i < size; i++)
-                    bytes[j * size + i] = ToByte(TypeAt((i + 0.5f) / size, (j + 0.5f) / size, seedX, seedZ));
+
+            // A larger map's is 16x the work (seconds on one core): its rows split over the cores.
+            if (scale > 1)
+                ParallelRows.Run(size, "VolumetricClouds mixed type", (first, end) => BakeTypeRows(bytes, size, seedX, seedZ, scale, first, end));
+            else
+                BakeTypeRows(bytes, size, seedX, seedZ, scale, 0, size);
 
             return bytes;
+        }
+
+        private static void BakeTypeRows(byte[] bytes, int size, float seedX, float seedZ, int scale, int first, int end)
+        {
+            for (int j = first; j < end; j++)
+                for (int i = 0; i < size; i++)
+                    bytes[j * size + i] = ToByte(TypeAt((i + 0.5f) / size, (j + 0.5f) / size, seedX, seedZ, scale));
         }
 
         /// <summary>
@@ -434,6 +469,19 @@ namespace VolumetricClouds.Sky
             /// </summary>
             public void Bake(byte[] scores, int scoreSize, byte[] type, float intensity, float weatherTile, float seedX, float seedZ, Shape shape)
             {
+                Bake(scores, scoreSize, type, intensity, weatherTile, seedX, seedZ, shape, 1);
+            }
+
+            /// <summary>
+            /// The same over a weather map <paramref name="scale"/> x <paramref name="weatherTile"/> wide
+            /// (Larger weather pattern; <paramref name="weatherTile"/> stays the slider's pattern size,
+            /// which the clouds are shaped for): that many times the cells across, each the same size,
+            /// the type pattern as many times finer in the map's terms (<paramref name="type"/>: BakeType
+            /// at this scale), and this instance <see cref="MapSizeFor"/> that scale.
+            /// </summary>
+            public void Bake(byte[] scores, int scoreSize, byte[] type, float intensity, float weatherTile, float seedX, float seedZ,
+                             Shape shape, int scale)
+            {
                 Array.Clear(Map, 0, Map.Length);
                 Array.Clear(Presence, 0, Presence.Length);
                 Array.Clear(_bestProfile, 0, _bestProfile.Length);
@@ -446,9 +494,11 @@ namespace VolumetricClouds.Sky
                 for (int i = 0; i < type.Length; i++)
                     Map[i * 4 + 3] = type[i];
 
-                int n = Cells(weatherTile);
-                float cell = weatherTile / n;
-                float texel = weatherTile / Size;
+                int perPattern = Cells(weatherTile);
+                int n = perPattern * scale;
+                float cell = weatherTile / perPattern;
+                float mapTile = weatherTile * scale;
+                float texel = mapTile / Size;
                 float tallest = Tallest(weatherTile, shape);
                 float bandScale = BandScale(weatherTile, shape);
                 float baseShare = FieldShare(intensity) * shape.Amount;
@@ -469,7 +519,7 @@ namespace VolumetricClouds.Sky
 
                         // Cumulus amount scales the share, the map's gathering included (0%: none at all).
                         float z = (Bilinear(scores, scoreSize, u, v) * 2f - 1f) * 3f;
-                        float t = 0.5f + (TypeAt(u, v, seedX, seedZ) - 0.5f) * strength;
+                        float t = 0.5f + (TypeAt(u, v, seedX, seedZ, scale) - 0.5f) * strength;
                         float share = (baseShare + Gather * z * shape.Amount) * (ShareInLayerArea + (ShareInCumulusArea - ShareInLayerArea) * t);
                         if (rank >= share)
                             continue;
@@ -587,7 +637,7 @@ namespace VolumetricClouds.Sky
 
                         // The empty-sky cells the cloud reaches: a point reads the map bilinear, so up to a
                         // texel and a half (diagonally) past the last texel inside a bubble.
-                        Mark(centreX, centreZ, reach + 1.5f * texel, weatherTile);
+                        Mark(centreX, centreZ, reach + 1.5f * texel, mapTile);
                     }
                 }
 
@@ -672,6 +722,16 @@ namespace VolumetricClouds.Sky
         /// <summary>The same for the player's shape.</summary>
         public static string DescribeShape(float weatherTile, Shape shape)
         {
+            return DescribeShape(weatherTile, shape, 1);
+        }
+
+        /// <summary>The same over a weather map <paramref name="scale"/> pattern sizes wide (Larger weather pattern).</summary>
+        public static string DescribeShape(float weatherTile, Shape shape, int scale)
+        {
+            if (scale > 1)
+                return DescribeShape(weatherTile, shape, 1) + "; Larger weather pattern: the map holds " + scale + " x " + scale +
+                       " of these repeats, in a " + MapSizeFor(scale) + "^2 cloud map";
+
             CultureInfo c = CultureInfo.InvariantCulture;
             float cell = CellSize(weatherTile);
             return "separate clouds on " + Cells(weatherTile) + " x " + Cells(weatherTile) + " cells of " + cell.ToString("F0", c) +
