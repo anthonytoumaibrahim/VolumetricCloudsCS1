@@ -50,6 +50,9 @@ namespace VolumetricClouds.UI
 
         /// <summary>The reset button's column at the right end of each row, gap included.</summary>
         private const float ResetColumn = 28f;
+
+        /// <summary>The shortest a slider gets in the new looks, where the names take what they need.</summary>
+        private const float MinSlider = 70f;
         private const float NoteHeight = 32f;
 
         /// <summary>The tabs' height in this panel's look: Vanilla's as it always was, the new looks' taller.</summary>
@@ -204,12 +207,16 @@ namespace VolumetricClouds.UI
             _instance = this;
 
             bool advanced = Settings.ShowAdvancedInPanel != null && Settings.ShowAdvancedInPanel.value;
-            _width = advanced ? AdvancedWidth : BasicWidth;
             _advanced = advanced;
             ReadFolded();
 
             _ui = PanelLook.NewBuilder();
             _tabHeight = _ui.Skin == Skin.Vanilla ? TabHeight : IconTabHeight;
+
+            // Vanilla as it always was. The new looks: the basic width with the advanced options too
+            // (the icon tabs need no room; the author: "decrease the width ... the sliders themselves
+            // can be smaller"), the names keeping their full size (BuildPage).
+            _width = _ui.Skin == Skin.Vanilla && advanced ? AdvancedWidth : BasicWidth;
 
             size = new Vector2(_width, PanelHeight);
             canFocus = true;
@@ -652,8 +659,10 @@ namespace VolumetricClouds.UI
             HashSet<UIComponent> claimed = new HashSet<UIComponent>();
 
             // The names' column, per page: as wide as the page's longest name needs (capitals in
-            // Frosted take more room), at least the skin's 196, at most 46% of the page. A name
-            // still too long is drawn smaller, then on two lines, never cut off (Builder.AddName).
+            // Frosted take more room), at least the skin's 196. At most 46% of the page in Vanilla;
+            // in the new looks as much as leaves a slider MinSlider long (the names come first, the
+            // sliders give way). A name still too long is drawn smaller, then on two lines, never
+            // cut off (Builder.AddName).
             float widest = 0f;
             foreach (Row row in SettingsCatalog.Rows)
             {
@@ -661,7 +670,10 @@ namespace VolumetricClouds.UI
                     widest = Mathf.Max(widest, _ui.NameWidth(row.Label));
             }
 
-            _ui.LabelWidth = Mathf.Clamp(Mathf.Ceil(widest) + 8f, _ui.Theme.LabelWidth, Mathf.Floor(page.width * 0.46f));
+            float most = _ui.Skin == Skin.Vanilla
+                ? Mathf.Floor(page.width * 0.46f)
+                : page.width - ResetColumn - _ui.Theme.ValueWidth - 3f * _ui.Theme.Gap - MinSlider;
+            _ui.LabelWidth = Mathf.Clamp(Mathf.Ceil(widest) + 8f, _ui.Theme.LabelWidth, most);
             Log.Msg("panel: " + (tab.Panel != PanelPage.None ? tab.Panel.ToString() : tab.Options.ToString()) +
                     " tab names " + _ui.LabelWidth.ToString("F0") + " wide (longest " + widest.ToString("F0") + ")");
 
