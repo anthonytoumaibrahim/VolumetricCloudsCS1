@@ -109,17 +109,16 @@ namespace VolumetricClouds.UI
             _parts.Add(paste);
 
             // The row's reset: the same icon as every other row's (1.5.0; before, a "Default" text
-            // button), right-aligned. Not in Parts: it fades on its own rule (already the default).
-            _reset = _ui.AddReset(parent, y, Localization.Get("Reset.Tooltip"));
+            // button), right-aligned, going back to the same place: the picked profile's colour, or
+            // the default without one. Not in Parts: it fades on its own rule (already there).
+            _reset = _ui.AddReset(parent, y, row.ResetTooltip);
             if (_reset != null)
             {
                 _reset.eventClick += (component, e) =>
                 {
-                    if (_row.IsDefaultColour)
-                        return;
-
-                    Store(_row.DefaultColour);
-                    Commit("reset to the default");
+                    // It logs the change itself; Refresh shows it.
+                    SettingsCatalog.ResetRow(_row);
+                    _logged = ColorText.Format(Current);
                 };
             }
 
@@ -204,12 +203,22 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// The reset is not in Parts (it greys out on its own rule: already the default), so it
-        /// follows the row's own switch here -- the fog's colour greys out with the fog.
+        /// The reset is not in Parts (it greys out on its own rule: already where it goes back to),
+        /// so it follows the row's own switch here -- the fog's colour greys out with the fog.
         /// </summary>
         private bool ResetWanted
         {
-            get { return !_row.IsDefaultColour && _row.IsEnabled; }
+            get { return !_row.IsAtResetValue && _row.IsEnabled; }
+        }
+
+        /// <summary>Its reset's tooltip, which follows the profile pick (the panel sets it).</summary>
+        public string ResetTooltip
+        {
+            set
+            {
+                if (_reset != null)
+                    _reset.tooltip = value;
+            }
         }
 
         /// <summary>One log line per pick, and only when the colour really moved.</summary>

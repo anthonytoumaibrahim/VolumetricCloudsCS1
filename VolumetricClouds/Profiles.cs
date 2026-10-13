@@ -162,6 +162,23 @@ namespace VolumetricClouds
             }
         }
 
+        /// <summary>
+        /// What a row's reset button puts back (1.5.0): the value the picked profile holds for it,
+        /// in the file's words -- what picking the profile again would put in, a value its file
+        /// lacks included. The author: "The Reset button ... should reset the setting back to how it
+        /// is in the user's profile. It should only reset back to mod default if the user doesn't
+        /// have a profile". Null -- the mod's default, then -- with no profile picked ("(Mod
+        /// defaults)" too), its file unreadable, or a row no profile carries (the Now tab).
+        /// </summary>
+        public static string KeptValueOf(Row row)
+        {
+            if (_state != Status.Selected || Selected.Length == 0 || _kept == null || !SettingsXml.IsProfiled(row))
+                return null;
+
+            string value;
+            return _kept.TryGetValue(row.Name, out value) ? value : null;
+        }
+
         private static bool SameValues(Dictionary<string, string> a, Dictionary<string, string> b)
         {
             if (a.Count != b.Count)

@@ -1163,6 +1163,18 @@ namespace VolumetricClouds
             return Settings.ToggleKey != null ? (int)Settings.ToggleKey.value : 0;
         }
 
+        /// <summary>A row's value as the file writes it: what the picked profile's (Profiles.KeptValueOf) is compared with.</summary>
+        internal static string ValueOf(Row row)
+        {
+            return ValueText(row);
+        }
+
+        /// <summary>Stores a value written as the file writes it (a row's reset to its profile's value). Returns what went wrong, or null.</summary>
+        internal static string ApplyValue(Row row, string text)
+        {
+            return ApplyText(row, text);
+        }
+
         /// <summary>The value exactly as the file holds it.</summary>
         private static string ValueText(Row row)
         {

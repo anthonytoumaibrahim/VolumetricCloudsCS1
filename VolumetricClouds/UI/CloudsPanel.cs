@@ -145,6 +145,9 @@ namespace VolumetricClouds.UI
         /// </summary>
         private bool _refreshing;
 
+        /// <summary>The profile pick the reset buttons' tooltips were written for.</summary>
+        private string _resetTipsFor;
+
         private static CloudsPanel _instance;
 
         /// <summary>Re-reads every control, if the panel exists. Safe to call from anywhere.</summary>
@@ -340,6 +343,12 @@ namespace VolumetricClouds.UI
             _refreshing = true;
             int touched = 0;
 
+            // The reset buttons go back to the picked profile's values, or the defaults without
+            // one: their tooltips say which, again whenever the pick changes.
+            string pick = Profiles.Selected + "|" + Profiles.State;
+            bool retip = pick != _resetTipsFor;
+            _resetTipsFor = pick;
+
             try
             {
                 foreach (Control control in _controls)
@@ -384,9 +393,16 @@ namespace VolumetricClouds.UI
                         }
                     }
 
-                    // Lit while the row is off its default (and not greyed out).
+                    // Lit while the row is off what it would go back to (and not greyed out).
                     if (control.Reset != null)
-                        Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtDefault);
+                    {
+                        Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtResetValue);
+                        if (retip)
+                            control.Reset.tooltip = row.ResetTooltip;
+                    }
+
+                    if (retip && control.Colour != null)
+                        control.Colour.ResetTooltip = row.ResetTooltip;
                 }
             }
             finally
@@ -775,12 +791,12 @@ namespace VolumetricClouds.UI
             if (row.CanReset && row.Kind != RowKind.Colour && row.Kind != RowKind.Status &&
                 row.Kind != RowKind.Button && row.Kind != RowKind.Text)
             {
-                control.Reset = _ui.AddReset(page, y, Localization.Get("Reset.Tooltip"));
+                control.Reset = _ui.AddReset(page, y, row.ResetTooltip);
                 if (control.Reset != null)
                 {
                     Row captured = row;
                     control.Reset.eventClick += (component, e) => SettingsCatalog.ResetRow(captured);
-                    Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtDefault);
+                    Builder.SetResetEnabled(control.Reset, row.IsEnabled && !row.IsAtResetValue);
                 }
             }
 

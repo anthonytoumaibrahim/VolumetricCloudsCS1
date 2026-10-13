@@ -162,6 +162,7 @@
   <String key="Colour.Copied">已复制</String>
   <String key="Colour.Paste">粘贴</String>
   <String key="Reset.Tooltip">恢复默认值</String>
+  <String key="Reset.TooltipProfile">恢复为配置“{0}”中的值</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 

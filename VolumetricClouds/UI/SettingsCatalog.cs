@@ -385,10 +385,40 @@ namespace VolumetricClouds.UI
             }
         }
 
-        /// <summary>A colour row at its default: what greys out its reset button.</summary>
+        /// <summary>A colour row at its default.</summary>
         public bool IsDefaultColour
         {
             get { return Colour == null || ColorText.Same(Colour.value, DefaultColour); }
+        }
+
+        /// <summary>
+        /// What the row's reset button puts back, in the settings file's words: the picked profile's
+        /// value (Profiles.KeptValueOf). Null: the mod's default.
+        /// </summary>
+        public string ResetText
+        {
+            get { return Profiles.KeptValueOf(this); }
+        }
+
+        /// <summary>At what its reset button puts back -- the picked profile's value, or the default: what fades the button.</summary>
+        public bool IsAtResetValue
+        {
+            get
+            {
+                string kept = ResetText;
+                return kept != null ? SettingsXml.ValueOf(this) == kept : IsAtDefault;
+            }
+        }
+
+        /// <summary>The reset button's tooltip: where it goes back to.</summary>
+        public string ResetTooltip
+        {
+            get
+            {
+                return ResetText != null
+                    ? Localization.Get("Reset.TooltipProfile", Profiles.Selected)
+                    : Localization.Get("Reset.Tooltip");
+            }
         }
     }
 
@@ -597,25 +627,38 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// A row's reset button in the panel (1.5.0): that one row back to its default, as if the
-        /// player had moved it there -- saved now, its live hook run, both UIs refreshed. A switch
-        /// goes through <see cref="ApplyToggle"/> like a click (the fog's switch included: the
-        /// reset button is the player's own click).
+        /// A row's reset button in the panel (1.5.0): that one row back to what the picked profile
+        /// holds for it, or to its default with no profile picked (<see cref="Row.ResetText"/>), as
+        /// if the player had moved it there -- saved now, its live hook run, both UIs refreshed. A
+        /// switch goes through <see cref="ApplyToggle"/> like a click (the fog's switch included:
+        /// the reset button is the player's own click).
         /// </summary>
         public static void ResetRow(Row row)
         {
-            if (row == null || !row.CanReset || row.IsAtDefault)
+            if (row == null || !row.CanReset || row.IsAtResetValue)
                 return;
 
-            Log.Msg("setting: " + row.Name + " reset to its default (the row's reset button)");
+            string kept = row.ResetText;
+            Log.Msg("setting: " + row.Name + (kept != null
+                ? " reset to " + kept + ", as profile '" + Profiles.Selected + "' has it (the row's reset button)"
+                : " reset to its default (the row's reset button)"));
 
             if (row.Kind == RowKind.Toggle && row.Bool != null)
             {
-                ApplyToggle(row, row.DefaultBool);
+                bool value;
+                if (kept == null || !SettingsXmlFormat.TryParseBool(kept, out value))
+                    value = row.DefaultBool;
+
+                ApplyToggle(row, value);
                 return;
             }
 
-            row.ResetToDefault();
+            string problem = kept != null ? SettingsXml.ApplyValue(row, kept) : null;
+            if (kept == null)
+                row.ResetToDefault();
+            else if (problem != null)
+                Log.Warn("setting: " + row.Name + " '" + kept + "' " + problem);
+
             SettingsXml.SaveNow();
 
             if (row.AfterChange != null)

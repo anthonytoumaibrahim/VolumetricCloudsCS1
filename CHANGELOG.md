@@ -37,7 +37,9 @@ saved cities are untouched. *Frosted glass* blurs a small copy of the screen onl
 open.
 
 Every setting in the panel now ends in a small reset button (a round arrow) that puts that one
-setting back to its default; it is faded while the setting is already there. The colour rows' text
+setting back to how the picked profile has it, or to its default when no profile is picked (and for
+the *Now* tab, which profiles don't carry); its tooltip says which, and it is faded while the
+setting is already there. The colour rows' text
 button *Default* is now the same icon. Long setting names are no longer cut off: each tab's name
 column is as wide as its longest name needs, and a name that still doesn't fit is drawn smaller.
 

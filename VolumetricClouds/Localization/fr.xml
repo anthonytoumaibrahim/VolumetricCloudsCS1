@@ -148,6 +148,7 @@
   <String key="Colour.Copied">Copié</String>
   <String key="Colour.Paste">Coller</String>
   <String key="Reset.Tooltip">Revenir à la valeur par défaut</String>
+  <String key="Reset.TooltipProfile">Revenir à la valeur du profil « {0} »</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
