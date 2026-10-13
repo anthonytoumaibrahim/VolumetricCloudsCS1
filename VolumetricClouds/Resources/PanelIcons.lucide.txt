@@ -1,0 +1,14 @@
+# Volumetric Weather's tab icons, for ModsLibCS1 (the shared sheet holds only what every mod uses).
+# Lucide icons (lucide.dev, lucide-static 0.460.0, ISC: THIRD-PARTY-NOTICES.md), path data copied
+# from their SVGs; a circle written as a path. One icon per line: its name, then each path, separated
+# by " | ". After a change: powershell -File ModsLibCS1\tools\make-icons.ps1 -Spec <this file>
+# (it writes PanelIcons.png + PanelIcons.txt beside it, which the library's props embed).
+#
+# Now, Clouds, Distant clouds, Fog, Light; Weather and Halos (advanced options).
+clock | M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0Z | M12 6L12 12L16 14
+cloud | M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z
+cloudy | M17.5 21H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z | M22 10a3 3 0 0 0-3-3h-2.207a5.502 5.502 0 0 0-10.702.5
+cloud-fog | M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242 | M16 17H7 | M17 21H9
+sun | M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z | M12 2v2 | M12 20v2 | m4.93 4.93 1.41 1.41 | m17.66 17.66 1.41 1.41 | M2 12h2 | M20 12h2 | m6.34 17.66-1.41 1.41 | m19.07 4.93-1.41 1.41
+cloud-sun-rain | M12 2v2 | m4.93 4.93 1.41 1.41 | M20 12h2 | m19.07 4.93-1.41 1.41 | M15.947 12.65a4 4 0 0 0-5.925-4.128 | M3 20a5 5 0 1 1 8.9-4H13a3 3 0 0 1 2 5.24 | M11 20v2 | M7 19v2
+lightbulb | M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 | M9 18h6 | M10 22h4
