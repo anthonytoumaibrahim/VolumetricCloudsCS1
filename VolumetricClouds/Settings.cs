@@ -361,6 +361,14 @@ namespace VolumetricClouds
         /// </summary>
         public static BoolSetting LargerWeatherPattern { get; private set; }
 
+        /// <summary>
+        /// CLOUDS TO THE HORIZON (1.5.0, on): under a full overcast the deck carries on to the horizon
+        /// (Sky.CloudVolume's far deck, CloudRaymarch MarchFarDeck). Built as a test switch, kept and made
+        /// always on, then a real row again (the author, 2026-10-13: "We'll need to add it as a real
+        /// option under Weather").
+        /// </summary>
+        public static BoolSetting CloudsToHorizon { get; private set; }
+
         /// <summary>Clouds cast shadows on the ground.</summary>
         public static BoolSetting CloudShadows { get; private set; }
 
@@ -374,8 +382,9 @@ namespace VolumetricClouds
         public static FloatSetting CloudShadowFullness { get; private set; }
 
         // The 1.5.0 test switches (skip the empty sky, clouds to the horizon, grain changes every
-        // frame, tint smoother clouds) were removed before release: the skip and the far deck are
-        // always on, the jitter stays as it was, no tint. Never in a released file.
+        // frame, tint smoother clouds) were removed before release: the skip is always on, the jitter
+        // stays as it was, no tint. Never in a released file. The far deck came back as a real row,
+        // CloudsToHorizon (not the test switch's name).
 
         /// <summary>Texels per side of the shadow map. A fixed GPU cost, so it is a lever on a weak card.</summary>
         public static IntSetting ShadowMapResolution { get; private set; }
@@ -691,6 +700,9 @@ namespace VolumetricClouds
 
             /// <summary>Off: every city keeps the pattern it had (the author: "By default let's not change it").</summary>
             public const bool LargerWeatherPattern = false;
+
+            /// <summary>On: the far deck as it was kept (2026-10-12, "We'll keep this"). Only over 90% cover.</summary>
+            public const bool CloudsToHorizon = true;
 
             // ---- the clouds ----
             public const bool CloudsVisible = true;
@@ -1045,6 +1057,7 @@ namespace VolumetricClouds
                 // settings files and is far too small for cloud-sized features.
                 WeatherTileSize = new FloatSetting("WeatherTileSize", Defaults.WeatherTileSize);
                 LargerWeatherPattern = new BoolSetting("LargerWeatherPattern", Defaults.LargerWeatherPattern);
+                CloudsToHorizon = new BoolSetting("CloudsToHorizon", Defaults.CloudsToHorizon);
                 CloudShadows = new BoolSetting("CloudShadows", Defaults.CloudShadows);
                 // Not the old "CloudShadowStrength": that slider had almost no effect at high
                 // coverage, so saved values of it are not meaningful.

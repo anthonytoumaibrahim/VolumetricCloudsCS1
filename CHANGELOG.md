@@ -11,7 +11,7 @@ A new look for the in-game panel, fog that changes on its own, a third cloud sty
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-three lines: `LargerWeatherPattern` (off), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+`VolumetricClouds.xml` gains twenty-four lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
 back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
@@ -92,11 +92,11 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   100% the far clouds stay solid, and only toward the horizon thin out gently into the haze of
   whatever sky is behind them, so a full overcast doesn't end on a line above the horizon. The Light
   tab's *At night* heading is now *Day and night*.
-- Clouds to the horizon: under a full overcast (95% cover or more, fading in from 90%), the cloud
-  deck now carries on all the way to the horizon, following the curve of the Earth, instead of
-  ending a few degrees above it with clear sky underneath. Seen from high up, it also covers the sky
-  beyond the edge of the map. It hides a low sun too. By day it follows *Clouds hide the sky by
-  day* (0%: no change); at night it follows *Clouds hide the stars at night*.
+- *Clouds to the horizon* on the Weather tab (advanced panel), on by default: under a full
+  overcast (95% cover or more, fading in from 90%), the cloud deck now carries on all the way to
+  the horizon, following the curve of the Earth, instead of ending a few degrees above it with clear
+  sky underneath. Seen from high up, it also covers the sky beyond the edge of the map. It hides a
+  low sun too. Off: the clouds end above the horizon, as before.
 
 ### New: the Mixed cloud style
 
@@ -236,6 +236,10 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 The four temporary test switches (*Skip the empty sky*, *Clouds to the horizon*, *Grain changes every
 frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (the author: "we already
 tested with them"): the skip and the far deck are always on, the jitter stays as it was, no tint.
+The far deck came back the same day as a real row, *Clouds to the horizon* on the Weather tab (on;
+the author: "add it as a real option under Weather"), no longer waiting for *Clouds hide the sky by
+day*: by day at its default 0% a ticked switch would have done nothing. Check in the log:
+`features: ... cloudsToHorizon=on`, the frame line's `farDeck=` (0% with it off, or under 90% cover).
 
 Built, awaiting the in-game test:
 
@@ -332,7 +336,8 @@ Undecided (not agreed yet, decide before building):
   marched the clouds themselves out there: the weather map's 13.5 km repeats showed as arcs
   fanning into the vanishing point, and it was grainy.) KEPT (2026-10-12, "We'll keep this"),
   written up under *Clouds hide the sky by day*; it hides a low sun too. Its switch was removed
-  2026-10-13: always on.
+  2026-10-13: always on; back the same day as the row *Clouds to the horizon* (on), no longer tied to
+  the day/night opacity.
 
 Then a sweep over every item above before release: each one built or deliberately moved to a
 later version, tested in-game, and written up in this changelog.

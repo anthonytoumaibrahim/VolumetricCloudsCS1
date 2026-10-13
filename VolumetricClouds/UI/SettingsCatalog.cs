@@ -1710,6 +1710,20 @@ namespace VolumetricClouds.UI
                 AfterChange = State("larger weather pattern", OnOff(Settings.LargerWeatherPattern)),
             });
 
+            // 1.5.0: the far deck (Sky.CloudVolume, CloudRaymarch MarchFarDeck) -- under a full overcast
+            // the deck carries on to the horizon. A test switch, kept and made always on, then a row of
+            // its own (the author: "add it as a real option under Weather"). On its own now: it no longer
+            // waits for "Clouds hide the sky by day", so ticking it is enough. A look: in profiles (one
+            // saved before has none, and reads it on).
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Options = OptionsPage.Weather,
+                Bool = Settings.CloudsToHorizon,
+                DefaultBool = Settings.Defaults.CloudsToHorizon,
+                AfterChange = State("clouds to the horizon", OnOff(Settings.CloudsToHorizon)),
+            });
+
             // 1.3.0 (asked for: "edit the X and Y values" of the clouds' position, "for advanced
             // settings"): moves THIS city's clouds, all of them together (CloudWind.SetShift),
             // saved with the city (SkyState version 2) -- not a setting: every city's pattern is its

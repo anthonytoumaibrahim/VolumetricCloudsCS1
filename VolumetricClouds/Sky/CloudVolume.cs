@@ -1628,12 +1628,14 @@ namespace VolumetricClouds.Sky
             float edgeStart = Mathf.Lerp(DayEdgeStart, NightEdgeStart, night);
             _material.SetFloat(IdEdgeStart, edgeStart);
 
-            // The far deck (1.5.0, CloudRaymarch MarchFarDeck): the deck out to the horizon, as much of
-            // it as the clouds shut the sky out (0% by day: none, as before), and only over a full
-            // overcast. Behind the near deck, filling in as that thins.
+            // The far deck (1.5.0, CloudRaymarch MarchFarDeck): the deck out to the horizon, only over a
+            // full overcast, while "Clouds to the horizon" is on. Behind the near deck, filling in as
+            // that thins. (It followed the clouds' day/night opacity, `shut`, until it became a row of
+            // its own: by day at the default 0% a ticked switch did nothing.)
             float cover = Mathf.Clamp01(CloudShaderParams.Coverage);
             float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
-            _farDeckShown = shut * overcast;
+            bool toHorizon = Settings.CloudsToHorizon == null || Settings.CloudsToHorizon.value;
+            _farDeckShown = toHorizon ? overcast : 0f;
             float reach = Reach;
             // From high over the clouds the reach grows (up to MaxReach): the band always goes past it.
             float end = Mathf.Max(FarDeckEnd, reach * 1.5f);

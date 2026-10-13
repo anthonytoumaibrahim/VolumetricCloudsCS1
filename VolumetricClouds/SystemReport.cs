@@ -73,6 +73,8 @@ namespace VolumetricClouds
                         " sunsetLight=" + (Sky.SunsetLight.Setting * 100f).ToString("F0") + "%" +
                         // 1.5.0: changes what shows through the far clouds by day.
                         " hideSkyByDay=" + Percent(Settings.CloudDayOpacity, Settings.Defaults.DayOpacity) +
+                        // 1.5.0: the far deck under a full overcast.
+                        " cloudsToHorizon=" + On(Settings.CloudsToHorizon, Settings.Defaults.CloudsToHorizon) +
                         // 1.5.0: Smoother clouds.
                         " smootherClouds=" + On(Settings.CloudTemporal, Settings.Defaults.Temporal) +
                         " fragments=" + Sky.CloudFragments.Describe() +

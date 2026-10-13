@@ -218,6 +218,8 @@
 
   <String key="LargerWeatherPattern.Label">更大的天气图案（云大小不变）</String>
 
+  <String key="CloudsToHorizon.Label">云层延伸至地平线</String>
+
   <String key="Group.CloudPosition">云层位置（仅本城市，随存档保存）</String>
 
   <String key="CloudPositionX.Label">云层位置 X</String>
