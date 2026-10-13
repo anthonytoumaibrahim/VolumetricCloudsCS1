@@ -147,22 +147,40 @@ namespace VolumetricClouds.Sky
             get { return Singleton<WeatherManager>.exists ? Mathf.Clamp01(Singleton<WeatherManager>.instance.m_groundWetness) : 0f; }
         }
 
-        /// <summary>"Fog changes with the weather", 0..1.</summary>
+        /// <summary>"Dynamic fog" (1.5.0): off, the three below read 0 -- the fog as it always was.</summary>
+        public static bool Dynamic
+        {
+            get { return Settings.DynamicFog != null ? Settings.DynamicFog.value : Settings.Defaults.DynamicFog; }
+        }
+
+        /// <summary>"Fog changes with the weather", 0..1; 0 with Dynamic fog off.</summary>
         public static float ChangeWithWeather
         {
-            get { return Settings.FogChangesWithWeather != null ? Mathf.Clamp01(Settings.FogChangesWithWeather.value) : Settings.Defaults.FogChangesWithWeather; }
+            get
+            {
+                if (!Dynamic) return 0f;
+                return Settings.FogChangesWithWeather != null ? Mathf.Clamp01(Settings.FogChangesWithWeather.value) : Settings.Defaults.FogChangesWithWeather;
+            }
         }
 
-        /// <summary>"Morning fog", 0..1.</summary>
+        /// <summary>"Morning fog", 0..1; 0 with Dynamic fog off.</summary>
         public static float MorningSetting
         {
-            get { return Settings.MorningFog != null ? Mathf.Clamp01(Settings.MorningFog.value) : Settings.Defaults.MorningFog; }
+            get
+            {
+                if (!Dynamic) return 0f;
+                return Settings.MorningFog != null ? Mathf.Clamp01(Settings.MorningFog.value) : Settings.Defaults.MorningFog;
+            }
         }
 
-        /// <summary>"Mist after rain", 0..1.</summary>
+        /// <summary>"Mist after rain", 0..1; 0 with Dynamic fog off.</summary>
         public static float MistSetting
         {
-            get { return Settings.MistAfterRain != null ? Mathf.Clamp01(Settings.MistAfterRain.value) : Settings.Defaults.MistAfterRain; }
+            get
+            {
+                if (!Dynamic) return 0f;
+                return Settings.MistAfterRain != null ? Mathf.Clamp01(Settings.MistAfterRain.value) : Settings.Defaults.MistAfterRain;
+            }
         }
 
         /// <summary>"Fog fills valleys" as drawn, 0..1: the slider, while the fog follows the ground; 0 for a level fog.</summary>
@@ -680,42 +698,6 @@ namespace VolumetricClouds.Sky
             _weatherAmount = _amount;
             _morningAmount = 0f;
             _mistAmount = 0f;
-        }
-
-        /// <summary>One line for the panel and the log.</summary>
-        public static string Describe()
-        {
-            // The setting first: with the fog switched off the terrain map is never built, so
-            // asking the map first would tell every fog-off player it was "measuring the
-            // terrain" for ever.
-            if (!Enabled)
-                return Localization.Get("Status.Fog.Off");
-
-            if (!Active)
-                return Localization.Get(TerrainHeightMap.Ready ? "Status.Fog.Waiting" : "Status.Fog.Measuring");
-
-            // Named after the morning fog or the mist while one of them is what covers the most
-            // (1.5.0): "fog 0% -> morning fog over 40% of the map" explains itself.
-            string shareKey = "Status.Fog.Share";
-            if (_morningAmount > _weatherAmount && _morningAmount >= _mistAmount && _morningAmount > 0.005f)
-                shareKey = "Status.Fog.ShareMorning";
-            else if (_mistAmount > _weatherAmount && _mistAmount > _morningAmount && _mistAmount > 0.005f)
-                shareKey = "Status.Fog.ShareMist";
-
-            string share = Localization.Get(shareKey, Percent(_amount));
-
-            // With no other fog about, the banks over the water are what there is (1.5.0).
-            if (_amount <= 0.005f && _waterAmount > 0.005f)
-                share = Localization.Get("Status.Fog.ShareWater", Percent(_waterAmount));
-
-            return Overridden
-                ? Localization.Get("Status.Fog.Manual", share, Percent(GameFog))
-                : Localization.Get("Status.Fog.Following", Percent(GameFog), share);
-        }
-
-        private static string Percent(float fraction)
-        {
-            return Localization.Get("Unit.Percent", (fraction * 100f).ToString("F0"));
         }
     }
 }

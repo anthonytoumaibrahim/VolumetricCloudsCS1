@@ -82,7 +82,9 @@ namespace VolumetricClouds
                         " volumetricFog=" + On(Settings.FogEnabled, false) +
                         " fogDistance=" + (Sky.CloudFog.Reach / 1000f).ToString("F1") + "km" +
                         " fogLitByLights=" + On(Settings.FogLampsEnabled, true) +
-                        // 1.5.0: change the fog's look and bring fog of their own.
+                        // 1.5.0: change the fog's look and bring fog of their own (the three read 0
+                        // with dynamic fog off).
+                        " dynamicFog=" + On(Settings.DynamicFog, Settings.Defaults.DynamicFog) +
                         " fogChangesWithWeather=" + (Sky.CloudFog.ChangeWithWeather * 100f).ToString("F0") + "%" +
                         " morningFog=" + (Sky.CloudFog.MorningSetting * 100f).ToString("F0") + "%" +
                         " mistAfterRain=" + (Sky.CloudFog.MistSetting * 100f).ToString("F0") + "%" +

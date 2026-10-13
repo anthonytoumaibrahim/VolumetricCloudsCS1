@@ -10,10 +10,10 @@ below; the mods list shows it after the mod's name, and the first line of
 A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, and the mod's defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-one lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+`VolumetricClouds.xml` gains twenty-two lines: `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
-back), `PanelFoldedGroups` (the advanced panel's folded headings), `FogChangesWithWeather`, `MorningFog`,
+back), `PanelFoldedGroups` (the advanced panel's folded headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
@@ -54,8 +54,9 @@ the screen's alpha.
 
 ### New: changing fog
 
-Three sliders at the bottom of the Fog tab, under *Changing fog*, each 0% to 100%, 0% by default.
-With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
+Three sliders at the bottom of the Fog tab, under *Changing fog*, each 0% to 100%, 0% by default,
+and a *Dynamic fog* switch above them (on) that turns all three off at once without losing their
+values. With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
 you get: these only ever make it thinner, lower or wispier than that.
 
 - *Fog changes with the weather*: the fog is thickest at night and in heavy fog. On a sunny
@@ -197,6 +198,11 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   fullness* on the Light tab. Their settings are unchanged.
 - *Volumetric fog* no longer warns that it is very heavy on performance: players have found it
   costs little.
+- The panel is simpler: the *Now* tab's two status lines (the weather and the fog against the
+  game's), its *Follow the game's weather* button and *Test lightning* are gone, and so is the
+  cloud brightness line on the *Clouds* tab. *Set lightning activity myself* is now *Override
+  lightning*; the *Distant clouds* tab's names are shorter (*Cloud layers* is *Mixed distant
+  clouds*), and the near lamps' heading on the *Halos* tab is *Near lights*. No setting changes.
 - The clouds are cheaper to draw where the sky is clear: the mod no longer works through stretches
   of sky that can't hold any cloud at the current cover. Nothing on screen changes. It helps most at
   fair weather and when looking up; at a full overcast there is nothing to skip. Off while *Cloud

@@ -66,12 +66,6 @@
 
   <!-- ==================== In-game panel: Now ==================== -->
 
-  <String key="FollowTheGame.Label">Seguir el clima del juego (anular ajustes)</String>
-
-  <String key="Status.Weather.Game">lluvia {0}, nubes {1}</String>
-  <String key="Status.Weather.Manual">FORZADO: intensidad {0}  (el juego indica {1})</String>
-  <String key="Status.Weather.Following">Siguiendo el juego: {0}  -&gt;  intensidad {1}  (despejado {2} a lluvia {3})</String>
-
   <String key="CoverageOverride.Label">Ignorar el clima del juego</String>
 
   <String key="Coverage.Label">Intensidad fija</String>
@@ -83,25 +77,13 @@
   <String key="WindDirection.Fixed">Fija</String>
   <String key="WindAngle.Label">Dirección fija del viento</String>
 
-  <String key="Status.Fog.Off">La niebla volumétrica está desactivada</String>
-  <String key="Status.Fog.Waiting">Niebla volumétrica: esperando a las nubes</String>
-  <String key="Status.Fog.Measuring">Niebla volumétrica: midiendo el terreno...</String>
-  <String key="Status.Fog.Share">niebla en {0} del mapa</String>
-  <String key="Status.Fog.ShareMorning">niebla matinal en {0} del mapa</String>
-  <String key="Status.Fog.ShareMist">neblina tras la lluvia en {0} del mapa</String>
-  <String key="Status.Fog.ShareWater">niebla en {0} del agua</String>
-  <String key="Status.Fog.Manual">FORZADO: {0}  (el juego indica {1})</String>
-  <String key="Status.Fog.Following">Siguiendo el juego: niebla {0}  -&gt;  {1}</String>
-
   <String key="FogOverride.Label">Forzar niebla</String>
 
   <String key="FogAmount.Label">Cantidad de niebla</String>
 
-  <String key="LightningOverride.Label">Ajustar actividad de rayos</String>
+  <String key="LightningOverride.Label">Forzar rayos</String>
 
   <String key="LightningActivity.Label">Actividad de rayos</String>
-
-  <String key="TestLightning.Label">Probar rayo (solo visual, ante la cámara)</String>
 
   <String key="RainbowChance.Label">Prob. de arcoíris</String>
 
@@ -129,7 +111,6 @@
 
   <String key="CloudDetail.Label">Detalle de nubes (suave a esculpido)</String>
 
-
   <String key="CloudBreakup.Label">Nubes (sólidas a irregulares)</String>
 
   <String key="CloudBreakupScale.Label">Fragmentación (grande a fina)</String>
@@ -140,13 +121,6 @@
   <String key="CloudFragmentStyle.Clustered">Agrupados</String>
   <String key="CloudFragmentStyle.Scattered">Dispersos</String>
   <String key="CloudFragmentStyle.Wispy">Tenues</String>
-
-  <String key="Status.Brightness.Auto">Brillo de nubes: {0} (automático, intensidad {1})</String>
-  <String key="Status.Brightness.Manual">Brillo de nubes: {0} (manual)</String>
-  <String key="Status.Brightness.AutoNight">Brillo de nubes: {0} (automático, intensidad {1}, noche)</String>
-  <String key="Status.Brightness.ManualNight">Brillo de nubes: {0} (manual, noche)</String>
-  <String key="Status.Brightness.AutoTwilight">Brillo de nubes: {0} (automático, intensidad {1}, crepúsculo)</String>
-  <String key="Status.Brightness.ManualTwilight">Brillo de nubes: {0} (manual, crepúsculo)</String>
 
   <String key="Group.CloudColour">Color (blanco conserva el color original)</String>
 
@@ -160,15 +134,15 @@
 
   <String key="CloudNightShadeColor.Label">Lado en sombra de noche</String>
 
-  <String key="Group.SkyLayer">Cielos fotografiados detrás de las nubes (se suman)</String>
+  <String key="Group.SkyLayer">Nubes lejanas</String>
 
-  <String key="SkyCirrus.Label">Cirros (altos, en finas estelas)</String>
+  <String key="SkyCirrus.Label">Cirros</String>
 
-  <String key="SkySheepClouds.Label">Nubes aborregadas (pequeños copos agrupados)</String>
+  <String key="SkySheepClouds.Label">Nubes aborregadas</String>
 
   <String key="SkyFarClouds.Label">Cúmulos en el horizonte</String>
 
-  <String key="SkyCloudLayers.Label">Capas de nubes (varios tipos a la vez)</String>
+  <String key="SkyCloudLayers.Label">Nubes lejanas mixtas</String>
 
   <String key="Colour.Copy">Copiar</String>
   <String key="Colour.Copied">Copiado</String>
@@ -209,6 +183,7 @@
   <String key="FogLampLight.Label">Brillo de niebla</String>
 
   <String key="Group.FogChanges">Niebla cambiante (nunca más de lo fijado arriba)</String>
+  <String key="DynamicFog.Label">Niebla dinámica</String>
   <String key="FogChangesWithWeather.Label">La niebla cambia con el clima</String>
   <String key="MorningFog.Label">Niebla matinal</String>
   <String key="MistAfterRain.Label">Neblina tras la lluvia</String>
@@ -324,7 +299,7 @@
 
   <String key="HaloRadius.Label">Tamaño</String>
 
-  <String key="Group.NearLights">Las mismas luces, cerca de la cámara</String>
+  <String key="Group.NearLights">Luces cercanas</String>
 
   <String key="HaloNearLightDistance.Label">Luces cercanas: a menos de</String>
 

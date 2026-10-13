@@ -60,7 +60,6 @@ namespace VolumetricClouds.Sky
         private static readonly Vector4[] FlashPos = new Vector4[MaxFlashes];
         private static readonly Vector4[] FlashColor = new Vector4[MaxFlashes];
         private static int _flashCount;
-        private static bool _testRequested;
 
         private sealed class Strike
         {
@@ -69,7 +68,6 @@ namespace VolumetricClouds.Sky
             public Vector3 Source;
             public LightningFlicker.Profile Profile;
             public bool FromGame;
-            public bool IsTest;
             public Mesh Bolt;
             public float ThunderIn = -1f;
             public float RollIn = -1f;      // a second, lower roll of thunder, for some strikes
@@ -107,8 +105,6 @@ namespace VolumetricClouds.Sky
         private MaterialPropertyBlock _block;
 
         private double _ownClock = 1000.0;
-        private bool _testPlaying;
-        private int _testCount;
         private System.Random _random = new System.Random();
         private Randomizer _soundRandomizer = new Randomizer(1u);
         private float _reduction;
@@ -141,12 +137,6 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdFlashCount, _flashCount);
             material.SetVectorArray(IdFlashPos, FlashPos);
             material.SetVectorArray(IdFlashColor, FlashColor);
-        }
-
-        /// <summary>A visual-only strike in front of the camera, for judging the look.</summary>
-        public static void RequestTest()
-        {
-            _testRequested = true;
         }
 
         private void Start()
@@ -192,9 +182,8 @@ namespace VolumetricClouds.Sky
             uint frame = simulation.m_referenceFrameIndex;
 
             // Our own strikes run on their own 60 Hz clock. It stops with the game like
-            // everything else -- except while a test strike is playing, so the Test button
-            // shows a whole flash even when pressed with the game paused.
-            if (!paused || _testPlaying)
+            // everything else.
+            if (!paused)
                 _ownClock += Time.deltaTime * 60.0;
             uint ownFrame = (uint)_ownClock;
 
@@ -355,8 +344,6 @@ namespace VolumetricClouds.Sky
 
         private void SpawnOwnStrikes(uint frame, bool paused)
         {
-            _testPlaying = false;
-
             for (int i = _ownStrikes.Count - 1; i >= 0; i--)
             {
                 Strike strike = _ownStrikes[i];
@@ -368,72 +355,50 @@ namespace VolumetricClouds.Sky
                     Release(strike);
                     _ownStrikes.RemoveAt(i);
                 }
-                else if (strike.IsTest)
-                {
-                    _testPlaying = true;
-                }
             }
 
-            bool test = _testRequested;
-            _testRequested = false;
+            if (paused)
+                return;
 
-            if (!test)
-            {
-                if (paused)
-                    return;
+            float activity = Activity();
+            if (activity <= 0f)
+                return;
 
-                float activity = Activity();
-                if (activity <= 0f)
-                    return;
-
-                // Real time, not simulation time: at 3x speed a storm should not strobe.
-                float rate = LightningPlacement.StrikesPerSecond(activity);
-                if (_random.NextDouble() > Time.deltaTime * rate)
-                    return;
-            }
+            // Real time, not simulation time: at 3x speed a storm should not strobe.
+            float rate = LightningPlacement.StrikesPerSecond(activity);
+            if (_random.NextDouble() > Time.deltaTime * rate)
+                return;
 
             Vector3 camera = _camera.transform.position;
             Vector3 spot = Vector3.zero;
             bool found = false;
             bool inView = false;
 
-            if (test)
-            {
-                Vector3 forward = _camera.transform.forward;
-                forward.y = 0f;
-                forward = forward.sqrMagnitude < 1e-4f ? Vector3.forward : forward.normalized;
-                spot = camera + forward * 1200f;
-                found = true;
-                inView = true;
-            }
-            else
-            {
-                float ground = Singleton<TerrainManager>.exists
-                    ? Singleton<TerrainManager>.instance.SampleRawHeightSmooth(camera)
-                    : 0f;
+            float ground = Singleton<TerrainManager>.exists
+                ? Singleton<TerrainManager>.instance.SampleRawHeightSmooth(camera)
+                : 0f;
 
-                // Only ever inside cloud -- and mostly where the camera is pointed. The rate
-                // was never the reason the storms went unseen; where the strikes were put was.
-                //
-                // Decided ONCE per strike, then tried in two stages. The first version rolled
-                // the dice on every attempt, and from a camera looking steeply down every
-                // in-view candidate lands in the same small patch of ground (the ground hit is
-                // nearer than the 800 m minimum, so they all clamp to it): with no cloud over
-                // that patch, seven attempts in ten were wasted and the strike was skipped --
-                // his first log had 2 strikes and 2 skips in 14 s at "one every 3 s". Now an
-                // in-view strike gets six tries in the frustum and then carries on all round,
-                // so clear sky ahead moves the storm instead of thinning it.
-                bool wantView = _random.NextDouble() < LightningPlacement.InViewShare;
+            // Only ever inside cloud -- and mostly where the camera is pointed. The rate
+            // was never the reason the storms went unseen; where the strikes were put was.
+            //
+            // Decided ONCE per strike, then tried in two stages. The first version rolled
+            // the dice on every attempt, and from a camera looking steeply down every
+            // in-view candidate lands in the same small patch of ground (the ground hit is
+            // nearer than the 800 m minimum, so they all clamp to it): with no cloud over
+            // that patch, seven attempts in ten were wasted and the strike was skipped --
+            // his first log had 2 strikes and 2 skips in 14 s at "one every 3 s". Now an
+            // in-view strike gets six tries in the frustum and then carries on all round,
+            // so clear sky ahead moves the storm instead of thinning it.
+            bool wantView = _random.NextDouble() < LightningPlacement.InViewShare;
 
-                for (int attempt = 0; attempt < 14 && !found; attempt++)
-                {
-                    bool preferView = wantView && attempt < 6;
-                    spot = LightningPlacement.Spot(camera, _camera.transform.rotation,
-                        _camera.fieldOfView, _camera.aspect, ground, preferView,
-                        (float)_random.NextDouble(), (float)_random.NextDouble(), (float)_random.NextDouble(),
-                        out inView);
-                    found = CloudAt(spot) > 0.6f;
-                }
+            for (int attempt = 0; attempt < 14 && !found; attempt++)
+            {
+                bool preferView = wantView && attempt < 6;
+                spot = LightningPlacement.Spot(camera, _camera.transform.rotation,
+                    _camera.fieldOfView, _camera.aspect, ground, preferView,
+                    (float)_random.NextDouble(), (float)_random.NextDouble(), (float)_random.NextDouble(),
+                    out inView);
+                found = CloudAt(spot) > 0.6f;
             }
 
             if (!found)
@@ -446,9 +411,8 @@ namespace VolumetricClouds.Sky
                 ? Singleton<TerrainManager>.instance.SampleRawHeightSmooth(spot)
                 : 0f;
 
-            // Most lightning stays in the cloud; some of it comes down. The test button
-            // alternates, so both kinds can be judged.
-            bool toGround = test ? (_testCount++ % 2 == 0) : _random.NextDouble() < 0.35;
+            // Most lightning stays in the cloud; some of it comes down.
+            bool toGround = _random.NextDouble() < 0.35;
             Strike own = NewStrike(frame, spot, false, toGround);
 
             float delay = Mathf.Min(Vector3.Distance(camera, own.Source) / SpeedOfSound, MaxThunderDelay);
@@ -458,13 +422,10 @@ namespace VolumetricClouds.Sky
             if (own.Profile.Frames > 45u || _random.NextDouble() < 0.3)
                 own.RollIn = delay + Mathf.Lerp(0.5f, 1.6f, (float)_random.NextDouble());
 
-            own.IsTest = test;
-            _testPlaying |= test;
-
             if (Log.Detailed)
             {
                 LightningFlicker.Profile p = own.Profile;
-                Log.Detail("lightning: own " + (toGround ? "bolt" : "sheet") + (test ? " (test)" : "") +
+                Log.Detail("lightning: own " + (toGround ? "bolt" : "sheet") +
                            (inView ? " in view" : " all-round") +
                            " at " + Vector3.Distance(camera, spot).ToString("F0") + " m" +
                            ", lasts " + (p.Frames / 60f).ToString("F2") + "s, " + p.Strokes + " stroke(s), flicker every " +
@@ -541,7 +502,7 @@ namespace VolumetricClouds.Sky
             foreach (Strike strike in _ownStrikes)
                 total += Activate(strike, ownFrame, reduction);
 
-            if (!paused || _testPlaying)
+            if (!paused)
             {
                 _reduction = Mathf.Clamp01(_reduction + Mathf.Abs(total - _lastTotal) * 0.1f - Time.deltaTime * 0.3f);
                 _lastTotal = total;
@@ -589,7 +550,7 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private void PlayThunder(bool paused)
         {
-            if (paused && !_testPlaying)
+            if (paused)
                 return;
 
             _thunderReady -= Time.deltaTime;
@@ -602,11 +563,10 @@ namespace VolumetricClouds.Sky
             {
                 // The clap: louder for a powerful strike and for one that reaches the ground,
                 // quieter the further off it struck. Only one gets through per cooldown, and it
-                // is the nearest -- the one the ear would pick out of a storm anyway. A test
-                // strike always wins, and is placed in front of the camera, so it is not faded.
+                // is the nearest -- the one the ear would pick out of a storm anyway.
                 if (Due(ref strike.ThunderIn))
                 {
-                    float distance = strike.IsTest ? -1f : Vector3.Distance(camera, strike.Source);
+                    float distance = Vector3.Distance(camera, strike.Source);
                     if (distance < nearest)
                     {
                         nearest = distance;
@@ -618,14 +578,12 @@ namespace VolumetricClouds.Sky
                 // three strikes in ten have one, so these do not need limiting.
                 if (Due(ref strike.RollIn))
                 {
-                    float far = LightningPlacement.ThunderVolume(strike.IsTest ? 0f : Vector3.Distance(camera, strike.Source));
+                    float far = LightningPlacement.ThunderVolume(Vector3.Distance(camera, strike.Source));
                     Thunder(strike, 0.35f * far, _soundRandomizer.Int32(450, 700) * 0.001f);
                 }
             }
 
-            // The Test button always thunders: it is pressed to hear it, and a storm that
-            // happened to clap a second earlier must not swallow that.
-            if (clap == null || (_thunderReady > 0f && !clap.IsTest))
+            if (clap == null || _thunderReady > 0f)
                 return;
 
             _thunderReady = ThunderCooldown;

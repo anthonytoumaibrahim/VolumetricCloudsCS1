@@ -257,6 +257,13 @@ namespace VolumetricClouds
         public static FloatSetting FogSpeed { get; private set; }
 
         /// <summary>
+        /// (1.5.0) The three changing-fog sliders below in one switch: off, the fog is the sliders'
+        /// as it always was, whatever the three say (they keep their values, greyed out). On, the
+        /// default, they do what they say -- so the new row changes nobody's fog.
+        /// </summary>
+        public static BoolSetting DynamicFog { get; private set; }
+
+        /// <summary>
         /// 0..1 (1.5.0): how much the weather's fog (the game's, or the override's) changes its look
         /// with the time of day and how strong the fog is -- thicker at night and in a big spell,
         /// thinner, lower and wispier on a sunny afternoon. Never more than the fog sliders
@@ -866,6 +873,7 @@ namespace VolumetricClouds
             /// All three 0 (1.5.0): off for new AND existing players (the author's condition for every
             /// new fog option), and at 0 the fog is exactly what it was, bit for bit.
             /// </summary>
+            public const bool DynamicFog = true;
             public const float FogChangesWithWeather = 0f;
             public const float MorningFog = 0f;
             public const float MistAfterRain = 0f;
@@ -1004,6 +1012,7 @@ namespace VolumetricClouds
                 FogColor = new ColorSetting("FogColor", Defaults.FogColor);
                 FogBreakup = new FloatSetting("FogBreakup", Defaults.FogBreakup);
                 FogSpeed = new FloatSetting("FogSpeed", Defaults.FogSpeed);
+                DynamicFog = new BoolSetting("DynamicFog", Defaults.DynamicFog);
                 FogChangesWithWeather = new FloatSetting("FogChangesWithWeather", Defaults.FogChangesWithWeather);
                 MorningFog = new FloatSetting("MorningFog", Defaults.MorningFog);
                 MistAfterRain = new FloatSetting("MistAfterRain", Defaults.MistAfterRain);

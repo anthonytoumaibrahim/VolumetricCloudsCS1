@@ -283,30 +283,6 @@ namespace VolumetricClouds.Sky
             return Mathf.Lerp(FairEnd, RainEnd, Overcast);
         }
 
-        /// <summary>
-        /// One line for the panel and the log, and it says which of the three levels is in
-        /// charge. An override is a saved setting, so it survives the session: someone who forgot
-        /// it is on will report the mod as broken, and a loud status line is the cheap fix.
-        /// While FOLLOWING it also prints the two ends of the mapping, because those live on
-        /// the options page and nothing else on screen says what the weather is being mapped
-        /// ONTO -- a rain end left at 0 makes the whole feature look dead, which is exactly
-        /// how it was found.
-        /// </summary>
-        public static string Describe()
-        {
-            string weather = Localization.Get("Status.Weather.Game", Percent(Rain), Percent(GameCloud));
-            string intensity = Percent(Coverage);
-
-            return Manual
-                ? Localization.Get("Status.Weather.Manual", intensity, weather)
-                : Localization.Get("Status.Weather.Following", weather, intensity, Percent(FairEnd), Percent(RainEnd));
-        }
-
-        private static string Percent(float fraction)
-        {
-            return Localization.Get("Unit.Percent", (fraction * 100f).ToString("F0"));
-        }
-
         private static float Value(FloatSetting setting, float fallback)
         {
             return setting != null ? Mathf.Clamp01(setting.value) : fallback;

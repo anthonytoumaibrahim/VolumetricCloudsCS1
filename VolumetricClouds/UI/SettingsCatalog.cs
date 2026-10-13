@@ -816,6 +816,11 @@ namespace VolumetricClouds.UI
             return FogOn() && Settings.FogLampsEnabled != null && Settings.FogLampsEnabled.value;
         }
 
+        private static bool DynamicFogOn()
+        {
+            return FogOn() && CloudFog.Dynamic;
+        }
+
         private static bool FogOverridden()
         {
             return FogOn() && Settings.FogOverride != null && Settings.FogOverride.value;
@@ -920,53 +925,6 @@ namespace VolumetricClouds.UI
             return Settings.CloudShadows == null || Settings.CloudShadows.value;
         }
 
-        /// <summary>Clears all three overrides at once: one button for "just follow the game".</summary>
-        public static void FollowTheGame()
-        {
-            if (Settings.CoverageOverride != null) Settings.CoverageOverride.value = false;
-            if (Settings.FogOverride != null) Settings.FogOverride.value = false;
-            if (Settings.LightningOverride != null) Settings.LightningOverride.value = false;
-
-            // A fixed wind is an override of the game's too (1.5.0). "Slowly" still follows it.
-            if (Settings.WindDirection != null && CloudWeather.WindMode == CloudWeather.WindFixed)
-                Settings.WindDirection.value = CloudWeather.WindFollow;
-
-            SettingsXml.SaveNow();
-            Log.Msg("setting: every override cleared; the weather, the fog, the lightning and the wind all follow the game again");
-        }
-
-        /// <summary>
-        /// The line the Clouds tab shows instead of putting the brightness sliders in the panel.
-        /// With "Brightness differs at night" (1.3.0) it is the brightness in use and says so: the
-        /// night's at night, the two blended through the twilight.
-        /// </summary>
-        public static string DescribeBrightness()
-        {
-            float coverage = CloudShaderParams.Coverage;
-            float night = Settings.NightBrightnessOn ? CloudVolume.Night : 0f;
-            string brightness = Localization.Get("Unit.Percent", (Settings.EffectiveBrightness(coverage, night) * 100f).ToString("F0"));
-            string intensity = Localization.Get("Unit.Percent", (coverage * 100f).ToString("F0"));
-            bool auto = Settings.BrightnessAuto;
-
-            if (night <= 0f)
-            {
-                return auto
-                    ? Localization.Get("Status.Brightness.Auto", brightness, intensity)
-                    : Localization.Get("Status.Brightness.Manual", brightness);
-            }
-
-            if (night >= 1f)
-            {
-                return auto
-                    ? Localization.Get("Status.Brightness.AutoNight", brightness, intensity)
-                    : Localization.Get("Status.Brightness.ManualNight", brightness);
-            }
-
-            return auto
-                ? Localization.Get("Status.Brightness.AutoTwilight", brightness, intensity)
-                : Localization.Get("Status.Brightness.ManualTwilight", brightness);
-        }
-
         // ---- the catalog ----------------------------------------------------------------------
 
         private static void Build()
@@ -999,32 +957,15 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// F4 -> Now. The director's tab: both status lines and every override in the mod,
-        /// because those are the things you set while looking at the sky and unset an hour
-        /// later. Nothing here is a look -- so nothing here is in a profile either (1.3.0, the
-        /// author: "let's not save anything under Now to the profiles"): picking one leaves the
-        /// weather of the moment as it is, and moving these never makes a profile "unsaved".
+        /// F4 -> Now. The director's tab: every override in the mod, because those are the things
+        /// you set while looking at the sky and unset an hour later. Nothing here is a look -- so
+        /// nothing here is in a profile either (1.3.0, the author: "let's not save anything under
+        /// Now to the profiles"): picking one leaves the weather of the moment as it is, and moving
+        /// these never makes a profile "unsaved". 1.5.0: the two status lines, "Follow the game's
+        /// weather" and "Test lightning" went (the author's call).
         /// </summary>
         private static void BuildNow()
         {
-            Add(new Row
-            {
-                Kind = RowKind.Button,
-                Panel = PanelPage.Now,
-                Id = "FollowTheGame",
-                OnClick = FollowTheGame,
-                Profiled = false,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Status,
-                Panel = PanelPage.Now,
-                Id = "WeatherStatus",
-                StatusText = CloudWeather.Describe,
-                Profiled = false,
-            });
-
             Add(new Row
             {
                 Kind = RowKind.Toggle,
@@ -1087,15 +1028,6 @@ namespace VolumetricClouds.UI
 
             Add(new Row
             {
-                Kind = RowKind.Status,
-                Panel = PanelPage.Now,
-                Id = "FogStatus",
-                StatusText = CloudFog.Describe,
-                Profiled = false,
-            });
-
-            Add(new Row
-            {
                 Kind = RowKind.Toggle,
                 Panel = PanelPage.Now,
                 Bool = Settings.FogOverride,
@@ -1137,16 +1069,6 @@ namespace VolumetricClouds.UI
                 Format = ActivityRate,
                 Profiled = false,
                 Enabled = () => LightningOn() && LightningOverridden(),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Button,
-                Panel = PanelPage.Now,
-                Id = "TestLightning",
-                OnClick = CloudLightning.RequestTest,
-                Enabled = LightningOn,
-                Profiled = false,
             });
 
             // 1.3.0 (the author: "Rainbow chance should be in the Now tab ... default the value to
@@ -1349,15 +1271,6 @@ namespace VolumetricClouds.UI
                 ChoiceKeys = new[] { "CloudFragmentStyle.Clustered", "CloudFragmentStyle.Scattered", "CloudFragmentStyle.Wispy" },
                 ChoiceValues = new[] { 0, 1, 2 },
                 Enabled = FragmentsOn,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Status,
-                Panel = PanelPage.Clouds,
-                Id = "BrightnessStatus",
-                StatusText = DescribeBrightness,
-                Profiled = false,
             });
 
             // Grading: the two lights a cloud stands in, each tinted on its own. The colour
@@ -1645,15 +1558,27 @@ namespace VolumetricClouds.UI
             // author's call: "Ceiling"), so these only ever take it lower, thinner or wispier
             // (Sky.FogSources). All 0% for everyone: at 0% the fog is exactly as before. Last on the
             // tab, under their own heading: a heading claims every row below it up to the next one.
+            // The three in one switch (1.5.0, the author: "a quick toggle that allows the user to
+            // disable the dynamic fog"). On by default: the sliders do what they say, as before.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.Fog,
+                Group = "FogChanges",
+                Bool = Settings.DynamicFog,
+                DefaultBool = Settings.Defaults.DynamicFog,
+                Enabled = FogOn,
+                AfterChange = State("dynamic fog", OnOff(Settings.DynamicFog)),
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
-                Group = "FogChanges",
                 Float = Settings.FogChangesWithWeather,
                 DefaultFloat = Settings.Defaults.FogChangesWithWeather,
                 Min = 0f, Max = 100f, Step = 5f,
-                Enabled = FogOn,
+                Enabled = DynamicFogOn,
             });
 
             Add(new Row
@@ -1663,7 +1588,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.MorningFog,
                 DefaultFloat = Settings.Defaults.MorningFog,
                 Min = 0f, Max = 100f, Step = 5f,
-                Enabled = FogOn,
+                Enabled = DynamicFogOn,
             });
 
             Add(new Row
@@ -1673,7 +1598,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.MistAfterRain,
                 DefaultFloat = Settings.Defaults.MistAfterRain,
                 Min = 0f, Max = 100f, Step = 5f,
-                Enabled = FogOn,
+                Enabled = DynamicFogOn,
             });
 
             // 1.5.0 (his pick, 2026-10-04): fog banks over the sea, lakes and rivers, drifting ashore

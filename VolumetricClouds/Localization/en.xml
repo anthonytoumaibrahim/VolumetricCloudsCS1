@@ -103,12 +103,6 @@
 
   <!-- ==================== In-game panel: Now ==================== -->
 
-  <String key="FollowTheGame.Label">Follow the game's weather (clear every override)</String>
-
-  <String key="Status.Weather.Game">rain {0}, clouds {1}</String>
-  <String key="Status.Weather.Manual">OVERRIDDEN: intensity {0}  (the game says {1})</String>
-  <String key="Status.Weather.Following">Following the game: {0}  ->  intensity {1}  (clear {2} to rain {3})</String>
-
   <String key="CoverageOverride.Label">Ignore the game's weather</String>
 
   <String key="Coverage.Label">Fixed intensity</String>
@@ -120,25 +114,13 @@
   <String key="WindDirection.Fixed">Fixed</String>
   <String key="WindAngle.Label">Fixed wind direction</String>
 
-  <String key="Status.Fog.Off">Volumetric fog is off</String>
-  <String key="Status.Fog.Waiting">Volumetric fog: waiting for the clouds</String>
-  <String key="Status.Fog.Measuring">Volumetric fog: measuring the terrain...</String>
-  <String key="Status.Fog.Share">fog over {0} of the map</String>
-  <String key="Status.Fog.ShareMorning">morning fog over {0} of the map</String>
-  <String key="Status.Fog.ShareMist">mist after rain over {0} of the map</String>
-  <String key="Status.Fog.ShareWater">fog over {0} of the water</String>
-  <String key="Status.Fog.Manual">OVERRIDDEN: {0}  (the game says {1})</String>
-  <String key="Status.Fog.Following">Following the game: fog {0}  ->  {1}</String>
-
   <String key="FogOverride.Label">Override fog</String>
 
   <String key="FogAmount.Label">Fog amount</String>
 
-  <String key="LightningOverride.Label">Set lightning activity myself</String>
+  <String key="LightningOverride.Label">Override lightning</String>
 
   <String key="LightningActivity.Label">Lightning activity</String>
-
-  <String key="TestLightning.Label">Test lightning (visual only, in front of the camera)</String>
 
   <String key="RainbowChance.Label">Rainbow chance</String>
 
@@ -177,13 +159,6 @@
   <String key="CloudFragmentStyle.Scattered">Scattered</String>
   <String key="CloudFragmentStyle.Wispy">Wispy</String>
 
-  <String key="Status.Brightness.Auto">Cloud brightness: {0} (automatic, at intensity {1})</String>
-  <String key="Status.Brightness.Manual">Cloud brightness: {0} (set by hand)</String>
-  <String key="Status.Brightness.AutoNight">Cloud brightness: {0} (automatic, at intensity {1}, night)</String>
-  <String key="Status.Brightness.ManualNight">Cloud brightness: {0} (set by hand, night)</String>
-  <String key="Status.Brightness.AutoTwilight">Cloud brightness: {0} (automatic, at intensity {1}, twilight)</String>
-  <String key="Status.Brightness.ManualTwilight">Cloud brightness: {0} (set by hand, twilight)</String>
-
   <String key="Group.CloudColour">Color (white leaves the clouds as they are)</String>
 
   <String key="CloudSunlitColor.Label">Sunlit side</String>
@@ -196,15 +171,15 @@
 
   <String key="CloudNightShadeColor.Label">Shaded side at night</String>
 
-  <String key="Group.SkyLayer">Photographed skies behind the clouds (they add up)</String>
+  <String key="Group.SkyLayer">Distant clouds</String>
 
-  <String key="SkyCirrus.Label">Cirrus (high, thin streaks)</String>
+  <String key="SkyCirrus.Label">Cirrus</String>
 
-  <String key="SkySheepClouds.Label">Sheep clouds (small puffs in fields)</String>
+  <String key="SkySheepClouds.Label">Sheep clouds</String>
 
   <String key="SkyFarClouds.Label">Cumulus on the horizon</String>
 
-  <String key="SkyCloudLayers.Label">Cloud layers (several kinds at once)</String>
+  <String key="SkyCloudLayers.Label">Mixed distant clouds</String>
 
   <String key="Colour.Copy">Copy</String>
   <String key="Colour.Copied">Copied</String>
@@ -245,6 +220,7 @@
   <String key="FogLampLight.Label">Lit fog brightness</String>
 
   <String key="Group.FogChanges">Changing fog (never more than set above)</String>
+  <String key="DynamicFog.Label">Dynamic fog</String>
   <String key="FogChangesWithWeather.Label">Fog changes with the weather</String>
   <String key="MorningFog.Label">Morning fog</String>
   <String key="MistAfterRain.Label">Mist after rain</String>
@@ -360,7 +336,7 @@
 
   <String key="HaloRadius.Label">Size</String>
 
-  <String key="Group.NearLights">The same lamps, close to the camera</String>
+  <String key="Group.NearLights">Near lights</String>
 
   <String key="HaloNearLightDistance.Label">Near lights: closer than</String>
 

@@ -80,12 +80,6 @@
 
   <!-- ==================== In-game panel: Now ==================== -->
 
-  <String key="FollowTheGame.Label">跟随游戏天气（清除所有覆盖）</String>
-
-  <String key="Status.Weather.Game">降雨 {0}，云量 {1}</String>
-  <String key="Status.Weather.Manual">已覆盖：强度 {0}（游戏为 {1}）</String>
-  <String key="Status.Weather.Following">跟随游戏：{0} → 强度 {1}（晴 {2} 到雨 {3}）</String>
-
   <String key="CoverageOverride.Label">忽略游戏天气</String>
 
   <String key="Coverage.Label">固定强度</String>
@@ -97,25 +91,13 @@
   <String key="WindDirection.Fixed">固定</String>
   <String key="WindAngle.Label">固定风向</String>
 
-  <String key="Status.Fog.Off">体积雾已关闭</String>
-  <String key="Status.Fog.Waiting">体积雾：等待云层</String>
-  <String key="Status.Fog.Measuring">体积雾：正在测量地形...</String>
-  <String key="Status.Fog.Share">地图 {0} 区域有雾</String>
-  <String key="Status.Fog.ShareMorning">地图 {0} 区域有晨雾</String>
-  <String key="Status.Fog.ShareMist">地图 {0} 区域有雨后薄雾</String>
-  <String key="Status.Fog.ShareWater">水面 {0} 区域有雾</String>
-  <String key="Status.Fog.Manual">已覆盖：{0}（游戏为 {1}）</String>
-  <String key="Status.Fog.Following">跟随游戏：雾 {0} → {1}</String>
-
   <String key="FogOverride.Label">覆盖雾量</String>
 
   <String key="FogAmount.Label">雾量</String>
 
-  <String key="LightningOverride.Label">手动设置闪电活动</String>
+  <String key="LightningOverride.Label">覆盖闪电</String>
 
   <String key="LightningActivity.Label">闪电活动</String>
-
-  <String key="TestLightning.Label">测试闪电（仅视觉，镜头前方）</String>
 
   <String key="RainbowChance.Label">彩虹概率</String>
 
@@ -154,13 +136,6 @@
   <String key="CloudFragmentStyle.Scattered">分散</String>
   <String key="CloudFragmentStyle.Wispy">轻薄</String>
 
-  <String key="Status.Brightness.Auto">云层亮度：{0}（自动，强度 {1}）</String>
-  <String key="Status.Brightness.Manual">云层亮度：{0}（手动）</String>
-  <String key="Status.Brightness.AutoNight">云层亮度：{0}（自动，强度 {1}，夜间）</String>
-  <String key="Status.Brightness.ManualNight">云层亮度：{0}（手动，夜间）</String>
-  <String key="Status.Brightness.AutoTwilight">云层亮度：{0}（自动，强度 {1}，黄昏）</String>
-  <String key="Status.Brightness.ManualTwilight">云层亮度：{0}（手动，黄昏）</String>
-
   <String key="Group.CloudColour">颜色（白色保持云层原色）</String>
 
   <String key="CloudSunlitColor.Label">向阳面</String>
@@ -173,15 +148,15 @@
 
   <String key="CloudNightShadeColor.Label">夜间背光面</String>
 
-  <String key="Group.SkyLayer">云层后方的摄影天空（可叠加）</String>
+  <String key="Group.SkyLayer">远处的云</String>
 
-  <String key="SkyCirrus.Label">卷云（高空细丝）</String>
+  <String key="SkyCirrus.Label">卷云</String>
 
-  <String key="SkySheepClouds.Label">鱼鳞云（成片的小云团）</String>
+  <String key="SkySheepClouds.Label">鱼鳞云</String>
 
   <String key="SkyFarClouds.Label">地平线上的积云</String>
 
-  <String key="SkyCloudLayers.Label">多层云（多种云同时出现）</String>
+  <String key="SkyCloudLayers.Label">混合远云</String>
 
   <String key="Colour.Copy">复制</String>
   <String key="Colour.Copied">已复制</String>
@@ -222,6 +197,7 @@
   <String key="FogLampLight.Label">受光雾亮度</String>
 
   <String key="Group.FogChanges">变化的雾（不超过上方设置）</String>
+  <String key="DynamicFog.Label">动态雾</String>
   <String key="FogChangesWithWeather.Label">雾随天气变化</String>
   <String key="MorningFog.Label">晨雾</String>
   <String key="MistAfterRain.Label">雨后薄雾</String>
@@ -337,7 +313,7 @@
 
   <String key="HaloRadius.Label">大小</String>
 
-  <String key="Group.NearLights">镜头附近的同类灯光</String>
+  <String key="Group.NearLights">近处灯光</String>
 
   <String key="HaloNearLightDistance.Label">近处灯光：距离小于</String>
 

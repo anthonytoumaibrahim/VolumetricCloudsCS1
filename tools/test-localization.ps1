@@ -105,7 +105,6 @@ Check "a wrapped text is one line" ($en.Table["Mod.ExperimentalPlatformNote"] -m
 Check "\n is a real break, no stray spaces" ($en.Table["Profiles.Confirm.Remove"] -match "^Delete the profile '\{0\}'\?`n`nOnly its file is removed") "True"
 $header = $en.Table["File.Header"] -split "`n"
 Check "the settings file header: 11 lines, blank second line" ("" + $header.Count + "," + ($header[1] -eq "")) "11,True"
-Check "status lines keep their double spaces" ($en.Table["Status.Fog.Following"] -match "  ->  ") "True"
 
 # ---- translations -------------------------------------------------------------------------
 

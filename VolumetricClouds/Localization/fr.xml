@@ -66,12 +66,6 @@
 
   <!-- ==================== In-game panel: Now ==================== -->
 
-  <String key="FollowTheGame.Label">Suivre la météo du jeu (annuler les forçages)</String>
-
-  <String key="Status.Weather.Game">pluie {0}, nuages {1}</String>
-  <String key="Status.Weather.Manual">FORCÉ : intensité {0} (jeu : {1})</String>
-  <String key="Status.Weather.Following">Jeu : {0} -> intensité {1} (clair {2} à pluie {3})</String>
-
   <String key="CoverageOverride.Label">Ignorer la météo du jeu</String>
 
   <String key="Coverage.Label">Intensité fixe</String>
@@ -83,25 +77,13 @@
   <String key="WindDirection.Fixed">Fixe</String>
   <String key="WindAngle.Label">Direction fixe du vent</String>
 
-  <String key="Status.Fog.Off">Brouillard volumétrique désactivé</String>
-  <String key="Status.Fog.Waiting">Brouillard volumétrique : attente des nuages</String>
-  <String key="Status.Fog.Measuring">Brouillard volumétrique : mesure du terrain...</String>
-  <String key="Status.Fog.Share">brouillard sur {0} de la carte</String>
-  <String key="Status.Fog.ShareMorning">brouillard matinal sur {0} de la carte</String>
-  <String key="Status.Fog.ShareMist">brume après la pluie sur {0} de la carte</String>
-  <String key="Status.Fog.ShareWater">brouillard sur {0} de l’eau</String>
-  <String key="Status.Fog.Manual">FORCÉ : {0} (jeu : {1})</String>
-  <String key="Status.Fog.Following">Jeu : brouillard {0} -> {1}</String>
-
   <String key="FogOverride.Label">Forcer le brouillard</String>
 
   <String key="FogAmount.Label">Quantité de brouillard</String>
 
-  <String key="LightningOverride.Label">Régler moi-même les éclairs</String>
+  <String key="LightningOverride.Label">Forcer les éclairs</String>
 
   <String key="LightningActivity.Label">Activité des éclairs</String>
-
-  <String key="TestLightning.Label">Tester un éclair (visuel, devant la caméra)</String>
 
   <String key="RainbowChance.Label">Chance d’arc-en-ciel</String>
 
@@ -140,13 +122,6 @@
   <String key="CloudFragmentStyle.Scattered">Dispersés</String>
   <String key="CloudFragmentStyle.Wispy">Effilochés</String>
 
-  <String key="Status.Brightness.Auto">Luminosité : {0} (auto, intensité {1})</String>
-  <String key="Status.Brightness.Manual">Luminosité : {0} (manuelle)</String>
-  <String key="Status.Brightness.AutoNight">Luminosité : {0} (auto, intensité {1}, nuit)</String>
-  <String key="Status.Brightness.ManualNight">Luminosité : {0} (manuelle, nuit)</String>
-  <String key="Status.Brightness.AutoTwilight">Luminosité : {0} (auto, intensité {1}, crépuscule)</String>
-  <String key="Status.Brightness.ManualTwilight">Luminosité : {0} (manuelle, crépuscule)</String>
-
   <String key="Group.CloudColour">Couleur (blanc = nuages inchangés)</String>
 
   <String key="CloudSunlitColor.Label">Côté au soleil</String>
@@ -159,15 +134,15 @@
 
   <String key="CloudNightShadeColor.Label">Côté ombragé la nuit</String>
 
-  <String key="Group.SkyLayer">Ciels photographiés derrière les nuages (ils s'additionnent)</String>
+  <String key="Group.SkyLayer">Nuages lointains</String>
 
-  <String key="SkyCirrus.Label">Cirrus (hauts, en fines traînées)</String>
+  <String key="SkyCirrus.Label">Cirrus</String>
 
-  <String key="SkySheepClouds.Label">Nuages moutonnés (petits flocons en bancs)</String>
+  <String key="SkySheepClouds.Label">Nuages moutonnés</String>
 
   <String key="SkyFarClouds.Label">Cumulus à l'horizon</String>
 
-  <String key="SkyCloudLayers.Label">Couches de nuages (plusieurs types à la fois)</String>
+  <String key="SkyCloudLayers.Label">Nuages lointains mixtes</String>
 
   <String key="Colour.Copy">Copier</String>
   <String key="Colour.Copied">Copié</String>
@@ -208,6 +183,7 @@
   <String key="FogLampLight.Label">Luminosité du brouillard éclairé</String>
 
   <String key="Group.FogChanges">Brouillard changeant (jamais plus que réglé ci-dessus)</String>
+  <String key="DynamicFog.Label">Brouillard dynamique</String>
   <String key="FogChangesWithWeather.Label">Le brouillard suit la météo</String>
   <String key="MorningFog.Label">Brouillard matinal</String>
   <String key="MistAfterRain.Label">Brume après la pluie</String>
@@ -323,7 +299,7 @@
 
   <String key="HaloRadius.Label">Taille</String>
 
-  <String key="Group.NearLights">Mêmes lampes, près de la caméra</String>
+  <String key="Group.NearLights">Lumières proches</String>
 
   <String key="HaloNearLightDistance.Label">Lumières proches : moins de</String>
 
