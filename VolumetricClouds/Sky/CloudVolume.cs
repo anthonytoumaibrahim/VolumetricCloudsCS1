@@ -67,8 +67,8 @@ namespace VolumetricClouds.Sky
         public static bool IsActive { get; private set; }
 
         /// <summary>
-        /// The last frame's twilight: 0 by day, 1 once the sun is well down (NightFactor); 0
-        /// without a city. What the Clouds tab's brightness line blends the night's in by.
+        /// The last frame's twilight: 0 by day, 1 once the sun is well down (TimeOfDay.Night); 0
+        /// without a city.
         /// </summary>
         public static float Night { get; private set; }
 
@@ -327,9 +327,6 @@ namespace VolumetricClouds.Sky
         // Whether the clouds were brightened to stand in Real Light's sky when last looked at
         // (SceneAmbient.CloudLight): logged on every change.
         private bool _realLightSkyLogged;
-
-        /// <summary>How far the night colours are in, 0..1 (0 whenever they are off); for the detail line.</summary>
-        private float _nightColourShare;
 
         private static readonly int IdSkyGlow = Shader.PropertyToID("_SkyGlow");
         private static readonly int IdSkyGlowMode = Shader.PropertyToID("_SkyGlowMode");
@@ -1184,15 +1181,19 @@ namespace VolumetricClouds.Sky
                     key = moon;
             }
 
-            // 0 by day, 1 at night: what brings in the night's brightness (with "Brightness differs
-            // at night", 1.3.0) and its colours below, through one twilight.
-            float night = NightFactor(sun);
-            Night = night;
+            // The time of day (1.5.0, TimeOfDay): Day's, Sunset's and Night's shares of the sky, once a
+            // frame, before anything reads them -- the rows with a clock (brightness, colours, density,
+            // the fog's...) are blended by them. Night is the night factor of 1.3.0 exactly: 0 by day,
+            // 1 at night, from the sun's elevation (the game keeps the sun bright until it is on the
+            // horizon, and the stars are out before it has faded). No sun: broad day, as before.
             float sunElevation = SunElevation(sun);
+            TimeOfDay.Update(sun != null ? sunElevation : 90f);
+            float night = TimeOfDay.Night;
+            Night = night;
 
             float coverage = CloudShaderParams.Coverage;
             bool auto = Settings.BrightnessAuto;
-            float brightness = Settings.EffectiveBrightness(coverage, night);
+            float brightness = Settings.EffectiveBrightness(coverage);
             bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
 
             Vector3 sunDir = Vector3.up;
@@ -1261,14 +1262,14 @@ namespace VolumetricClouds.Sky
             // The player's grading, on the CLOUD's two lights only: the sunlit side and the
             // shaded side. A tint changes the hue, never the brightness, and white is exactly
             // (1, 1, 1) -- the shader gets bit for bit what it got before colours existed.
-            // With "Different colours at night" (1.3.0) the night's two take over as the sun goes
-            // down, through the same twilight as the night's opacity and glow; off, the day's
-            // are used around the clock, exactly as before the switch.
-            _nightColourShare = NightColours ? night : 0f;
-            Color sunlitTint = CloudTint.Blend(ColourOf(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor),
-                ColourOf(Settings.CloudMoonlitColor, Settings.Defaults.MoonlitColor), _nightColourShare);
-            Color shadeTint = CloudTint.Blend(ColourOf(Settings.CloudShadeColor, Settings.Defaults.ShadeColor),
-                ColourOf(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor), _nightColourShare);
+            // Each with a clock (1.5.0): Day, Sunset and Night blended by the time of day, through
+            // the same twilight as the night's opacity and glow. The three the same -- every player
+            // who never set them apart -- is that one colour around the clock, as before; a night
+            // carried over from "Different colours at night" (1.3.0) blends exactly as it did.
+            Color sunlitTint = Settings.TintNow(Settings.CloudSunlitColor, Settings.CloudSunlitColorSunset,
+                Settings.CloudSunlitColorNight, Settings.Defaults.SunlitColor);
+            Color shadeTint = Settings.TintNow(Settings.CloudShadeColor, Settings.CloudShadeColorSunset,
+                Settings.CloudShadeColorNight, Settings.Defaults.ShadeColor);
 
             _material.SetVector(IdSunDir, sunDir.normalized);
             _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint));
@@ -1479,8 +1480,8 @@ namespace VolumetricClouds.Sky
                        " effective=" + brightness.ToString("F2") +
                        " overcastTerm=" + overcast.ToString("F2") +
                        (auto ? " (cloud skips the overcast term; the fog keeps it)" : "") +
-                       (Settings.NightBrightnessOn ? " | night brightness " + (Night * 100f).ToString("F0") + "% in" : "") +
-                       (NightColours ? " | night colours " + (_nightColourShare * 100f).ToString("F0") + "% in" : ""));
+                       " | time of day: " + TimeOfDay.Describe() +
+                       " | density now " + (Settings.CloudDensityNow * 100f).ToString("F0") + "%");
 
             float mean = _frameCount > 0 ? _frameTime / _frameCount : 0f;
 
@@ -1588,19 +1589,6 @@ namespace VolumetricClouds.Sky
             return CloudFog.InLayer(_camera.transform.position.y - ground, _camera.transform.position.y);
         }
 
-        /// <summary>
-        /// 0 by day, 1 once the sun is well down. From the sun's elevation rather than its
-        /// intensity: the game keeps the sun bright until it is on the horizon, and the stars
-        /// are out before it has faded.
-        /// </summary>
-        private static float NightFactor(Light sun)
-        {
-            if (sun == null)
-                return 0f;
-
-            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2f, -8f, SunElevation(sun)));
-        }
-
         /// <summary>The sun's height over the horizon, degrees; -90 without a sun.</summary>
         private static float SunElevation(Light sun)
         {
@@ -1610,11 +1598,11 @@ namespace VolumetricClouds.Sky
         /// <summary>Clouds that hide the stars (and the sky by day), and a faint pale glow on their undersides.</summary>
         private void ApplyNight(float night, Color shadeTint)
         {
-            // The day's twin (1.5.0, "Clouds hide the sky by day") through the same twilight. Its
-            // default 0% is night * opacity, as before; both at 100% stay solid round the clock.
-            float opacity = Settings.CloudNightOpacity != null ? Mathf.Clamp01(Settings.CloudNightOpacity.value) : 1f;
-            float dayOpacity = Settings.CloudDayOpacity != null ? Mathf.Clamp01(Settings.CloudDayOpacity.value) : 0f;
-            float shut = Mathf.Lerp(dayOpacity, opacity, night);
+            // "Clouds hide the sky" (1.5.0): by day, at sunset and at night, one row with a clock,
+            // blended by the time of day. Its Day default 0% with the Night's 100% is night * opacity,
+            // as before 1.5.0; all three at 100% stay solid round the clock.
+            float shut = Mathf.Clamp01(Settings.Now(Settings.CloudDayOpacity, Settings.CloudSunsetOpacity,
+                Settings.CloudNightOpacity, Settings.Defaults.DayOpacity));
             _material.SetFloat(IdNightOpacity, shut);
 
             // Where the night's opaque clouds end softly: where the march ends (1.3.0). It was the
@@ -1653,7 +1641,7 @@ namespace VolumetricClouds.Sky
 
             // Its light: a thick deck's base -- the sun through FarDeckSunDepth, the cloud above it
             // at half density over 90 m (the march's two looks up, 30 + 60 m).
-            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
+            float density = Settings.CloudDensityNow;
             _material.SetVector(IdFarLight, new Vector4(FarDeckSunDepth, 0.5f * density * 90f, 0f, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
@@ -1753,18 +1741,6 @@ namespace VolumetricClouds.Sky
             _skyGlowLogged = mode;
         }
 
-        /// <summary>A colour setting's value, or its default before the settings exist.</summary>
-        private static Color32 ColourOf(ColorSetting setting, Color32 fallback)
-        {
-            return setting != null ? setting.value : fallback;
-        }
-
-        /// <summary>"Different colours at night" is on.</summary>
-        private static bool NightColours
-        {
-            get { return Settings.CloudNightColors != null && Settings.CloudNightColors.value; }
-        }
-
         /// <summary>
         /// Metres "Fog over water"'s banks are carried downwind of the water (1.5.0): they come
         /// ashore on the downwind coast and thin out a few hundred metres inland.
@@ -1790,7 +1766,10 @@ namespace VolumetricClouds.Sky
             // (CloudFog.Look: the time of day, the morning fog, the mist) takes it lower, thinner or
             // wispier inside them. With the three "Changing fog" rows at 0% every one of these is
             // its slider exactly. Uniforms only: the shader does not know, and costs no more.
-            float density = (Settings.FogDensity != null ? Mathf.Max(0f, Settings.FogDensity.value) : Settings.Defaults.FogDensity) * CloudFog.Look.Density;
+            // The fog's density, brightness, tint and colour each have a clock (1.5.0): as the time of
+            // day has them now.
+            float density = Mathf.Max(0f, Settings.Now(Settings.FogDensity, Settings.FogDensitySunset, Settings.FogDensityNight,
+                Settings.Defaults.FogDensity)) * CloudFog.Look.Density;
             float layerBase = CloudFog.LayerBase;
             float height = CloudFog.LayerHeight;
             bool followsGround = CloudFog.FollowsGround;
@@ -1891,8 +1870,10 @@ namespace VolumetricClouds.Sky
             // stand-in for the value everyone's fog was tuned under. Its own brightness and a
             // tint go on top: the light it is in still colours it (orange at sunset, blue at
             // night), and the tint leans that towards a cold blue-grey or a warm haze.
-            float fogBrightness = Settings.FogBrightness != null ? Mathf.Max(0f, Settings.FogBrightness.value) : Settings.Defaults.FogBrightness;
-            float tint = Settings.FogTint != null ? Mathf.Clamp(Settings.FogTint.value, -1f, 1f) : Settings.Defaults.FogTint;
+            float fogBrightness = Mathf.Max(0f, Settings.Now(Settings.FogBrightness, Settings.FogBrightnessSunset,
+                Settings.FogBrightnessNight, Settings.Defaults.FogBrightness));
+            float tint = Mathf.Clamp(Settings.Now(Settings.FogTint, Settings.FogTintSunset, Settings.FogTintNight,
+                Settings.Defaults.FogTint), -1f, 1f);
             Color lean = tint < 0f
                 ? Color.Lerp(Color.white, new Color(0.78f, 0.93f, 1.18f), -tint)
                 : Color.Lerp(Color.white, new Color(1.18f, 1f, 0.76f), tint);
@@ -1902,7 +1883,7 @@ namespace VolumetricClouds.Sky
             // exactly (1, 1, 1), so a fog nobody coloured gets bit for bit the numbers it always
             // got. The lamps' glow inside the fog is added by the shader from its own map, in
             // the lamps' own colours, and is not touched.
-            Color colour = CloudTint.Of(Settings.FogColor != null ? Settings.FogColor.value : Settings.Defaults.FogColor);
+            Color colour = Settings.TintNow(Settings.FogColor, Settings.FogColorSunset, Settings.FogColorNight, Settings.Defaults.FogColor);
             lean = new Color(lean.r * colour.r, lean.g * colour.g, lean.b * colour.b, lean.a);
 
             Color fogAmbient = WithFloor(lightAmbient * FogLightScale);
@@ -2028,6 +2009,7 @@ namespace VolumetricClouds.Sky
         {
             IsActive = false;
             Night = 0f;
+            TimeOfDay.Reset();
             CloudsQueue = LateQueue;
 
             if (_shadowMap != null)

@@ -702,6 +702,7 @@ namespace VolumetricClouds
             public readonly List<string> OlderFile = new List<string>();
             public readonly List<string> Unknown = new List<string>();
             public readonly List<string> NotProfiled = new List<string>();
+            public readonly List<string> Retired = new List<string>();
             public readonly List<string> Problems = new List<string>();
             public readonly List<string> ChangeList = new List<string>();
             public List<string> Duplicates = new List<string>();
@@ -720,6 +721,8 @@ namespace VolumetricClouds
                     text += "; ignored names the mod does not know: " + List(Unknown);
                 if (NotProfiled.Count > 0)
                     text += "; ignored, not part of a profile: " + List(NotProfiled);
+                if (Retired.Count > 0)
+                    text += "; retired in 1.5.0, read only for the night they held: " + List(Retired);
                 if (Duplicates.Count > 0)
                     text += "; written twice, the last one taken: " + List(Duplicates);
                 if (Version > SettingsXmlFormat.Version)
@@ -777,6 +780,10 @@ namespace VolumetricClouds
 
             var seen = new HashSet<object>();
             var heldBack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Every element as written, for the rows whose missing value is worked out from the rest
+            // of the file (Row.OlderFile); `values` loses each one as its row takes it.
+            var written = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase);
             _loading = true;
             try
             {
@@ -793,7 +800,36 @@ namespace VolumetricClouds
                     }
 
                     string value;
-                    if (!values.TryGetValue(row.Name, out value))
+                    bool found = values.TryGetValue(row.Name, out value);
+                    if (!found && (startup || missingMeansDefault) && row.OlderFile != null)
+                    {
+                        // Written before the row existed (1.5.0, a clock's Sunset and Night): what the
+                        // file meant, from the file itself -- its Day value, or an older night. The Day
+                        // row comes first in the catalog, so it has just been read.
+                        string was = ValueText(row);
+                        string derived = row.OlderFile(written);
+                        if (derived == null && row.TimeOf != null)
+                            derived = ValueText(row.TimeOf);
+
+                        if (derived != null)
+                        {
+                            string derivedProblem = ApplyText(row, derived);
+                            if (derivedProblem != null)
+                                result.Problems.Add(row.Name + " '" + derived + "' " + derivedProblem);
+
+                            string now = ValueText(row);
+                            result.OlderFile.Add(row.Name + " " + now);
+                            if (now != was)
+                            {
+                                result.ChangeList.Add(row.Name + " " + was + " -> " + now);
+                                if (changedRows != null)
+                                    changedRows.Add(row);
+                            }
+                            continue;
+                        }
+                    }
+
+                    if (!found)
                     {
                         // A row whose default is not what an existing player had: a file
                         // without it is older than the row and means that value, not the
@@ -852,7 +888,9 @@ namespace VolumetricClouds
 
             foreach (string name in values.Keys)
             {
-                if (heldBack.Contains(name))
+                if (Retired.Contains(name))
+                    result.Retired.Add(name);
+                else if (heldBack.Contains(name))
                     result.NotProfiled.Add(name);
                 else
                     result.Unknown.Add(name);
@@ -860,6 +898,19 @@ namespace VolumetricClouds
 
             return result;
         }
+
+        /// <summary>
+        /// Names no row has any more, read only for what an older file meant by them (Row.OlderFile),
+        /// and never used again for anything. 1.5.0: the 1.3.0 night switches and their values, now the
+        /// Night values of the rows with a clock -- "Brightness differs at night" and its three,
+        /// "Different colors at night" and its two. A file of 1.4.0 or before has them all; the first
+        /// save leaves them out.
+        /// </summary>
+        internal static readonly HashSet<string> Retired = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "CloudNightBrightness", "CloudNightBrightnessClear", "CloudNightBrightnessOvercast", "CloudNightBrightnessFixed",
+            "CloudNightColors", "CloudMoonlitColor", "CloudNightShadeColor",
+        };
 
         /// <summary>Stores one value written as text. Returns what went wrong, or null.</summary>
         private static string ApplyText(Row row, string text)
@@ -1020,9 +1071,12 @@ namespace VolumetricClouds
                     string problem;
                     if (!ImportOne(row, key, out problem))
                     {
-                        // Newer than the .cgs: what an older file means (Row.OlderFileInt).
+                        // Newer than the .cgs: what an older file means (Row.OlderFileInt; a clock's
+                        // Sunset and Night, its Day value, imported just before them).
                         if (row.OlderFileInt.HasValue && row.Int != null)
                             row.Int.value = row.OlderFileInt.Value;
+                        else if (row.TimeOf != null)
+                            ApplyText(row, ValueText(row.TimeOf));
                         continue;
                     }
 
@@ -1209,7 +1263,8 @@ namespace VolumetricClouds
         /// <summary>"Cloud altitude. 200 to 3000 (slider: 200 m to 3000 m), default 750."</summary>
         private static string CommentFor(Row row)
         {
-            string label = row.Label;
+            // A row with a clock: its own element is its Day value, the two after it say so too.
+            string label = row.HasClock ? Localization.Get("Time.ByDay", row.Label) : row.Label;
             string text;
 
             if (row.Float != null)

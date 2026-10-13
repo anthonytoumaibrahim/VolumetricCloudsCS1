@@ -43,12 +43,14 @@ $nameOf = @{}
 foreach ($m in [regex]::Matches($settingsSrc, '(\w+) = new (?:Float|Bool|Int|Color|String)Setting\("(\w+)"')) { $nameOf[$m.Groups[1].Value] = $m.Groups[2].Value }
 foreach ($m in [regex]::Matches($settingsSrc, '(\w+) = new SavedInputKey\("(\w+)"')) { $nameOf[$m.Groups[1].Value] = $m.Groups[2].Value }
 
-# The rows, one block per "Add(new Row".
+# The rows, one block per "Add(new Row" -- and per "Row x = new Row", a row with a clock (1.5.0) built
+# before AddTimed adds it with its Sunset and Night rows (those take their names from it: Time.AtSunset).
 $catalog = Get-Content (Join-Path $root "UI\SettingsCatalog.cs") -Raw
-$blocks = [regex]::Split($catalog, 'Add\(new Row') | Select-Object -Skip 1
+$parts = [regex]::Split($catalog, '(Add\(new Row|Row \w+ = new Row)')
 $rows = 0
-foreach ($b in $blocks) {
-    $b = $b.Substring(0, $b.IndexOf('});'))
+for ($i = 1; $i -lt $parts.Count; $i += 2) {
+    $b = $parts[$i + 1]
+    $b = if ($parts[$i] -like 'Add*') { $b.Substring(0, $b.IndexOf('});')) } else { $b.Substring(0, $b.IndexOf('};')) }
     $rows++
     $kind = if ($b -match 'Kind = RowKind\.(\w+)') { $Matches[1] } else { '?' }
     $name = $null
@@ -76,7 +78,7 @@ foreach ($enum in @('PanelPage', 'OptionsPage')) {
 
 # Key-shaped literals anywhere in the code ("Status.Fog.Off", "Unit.Metres"...), including the
 # ones picked by a ?: that a Localization.Get("...") search would miss.
-$prefixes = 'Mod|Tab|Key|Status|Unit|Readout|File|Language|QualityPreset|Group|ResetAll|ResetPattern|Reset|Colour|Profiles'
+$prefixes = 'Mod|Tab|Key|Status|Unit|Readout|File|Language|QualityPreset|Group|ResetAll|ResetPattern|Reset|Colour|Profiles|Time'
 foreach ($file in Get-ChildItem $root -Recurse -Filter *.cs | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' }) {
     foreach ($m in [regex]::Matches((Get-Content $file.FullName -Raw), "`"((?:$prefixes)\.[A-Z][A-Za-z.]*[A-Za-z])`"")) {
         [void]$needed.Add($m.Groups[1].Value)

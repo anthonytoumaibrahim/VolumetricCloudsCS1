@@ -153,6 +153,27 @@ namespace VolumetricClouds.UI
         /// </summary>
         public int? OlderFileInt;
 
+        /// <summary>
+        /// A row added after release whose value for a file that LACKS it is worked out from that
+        /// file (1.5.0, the Sunset and Night rows of a clock): given the file's elements by name -- the
+        /// retired ones included (SettingsXml.Retired) -- the text it stands for; null: the value its
+        /// Day row (<see cref="TimeOf"/>) has just been given. Used where <see cref="OlderFileInt"/>
+        /// is: the settings file at startup, and every profile.
+        /// </summary>
+        public Func<IDictionary<string, string>, string> OlderFile;
+
+        /// <summary>
+        /// A row with a clock (1.5.0, Sky.TimeOfDay): its Day, Sunset and Night rows, itself first.
+        /// Null on every other row.
+        /// </summary>
+        public Row[] Times;
+
+        /// <summary>A Sunset or Night row: the row whose clock it belongs to. Null on every other row.</summary>
+        public Row TimeOf;
+
+        /// <summary>On a row of a clock: 0 Day, 1 Sunset, 2 Night.</summary>
+        public int Time;
+
         /// <summary>Live-apply hook. Must be safe with no city loaded: the options page is.</summary>
         public Action AfterChange;
 
@@ -190,9 +211,25 @@ namespace VolumetricClouds.UI
 
         // ---- the texts, in the game's language ------------------------------------------------
 
+        /// <summary>
+        /// Its name in the game's language. A Sunset or Night row is its Day row's, "at sunset" / "at
+        /// night" (the settings file's comments and the log; the panel writes Day / Sunset / Night).
+        /// </summary>
         public string Label
         {
-            get { return Localization.Get(Name + ".Label"); }
+            get
+            {
+                if (TimeOf != null)
+                    return Localization.Get(Time == 1 ? "Time.AtSunset" : "Time.AtNight", TimeOf.Label);
+
+                return Localization.Get(Name + ".Label");
+            }
+        }
+
+        /// <summary>A row with a clock (Day, Sunset and Night values).</summary>
+        public bool HasClock
+        {
+            get { return Times != null; }
         }
 
         /// <summary>Null when the row has none.</summary>
@@ -241,7 +278,16 @@ namespace VolumetricClouds.UI
             if (Kind == RowKind.Status)
                 yield break;
 
+            if (TimeOf != null)
+            {
+                yield return Time == 1 ? "Time.AtSunset" : "Time.AtNight";
+                yield break;
+            }
+
             yield return Name + ".Label";
+
+            if (Times != null)
+                yield return "Time.ByDay";
 
             if (HasNote)
                 yield return Name + ".Note";
@@ -638,13 +684,13 @@ namespace VolumetricClouds.UI
             if (row == null || !row.CanReset || row.IsAtResetValue)
                 return;
 
-            string kept = row.ResetText;
-            Log.Msg("setting: " + row.Name + (kept != null
-                ? " reset to " + kept + ", as profile '" + Profiles.Selected + "' has it (the row's reset button)"
-                : " reset to its default (the row's reset button)"));
-
             if (row.Kind == RowKind.Toggle && row.Bool != null)
             {
+                string kept = row.ResetText;
+                Log.Msg("setting: " + row.Name + (kept != null
+                    ? " reset to " + kept + ", as profile '" + Profiles.Selected + "' has it (the row's reset button)"
+                    : " reset to its default (the row's reset button)"));
+
                 bool value;
                 if (kept == null || !SettingsXmlFormat.TryParseBool(kept, out value))
                     value = row.DefaultBool;
@@ -653,11 +699,44 @@ namespace VolumetricClouds.UI
                 return;
             }
 
+            ResetValue(row);
+            SettingsXml.SaveNow();
+
+            if (row.AfterChange != null)
+                row.AfterChange();
+
+            RefreshAllUIs();
+        }
+
+        /// <summary>One value back to what the row's reset button puts back; logged. Not saved.</summary>
+        private static void ResetValue(Row row)
+        {
+            string kept = row.ResetText;
+            Log.Msg("setting: " + row.Name + (kept != null
+                ? " reset to " + kept + ", as profile '" + Profiles.Selected + "' has it (the row's reset button)"
+                : " reset to its default (the row's reset button)"));
+
             string problem = kept != null ? SettingsXml.ApplyValue(row, kept) : null;
             if (kept == null)
                 row.ResetToDefault();
             else if (problem != null)
                 Log.Warn("setting: " + row.Name + " '" + kept + "' " + problem);
+        }
+
+        /// <summary>
+        /// The reset button on a row with a clock, closed (1.5.0): its Day, Sunset and Night back to
+        /// what the picked profile holds (the defaults without one), as one change -- saved once.
+        /// </summary>
+        public static void ResetClock(Row row)
+        {
+            if (row == null || row.Times == null || ClockAtResetValue(row))
+                return;
+
+            foreach (Row time in row.Times)
+            {
+                if (time.CanReset && !time.IsAtResetValue)
+                    ResetValue(time);
+            }
 
             SettingsXml.SaveNow();
 
@@ -665,6 +744,56 @@ namespace VolumetricClouds.UI
                 row.AfterChange();
 
             RefreshAllUIs();
+        }
+
+        /// <summary>A row with a clock whose three times are all where their reset buttons would put them.</summary>
+        public static bool ClockAtResetValue(Row row)
+        {
+            if (row.Times == null)
+                return row.IsAtResetValue;
+
+            foreach (Row time in row.Times)
+            {
+                if (!time.IsAtResetValue)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>A row with a clock whose Day, Sunset and Night are the same value (every existing player's).</summary>
+        public static bool SameAllDay(Row row)
+        {
+            if (row.Times == null)
+                return true;
+
+            Row day = row.Times[0];
+            for (int i = 1; i < row.Times.Length; i++)
+            {
+                Row time = row.Times[i];
+                if (day.Float != null && time.Float != null && !day.Float.value.Equals(time.Float.value))
+                    return false;
+                if (day.Colour != null && time.Colour != null && !ColorText.Same(day.Colour.value, time.Colour.value))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// A row with a clock moved while its three are the same and its clock is closed: all three
+        /// go there together, so it stays one value all day (the panel's slider in that state).
+        /// </summary>
+        public static void StoreAllDay(Row row, float display)
+        {
+            if (row.Times == null)
+            {
+                row.Store(display);
+                return;
+            }
+
+            foreach (Row time in row.Times)
+                time.Store(display);
         }
 
         /// <summary>
@@ -849,11 +978,6 @@ namespace VolumetricClouds.UI
             return CloudFragments.On;
         }
 
-        private static bool NightColoursOn()
-        {
-            return Settings.CloudNightColors != null && Settings.CloudNightColors.value;
-        }
-
         private static bool FogLampsOn()
         {
             return FogOn() && Settings.FogLampsEnabled != null && Settings.FogLampsEnabled.value;
@@ -910,11 +1034,6 @@ namespace VolumetricClouds.UI
             return Settings.BrightnessAuto;
         }
 
-        private static bool NightBrightnessOn()
-        {
-            return Settings.NightBrightnessOn;
-        }
-
         /// <summary>A style that draws cumulus is picked: Cumulus (its heaps) or Mixed (its separate clouds).</summary>
         private static bool CumulusPicked()
         {
@@ -926,41 +1045,98 @@ namespace VolumetricClouds.UI
             return CloudStyle.IsMixed;
         }
 
+        // ---- the time of day (1.5.0) ------------------------------------------------------------
+
         /// <summary>
-        /// "Brightness differs at night" ticked by the player (Row.OnTicked). A night still at its
-        /// defaults -- never set, or reset -- starts at the day's current values, so ticking the box
-        /// changes nothing until a night slider moves: the defaults are the day's DEFAULTS, and a
-        /// tuned day (the author's: 90% / 40%) would otherwise jump to 300% / 50% at nightfall. A
-        /// night already set is kept, so untick and tick again loses nothing.
+        /// A slider row with a clock (Sky.TimeOfDay): <paramref name="day"/> as written, then its Sunset
+        /// and Night rows -- the same kind, tab, range, readout and greying, each with its own setting
+        /// and default. The panel draws them under the row, as its Day / Sunset / Night lines, while its
+        /// clock is open; the settings file, profiles and resets take them like any other row. A file
+        /// or profile without them carries its own values over (Row.OlderFile): at sunset its Day
+        /// value, at night its Day value too, or <paramref name="olderNight"/>'s -- the night an older
+        /// file had behind a switch. The Day row is built as a local first and handed in
+        /// (tools/test-localization.ps1 reads the rows from that shape as well as from Add's); the two
+        /// made here take their names from it (Time.AtSunset, Time.AtNight).
         /// </summary>
-        private static void StartNightBrightness()
+        private static void AddTimed(Row day, FloatSetting sunset, float sunsetDefault, FloatSetting night, float nightDefault,
+            Func<IDictionary<string, string>, string> olderNight)
         {
-            FloatSetting clear = Settings.CloudNightBrightnessClear;
-            FloatSetting overcast = Settings.CloudNightBrightnessOvercast;
-            FloatSetting fixedValue = Settings.CloudNightBrightnessFixed;
-            if (clear == null || overcast == null || fixedValue == null)
-                return;
+            Row atSunset = TimeRow(day, 1);
+            atSunset.Float = sunset;
+            atSunset.DefaultFloat = sunsetDefault;
 
-            bool untouched = Mathf.Approximately(clear.value, Settings.Defaults.NightBrightnessClear)
-                && Mathf.Approximately(overcast.value, Settings.Defaults.NightBrightnessOvercast)
-                && Mathf.Approximately(fixedValue.value, Settings.Defaults.NightBrightnessFixed);
+            Row atNight = TimeRow(day, 2);
+            atNight.Float = night;
+            atNight.DefaultFloat = nightDefault;
 
-            if (untouched)
-            {
-                clear.value = Settings.CloudBrightnessClear != null ? Settings.CloudBrightnessClear.value : Settings.Defaults.BrightnessClear;
-                overcast.value = Settings.CloudBrightnessOvercast != null ? Settings.CloudBrightnessOvercast.value : Settings.Defaults.BrightnessOvercast;
-                fixedValue.value = Settings.CloudBrightness != null ? Settings.CloudBrightness.value : Settings.Defaults.Brightness;
-            }
-
-            Log.Msg("setting: the night's brightness " + (untouched ? "starts at the day's" : "was set before, kept") +
-                    ": clear sky " + Percent(clear.value) + ", full overcast " + Percent(overcast.value) +
-                    ", fixed " + Percent(fixedValue.value));
+            AddClock(day, atSunset, atNight, olderNight);
         }
 
-        /// <summary>A fraction as the slider shows it, for the LOG (English, no unit lookup).</summary>
-        private static string Percent(float fraction)
+        /// <summary>The same for a colour row.</summary>
+        private static void AddTimed(Row day, ColorSetting sunset, Color32 sunsetDefault, ColorSetting night, Color32 nightDefault,
+            Func<IDictionary<string, string>, string> olderNight)
         {
-            return (fraction * 100f).ToString("F0", CultureInfo.InvariantCulture) + "%";
+            Row atSunset = TimeRow(day, 1);
+            atSunset.Colour = sunset;
+            atSunset.DefaultColour = sunsetDefault;
+
+            Row atNight = TimeRow(day, 2);
+            atNight.Colour = night;
+            atNight.DefaultColour = nightDefault;
+
+            AddClock(day, atSunset, atNight, olderNight);
+        }
+
+        private static Row TimeRow(Row day, int time)
+        {
+            return new Row
+            {
+                Kind = day.Kind,
+                Panel = day.Panel,
+                Options = day.Options,
+                Min = day.Min,
+                Max = day.Max,
+                Step = day.Step,
+                Format = day.Format,
+                Enabled = day.Enabled,
+                Shown = day.Shown,
+                Profiled = day.Profiled,
+                AfterChange = day.AfterChange,
+                TimeOf = day,
+                Time = time,
+            };
+        }
+
+        private static void AddClock(Row day, Row atSunset, Row atNight, Func<IDictionary<string, string>, string> olderNight)
+        {
+            day.Times = new[] { day, atSunset, atNight };
+
+            // Null: the Day value the file has just given (SettingsXml.Read).
+            atSunset.OlderFile = values => null;
+            atNight.OlderFile = olderNight ?? (values => null);
+
+            Add(day);
+            Add(atSunset);
+            Add(atNight);
+        }
+
+        /// <summary>
+        /// An older file's night for a row that was the day half of a 1.3.0 switch: its night value
+        /// when the switch was on, the Day value otherwise (Sky.TimeOfDay.OlderNight).
+        /// </summary>
+        private static Func<IDictionary<string, string>, string> OlderNight(string switchName, string valueName, string valueDefault)
+        {
+            return values => TimeOfDay.OlderNight(values, switchName, valueName, valueDefault);
+        }
+
+        /// <summary>The rows with a clock, for the log and the panel.</summary>
+        public static IEnumerable<Row> ClockRows()
+        {
+            foreach (Row row in Rows)
+            {
+                if (row.Times != null)
+                    yield return row;
+            }
         }
 
         private static bool ShadowsOn()
@@ -1320,53 +1496,31 @@ namespace VolumetricClouds.UI
             // changes only the hue; brightness stays the brightness settings' (Sky.CloudTint).
             // No AfterChange: the panel's colour row logs each pick when it is made, not every
             // frame of a drag through the picker.
-            Add(new Row
+            // Each with a clock (1.5.0). The 1.3.0 switch "Different colors at night" (asked for: the
+            // colours "should be different during day than night") and its Moonlit side / Shaded side
+            // at night became their Night values: an older file's night comes over as it was.
+            Row sunlit = new Row
             {
                 Kind = RowKind.Colour,
                 Panel = PanelPage.Clouds,
                 Group = "CloudColour",
                 Colour = Settings.CloudSunlitColor,
                 DefaultColour = Settings.Defaults.SunlitColor,
-            });
+            };
+            AddTimed(sunlit, Settings.CloudSunlitColorSunset, Settings.Defaults.SunlitColorSunset,
+                Settings.CloudSunlitColorNight, Settings.Defaults.SunlitColorNight,
+                OlderNight("CloudNightColors", "CloudMoonlitColor", "#FFFFFF"));
 
-            Add(new Row
+            Row shade = new Row
             {
                 Kind = RowKind.Colour,
                 Panel = PanelPage.Clouds,
                 Colour = Settings.CloudShadeColor,
                 DefaultColour = Settings.Defaults.ShadeColor,
-            });
-
-            // 1.3.0 (asked for: the colours "should be different during day than night"). Off,
-            // the default, the two above are used around the clock -- exactly as before, so an
-            // update changes nobody's clouds. On, these two take over at night, blended in through
-            // the twilight (Sky.CloudTint.Blend). Like the day's, each pick is logged by its row.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Panel = PanelPage.Clouds,
-                Bool = Settings.CloudNightColors,
-                DefaultBool = Settings.Defaults.NightColors,
-                AfterChange = State("different cloud colours at night", OnOff(Settings.CloudNightColors)),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Colour,
-                Panel = PanelPage.Clouds,
-                Colour = Settings.CloudMoonlitColor,
-                DefaultColour = Settings.Defaults.MoonlitColor,
-                Enabled = NightColoursOn,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Colour,
-                Panel = PanelPage.Clouds,
-                Colour = Settings.CloudNightShadeColor,
-                DefaultColour = Settings.Defaults.NightShadeColor,
-                Enabled = NightColoursOn,
-            });
+            };
+            AddTimed(shade, Settings.CloudShadeColorSunset, Settings.Defaults.ShadeColorSunset,
+                Settings.CloudShadeColorNight, Settings.Defaults.ShadeColorNight,
+                OlderNight("CloudNightColors", "CloudNightShadeColor", "#FFFFFF"));
 
             // DISTANT CLOUDS (1.5.0, Sky.SkyLayer), a tab of their own: photographed skies behind the
             // clouds, a row per kind, and they add up. 0 is off; all four at 0 and nothing of it exists.
@@ -1443,7 +1597,8 @@ namespace VolumetricClouds.UI
                 AfterChange = State("fog lit by the city's lights", OnOff(Settings.FogLampsEnabled)),
             });
 
-            Add(new Row
+            // With a clock (1.5.0), as are the fog's brightness, tint and colour below.
+            Row density = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
@@ -1453,7 +1608,9 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.FogDensity,
                 Min = 10f, Max = 500f, Step = 5f,
                 Enabled = FogOn,
-            });
+            };
+            AddTimed(density, Settings.FogDensitySunset, Settings.Defaults.FogDensitySunset,
+                Settings.FogDensityNight, Settings.Defaults.FogDensityNight, null);
 
             Add(new Row
             {
@@ -1539,7 +1696,7 @@ namespace VolumetricClouds.UI
                 Enabled = FogOn,
             });
 
-            Add(new Row
+            Row brightness = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Fog,
@@ -1547,9 +1704,11 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.FogBrightness,
                 Min = 20f, Max = 300f, Step = 5f,
                 Enabled = FogOn,
-            });
+            };
+            AddTimed(brightness, Settings.FogBrightnessSunset, Settings.Defaults.FogBrightnessSunset,
+                Settings.FogBrightnessNight, Settings.Defaults.FogBrightnessNight, null);
 
-            Add(new Row
+            Row tint = new Row
             {
                 Kind = RowKind.Value,
                 Panel = PanelPage.Fog,
@@ -1558,19 +1717,23 @@ namespace VolumetricClouds.UI
                 Min = -1f, Max = 1f, Step = 0.05f,
                 Format = FogTintName,
                 Enabled = FogOn,
-            });
+            };
+            AddTimed(tint, Settings.FogTintSunset, Settings.Defaults.FogTintSunset,
+                Settings.FogTintNight, Settings.Defaults.FogTintNight, null);
 
             // The fog's own colour (1.1.0), like the clouds' two: hue only, white = as it was,
             // on top of the cool/warm lean above (which stays: a slider in players' files).
             // No AfterChange: the panel's colour row logs each pick itself.
-            Add(new Row
+            Row colour = new Row
             {
                 Kind = RowKind.Colour,
                 Panel = PanelPage.Fog,
                 Colour = Settings.FogColor,
                 DefaultColour = Settings.Defaults.FogColor,
                 Enabled = FogOn,
-            });
+            };
+            AddTimed(colour, Settings.FogColorSunset, Settings.Defaults.FogColorSunset,
+                Settings.FogColorNight, Settings.Defaults.FogColorNight, null);
 
             Add(new Row
             {
@@ -1927,7 +2090,9 @@ namespace VolumetricClouds.UI
                 AfterChange = State("cloud shadows", OnOff(Settings.CloudShadows)),
             });
 
-            Add(new Row
+            // With a clock (1.5.0), as are the brightness, the density, the light inside and the
+            // clouds hiding the sky below.
+            Row darkness = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -1935,7 +2100,9 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.ShadowDarkness,
                 Min = 0f, Max = 95f, Step = 5f,
                 Enabled = ShadowsOn,
-            });
+            };
+            AddTimed(darkness, Settings.CloudShadowDarknessSunset, Settings.Defaults.ShadowDarknessSunset,
+                Settings.CloudShadowDarknessNight, Settings.Defaults.ShadowDarknessNight, null);
 
             // Shadow fullness: on the Advanced tab in 1.4.0, back here in 1.5.0.
             Add(new Row
@@ -1959,7 +2126,11 @@ namespace VolumetricClouds.UI
                 AfterChange = State("automatic cloud brightness", OnOff(Settings.CloudBrightnessAuto)),
             });
 
-            Add(new Row
+            // The 1.3.0 switch "Brightness differs at night" (asked for: "separate brightness sliders
+            // from day and night ... optional") and its three "At night:" rows became these three's
+            // Night values (1.5.0): an older file's night comes over as it was, and Sunset starts at
+            // the Day value, so it draws exactly what it drew.
+            Row clear = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -1967,9 +2138,12 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.BrightnessClear,
                 Min = 5f, Max = 300f, Step = 5f,
                 Enabled = AutoBrightness,
-            });
+            };
+            AddTimed(clear, Settings.CloudBrightnessClearSunset, Settings.Defaults.BrightnessClearSunset,
+                Settings.CloudBrightnessClearNight, Settings.Defaults.BrightnessClearNight,
+                OlderNight("CloudNightBrightness", "CloudNightBrightnessClear", "150"));
 
-            Add(new Row
+            Row overcast = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -1977,9 +2151,12 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.BrightnessOvercast,
                 Min = 5f, Max = 300f, Step = 5f,
                 Enabled = AutoBrightness,
-            });
+            };
+            AddTimed(overcast, Settings.CloudBrightnessOvercastSunset, Settings.Defaults.BrightnessOvercastSunset,
+                Settings.CloudBrightnessOvercastNight, Settings.Defaults.BrightnessOvercastNight,
+                OlderNight("CloudNightBrightness", "CloudNightBrightnessOvercast", "50"));
 
-            Add(new Row
+            Row brightness = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -1987,7 +2164,10 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.Brightness,
                 Min = 5f, Max = 300f, Step = 5f,
                 Enabled = ManualBrightness,
-            });
+            };
+            AddTimed(brightness, Settings.CloudBrightnessSunset, Settings.Defaults.BrightnessSunset,
+                Settings.CloudBrightnessNight, Settings.Defaults.BrightnessNight,
+                OlderNight("CloudNightBrightness", "CloudNightBrightnessFixed", "25"));
 
             Add(new Row
             {
@@ -1999,64 +2179,19 @@ namespace VolumetricClouds.UI
                 Enabled = ManualBrightness,
             });
 
-            // 1.3.0 (asked for: "separate brightness sliders from day and night ... optional"). Off,
-            // the default, the brightness above is used around the clock -- exactly as before, so
-            // an update changes nobody's clouds. On, the night's own takes over at night, through
-            // the night colours' twilight (Settings.EffectiveBrightness): the same two kinds as the
-            // day's, greyed by the same switch. The night's rows show only while it is on ("then
-            // show these"), and ticking it starts a night never set at the day's values.
-            // "Clouds dim at full overcast to" stays one for both: it is the overcast, not the hour.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Panel = PanelPage.Light,
-                Bool = Settings.CloudNightBrightness,
-                DefaultBool = Settings.Defaults.NightBrightness,
-                OnTicked = StartNightBrightness,
-                AfterChange = State("brightness differs at night", OnOff(Settings.CloudNightBrightness)),
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Light,
-                Float = Settings.CloudNightBrightnessClear,
-                DefaultFloat = Settings.Defaults.NightBrightnessClear,
-                Min = 5f, Max = 300f, Step = 5f,
-                Shown = NightBrightnessOn,
-                Enabled = AutoBrightness,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Light,
-                Float = Settings.CloudNightBrightnessOvercast,
-                DefaultFloat = Settings.Defaults.NightBrightnessOvercast,
-                Min = 5f, Max = 300f, Step = 5f,
-                Shown = NightBrightnessOn,
-                Enabled = AutoBrightness,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Light,
-                Float = Settings.CloudNightBrightnessFixed,
-                DefaultFloat = Settings.Defaults.NightBrightnessFixed,
-                Min = 5f, Max = 300f, Step = 5f,
-                Shown = NightBrightnessOn,
-                Enabled = ManualBrightness,
-            });
-
-            Add(new Row
+            // 1.5.0's clock began here (the author: "during sunset it's too harsh at 100% and needs to
+            // be dropped back down to like 20-25%"). Only the clouds you see: their shadows are drawn
+            // with the Day value (CloudShadowMap), and darken by their own row's clock.
+            Row density = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
                 Float = Settings.CloudDensity,
                 DefaultFloat = Settings.Defaults.Density,
                 Min = 20f, Max = 300f, Step = 5f,
-            });
+            };
+            AddTimed(density, Settings.CloudDensitySunset, Settings.Defaults.DensitySunset,
+                Settings.CloudDensityNight, Settings.Defaults.DensityNight, null);
 
             // The light inside the clouds: two rows, each 0% = the light from before, exactly, 100% =
             // the look chosen. The first is three parts on one slider (it was three rows until they
@@ -2064,7 +2199,7 @@ namespace VolumetricClouds.UI
             // middling cloud glows with the sun behind it (200%: light twice as deep), and
             // Sky/CloudShade, the sky light in the shade (200%: the base as lit as the top) and the
             // sunlit ground's light on the undersides (200%: twice the albedo).
-            Add(new Row
+            Row inside = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -2072,7 +2207,9 @@ namespace VolumetricClouds.UI
                 Float = Settings.LightInsideClouds,
                 DefaultFloat = Settings.Defaults.LightInsideClouds,
                 Min = 0f, Max = 200f, Step = 5f,
-            });
+            };
+            AddTimed(inside, Settings.LightInsideCloudsSunset, Settings.Defaults.LightInsideCloudsSunset,
+                Settings.LightInsideCloudsNight, Settings.Defaults.LightInsideCloudsNight, null);
 
             // Sky/SunsetLight: the clouds keep the low sun's light, redder, until it has set for them
             // (0%: the game's sun, as before; 200%: as if they stood twice as high -- it lasts longer).
@@ -2085,12 +2222,13 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 200f, Step = 5f,
             });
 
-            // 1.5.0, asked for by a player with a daytime cubemap: its sky, sun included, showed through
-            // a full overcast, where the far clouds fade into whatever is behind them. The night row's
-            // twin, by day (CloudVolume.ApplyNight); 0% for everyone = the clouds as before. Not
-            // switched on by itself for a sky that is not the game's: that would change a cubemap
-            // player's look without asking.
-            Add(new Row
+            // "Clouds hide the sky": by day (1.5.0, asked for by a player with a daytime cubemap: its sky,
+            // sun included, showed through a full overcast, where the far clouds fade into whatever is
+            // behind them; 0% for everyone = the clouds as before, and not switched on by itself for a
+            // sky that is not the game's) and at night (the stars, since 1.0: 100%), one row with a
+            // clock since 1.5.0 (CloudVolume.ApplyNight). CloudNightOpacity keeps its name: it already
+            // meant the night's. Sunset: an older file's Day value, which is how its twilight began.
+            Row hide = new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.Light,
@@ -2098,16 +2236,12 @@ namespace VolumetricClouds.UI
                 Float = Settings.CloudDayOpacity,
                 DefaultFloat = Settings.Defaults.DayOpacity,
                 Min = 0f, Max = 100f, Step = 5f,
-            });
-
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Light,
-                Float = Settings.CloudNightOpacity,
-                DefaultFloat = Settings.Defaults.NightOpacity,
-                Min = 0f, Max = 100f, Step = 5f,
-            });
+            };
+            // A file without the night's element (none since release has lacked it) means its default,
+            // as it always did -- not the Day value.
+            AddTimed(hide, Settings.CloudSunsetOpacity, Settings.Defaults.SunsetOpacity,
+                Settings.CloudNightOpacity, Settings.Defaults.NightOpacity,
+                values => SettingsXmlFormat.FormatNumber(Settings.Defaults.NightOpacity * 100f));
 
             Add(new Row
             {
@@ -2482,6 +2616,16 @@ namespace VolumetricClouds.UI
                 Kind = RowKind.Text,
                 Text = Settings.PanelOpenGroups,
                 DefaultText = Settings.Defaults.PanelOpenGroups,
+                Profiled = false,
+            });
+
+            // 1.5.0: the rows whose clock is open in the panel (their Day, Sunset and Night lines
+            // shown). The clocks are its UI; read on every refresh, like the open headings.
+            Add(new Row
+            {
+                Kind = RowKind.Text,
+                Text = Settings.PanelOpenClocks,
+                DefaultText = Settings.Defaults.PanelOpenClocks,
                 Profiled = false,
             });
         }

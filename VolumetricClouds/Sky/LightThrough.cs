@@ -33,9 +33,10 @@ namespace VolumetricClouds.Sky
         {
             get
             {
-                return Settings.LightInsideClouds != null
-                    ? Math.Max(0f, Math.Min(2f, Settings.LightInsideClouds.value))
-                    : Settings.Defaults.LightInsideClouds;
+                // With a clock (1.5.0): the light inside as the time of day has it now.
+                float now = Settings.Now(Settings.LightInsideClouds, Settings.LightInsideCloudsSunset,
+                    Settings.LightInsideCloudsNight, Settings.Defaults.LightInsideClouds);
+                return Math.Max(0f, Math.Min(2f, now));
             }
         }
 

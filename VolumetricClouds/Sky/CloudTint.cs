@@ -69,6 +69,43 @@ namespace VolumetricClouds.Sky
             return new Color(a.r + (b.r - a.r) * night, a.g + (b.g - a.g) * night, a.b + (b.b - a.b) * night, 1f);
         }
 
+        /// <summary>
+        /// The tint for a colour row with a clock (1.5.0, <see cref="TimeOfDay"/>): Day, Sunset and Night
+        /// blended by their shares. Sunset the same as Day: exactly <see cref="Blend"/> with Night's share,
+        /// the day/night pair as it was; Night the same as Day: the same with Sunset's. Otherwise each
+        /// tint's multipliers weighted, which keeps the brightness as Blend does.
+        /// </summary>
+        public static Color Blend3(Color32 day, Color32 sunset, Color32 night, float dayShare, float sunsetShare, float nightShare)
+        {
+            if (Same(sunset, day))
+                return Blend(day, night, nightShare);
+
+            if (Same(night, day))
+                return Blend(day, sunset, sunsetShare);
+
+            if (sunsetShare >= 1f)
+                return Of(sunset);
+
+            if (nightShare >= 1f)
+                return Of(night);
+
+            if (dayShare >= 1f)
+                return Of(day);
+
+            Color a = Of(day);
+            Color b = Of(sunset);
+            Color c = Of(night);
+            return new Color(a.r * dayShare + b.r * sunsetShare + c.r * nightShare,
+                a.g * dayShare + b.g * sunsetShare + c.g * nightShare,
+                a.b * dayShare + b.b * sunsetShare + c.b * nightShare, 1f);
+        }
+
+        /// <summary>The same picked colour (alpha aside: the settings keep every colour opaque).</summary>
+        private static bool Same(Color32 a, Color32 b)
+        {
+            return a.r == b.r && a.g == b.g && a.b == b.b;
+        }
+
         /// <summary>Rec. 709 luminance of a linear colour.</summary>
         public static float Luminance(float r, float g, float b)
         {

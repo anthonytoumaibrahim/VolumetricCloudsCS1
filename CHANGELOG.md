@@ -20,7 +20,12 @@ back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (on)
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
 only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
 before, so nothing changes for anyone until they move one. Profiles saved before read the new
-sliders at those values. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
+sliders at those values. Thirteen settings get a value at sunset and at night (*Day, sunset and
+night*): twenty-five more lines, each written with the player's own value of that setting, so their
+sky is the same at every hour, and `PanelOpenClocks` (empty). The seven lines of the two 1.3.0 night
+switches go (`CloudNightBrightness` and its three values, `CloudNightColors`, `CloudMoonlitColor`,
+`CloudNightShadeColor`): where a switch was on, its night values move into the new lines and draw
+exactly what they drew; profiles saved before are read the same way. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
 the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
 photographed skies).
 
@@ -86,8 +91,8 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
 
 ### New: clouds hide the sky by day
 
-- *Clouds hide the sky by day* on the Light tab, 0% to 100%, 0% by default: the daytime twin of
-  *Clouds hide the stars at night*. Far clouds fade into the sky behind them, so with a cubemap (or
+- *Clouds hide the sky* on the Light tab, 0% to 100%, by day 0% by default: the daytime twin of
+  what was *Clouds hide the stars at night* (now the same row at night, see *Day, sunset and night*). Far clouds fade into the sky behind them, so with a cubemap (or
   any sky that isn't the game's) that sky, its sun included, showed through a full overcast. At
   100% the far clouds stay solid, and only toward the horizon thin out gently into the haze of
   whatever sky is behind them, so a full overcast doesn't end on a line above the horizon. The Light
@@ -204,7 +209,28 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 - **Revert**, beside **Save**: while the picked profile has unsaved changes, it puts the profile's
   saved sky back and throws the changes away.
 
+### New: day, sunset and night
+
+- A clock button beside the reset button on thirteen rows: *Sunlit side* and *Shaded side* (Clouds),
+  *Fog density*, *Fog brightness*, *Fog tint* and *Fog color* (Fog), *Shadow darkness*, the three
+  cloud brightness rows, *Cloud density*, *Glow and softer shade* and *Clouds hide the sky* (Light).
+  Clicking it shows the row's Day, Sunset and Night values under it, each with its own slider (or
+  color) and reset; the clouds blend the three by the sun's height: Day while it is high, Sunset
+  from 15 degrees down to the horizon, Night once it has set (the twilight the night colors always
+  used). Sunrise works the same way. While the three are the same the row is one slider moving all
+  three; once they differ it says so and shows the value in use now. The panel remembers which
+  clocks are open. Only the clouds you see take *Cloud density*'s sunset and night: their shadows
+  keep the day's and darken by *Shadow darkness*.
+- *Brightness differs at night* with its three *At night* rows, and *Different colors at night* with
+  *Moonlit side* and *Shaded side at night*, are gone: their nights are the Night values of the
+  brightness and color rows now, carried over exactly. *Clouds hide the stars at night* is the Night
+  value of *Clouds hide the sky*. Eight rows fewer.
+- For everyone who has the mod, every row starts the same all day, so nothing changes until a
+  sunset or night value is moved.
+
 ### Changed
+
+- The Clouds tab's *Color (white leaves the clouds as they are)* heading is just *Color*.
 
 - Smoke, steam, fire and the game's other particle effects are drawn as they were before 1.4.0:
   inside the fog again, so a thick fog hides them. 1.4.0 drew them on top of the fog, which kept
@@ -233,6 +259,10 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 
 ### To do before release (remove this section when 1.5.0 ships)
 
+*Day, sunset and night*: his default values for the thirteen rows' Sunset and Night
+(Settings.Defaults, the "time of day" block); whether 15 degrees to 2 is the right sunset
+(TimeOfDay.SunsetFrom/SunsetFull); the Workshop description and change note.
+
 The four temporary test switches (*Skip the empty sky*, *Clouds to the horizon*, *Grain changes every
 frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (the author: "we already
 tested with them"): the skip and the far deck are always on, the jitter stays as it was, no tint.
@@ -256,6 +286,20 @@ in: Cumulus then, Mixed now, plus *Smoother clouds* and *Distant clouds* (which 
 under the horizon). To judge: the band as on 2026-10-12, then the same view in Cumulus.
 
 Built, awaiting the in-game test:
+
+- *Day, sunset and night* (written up above), built 2026-10-13 from
+  "during sunset [density] is too harsh at 100% and needs to be dropped back down to like 20-25%".
+  The clock (his pick over tabs and per-time profiles, from the preview artifact), closed by default
+  and remembered (his note: "the choice to be opened should be saved in the settings"). C# only, no
+  bundle. Sunset and Night defaults are each row's Day default for now: HIS VALUES TO COME (sunset
+  density 20-25% is the one named). To check: the first start's `settings:` line names the 25 lines
+  "written before these existed" and the seven retired ones, nothing "ignored"; his
+  `CloudBrightnessClearNight` 120, `CloudBrightnessOvercastNight` 55, `CloudBrightnessNight` 5 and
+  `CloudShadeColorNight` #D8BE98 (his night switches were on); `features:` ends with
+  `time of day: CloudShadeColor #FFFFFF/#FFFFFF/#D8BE98, CloudBrightnessClear 185/185/120, ...`;
+  the detailed brightness line's `time of day: sun X deg, day a% sunset b% night c%`. In the panel:
+  a clock on the thirteen rows, closed; opening one shows Day / Sunset / Night with icons, the
+  share after the name while it blends; the sky at night and at dusk as before.
 
 - *Larger weather pattern* (written up above; not profiled), built 2026-10-13 for a subscriber's comment ("the
   clouds always have the same shape, which looks quite strange when zooming out": ACME goes 44 km

@@ -159,17 +159,11 @@
   <String key="CloudFragmentStyle.Scattered">Scattered</String>
   <String key="CloudFragmentStyle.Wispy">Wispy</String>
 
-  <String key="Group.CloudColour">Color (white leaves the clouds as they are)</String>
+  <String key="Group.CloudColour">Color</String>
 
   <String key="CloudSunlitColor.Label">Sunlit side</String>
 
   <String key="CloudShadeColor.Label">Shaded side</String>
-
-  <String key="CloudNightColors.Label">Different colors at night</String>
-
-  <String key="CloudMoonlitColor.Label">Moonlit side</String>
-
-  <String key="CloudNightShadeColor.Label">Shaded side at night</String>
 
   <String key="Group.SkyLayer">Distant clouds</String>
 
@@ -186,6 +180,18 @@
   <String key="Colour.Paste">Paste</String>
   <String key="Reset.Tooltip">Back to the default</String>
   <String key="Reset.TooltipProfile">Back to the profile '{0}'</String>
+
+  <!-- A row's clock: its value by day, at sunset and at night. Time.ByDay, AtSunset and AtNight name
+       the three in the settings file's comments ({0} = the row's name). -->
+  <String key="Time.Day">Day</String>
+  <String key="Time.Sunset">Sunset</String>
+  <String key="Time.Night">Night</String>
+  <String key="Time.Changes">Changes with the time of day</String>
+  <String key="Time.Open">Show day, sunset and night</String>
+  <String key="Time.Close">Hide day, sunset and night</String>
+  <String key="Time.ByDay">{0} by day</String>
+  <String key="Time.AtSunset">{0} at sunset</String>
+  <String key="Time.AtNight">{0} at night</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -305,14 +311,6 @@
 
   <String key="MinIllumination.Label">Clouds dim at full overcast to</String>
 
-  <String key="CloudNightBrightness.Label">Brightness differs at night</String>
-
-  <String key="CloudNightBrightnessClear.Label">At night: clear sky</String>
-
-  <String key="CloudNightBrightnessOvercast.Label">At night: full overcast</String>
-
-  <String key="CloudNightBrightnessFixed.Label">At night: fixed brightness</String>
-
   <String key="CloudDensity.Label">Cloud density</String>
 
   <String key="Group.CloudLight">Light inside the clouds</String>
@@ -323,9 +321,7 @@
 
   <String key="Group.DayAndNight">Day and night</String>
 
-  <String key="CloudDayOpacity.Label">Clouds hide the sky by day</String>
-
-  <String key="CloudNightOpacity.Label">Clouds hide the stars at night</String>
+  <String key="CloudDayOpacity.Label">Clouds hide the sky</String>
 
   <String key="NightGlow.Label">Glow under the clouds at night</String>
 
@@ -429,6 +425,7 @@
   <String key="HudButtonX.Label">The mod's button (without Unified UI): distance from the left edge</String>
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
   <String key="PanelOpenGroups.Label">The in-game panel's open headings (advanced options on), comma separated</String>
+  <String key="PanelOpenClocks.Label">The in-game panel's rows showing day, sunset and night, comma separated</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

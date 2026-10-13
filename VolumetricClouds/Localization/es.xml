@@ -122,17 +122,11 @@
   <String key="CloudFragmentStyle.Scattered">Dispersos</String>
   <String key="CloudFragmentStyle.Wispy">Tenues</String>
 
-  <String key="Group.CloudColour">Color (blanco conserva el color original)</String>
+  <String key="Group.CloudColour">Color</String>
 
   <String key="CloudSunlitColor.Label">Lado iluminado</String>
 
   <String key="CloudShadeColor.Label">Lado en sombra</String>
-
-  <String key="CloudNightColors.Label">Colores distintos de noche</String>
-
-  <String key="CloudMoonlitColor.Label">Lado lunar</String>
-
-  <String key="CloudNightShadeColor.Label">Lado en sombra de noche</String>
 
   <String key="Group.SkyLayer">Nubes lejanas</String>
 
@@ -149,6 +143,16 @@
   <String key="Colour.Paste">Pegar</String>
   <String key="Reset.Tooltip">Volver al valor predeterminado</String>
   <String key="Reset.TooltipProfile">Volver al valor del perfil '{0}'</String>
+
+  <String key="Time.Day">Día</String>
+  <String key="Time.Sunset">Atardecer</String>
+  <String key="Time.Night">Noche</String>
+  <String key="Time.Changes">Cambia con la hora del día</String>
+  <String key="Time.Open">Mostrar día, atardecer y noche</String>
+  <String key="Time.Close">Ocultar día, atardecer y noche</String>
+  <String key="Time.ByDay">{0} de día</String>
+  <String key="Time.AtSunset">{0} al atardecer</String>
+  <String key="Time.AtNight">{0} de noche</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -268,14 +272,6 @@
 
   <String key="MinIllumination.Label">Con cielo cubierto, las nubes bajan a</String>
 
-  <String key="CloudNightBrightness.Label">Brillo distinto de noche</String>
-
-  <String key="CloudNightBrightnessClear.Label">Noche: cielo despejado</String>
-
-  <String key="CloudNightBrightnessOvercast.Label">De noche: cielo cubierto</String>
-
-  <String key="CloudNightBrightnessFixed.Label">De noche: brillo fijo</String>
-
   <String key="CloudDensity.Label">Densidad de nubes</String>
 
   <String key="Group.CloudLight">Luz dentro de las nubes</String>
@@ -286,9 +282,7 @@
 
   <String key="Group.DayAndNight">De día y de noche</String>
 
-  <String key="CloudDayOpacity.Label">Las nubes ocultan el cielo de día</String>
-
-  <String key="CloudNightOpacity.Label">Las nubes ocultan las estrellas</String>
+  <String key="CloudDayOpacity.Label">Las nubes ocultan el cielo</String>
 
   <String key="NightGlow.Label">Resplandor bajo las nubes de noche</String>
 
@@ -379,6 +373,7 @@
   <String key="HudButtonX.Label">Botón del mod (sin Unified UI): distancia desde la izquierda</String>
   <String key="HudButtonY.Label">Botón del mod (sin Unified UI): distancia desde arriba</String>
   <String key="PanelOpenGroups.Label">Encabezados abiertos del panel del juego (opciones avanzadas activadas), separados por comas</String>
+  <String key="PanelOpenClocks.Label">Filas del panel del juego que muestran día, atardecer y noche, separadas por comas</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

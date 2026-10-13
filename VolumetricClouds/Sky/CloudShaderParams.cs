@@ -120,12 +120,22 @@ namespace VolumetricClouds.Sky
             get { return Mathf.Round(CloudWeather.Coverage * 50f) / 50f; }
         }
 
+        /// <summary>The visible clouds: their density as the time of day has it now (Settings.CloudDensityNow).</summary>
         public static void Apply(Material material, CloudDensityField field, Texture3D noise)
+        {
+            Apply(material, field, noise, Settings.CloudDensityNow);
+        }
+
+        /// <summary>
+        /// The same at <paramref name="density"/>: the shadow map passes the DAY's (1.5.0), so the
+        /// density's clock changes the clouds you see and not their shadows, which darken by their own.
+        /// Every density uniform below is made from this one number.
+        /// </summary>
+        public static void Apply(Material material, CloudDensityField field, Texture3D noise, float density)
         {
             float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
             float tile = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
-            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
             // The map's repeat (Larger weather pattern: 4x the slider's, the map 4x the texels), and
             // the slider's own size, which the Mixed style's clouds are shaped for.
             float weatherTile = field.TileFor(tile);
@@ -160,7 +170,7 @@ namespace VolumetricClouds.Sky
 
             // The layer is drawn in both styles, with all of Classic's settings: its fragments and
             // its detail too. Under Cumulus the heaps come on top (ApplyStyle).
-            ApplyStyle(material, field, patternSize, thickness, detailScale);
+            ApplyStyle(material, field, patternSize, thickness, detailScale, density);
             ApplyFragments(material, field, weatherTile, thickness);
             ApplyDetail(material, detailScale);
             ApplyEmptySky(material, field);
@@ -272,7 +282,8 @@ namespace VolumetricClouds.Sky
         /// writes 0 and nothing else: every use of the Cumulus uniforms sits behind that branch, and
         /// every use of the Mixed ones behind _CloudStyle 2.
         /// </summary>
-        private static void ApplyStyle(Material material, CloudDensityField field, float patternSize, float thickness, float breakupScale)
+        private static void ApplyStyle(Material material, CloudDensityField field, float patternSize, float thickness, float breakupScale,
+            float density)
         {
             // Mixed: its cloud map is baked off the main thread as the weather moves (once a frame at most),
             // over the whole map (Larger weather pattern: field.Scale x the pattern size).
@@ -306,9 +317,8 @@ namespace VolumetricClouds.Sky
                 return;
 
             if (mixed)
-                ApplyMix(material, field);
+                ApplyMix(material, field, density);
 
-            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
             float[] c0 = CloudStyle.Cubics[0];
             float[] c1 = CloudStyle.Cubics[1];
 
@@ -354,10 +364,9 @@ namespace VolumetricClouds.Sky
         /// the shader reads none of it otherwise. The scales are the map's own: the weather repeat it was
         /// baked for.
         /// </summary>
-        private static void ApplyMix(Material material, CloudDensityField field)
+        private static void ApplyMix(Material material, CloudDensityField field, float density)
         {
             float cover = Coverage;
-            float density = Settings.CloudDensity != null ? Settings.CloudDensity.value : Settings.Defaults.Density;
             float bakedTile = CloudMixMap.BakedTile;
             CloudMix.Shape shape = CloudMixMap.BakedShape;
             float noiseTile = CloudMix.NoiseTile(bakedTile, shape);

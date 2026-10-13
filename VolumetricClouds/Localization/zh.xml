@@ -136,17 +136,11 @@
   <String key="CloudFragmentStyle.Scattered">分散</String>
   <String key="CloudFragmentStyle.Wispy">轻薄</String>
 
-  <String key="Group.CloudColour">颜色（白色保持云层原色）</String>
+  <String key="Group.CloudColour">颜色</String>
 
   <String key="CloudSunlitColor.Label">向阳面</String>
 
   <String key="CloudShadeColor.Label">背光面</String>
-
-  <String key="CloudNightColors.Label">夜间使用不同颜色</String>
-
-  <String key="CloudMoonlitColor.Label">月光面</String>
-
-  <String key="CloudNightShadeColor.Label">夜间背光面</String>
 
   <String key="Group.SkyLayer">远处的云</String>
 
@@ -163,6 +157,16 @@
   <String key="Colour.Paste">粘贴</String>
   <String key="Reset.Tooltip">恢复默认值</String>
   <String key="Reset.TooltipProfile">恢复为配置“{0}”中的值</String>
+
+  <String key="Time.Day">白天</String>
+  <String key="Time.Sunset">日落</String>
+  <String key="Time.Night">夜间</String>
+  <String key="Time.Changes">随一天中的时间变化</String>
+  <String key="Time.Open">显示白天、日落和夜间</String>
+  <String key="Time.Close">隐藏白天、日落和夜间</String>
+  <String key="Time.ByDay">白天{0}</String>
+  <String key="Time.AtSunset">日落时{0}</String>
+  <String key="Time.AtNight">夜间{0}</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -282,14 +286,6 @@
 
   <String key="MinIllumination.Label">阴天时最低亮度</String>
 
-  <String key="CloudNightBrightness.Label">夜间使用不同亮度</String>
-
-  <String key="CloudNightBrightnessClear.Label">夜间：晴空</String>
-
-  <String key="CloudNightBrightnessOvercast.Label">夜间：阴天</String>
-
-  <String key="CloudNightBrightnessFixed.Label">夜间：固定亮度</String>
-
   <String key="CloudDensity.Label">云层密度</String>
 
   <String key="Group.CloudLight">云内光照</String>
@@ -300,9 +296,7 @@
 
   <String key="Group.DayAndNight">白天与夜间</String>
 
-  <String key="CloudDayOpacity.Label">白天云层遮住天空</String>
-
-  <String key="CloudNightOpacity.Label">夜间云层遮住星星</String>
+  <String key="CloudDayOpacity.Label">云层遮住天空</String>
 
   <String key="NightGlow.Label">夜间云下辉光</String>
 
@@ -399,6 +393,7 @@
   <String key="HudButtonX.Label">模组按钮（不使用 Unified UI）：距左边缘</String>
   <String key="HudButtonY.Label">模组按钮（不使用 Unified UI）：距上边缘</String>
   <String key="PanelOpenGroups.Label">游戏内面板中展开的标题（启用高级选项时），以逗号分隔</String>
+  <String key="PanelOpenClocks.Label">游戏内面板中显示白天、日落和夜间的行，以逗号分隔</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

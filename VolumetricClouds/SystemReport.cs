@@ -71,8 +71,9 @@ namespace VolumetricClouds
                         " detail=" + Sky.CloudDetail.Describe() +
                         " lightInside=" + (Sky.LightThrough.Setting * 100f).ToString("F0") + "%" +
                         " sunsetLight=" + (Sky.SunsetLight.Setting * 100f).ToString("F0") + "%" +
-                        // 1.5.0: changes what shows through the far clouds by day.
-                        " hideSkyByDay=" + Percent(Settings.CloudDayOpacity, Settings.Defaults.DayOpacity) +
+                        // 1.5.0: changes what shows through the far clouds (by day; at sunset and night
+                        // in the time-of-day part below when they differ).
+                        " hideSky=" + Percent(Settings.CloudDayOpacity, Settings.Defaults.DayOpacity) +
                         // 1.5.0: the far deck under a full overcast.
                         " cloudsToHorizon=" + On(Settings.CloudsToHorizon, Settings.Defaults.CloudsToHorizon) +
                         // 1.5.0: Smoother clouds.
@@ -103,13 +104,12 @@ namespace VolumetricClouds
                         // The grading changes the picture, so it is in the quiet log too.
                         " | colours: sunlit=" + Hex(Settings.CloudSunlitColor, Settings.Defaults.SunlitColor) +
                         " shade=" + Hex(Settings.CloudShadeColor, Settings.Defaults.ShadeColor) +
-                        (Settings.CloudNightColors != null && Settings.CloudNightColors.value
-                            ? " night: moonlit=" + Hex(Settings.CloudMoonlitColor, Settings.Defaults.MoonlitColor) +
-                              " shade=" + Hex(Settings.CloudNightShadeColor, Settings.Defaults.NightShadeColor)
-                            : " (the same at night)") +
                         " fog=" + Hex(Settings.FogColor, Settings.Defaults.FogColor) +
-                        // Like the grading: it changes the picture, and the night's (1.3.0) is a switch.
+                        // Like the grading: it changes the picture.
                         " | brightness: " + Brightness() +
+                        // 1.5.0: every row with a clock whose Day, Sunset and Night differ (the values
+                        // above are the Day's), as the settings file writes them.
+                        " | time of day: " + TimeRows() +
                         // Which saved sky is being edited, if any: a slider moved goes into it.
                         " | profile=" + Profiles.Describe());
 
@@ -125,24 +125,35 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// The cloud brightness as set, by day and at night: "auto 90%..40% (the same at night)",
-        /// "auto 90%..40% night 150%..60%", or "fixed 25%" and so on with automatic brightness off.
+        /// The cloud brightness as set by day: "auto 90%..40%", or "fixed 25%" with automatic
+        /// brightness off. Sunset's and night's, where they differ, are in the time-of-day part.
         /// </summary>
         private static string Brightness()
         {
             bool auto = Settings.BrightnessAuto;
-            string day = auto
+            return auto
                 ? "auto " + Percent(Settings.CloudBrightnessClear, Settings.Defaults.BrightnessClear) + ".." +
                   Percent(Settings.CloudBrightnessOvercast, Settings.Defaults.BrightnessOvercast)
                 : "fixed " + Percent(Settings.CloudBrightness, Settings.Defaults.Brightness);
+        }
 
-            if (!Settings.NightBrightnessOn)
-                return day + " (the same at night)";
+        /// <summary>
+        /// The rows with a clock (1.5.0) set apart by time: "CloudDensity 100/25/100, ..." (day /
+        /// sunset / night, as the settings file writes them), or "the same all day".
+        /// </summary>
+        private static string TimeRows()
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (UI.Row row in UI.SettingsCatalog.ClockRows())
+            {
+                string day = SettingsXml.ValueOf(row.Times[0]);
+                string sunset = SettingsXml.ValueOf(row.Times[1]);
+                string night = SettingsXml.ValueOf(row.Times[2]);
+                if (sunset != day || night != day)
+                    parts.Add(row.Name + " " + day + "/" + sunset + "/" + night);
+            }
 
-            return day + " night " + (auto
-                ? Percent(Settings.CloudNightBrightnessClear, Settings.Defaults.NightBrightnessClear) + ".." +
-                  Percent(Settings.CloudNightBrightnessOvercast, Settings.Defaults.NightBrightnessOvercast)
-                : Percent(Settings.CloudNightBrightnessFixed, Settings.Defaults.NightBrightnessFixed));
+            return parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "every row the same all day";
         }
 
         private static string Percent(FloatSetting setting, float fallback)

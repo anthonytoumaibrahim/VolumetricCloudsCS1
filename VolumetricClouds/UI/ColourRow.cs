@@ -40,11 +40,20 @@ namespace VolumetricClouds.UI
 
         private readonly Builder _ui;
         private readonly Row _row;
+        private readonly UILabel _name;
         private readonly UIColorField _swatch;
         private readonly UITextField _text;
         private readonly UIButton _copy;
         private readonly UIButton _reset;
         private readonly List<UIComponent> _parts = new List<UIComponent>();
+        private readonly List<UIComponent> _valueParts = new List<UIComponent>();
+
+        /// <summary>
+        /// The own line of a colour row with a clock (1.5.0), drawn while its three times are the same
+        /// and its clock is closed: a pick goes to all three, so it stays one colour all day, and its
+        /// reset puts all three back (SettingsCatalog.ResetClock).
+        /// </summary>
+        public bool AllDay;
 
         private Color32 _shown;
         private string _logged;
@@ -52,16 +61,19 @@ namespace VolumetricClouds.UI
         private float _invalidUntil = -1f;
         private float _copiedUntil = -1f;
 
-        public ColourRow(Builder ui, UIComponent parent, float y, Row row)
+        /// <param name="label">The name to write; null: the row's own (a clock's lines write Day, Sunset, Night).</param>
+        public ColourRow(Builder ui, UIComponent parent, float y, Row row, string label)
         {
             _ui = ui;
             _row = row;
             _shown = Current;
             _logged = ColorText.Format(_shown);
+            string shownName = label ?? row.Label;
 
             // The page's names' column (CloudsPanel widens it for long names).
-            UILabel name = _ui.AddName(parent, row.Label, new Vector3(0f, y + 8f), _ui.LabelWidth);
+            UILabel name = _ui.AddName(parent, shownName, new Vector3(0f, y + 8f), _ui.LabelWidth);
             _parts.Add(name);
+            _name = name;
 
             // The parts end where every row's controls end (before the reset). Beside a wide names'
             // column (the Clouds tab's, in the narrower panel) they reach left into it as far as the
@@ -70,7 +82,7 @@ namespace VolumetricClouds.UI
             const float parts = SwatchSize + Gap + TextWidth + Gap + ButtonWidth + Gap + ButtonWidth;
             float column = _ui.LabelWidth + 4f;
             float x = Mathf.Max(Mathf.Min(column, parent.width - _ui.ResetColumn - parts),
-                _ui.NameWidth(row.Label) + ChoiceFit.NameRoom);
+                _ui.NameWidth(shownName) + ChoiceFit.NameRoom);
             if (x < column)
                 name.width = x - 4f;
 
@@ -93,6 +105,7 @@ namespace VolumetricClouds.UI
                     Commit("picked");
                 };
                 _parts.Add(_swatch);
+                _valueParts.Add(_swatch);
             }
 
             x += SwatchSize + Gap;
@@ -102,6 +115,7 @@ namespace VolumetricClouds.UI
             _text.eventTextSubmitted += (component, text) => Submit(text);
             _text.eventTextCancelled += (component, text) => ShowValid();
             _parts.Add(_text);
+            _valueParts.Add(_text);
 
             x += TextWidth + Gap;
 
@@ -109,6 +123,7 @@ namespace VolumetricClouds.UI
             _copy.canFocus = false;
             _copy.eventClick += (component, e) => Copy();
             _parts.Add(_copy);
+            _valueParts.Add(_copy);
 
             x += ButtonWidth + Gap;
 
@@ -116,6 +131,7 @@ namespace VolumetricClouds.UI
             paste.canFocus = false;
             paste.eventClick += (component, e) => Paste();
             _parts.Add(paste);
+            _valueParts.Add(paste);
 
             // The row's reset: the same icon as every other row's (1.5.0; before, a "Default" text
             // button), right-aligned, going back to the same place: the picked profile's colour, or
@@ -126,7 +142,10 @@ namespace VolumetricClouds.UI
                 _reset.eventClick += (component, e) =>
                 {
                     // It logs the change itself; Refresh shows it.
-                    SettingsCatalog.ResetRow(_row);
+                    if (AllDay)
+                        SettingsCatalog.ResetClock(_row);
+                    else
+                        SettingsCatalog.ResetRow(_row);
                     _logged = ColorText.Format(Current);
                 };
             }
@@ -142,6 +161,24 @@ namespace VolumetricClouds.UI
         public IList<UIComponent> Parts
         {
             get { return _parts; }
+        }
+
+        /// <summary>The swatch, the text and the two buttons: what a clock's own line hides while its times differ.</summary>
+        public IList<UIComponent> ValueParts
+        {
+            get { return _valueParts; }
+        }
+
+        /// <summary>Its name, which a clock's lines move along to make room for their time's icon.</summary>
+        public UILabel Name
+        {
+            get { return _name; }
+        }
+
+        /// <summary>Its reset button (null without the library's sheet).</summary>
+        public UIButton Reset
+        {
+            get { return _reset; }
         }
 
         private Color32 Current
@@ -195,6 +232,16 @@ namespace VolumetricClouds.UI
             _row.Colour.value = colour;
             _shown = _row.Colour.value;
 
+            // One colour all day: the Sunset and Night values go with it.
+            if (AllDay && _row.Times != null)
+            {
+                foreach (Row time in _row.Times)
+                {
+                    if (time.Colour != null)
+                        time.Colour.value = colour;
+                }
+            }
+
             _refreshing = true;
             try
             {
@@ -217,7 +264,7 @@ namespace VolumetricClouds.UI
         /// </summary>
         private bool ResetWanted
         {
-            get { return !_row.IsAtResetValue && _row.IsEnabled; }
+            get { return (AllDay ? !SettingsCatalog.ClockAtResetValue(_row) : !_row.IsAtResetValue) && _row.IsEnabled; }
         }
 
         /// <summary>Its reset's tooltip, which follows the profile pick (the panel sets it).</summary>
@@ -238,7 +285,7 @@ namespace VolumetricClouds.UI
                 return;
 
             _logged = hex;
-            Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + ")");
+            Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + (AllDay ? ", all day" : "") + ")");
         }
 
         private void Submit(string text)

@@ -1,6 +1,6 @@
 # A mod's own icons, made by ModsLibCS1's tools/make-icons.ps1 from PanelIcons.lucide.txt. Do not edit by hand.
 # name x y width height left right top bottom  (pixels; y from the TOP of the sheet)
-sheet 128 64
+sheet 128 128
 icon-clock 1 1 24 24 0 0 0 0
 icon-cloud 28 1 24 24 0 0 0 0
 icon-cloudy 55 1 24 24 0 0 0 0
@@ -8,3 +8,5 @@ icon-cloud-fog 82 1 24 24 0 0 0 0
 icon-sun 1 28 24 24 0 0 0 0
 icon-cloud-sun-rain 28 28 24 24 0 0 0 0
 icon-lightbulb 55 28 24 24 0 0 0 0
+icon-sunset 82 28 24 24 0 0 0 0
+icon-moon 1 55 24 24 0 0 0 0

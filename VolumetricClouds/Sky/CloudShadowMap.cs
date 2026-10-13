@@ -119,9 +119,9 @@ namespace VolumetricClouds.Sky
         /// </remarks>
         public static float ShadowDepth(float coverage)
         {
-            return Settings.CloudShadowDarkness != null
-                ? Mathf.Clamp01(Settings.CloudShadowDarkness.value)
-                : Settings.Defaults.ShadowDarkness;
+            // With a clock (1.5.0): the darkness as the time of day has it now.
+            return Mathf.Clamp01(Settings.Now(Settings.CloudShadowDarkness, Settings.CloudShadowDarknessSunset,
+                Settings.CloudShadowDarknessNight, Settings.Defaults.ShadowDarkness));
         }
 
         /// <summary>
@@ -161,7 +161,9 @@ namespace VolumetricClouds.Sky
 
             Transform t = sun.transform;
 
-            CloudShaderParams.Apply(_material, field, noise);
+            // The DAY's density (1.5.0): the density's clock is for the clouds you see; the shadows
+            // follow "Shadow darkness" and its own clock.
+            CloudShaderParams.Apply(_material, field, noise, Settings.CloudDensityDay);
             _material.SetVector(IdLightPos, Anchor);
             _material.SetVector(IdLightRight, t.right);
             _material.SetVector(IdLightUp, t.up);
