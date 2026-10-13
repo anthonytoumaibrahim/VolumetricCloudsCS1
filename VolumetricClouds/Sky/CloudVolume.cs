@@ -185,11 +185,19 @@ namespace VolumetricClouds.Sky
         private const float NightEdgeStart = 0.7f;
 
         // The far deck (1.5.0 trial): out to 250 km (a base 2 km up meets the horizon ~160 km out, a
-        // 3.5 km top ~210 km), thinning by up to half into the sky behind it by then -- the haze of
-        // the air in front of cloud that far.
+        // 3.5 km top ~210 km), thinning by up to a quarter into the sky behind it by then -- the haze
+        // of the air in front of cloud that far. (Half until 2026-10-13: the bright sky under it made
+        // the band read whiter than the clouds, "just a hue".)
         private static readonly int IdFarDeck = Shader.PropertyToID("_FarDeck");
+
+        // The deck's own light and dark (CloudRaymarch FarDeckPattern, 2026-10-13: the band read as
+        // "just a hue"): the weather map where the line of sight meets the layer, blurred to what a
+        // pixel covers there. How much one spread of the map darkens (from under the deck) or
+        // brightens (from over it) the deck's light; 0 = the even band as before.
+        private static readonly int IdFarPattern = Shader.PropertyToID("_FarPattern");
+        private const float FarPatternStrength = 0.4f;
         private const float FarDeckEnd = 250000f;
-        private const float FarDeckHaze = 0.5f;
+        private const float FarDeckHaze = 0.25f;
 
         // The far deck is a band, not a march (the march showed the weather map's repeats as arcs). It
         // begins 12 km out for every ray, where the near clouds already thin seen low over the horizon
@@ -1619,15 +1627,6 @@ namespace VolumetricClouds.Sky
             // horizon band on it: "it hides far away clouds" (GameHorizon takes the band off).
             _material.SetFloat(IdCloudExtent, Reach);
 
-            // How soon before that they start to thin: the last 30% at night, as always (the stars stay
-            // hidden). By day (1.5.0), with the clouds hiding the sky, the last 65%: over the last 30%
-            // alone a full deck ended on a line a degree above the horizon, dark against the bright sky
-            // under it (the author: "the horizon becomes too obvious"). Thinning over a longer stretch
-            // is the haze of the air in front of far cloud, and the haze it thins into is whatever sky
-            // is behind -- the game's, Real Light's or a cubemap -- so there is no colour to guess.
-            float edgeStart = Mathf.Lerp(DayEdgeStart, NightEdgeStart, night);
-            _material.SetFloat(IdEdgeStart, edgeStart);
-
             // The far deck (1.5.0, CloudRaymarch MarchFarDeck): the deck out to the horizon, only over a
             // full overcast, while "Clouds to the horizon" is on. Behind the near deck, filling in as
             // that thins. (It followed the clouds' day/night opacity, `shut`, until it became a row of
@@ -1636,11 +1635,33 @@ namespace VolumetricClouds.Sky
             float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
             bool toHorizon = Settings.CloudsToHorizon == null || Settings.CloudsToHorizon.value;
             _farDeckShown = toHorizon ? overcast : 0f;
+
+            // How soon before that they start to thin: the last 30% at night, as always (the stars stay
+            // hidden). By day (1.5.0), with the clouds hiding the sky, the last 65%: over the last 30%
+            // alone a full deck ended on a line a degree above the horizon, dark against the bright sky
+            // under it (the author: "the horizon becomes too obvious"). Thinning over a longer stretch
+            // is the haze of the air in front of far cloud, and the haze it thins into is whatever sky
+            // is behind -- the game's, Real Light's or a cubemap -- so there is no colour to guess.
+            // With the far deck behind them there is no bright sky under their end: they keep their
+            // detail to the last 30% by day too, as much as the deck shows (2026-10-13, the author: the
+            // horizon "just a hue now, I remember it being much more detailed"; over the last 65% the
+            // clouds' detail ended ~7 degrees up, the deck's even band under it).
+            float edgeStart = Mathf.Lerp(Mathf.Lerp(DayEdgeStart, NightEdgeStart, night), NightEdgeStart, _farDeckShown);
+            _material.SetFloat(IdEdgeStart, edgeStart);
+
             float reach = Reach;
             // From high over the clouds the reach grows (up to MaxReach): the band always goes past it.
             float end = Mathf.Max(FarDeckEnd, reach * 1.5f);
             _material.SetVector(IdFarDeck, new Vector4(_farDeckShown, FarDeckFrom, end, FarDeckHaze));
             _material.SetVector(IdFarDeck2, new Vector4(0f, FarDeckFill, 0f, Mathf.Max(reach, FarDeckLightAt)));
+
+            // Its pattern: the map's values measured against their mean and spread as the GPU reads
+            // them (the band's light stays what it was on average), and the map's texels in metres
+            // (for how far to blur it).
+            float mapMean, mapSpread;
+            _field.ReadStats(out mapMean, out mapSpread);
+            _material.SetVector(IdFarPattern, new Vector4(FarPatternStrength, mapMean, 1f / Mathf.Max(mapSpread, 0.01f),
+                _field.Tile / Mathf.Max(1, _field.Resolution)));
 
             // Its light: a thick deck's base -- the sun through FarDeckSunDepth, the cloud above it
             // at half density over 90 m (the march's two looks up, 30 + 60 m).

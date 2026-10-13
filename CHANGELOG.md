@@ -240,6 +240,22 @@ The far deck came back the same day as a real row, *Clouds to the horizon* on th
 the author: "add it as a real option under Weather"), no longer waiting for *Clouds hide the sky by
 day*: by day at its default 0% a ticked switch would have done nothing. Check in the log:
 `features: ... cloudsToHorizon=on`, the frame line's `farDeck=` (0% with it off, or under 90% cover).
+Then (awaiting his look): the band read as a white hue under clouds whose detail ended ~7 degrees up
+("I remember it being much more detailed"). With the band behind them, the near clouds keep their
+detail to the last 30% of their reach by day too, as at night (they thinned over the last 65%: that
+was so a deck hiding the sky didn't end on a line over bright sky, which the band now covers), and
+the band thins by up to a quarter into the sky behind instead of half. C# only. Liked ("I do see
+the clouds extend down much more") but "too short still"; marching further was ruled out (the
+author: "we need performance to not be affected"). So the band got a pattern of its own
+(CloudRaymarch FarDeckPattern): the weather map where the line of sight meets the layer, blurred
+by the map's mips (the weather texture has mips now; every other read asks for level 0, and the
+GPU decoding check reads a 64x64 copy of its own) to what a pixel covers there, three reads along
+the footprint; read twice, as the clouds read it and turned 53 degrees at 1/0.618 the size, so its
+13.5 km repeat does not come back in rows along the horizon. Darker where thicker from under the
+deck, brighter from over it, against the map's mean (log `weather map as the shaders read it`), at
+FarPatternStrength 0.4. A few texture reads on the band's pixels; AMD check passes. To judge: the
+band from ~4 degrees down, any repeat or rows, shimmer as the camera moves, the seam with the near
+clouds, from under and over the deck.
 
 Built, awaiting the in-game test:
 
