@@ -1641,8 +1641,15 @@ namespace VolumetricClouds.Sky
 
             // Its light: a thick deck's base -- the sun through FarDeckSunDepth, the cloud above it
             // at half density over 90 m (the march's two looks up, 30 + 60 m).
+            // The sun's depth follows what deepens the near clouds' (2026-10-13: at Density 240% and
+            // Cumulus size 200% the band was ~3.4x as bright as the bases over it, "empty space"):
+            // the Density slider against its default, and under Cumulus or Mixed their size x height.
+            // FarDeckSunDepth is the depth at the defaults, as it was tuned.
             float density = Settings.CloudDensityNow;
-            _material.SetVector(IdFarLight, new Vector4(FarDeckSunDepth, 0.5f * density * 90f, 0f, 0f));
+            float deeper = density / Settings.Defaults.Density;
+            if (CloudStyle.Drawn)
+                deeper *= CloudStyle.SizeFactor * CloudStyle.HeightFactor;
+            _material.SetVector(IdFarLight, new Vector4(FarDeckSunDepth * deeper, 0.5f * density * 90f, 0f, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black
             // (0.01-0.03 of radiance), so the strength is judged against THAT: at 100% the

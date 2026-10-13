@@ -12,7 +12,14 @@ namespace VolumetricClouds.Sky
     ///
     /// Night is the night factor the night colours, opacity and brightness have used since 1.3.0, bit
     /// for bit: 0 with the sun 2 degrees up, 1 at 8 degrees under the horizon. Sunset takes its share of
-    /// what is left: none with the sun 15 degrees up, all of it by 2 degrees. Sunrise is the same.
+    /// what is left: none with the sun 3.16 degrees up, all of it at the horizon (then Night takes over, so
+    /// Sunset peaks near 90%). Sunrise is the same.
+    ///
+    /// Sunset starts where the game's sunlight starts to fade (3.16 degrees, SunsetLight.HoldElevation):
+    /// above it the light is the day's, full strength. It first ran from 15 degrees, and a Sunset value
+    /// set for the dim light of the horizon (300% brightness against 15% by day, the author's) then lit
+    /// the clouds ten times brighter than by day with the sun at 5 degrees, still in full sunlight
+    /// ("way too bright" just before sunset and after dawn).
     ///
     /// A row whose Sunset equals its Day blends exactly as the old day/night pairs did
     /// (<see cref="DayAndNight"/>), so a night switch carried over from an older settings file draws
@@ -21,8 +28,8 @@ namespace VolumetricClouds.Sky
     public static class TimeOfDay
     {
         /// <summary>The sun's height (degrees) where Sunset starts coming in, and where it is all of the day's share.</summary>
-        public const float SunsetFrom = 15f;
-        public const float SunsetFull = 2f;
+        public const float SunsetFrom = SunsetLight.HoldElevation;
+        public const float SunsetFull = 0f;
 
         /// <summary>The sun's height (degrees) where Night starts coming in, and where it is all of the sky.</summary>
         public const float NightFrom = 2f;

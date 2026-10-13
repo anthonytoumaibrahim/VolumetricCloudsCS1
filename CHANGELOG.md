@@ -215,8 +215,9 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   *Fog density*, *Fog brightness*, *Fog tint* and *Fog color* (Fog), *Shadow darkness*, the three
   cloud brightness rows, *Cloud density*, *Glow and softer shade* and *Clouds hide the sky* (Light).
   Clicking it shows the row's Day, Sunset and Night values under it, each with its own slider (or
-  color) and reset; the clouds blend the three by the sun's height: Day while it is high, Sunset
-  from 15 degrees down to the horizon, Night once it has set (the twilight the night colors always
+  color) and reset; the clouds blend the three by the sun's height: Day while the sun is at full
+  strength, Sunset from 3 degrees (where the game's sunlight starts to fade) down to the horizon,
+  Night once it has set (the twilight the night colors always
   used). Sunrise works the same way. While the three are the same the row is one slider moving all
   three; once they differ it says so and shows the value in use now. The panel remembers which
   clocks are open. Only the clouds you see take *Cloud density*'s sunset and night: their shadows
@@ -260,8 +261,10 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 ### To do before release (remove this section when 1.5.0 ships)
 
 *Day, sunset and night*: his default values for the thirteen rows' Sunset and Night
-(Settings.Defaults, the "time of day" block); whether 15 degrees to 2 is the right sunset
-(TimeOfDay.SunsetFrom/SunsetFull); the Workshop description and change note.
+(Settings.Defaults, the "time of day" block); the Workshop description and change note. The
+sunset window (TimeOfDay.SunsetFrom/SunsetFull) moved 2026-10-13 from 15 -> 2 degrees to 3.16 -> 0
+("way too bright" just before sunset: his 300% sunset brightness came in while the sun was still
+at full strength): his check in-game.
 
 The four temporary test switches (*Skip the empty sky*, *Clouds to the horizon*, *Grain changes every
 frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (the author: "we already

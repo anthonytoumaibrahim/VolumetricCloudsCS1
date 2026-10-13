@@ -97,9 +97,10 @@ for ($e = -90.0; $e -le 90.0; $e += 0.25) {
 }
 Check "the three add up to 1 at every height" $sumOk $worst
 Check "Night is the 1.3.0 night factor bit for bit (every 0.25 deg)" $nightOk $worst
-$high = Shares 30; $low = Shares 2; $dark = Shares -10
+$high = Shares 30; $bright = Shares 3.25; $low = Shares 0; $dark = Shares -10
 Check "high sun: all Day" (($high[0] -eq 1) -and ($high[1] -eq 0) -and ($high[2] -eq 0))
-Check "2 deg: all Sunset" (($low[1] -eq 1) -and ($low[0] -eq 0) -and ($low[2] -eq 0))
+Check "3.25 deg, the game's sun still full: all Day" (($bright[0] -eq 1) -and ($bright[1] -eq 0) -and ($bright[2] -eq 0))
+Check "the horizon: no Day, the rest Sunset and the 1.3.0 night ($($low[1].ToString('P0')) sunset)" (($low[0] -eq 0) -and ($low[1] -gt 0.85) -and ($low[1] -eq [single](1 - $low[2])))
 Check "8 deg under: all Night" (($dark[2] -eq 1) -and ($dark[0] -eq 0) -and ($dark[1] -eq 0))
 
 "=== a row's three values ==="
@@ -116,11 +117,10 @@ for ($e = -20.0; $e -le 30.0; $e += 0.5) {
 Check "three equal: the Day value exactly, all day" $sameOk
 Check "Sunset = Day: exactly the old day/night blend" $pairOk
 Check "Night = Day: the Day value blended with Sunset's" $nightPairOk
-$mid = Shares 6
+$mid = Shares 1.5
 $expected = [single](1.5 * $mid[0] + 0.25 * $mid[1] + 1.5 * $mid[2])
-Check "density 150/25/150 at 6 deg: $((Blend 1.5 0.25 1.5 $mid).ToString('F3'))" ([math]::Abs((Blend 1.5 0.25 1.5 $mid) - $expected) -lt 1e-6)
-$evening = Shares 2
-Check "density 150/25/150 at 2 deg: the Sunset value" ((Blend 1.5 0.25 1.5 $evening) -eq [single]0.25)
+Check "density 150/25/150 at 1.5 deg: $((Blend 1.5 0.25 1.5 $mid).ToString('F3'))" ([math]::Abs((Blend 1.5 0.25 1.5 $mid) - $expected) -lt 1e-6)
+Check "density 150/25/150 at 6 deg: still the Day value" ((Blend 1.5 0.25 1.5 (Shares 6)) -eq [single]1.5)
 Check "three different, then midnight: the Night value" ((Blend 1 2 3 (Shares -30)) -eq [single]3)
 
 "=== colours ==="
