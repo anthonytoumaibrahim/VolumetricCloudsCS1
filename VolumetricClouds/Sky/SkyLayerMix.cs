@@ -75,43 +75,53 @@ namespace VolumetricClouds.Sky
             weights[pictures[a + 1]] = f;
         }
 
-        // "Dynamic distant clouds" (1.5.0): each kind's greatest amount, and how long (in lives of the
-        // travelling copies, SkyLayer.Lifetime) its two waves take. The periods share no common
-        // measure, so the mix never comes round again; each is several lives long, so the kinds
-        // change more slowly than the pictures fade in and out.
-        private static readonly float[] DynamicMost = { 0.75f, 0.55f, 0.55f, 0.45f };
-        private static readonly double[] DynamicSlow = { 7.3, 9.1, 8.2, 11.7 };
-        private static readonly double[] DynamicFast = { 2.9, 3.7, 3.3, 4.3 };
+        // "Dynamic distant clouds" (1.5.0). The author, 2026-10-14: tied to the weather, "but I still need
+        // randomness ... for the most part it should be without distant clouds, so the chances for them
+        // should be less than 50%". So two parts:
+        //   a SPELL -- two slow waves of the city's own deciding whether there are distant clouds at all;
+        //     they are there less than half the time (test-skylayer measures it), fading in and out;
+        //   the KINDS -- the cloud cover picks them: cirrus and sheep clouds under a clear sky, cumulus on
+        //     the horizon in a partly cloudy one, layered skies towards overcast; each kind's own slow wave
+        //     makes it more or less of that, so two clear days don't look alike.
+        // Periods in lives of the travelling copies (SkyLayer.Lifetime); none shares a measure with another,
+        // so nothing comes round again, and all are several lives long: slower than the pictures' fades.
+        private const double SpellSlow = 13.1;
+        private const double SpellFast = 5.3;
 
-        /// <summary>A kind is gone while its waves are below this share (0..1): each is away some of the time.</summary>
-        private const float DynamicAbsent = 0.4f;
+        /// <summary>The spell's waves (0..1) must be above this for distant clouds to show at all.</summary>
+        private const float SpellStart = 0.58f;
+
+        /// <summary>... and are whole this far above it: between, they fade in (over a life or so).</summary>
+        private const float SpellFade = 0.25f;
+
+        private static readonly float[] DynamicMost = { 0.75f, 0.6f, 0.6f, 0.55f };
+        private static readonly double[] DynamicSlow = { 7.3, 9.1, 8.2, 11.7 };
 
         /// <summary>The most the four may add up to, so the mixed sky never turns into one grey sheet.</summary>
         private const float DynamicTotal = 1.3f;
 
         /// <summary>
         /// "Dynamic distant clouds" (1.5.0): the four kinds' amounts (<paramref name="amounts"/>, 0..1 each)
-        /// at <paramref name="lives"/> -- how far the sky has travelled, in lives of its copies -- for a city
-        /// of <paramref name="seed"/>. Each kind comes and goes on two slow waves of its own, the city's
-        /// seed placing them; together they never add up to more than <see cref="DynamicTotal"/>.
+        /// at <paramref name="lives"/> -- how far the sky has travelled, in lives of its copies -- under a
+        /// cloud cover of <paramref name="cover"/> (0..1), for a city of <paramref name="seed"/>. All 0
+        /// outside a spell (most of the time); never adding up to more than <see cref="DynamicTotal"/>.
         /// </summary>
-        public static void Dynamic(double lives, int seed, float[] amounts)
+        public static void Dynamic(double lives, int seed, float cover, float[] amounts)
         {
+            double spellSlow, spellFast;
+            Phases(seed, Kinds, out spellSlow, out spellFast);
+            double spellWave = 0.6 * Math.Sin(2.0 * Math.PI * (lives / SpellSlow + spellSlow))
+                             + 0.4 * Math.Sin(2.0 * Math.PI * (lives / SpellFast + spellFast));
+            float spell = Smooth(((float)(0.5 + 0.5 * spellWave) - SpellStart) / SpellFade);
+
+            cover = Clamp01(cover);
             float total = 0f;
             for (int k = 0; k < Kinds; k++)
             {
-                uint hash = unchecked((uint)seed * 2654435761u + (uint)k * 40503u);
-                hash ^= hash >> 15;
-                hash = unchecked(hash * 2246822519u);
-                hash ^= hash >> 13;
-                double phaseSlow = (hash & 0xFFFF) / 65536.0;
-                double phaseFast = (hash >> 16) / 65536.0;
-
-                double wave = 0.65 * Math.Sin(2.0 * Math.PI * (lives / DynamicSlow[k] + phaseSlow))
-                            + 0.35 * Math.Sin(2.0 * Math.PI * (lives / DynamicFast[k] + phaseFast));
-                float share = (float)(0.5 + 0.5 * wave);
-                float t = Clamp01((share - DynamicAbsent) / (1f - DynamicAbsent));
-                amounts[k] = t * t * (3f - 2f * t) * DynamicMost[k];
+                double phase, unused;
+                Phases(seed, k, out phase, out unused);
+                float wave = (float)(0.5 + 0.5 * Math.Sin(2.0 * Math.PI * (lives / DynamicSlow[k] + phase)));
+                amounts[k] = spell * Fit(k, cover) * (0.35f + 0.65f * wave) * DynamicMost[k];
                 total += amounts[k];
             }
 
@@ -120,6 +130,35 @@ namespace VolumetricClouds.Sky
                 for (int k = 0; k < Kinds; k++)
                     amounts[k] *= DynamicTotal / total;
             }
+        }
+
+        /// <summary>How well a kind suits a cloud cover, 0..1.</summary>
+        private static float Fit(int kind, float cover)
+        {
+            switch (kind)
+            {
+                case Cirrus: return 1f - Smooth((cover - 0.35f) / 0.35f);                        // clear, gone by 70%
+                case Sheep: return Smooth(cover / 0.2f) * (1f - Smooth((cover - 0.45f) / 0.25f)); // fair weather
+                case Far: return Smooth((cover - 0.15f) / 0.25f) * (1f - Smooth((cover - 0.75f) / 0.2f)); // partly cloudy
+                default: return Smooth((cover - 0.45f) / 0.3f);                                   // towards overcast
+            }
+        }
+
+        /// <summary>Two phases, 0..1, for a city and a slot (a kind, or <see cref="Kinds"/> for the spell).</summary>
+        private static void Phases(int seed, int slot, out double a, out double b)
+        {
+            uint hash = unchecked((uint)seed * 2654435761u + (uint)slot * 40503u);
+            hash ^= hash >> 15;
+            hash = unchecked(hash * 2246822519u);
+            hash ^= hash >> 13;
+            a = (hash & 0xFFFF) / 65536.0;
+            b = (hash >> 16) / 65536.0;
+        }
+
+        private static float Smooth(float t)
+        {
+            t = Clamp01(t);
+            return t * t * (3f - 2f * t);
         }
 
         /// <summary>For the log: "off", or the pictures shown, e.g. "cirrus-1 40% + cirrus-2 60%".</summary>

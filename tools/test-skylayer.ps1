@@ -73,35 +73,50 @@ for ($k = 0; $k -lt $M::Kinds; $k++) {
     Check "$name adds up to 1 once in" $sumOne
 }
 
-# "Dynamic distant clouds": every kind comes and goes, the total stays capped, nothing jumps, and the
-# sky is rarely empty. Sampled over 200 lives of the travelling copies, for three seeds.
+# "Dynamic distant clouds": there are distant clouds less than half the time (the author's call) but
+# some of the time; the cover picks the kinds; the total stays capped and nothing jumps. Sampled over
+# 300 lives of the travelling copies, for three seeds.
 $a = New-Object 'float[]' 4
 $b = New-Object 'float[]' 4
 foreach ($seed in 1, 12345, -987654321) {
-    $present = @(0, 0, 0, 0); $empty = 0; $maxTotal = 0.0; $maxStep = 0.0; $inRange = $true
-    $samples = 20000
+    $shown = 0; $maxTotal = 0.0; $maxStep = 0.0; $inRange = $true
+    $samples = 30000
     for ($i = 0; $i -lt $samples; $i++) {
-        $M::Dynamic($i * 0.01, $seed, $a)
-        $M::Dynamic($i * 0.01 + 0.01, $seed, $b)
+        $cover = 0.5 + 0.5 * [math]::Sin($i * 0.0007)
+        $M::Dynamic($i * 0.01, $seed, $cover, $a)
+        $M::Dynamic($i * 0.01 + 0.01, $seed, $cover, $b)
         $total = 0.0
         for ($k = 0; $k -lt 4; $k++) {
             if ($a[$k] -lt 0 -or $a[$k] -gt 1) { $inRange = $false }
-            if ($a[$k] -gt 0) { $present[$k]++ }
             $total += $a[$k]
             $maxStep = [math]::Max([double]$maxStep, [double][math]::Abs($b[$k] - $a[$k]))
         }
-        if ($total -eq 0) { $empty++ }
+        if ($total -gt 0) { $shown++ }
         $maxTotal = [math]::Max([double]$maxTotal, [double]$total)
     }
+    $share = $shown / $samples
     Check "dynamic, seed ${seed}: amounts within 0..1" $inRange
     Check "dynamic, seed ${seed}: total capped at 130%" ($maxTotal -le 1.3001) ("{0:F3}" -f $maxTotal)
     Check "dynamic, seed ${seed}: no jump between frames a hundredth of a life apart" ($maxStep -lt 0.02) ("{0:F4}" -f $maxStep)
-    for ($k = 0; $k -lt 4; $k++) {
-        $share = $present[$k] / $samples
-        Check "dynamic, seed ${seed}: $($M::KindNames[$k]) comes and goes" ($share -gt 0.2 -and $share -lt 0.95) ("{0:P0} of the time" -f $share)
-    }
-    Check "dynamic, seed ${seed}: the sky is seldom empty" ($empty / $samples -lt 0.1) ("{0:P1} empty" -f ($empty / $samples))
+    Check "dynamic, seed ${seed}: distant clouds some of the time, under half" ($share -gt 0.15 -and $share -lt 0.5) ("{0:P0} of the time" -f $share)
 }
+
+# Which kinds each cover gets, summed over a long stretch (seed 1).
+function KindsAt([float]$cover) {
+    $sum = @(0.0, 0.0, 0.0, 0.0)
+    for ($i = 0; $i -lt 20000; $i++) {
+        $M::Dynamic($i * 0.013, 1, $cover, $script:a)
+        for ($k = 0; $k -lt 4; $k++) { $sum[$k] += $script:a[$k] }
+    }
+    return ,$sum
+}
+function Top($sum) { $best = 0; for ($k = 1; $k -lt 4; $k++) { if ($sum[$k] -gt $sum[$best]) { $best = $k } }; return $best }
+$clear = KindsAt 0.1; $fair = KindsAt 0.35; $partly = KindsAt 0.55; $overcast = KindsAt 0.95
+Check "dynamic: a clear sky gets mostly cirrus" ((Top $clear) -eq 0) $M::KindNames[(Top $clear)]
+Check "dynamic: fair weather gets cirrus or sheep clouds" ((Top $fair) -le 1) $M::KindNames[(Top $fair)]
+Check "dynamic: a partly cloudy sky gets cumulus on the horizon" ((Top $partly) -eq 2) $M::KindNames[(Top $partly)]
+Check "dynamic: towards overcast, cloud layers" ((Top $overcast) -eq 3) $M::KindNames[(Top $overcast)]
+Check "dynamic: no cirrus under overcast" ($overcast[0] -eq 0)
 
 Check "describe off" ($M::Describe(0, 0) -eq "off")
 Check "describe a blend" ($M::Describe(0, 0.5) -eq "cirrus-1 50% + cirrus-2 50%") $M::Describe(0, 0.5)

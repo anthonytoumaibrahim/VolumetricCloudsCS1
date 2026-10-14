@@ -12,7 +12,7 @@ cumulus clouds, distant clouds from photographed skies, clouds that can hide the
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
 `VolumetricClouds.xml` gains twenty-five lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `DynamicDistantClouds`
-(on: the distant clouds show for everyone), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+(on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
 back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (off), `FogChangesWithWeather`, `MorningFog`,
@@ -26,7 +26,18 @@ night*): twenty-five more lines, each written with the player's own value of tha
 sky is the same at every hour, and `PanelOpenClocks` (empty). The seven lines of the two 1.3.0 night
 switches go (`CloudNightBrightness` and its three values, `CloudNightColors`, `CloudMoonlitColor`,
 `CloudNightShadeColor`): where a switch was on, its night values move into the new lines and draw
-exactly what they drew; profiles saved before are read the same way. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
+exactly what they drew; profiles saved before are read the same way. Nine settings get a value under
+an overcast sky (*Clear sky and overcast*): twenty-seven more lines, each written with the player's own
+clear-sky value, so their sky is the same in every weather, and `PanelOpenWeather` (empty). The four
+cloud brightness rows become one, *Cloud brightness* (`CloudLight`, six lines): with *Brightness
+follows the cloud intensity* on, as it is for nearly everyone, its clear sky and full overcast values
+move in and draw exactly what they drew; with it off, the fixed brightness moves in under both, dimmed
+under an overcast sky by *Clouds dim at full overcast to* -- the same sunlit sides, while the shaded
+undersides at full overcast now dim with it too (they didn't). The thirteen old lines go
+(`CloudBrightnessAuto`, `CloudBrightness`, `CloudBrightnessClear`, `CloudBrightnessOvercast`, each of the
+three with its sunset and night); profiles saved before are read the same way. *Clouds dim at full
+overcast to* leaves the panel and stays in the settings file, now dimming only the fog's sunlight, as
+it always did for anyone with the automatic brightness on. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
 the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
 photographed skies).
 
@@ -149,8 +160,10 @@ reading it ignores that one line and draws *Classic*.
 ### New: distant clouds
 
 A tab of its own in the in-game panel, *Distant clouds*. *Dynamic distant clouds* (on by default, so
-every player sees them after the update) mixes the four kinds by itself: each comes and goes slowly
-as the sky travels, the city's own mix, never one grey sheet of all four. Turned off, four sliders
+every player can see them after the update) brings them by itself, now and then: most of the time
+there are none, and every so often a spell of them drifts in and out again. What they are follows the
+weather: cirrus and sheep clouds under a clear sky, cumulus on the horizon when it is partly cloudy,
+layered skies towards overcast, each more or less from one spell to the next. Turned off, four sliders
 take over, each 0% to 100%, 0% by default; with it on they are greyed (hidden unless *Show advanced
 options* is on). They draw real skies, photographed, behind the mod's own clouds: *Cirrus* (high, thin
 streaks), *Sheep clouds* (small puffs in fields), *Cumulus on the horizon* and *Cloud layers*
@@ -217,9 +230,9 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 
 ### New: day, sunset and night
 
-- A clock button beside the reset button on thirteen rows: *Sunlit side* and *Shaded side* (Clouds),
-  *Fog density*, *Fog brightness*, *Fog tint* and *Fog color* (Fog), *Shadow darkness*, the three
-  cloud brightness rows, *Cloud density*, *Glow and softer shade* and *Clouds hide the sky* (Light).
+- A clock button beside the reset button on eleven rows: *Sunlit side* and *Shaded side* (Clouds),
+  *Fog density*, *Fog brightness*, *Fog tint* and *Fog color* (Fog), *Shadow darkness*, *Cloud
+  brightness*, *Cloud density*, *Glow and softer shade* and *Clouds hide the sky* (Light).
   Clicking it shows the row's Day, Sunset and Night values under it, each with its own slider (or
   color) and reset; the clouds blend the three by the sun's height: Day while the sun is at full
   strength, Sunset from 3 degrees (where the game's sunlight starts to fade) down to the horizon,
@@ -234,6 +247,26 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   value of *Clouds hide the sky*. Eight rows fewer.
 - For everyone who has the mod, every row starts the same all day, so nothing changes until a
   sunset or night value is moved.
+
+### New: clear sky and overcast
+
+- A cloud button beside the clock on nine rows: *Sunlit side* and *Shaded side*, *Cloud brightness*,
+  *Cloud density*, *Glow and softer shade*, *Clouds hide the sky*, *Fog brightness*, *Fog tint* and
+  *Fog color*. Clicking it shows the row's Clear sky and Overcast values; the clouds blend them
+  straight with the cloud cover (0% all Clear sky, 100% all Overcast), at every time of day: the two
+  buttons are separate, and with both open a table shows each time's Clear sky and Overcast side by
+  side, a slider each. One button open while the other's values differ shows the table too, so every
+  value always has its own slider.
+- *Cloud brightness* is one row now: *Brightness follows the cloud intensity*, *Brightness: clear
+  sky*, *Brightness: full overcast* and *Cloud brightness (fixed)* are gone, and *Clouds dim at full
+  overcast to* has left the panel (see above). Four rows fewer.
+- The dynamic fog follows the cover too: an overcast afternoon keeps its fog where a sunny one thins
+  and lifts it, and an overcast night forms less morning fog (half under a full overcast).
+- Shadows don't change with the weather: their darkness is the same in every weather, and they are
+  drawn with the clear sky's daytime density.
+- New installs: *Cloud density* overcast 80% (clear sky 150%). Everything else the same in both
+  weathers until it is set, and for everyone who has the mod every row starts the same in every
+  weather, so nothing changes until an Overcast value is moved.
 
 ### Changed
 
@@ -266,7 +299,10 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 
 ### To do before release (remove this section when 1.5.0 ships)
 
-*Day, sunset and night*: his default values for the thirteen rows' Sunset and Night
+*Clear sky and overcast*: his default Overcast values after testing (Settings.Defaults, the "weather"
+block; only Cloud density's 80% so far); the Workshop description and change note.
+
+*Day, sunset and night*: his default values for the eleven rows' Sunset and Night
 (Settings.Defaults, the "time of day" block); the Workshop description and change note. The
 sunset window (TimeOfDay.SunsetFrom/SunsetFull) moved 2026-10-13 from 15 -> 2 degrees to 3.16 -> 0
 ("way too bright" just before sunset: his 300% sunset brightness came in while the sun was still
@@ -296,6 +332,19 @@ under the horizon). To judge: the band as on 2026-10-12, then the same view in C
 
 Built, awaiting the in-game test:
 
+- *Clear sky and overcast* (written up above), built 2026-10-14 from "Density especially is better to
+  be lower if it's really overcast versus just a few clouds". His calls: a separate button, not tied
+  to the time of day ("overcast should apply for day and night"); the four brightness rows merged; the
+  three fog colour rows in; the TABLE when both are open ("way better"); one button open must always
+  show sliders (the table then, when the other's values differ); *Clouds dim at full overcast to* kept
+  ("it's an old setting"); overcast density 80%. C# only, no bundle. His settings and profiles copied
+  first to docs/settings-backup-2026-10-14-before-weather. To check: the `settings:` line names the 27
+  Overcast lines and the 6 `CloudLight` lines "written before these existed" (his: CloudLight
+  185/185/95, CloudLightOvercast 40/40/40, CloudDensityOvercast 180) and the thirteen brightness names
+  as retired, nothing "ignored"; the detailed brightness line's `weather: cover N%: clear sky a%
+  overcast b%` and `effective=` as before at the same cover and hour; in the panel a cloud button left
+  of the clock on the nine rows, the table under a row with both open, and the clock alone on Cloud
+  brightness (his clear and overcast differ) showing the table.
 - *Day, sunset and night* (written up above), built 2026-10-13 from
   "during sunset [density] is too harsh at 100% and needs to be dropped back down to like 20-25%".
   The clock (his pick over tabs and per-time profiles, from the preview artifact), closed by default

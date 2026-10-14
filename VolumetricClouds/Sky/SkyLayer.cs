@@ -99,6 +99,12 @@ namespace VolumetricClouds.Sky
         private readonly double[] _anchorZ = new double[2];
         private readonly long[] _life = { long.MinValue, long.MinValue };
 
+        /// <summary>
+        /// Where the dynamic mix starts this session, in lives: random, so a city does not open on the same
+        /// spell every time (the travel is not saved). Some loads open with distant clouds, most without.
+        /// </summary>
+        private readonly double _mixStart = new System.Random().NextDouble() * 1000.0;
+
         private string _logged;
         private bool _loggedOn;
         private bool _loggedDynamic;
@@ -128,13 +134,14 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The amounts, 0..1 (cirrus, sheep clouds, far clouds, cloud layers): the rows', or with
-        /// <see cref="Dynamic"/> the mix at how far the sky has travelled (so it stops with the game).
+        /// <see cref="Dynamic"/> the mix for the cloud cover now, at how far the sky has travelled (so
+        /// its spells stop with the game).
         /// </summary>
         private void ReadAmounts()
         {
             if (Dynamic)
             {
-                SkyLayerMix.Dynamic(_travel / Lifetime, SkyPattern.FieldSeed, _amounts);
+                SkyLayerMix.Dynamic(_mixStart + _travel / Lifetime, SkyPattern.FieldSeed, CloudShaderParams.Coverage, _amounts);
                 return;
             }
 
