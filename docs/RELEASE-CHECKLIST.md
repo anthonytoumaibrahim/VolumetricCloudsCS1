@@ -243,6 +243,11 @@ The flow, as the game actually implements it:
 - [ ] Subscribe and test the published copy from a clean start. It lands in
       `steamapps\workshop\content\255710\<published file id>`.
 - [ ] Record the published file id in `CHANGELOG.md` and tag the commit that was published.
+- [ ] Push the tag, then make it a **GitHub release**: a zip of exactly the three uploaded DLLs
+      (from the subscribed folder) in a `VolumetricClouds/` folder, notes = what the version
+      brings + a link to `CHANGELOG.md` at the tag + how to install by hand.
+      `gh release create vX.Y.Z VolumetricWeather-X.Y.Z.zip --title "Volumetric Weather X.Y.Z" --notes-file ...`
+      The tag must be on GitHub first: with no remote tag, `gh` makes one at master's tip.
 
 ## Updating later — read this before the first update
 

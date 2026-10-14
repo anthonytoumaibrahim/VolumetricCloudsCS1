@@ -220,4 +220,5 @@ Write-Host "     If it reads Share, STOP: that is a local copy and would create 
 Write-Host "  4. Title 'Volumetric Weather'; description = Workshop\Description.bbcode.txt; paste the"
 Write-Host "     change note; the preview image stays. Click Update."
 Write-Host "  5. On the Steam page: still ONE item ($workshopId), with the new change note."
-Write-Host "  6. Tell Claude: tag v$version and open the next changelog section."
+Write-Host "  6. Tell Claude: tag v$version, push the tag, make the GitHub release, and open the next"
+Write-Host "     changelog section."
