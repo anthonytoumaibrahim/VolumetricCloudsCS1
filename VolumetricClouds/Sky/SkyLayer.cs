@@ -53,6 +53,15 @@ namespace VolumetricClouds.Sky
         /// <summary>A drift step longer than this in one frame is a jump (a save read, a reset), not wind.</summary>
         private const double FlowJump = 2000.0;
 
+        /// <summary>
+        /// The cloud cover over which the volumetric clouds' distance fade comes to hold the pictures back
+        /// fully (the shader's BehindClouds, 2026-10-14): from none at the first, all of it at the second.
+        /// The pictures cannot see where the clouds are, so they fade in the gaps too: under a few clouds
+        /// that would only take the distant clouds off the horizon.
+        /// </summary>
+        private const float BehindFrom = 0.1f;
+        private const float BehindFull = 0.5f;
+
         // Each kind: how high it stands (m), how much its own cloud shades it (the shader's depth towards the
         // sun is an average, 0..1), its forward scattering, its greatest opacity. 2026-10-13, the author: at
         // 100% "super dense and really dark" -- the shade was a sum of four looks (up to 12 of depth: 2% of
@@ -76,6 +85,12 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSunColor = Shader.PropertyToID("_SunColor");
         private static readonly int IdAmbientColor = Shader.PropertyToID("_AmbientColor");
         private static readonly int IdSunsetEdge = Shader.PropertyToID("_SunsetEdge");
+        private static readonly int[] IdFade =
+        {
+            Shader.PropertyToID("_CloudBottom"), Shader.PropertyToID("_MaxDistance"), Shader.PropertyToID("_CloudExtent"),
+            Shader.PropertyToID("_EdgeStart"), Shader.PropertyToID("_NightOpacity"),
+        };
+        private float _behind;
 
         private readonly Material _material;
         private readonly GameObject _holder;
@@ -198,13 +213,16 @@ namespace VolumetricClouds.Sky
             float w0, w1;
             _material.SetVector(IdCopy0, Copy(0, out w0));
             _material.SetVector(IdCopy1, Copy(1, out w1));
-            _material.SetVector(IdFlow, new Vector4(w0, w1, LayerHeight, 0f));
+            _behind = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(BehindFrom, BehindFull, CloudShaderParams.Coverage));
+            _material.SetVector(IdFlow, new Vector4(w0, w1, LayerHeight, _behind));
 
-            // The clouds' own light (CloudVolume.ApplyLighting set it this frame).
+            // The clouds' own light (CloudVolume.ApplyLighting set it this frame), and their distance fade.
             _material.SetVector(IdSunDir, clouds.GetVector(IdSunDir));
             _material.SetVector(IdSunColor, clouds.GetVector(IdSunColor));
             _material.SetVector(IdAmbientColor, clouds.GetVector(IdAmbientColor));
             _material.SetVector(IdSunsetEdge, clouds.GetVector(IdSunsetEdge));
+            for (int i = 0; i < IdFade.Length; i++)
+                _material.SetFloat(IdFade[i], clouds.GetFloat(IdFade[i]));
 
             _renderer.enabled = true;
         }
@@ -435,7 +453,8 @@ namespace VolumetricClouds.Sky
             if (!_renderer.enabled)
                 return "off";
             return (Dynamic ? "dynamic " : "") + (_amounts[0] * 100f).ToString("F0") + "/" + (_amounts[1] * 100f).ToString("F0") + "/" +
-                   (_amounts[2] * 100f).ToString("F0") + "/" + (_amounts[3] * 100f).ToString("F0") + "%";
+                   (_amounts[2] * 100f).ToString("F0") + "/" + (_amounts[3] * 100f).ToString("F0") + "%" +
+                   " behind=" + (_behind * 100f).ToString("F0") + "%";
         }
 
         public void Dispose()

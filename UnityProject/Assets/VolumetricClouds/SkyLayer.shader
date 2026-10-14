@@ -32,6 +32,7 @@ Shader "VolumetricClouds/SkyLayer"
             #pragma fragment frag
             #pragma target 3.5   // not 4.0: no Metal code at 4.0 in Unity 5.6 (see CloudRaymarch.shader)
             #include "UnityCG.cginc"
+            #include "CloudMedia.cginc"   // CloudPresence, _SunDir; only what is used is compiled in
 
             #define SKY_PI 3.14159265
 
@@ -57,14 +58,16 @@ Shader "VolumetricClouds/SkyLayer"
             // carried along it by the wind. Two copies take turns (Sky/SkyLayer.cs): each is carried for
             // a while and fades out, while the other fades in and starts again, turned another way, so a
             // picture never runs out. Per copy: xy = how far it has been carried (m, x and z), zw = cos,
-            // sin of its turn round the vertical. _SkyFlow.xy = the two copies' weights.
+            // sin of its turn round the vertical. _SkyFlow.xy = the two copies' weights, w = how much the
+            // volumetric clouds' distance fade holds the pictures back (BehindClouds).
             float4 _SkyCopy0;
             float4 _SkyCopy1;
             float4 _SkyFlow;
 
             // The clouds' own light, copied from the cloud material every frame (CloudVolume.ApplyLighting):
-            // their sun (or moon) with its brightness and tints, their sky light, Sunset light's edge.
-            float3 _SunDir;     // towards the light
+            // their sun (or moon) with its brightness and tints, their sky light, Sunset light's edge
+            // (_SunDir, towards the light, is CloudMedia's). Also their distance fade's values
+            // (_CloudBottom, _MaxDistance, _CloudExtent, _EdgeStart, _NightOpacity), for BehindClouds.
             float3 _SunColor;
             float3 _AmbientColor;
             float4 _SunsetEdge;
@@ -170,6 +173,21 @@ Shader "VolumetricClouds/SkyLayer"
                 return sun * (through * phase) + _AmbientColor * (1.0 - 0.2 * opacity);
             }
 
+            // How much of the pictures may show in direction d, 0..1: the volumetric clouds' presence where
+            // the ray meets their base (CloudMedia CloudPresence). The clouds dissolve into the distance by
+            // going see-through, which was meant to let the sky through -- and since this draw comes
+            // first, it let the pictures through a solid cloud too: far off, the distant clouds showed in
+            // front of the volumetric ones (2026-10-14, the author: "the distant clouds appear to be
+            // rendering over the volumetric clouds"), most with "Clouds hide the sky" low, which keeps them
+            // solid. So the pictures fade as the clouds do. This draw cannot see where the clouds are, so
+            // it fades them in the gaps too: by the cover (_SkyFlow.w), so a clear sky keeps its distant
+            // clouds down to the horizon. From in or over the clouds: 1.
+            float BehindClouds(float3 d)
+            {
+                float t = max(_CloudBottom - _WorldSpaceCameraPos.y, 0.0) / max(d.y, 1e-3);
+                return lerp(1.0, CloudPresence(t), _SkyFlow.w);
+            }
+
             // "a in front of b", premultiplied light + what is left of what is behind.
             float4 Over(float4 a, float4 b)
             {
@@ -217,6 +235,8 @@ Shader "VolumetricClouds/SkyLayer"
 
                 // Into the haze at the horizon: gone at it, 60% there 3 degrees up, all of it from 10.
                 opacity *= smoothstep(0.0, 0.05, dir.y) * lerp(0.6, 1.0, smoothstep(0.0, 0.17, dir.y));
+                // Behind the volumetric clouds' fade, not through it.
+                opacity *= BehindClouds(dir);
                 if (max(max(opacity.x, opacity.y), max(opacity.z, opacity.w)) < 0.002)
                     return 0;
                 float cosTheta = dot(dir, _SunDir);
