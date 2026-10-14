@@ -1039,6 +1039,9 @@ namespace VolumetricClouds.UI
             List<Item> items = new List<Item>();
             HashSet<UIComponent> claimed = new HashSet<UIComponent>();
 
+            // The Distant clouds tab is short: its headings stay plain, never folding (1.5.0).
+            bool folding = _advanced && tab.Panel != PanelPage.DistantClouds;
+
             // The names' column, per page: as wide as the page's longest name needs (capitals in
             // Frosted take more room), at least the skin's 196. At most 46% of the page in Vanilla;
             // in the new looks as much as leaves a slider MinSlider long (the names come first, the
@@ -1094,10 +1097,11 @@ namespace VolumetricClouds.UI
                 if (row.Group != null)
                 {
                     // With the advanced options on, a click folds the group away (1.5.0).
-                    group = row.Group;
+                    // A plain heading's rows are in no group: nothing can fold them away.
+                    group = folding ? row.Group : null;
                     HeadingRow heading;
                     float height = HeadingHeight;
-                    if (_advanced)
+                    if (folding)
                     {
                         // Its strip (Builder.FoldHeight), with room above and below it between groups.
                         string captured = group;
