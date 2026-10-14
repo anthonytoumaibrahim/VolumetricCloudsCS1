@@ -69,11 +69,11 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">Profile</String>
-  <String key="Profiles.None">(no profile)</String>
-  <String key="Profiles.Defaults">(Mod defaults)</String>
+  <String key="Profiles.UnsavedProfile">(unsaved profile)</String>
+  <String key="Profiles.Defaults">(mod defaults)</String>
   <String key="Profiles.Save">Save</String>
   <String key="Profiles.Revert">Revert</String>
-  <String key="Profiles.Reverted">Back to the saved profile.</String>
+  <String key="Profiles.Reverted">Reverted!</String>
   <String key="Profiles.NewName">Profile {0}</String>
   <String key="Profiles.Naming">Type a name. Enter saves, Esc cancels.</String>
   <String key="Profiles.Added">Saved as a new profile.</String>
@@ -166,6 +166,8 @@
   <String key="CloudShadeColor.Label">Shaded side</String>
 
   <String key="Group.SkyLayer">Distant clouds</String>
+
+  <String key="DynamicDistantClouds.Label">Dynamic distant clouds</String>
 
   <String key="SkyCirrus.Label">Cirrus</String>
 

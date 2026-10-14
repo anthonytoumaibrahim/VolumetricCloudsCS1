@@ -988,6 +988,11 @@ namespace VolumetricClouds.UI
             return FogOn() && CloudFog.Dynamic;
         }
 
+        private static bool DistantCloudsByHand()
+        {
+            return !SkyLayer.Dynamic;
+        }
+
         private static bool FogOverridden()
         {
             return FogOn() && Settings.FogOverride != null && Settings.FogOverride.value;
@@ -1527,14 +1532,27 @@ namespace VolumetricClouds.UI
             // Each walks through its pictures, thinnest first (Sky.SkyLayerMix). Look rows, so profiled:
             // a profile saved before them reads 0. No AfterChange (a slider's runs per drag tick):
             // SkyLayer logs them.
+            // "Dynamic distant clouds" first (the author's call: on by default, in this tab): the mod
+            // mixes the four kinds itself (Sky.SkyLayerMix.Dynamic) and the sliders grey -- hidden on the
+            // basic tab, as every greyed row is. A look row, so profiled like the sliders.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.DistantClouds,
+                Group = "SkyLayer",
+                Bool = Settings.DynamicDistantClouds,
+                DefaultBool = Settings.Defaults.DynamicDistantClouds,
+                AfterChange = State("dynamic distant clouds", OnOff(Settings.DynamicDistantClouds)),
+            });
+
             Add(new Row
             {
                 Kind = RowKind.Percent,
                 Panel = PanelPage.DistantClouds,
-                Group = "SkyLayer",
                 Float = Settings.SkyCirrus,
                 DefaultFloat = Settings.Defaults.SkyCirrus,
                 Min = 0f, Max = 100f, Step = 1f,
+                Enabled = DistantCloudsByHand,
             });
 
             Add(new Row
@@ -1544,6 +1562,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.SkySheepClouds,
                 DefaultFloat = Settings.Defaults.SkySheepClouds,
                 Min = 0f, Max = 100f, Step = 1f,
+                Enabled = DistantCloudsByHand,
             });
 
             Add(new Row
@@ -1553,6 +1572,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.SkyFarClouds,
                 DefaultFloat = Settings.Defaults.SkyFarClouds,
                 Min = 0f, Max = 100f, Step = 1f,
+                Enabled = DistantCloudsByHand,
             });
 
             Add(new Row
@@ -1562,6 +1582,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.SkyCloudLayers,
                 DefaultFloat = Settings.Defaults.SkyCloudLayers,
                 Min = 0f, Max = 100f, Step = 1f,
+                Enabled = DistantCloudsByHand,
             });
         }
 
@@ -1765,7 +1786,8 @@ namespace VolumetricClouds.UI
             // (Sky.FogSources). All 0% for everyone: at 0% the fog is exactly as before. Last on the
             // tab, under their own heading: a heading claims every row below it up to the next one.
             // The three in one switch (1.5.0, the author: "a quick toggle that allows the user to
-            // disable the dynamic fog"). On by default: the sliders do what they say, as before.
+            // disable the dynamic fog"). Off by default (his call). "Override fog" overrides it too
+            // (CloudFog.Dynamic), so it greys with the override on.
             Add(new Row
             {
                 Kind = RowKind.Toggle,
@@ -1773,7 +1795,7 @@ namespace VolumetricClouds.UI
                 Group = "FogChanges",
                 Bool = Settings.DynamicFog,
                 DefaultBool = Settings.Defaults.DynamicFog,
-                Enabled = FogOn,
+                Enabled = () => FogOn() && !CloudFog.Overridden,
                 AfterChange = State("dynamic fog", OnOff(Settings.DynamicFog)),
             });
 

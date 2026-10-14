@@ -80,7 +80,7 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// A whole name in parentheses, "(no profile)" or "(Mod defaults)", is the list's own entries'
+        /// A whole name in parentheses, "(unsaved profile)" or "(mod defaults)", is the list's own entries'
         /// (1.5.0), in every language -- the Chinese ones are in full-width parentheses. A file
         /// already named so is still listed (these rules are for making one), as its own entry.
         /// </summary>

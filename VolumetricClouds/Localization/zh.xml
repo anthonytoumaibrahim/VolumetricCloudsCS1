@@ -49,11 +49,11 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">配置</String>
-  <String key="Profiles.None">（无配置）</String>
+  <String key="Profiles.UnsavedProfile">（未保存的配置）</String>
   <String key="Profiles.Defaults">（模组默认）</String>
   <String key="Profiles.Save">保存</String>
   <String key="Profiles.Revert">还原</String>
-  <String key="Profiles.Reverted">已还原为保存的配置。</String>
+  <String key="Profiles.Reverted">已还原！</String>
   <String key="Profiles.NewName">配置 {0}</String>
   <String key="Profiles.Naming">输入名称。Enter 保存，Esc 取消。</String>
   <String key="Profiles.Added">已保存为新配置。</String>
@@ -144,6 +144,7 @@
 
   <String key="Group.SkyLayer">远处的云</String>
 
+  <String key="DynamicDistantClouds.Label">动态远处的云</String>
   <String key="SkyCirrus.Label">卷云</String>
 
   <String key="SkySheepClouds.Label">鱼鳞云</String>

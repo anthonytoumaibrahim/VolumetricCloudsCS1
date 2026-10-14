@@ -20,8 +20,11 @@ namespace VolumetricClouds.UI
     /// sprites ever be missing, a button that shows the picked profile and moves to the next one
     /// on each click takes its place.
     ///
-    /// Under "(no profile)" the list has "(Mod defaults)" (1.5.0): the mod's own defaults, shown
-    /// while no profile is picked and the sky is the defaults; Save and "-" stay off for it.
+    /// The list starts with "(mod defaults)" (1.5.0): the mod's own defaults, shown while no profile
+    /// is picked and the sky is the defaults; "-" stays off for it. "(no profile)" is gone (the
+    /// author: "one or the other only"): with none picked and the sky changed, the list shows
+    /// "(unsaved profile)", an entry only there while it is so, with "Unsaved changes" beside it, and
+    /// Save opens the name field as "+" does.
     ///
     /// Revert (1.5.0, the author's ask) is lit with Save: the picked profile's saved sky put back,
     /// the unsaved changes thrown away. It asks nothing -- throwing them away is all it does.
@@ -76,12 +79,15 @@ namespace VolumetricClouds.UI
         private readonly UILabel _message;
 
         /// <summary>
-        /// The second entry, "(Mod defaults)" (1.5.0): a name no file in the folder can have (the
-        /// folder lists no name with a control character, <see cref="ProfileName.IsListable"/>).
+        /// "(mod defaults)" (1.5.0): a name no file in the folder can have (the folder lists no name
+        /// with a control character, <see cref="ProfileName.IsListable"/>).
         /// </summary>
         private const string DefaultsEntry = "\u0001defaults";
 
-        /// <summary>What each entry of the list is: "" for "(no profile)", <see cref="DefaultsEntry"/>, then the names.</summary>
+        /// <summary>"(unsaved profile)": no profile picked and the sky not the defaults. Listed only then.</summary>
+        private const string UnsavedEntry = "\u0001unsaved";
+
+        /// <summary>What each entry of the list is: <see cref="UnsavedEntry"/> while it applies, <see cref="DefaultsEntry"/>, then the names.</summary>
         private readonly List<string> _entries = new List<string>();
 
         private bool _refreshing;
@@ -229,7 +235,7 @@ namespace VolumetricClouds.UI
             if (index >= 0 && !ListOpen)
                 ShowPick(index);
 
-            bool unsaved = picked.Length > 0 && Profiles.HasUnsavedChanges;
+            bool unsaved = Unsaved;
             RefreshButtons(unsaved);
 
             float now = Time.realtimeSinceStartup;
@@ -245,8 +251,8 @@ namespace VolumetricClouds.UI
                 _message.text = string.Empty;
             }
 
-            // What lasts while it is so: a picked profile whose file cannot be read, or one the
-            // sky has moved away from.
+            // What lasts while it is so: a picked profile whose file cannot be read, or a sky kept
+            // nowhere (one moved away from its profile, or from the defaults with none picked).
             if (_messageUntil < 0f && !_naming)
             {
                 string lasting = Profiles.State == Profiles.Status.Unreadable ? Localization.Get("Profiles.Unreadable")
@@ -260,6 +266,15 @@ namespace VolumetricClouds.UI
                     _message.text = lasting;
                 }
             }
+        }
+
+        /// <summary>
+        /// The sky is kept nowhere: the picked profile holds another, or with none picked it is not
+        /// the defaults ("(unsaved profile)"). What lights Save and says "Unsaved changes".
+        /// </summary>
+        private static bool Unsaved
+        {
+            get { return Profiles.Selected.Length > 0 ? Profiles.HasUnsavedChanges : !Profiles.SkyIsDefaults; }
         }
 
         private void RefreshButtons(bool unsaved)
@@ -280,11 +295,12 @@ namespace VolumetricClouds.UI
 
         // ---- the list --------------------------------------------------------------------------
 
-        /// <summary>Reads the folder and puts "(no profile)", "(Mod defaults)" and every name in the list, the pick selected.</summary>
+        /// <summary>Reads the folder and puts "(unsaved profile)" (while it applies), "(mod defaults)" and every name in the list, the pick selected.</summary>
         private void Relist()
         {
             _entries.Clear();
-            _entries.Add(string.Empty);
+            if (Profiles.Selected.Length == 0 && !Profiles.SkyIsDefaults)
+                _entries.Add(UnsavedEntry);
             _entries.Add(DefaultsEntry);
             _entries.AddRange(Profiles.List());
 
@@ -315,22 +331,23 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>
-        /// The entry the bar shows: the picked profile, or with none picked "(Mod defaults)" while the
-        /// sky is the defaults and "(no profile)" otherwise. -1 for a pick the list does not have.
+        /// The entry the bar shows: the picked profile, or with none picked "(mod defaults)" while the
+        /// sky is the defaults and "(unsaved profile)" otherwise. -1 for an entry the list does not
+        /// have (yet): the next refresh lists again.
         /// </summary>
         private int ShownIndex()
         {
             string picked = Profiles.Selected;
             if (picked.Length == 0)
-                return Profiles.SkyIsDefaults ? 1 : 0;
+                return _entries.IndexOf(Profiles.SkyIsDefaults ? DefaultsEntry : UnsavedEntry);
 
             return IndexOf(picked);
         }
 
         private string EntryText(int index)
         {
-            if (index == 0)
-                return Localization.Get("Profiles.None");
+            if (_entries[index] == UnsavedEntry)
+                return Localization.Get("Profiles.UnsavedProfile");
 
             if (_entries[index] == DefaultsEntry)
                 return Localization.Get("Profiles.Defaults");
@@ -366,11 +383,11 @@ namespace VolumetricClouds.UI
         private int IndexOf(string name)
         {
             if (string.IsNullOrEmpty(name))
-                return 0;
+                return -1;
 
-            for (int i = 2; i < _entries.Count; i++)
+            for (int i = 0; i < _entries.Count; i++)
             {
-                if (ProfileName.Same(_entries[i], name))
+                if (_entries[i] != DefaultsEntry && _entries[i] != UnsavedEntry && ProfileName.Same(_entries[i], name))
                     return i;
             }
 
@@ -394,21 +411,12 @@ namespace VolumetricClouds.UI
                 string picked = Profiles.Selected;
                 bool defaults = name == DefaultsEntry;
 
-                // "(no profile)" while the sky is the defaults lets nothing go: the bar shows
-                // "(Mod defaults)" again at the next refresh, which is what the sky is.
-                if (defaults ? Profiles.SkyIsDefaults
-                    : name.Length == 0 ? picked.Length == 0
-                    : ProfileName.Same(name, picked) && Profiles.State == Profiles.Status.Selected)
+                // "(unsaved profile)" is what the sky is, not something to pick: nothing changes.
+                if (name == UnsavedEntry
+                    || (defaults ? Profiles.SkyIsDefaults
+                        : ProfileName.Same(name, picked) && Profiles.State == Profiles.Status.Selected))
                 {
                     _resync = true;
-                    return;
-                }
-
-                if (name.Length == 0)
-                {
-                    Profiles.Detach("\"(no profile)\" picked in the panel");
-                    SettingsXml.SaveNow();
-                    SettingsCatalog.RefreshAllUIs();
                     return;
                 }
 
@@ -418,7 +426,7 @@ namespace VolumetricClouds.UI
 
                 // Picking puts the profile's sky in (or the defaults): ask first when that throws away
                 // changes kept nowhere else.
-                if (Profiles.HasUnsavedChanges)
+                if (Unsaved)
                 {
                     AskBeforePicking(name, picked);
                     return;
@@ -500,8 +508,15 @@ namespace VolumetricClouds.UI
 
         private void SaveClicked()
         {
-            if (_naming || Profiles.Selected.Length == 0)
+            if (_naming)
                 return;
+
+            // "(unsaved profile)": a new profile of it, named first, as "+" does.
+            if (Profiles.Selected.Length == 0)
+            {
+                StartNaming();
+                return;
+            }
 
             try
             {
@@ -625,7 +640,7 @@ namespace VolumetricClouds.UI
             else if (_cycle != null)
                 _cycle.Show();
 
-            RefreshButtons(Profiles.Selected.Length > 0 && Profiles.HasUnsavedChanges);
+            RefreshButtons(Unsaved);
 
             if (message != null)
                 Say(message, _ui.Theme.Status);

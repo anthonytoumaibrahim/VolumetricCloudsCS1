@@ -73,6 +73,36 @@ for ($k = 0; $k -lt $M::Kinds; $k++) {
     Check "$name adds up to 1 once in" $sumOne
 }
 
+# "Dynamic distant clouds": every kind comes and goes, the total stays capped, nothing jumps, and the
+# sky is rarely empty. Sampled over 200 lives of the travelling copies, for three seeds.
+$a = New-Object 'float[]' 4
+$b = New-Object 'float[]' 4
+foreach ($seed in 1, 12345, -987654321) {
+    $present = @(0, 0, 0, 0); $empty = 0; $maxTotal = 0.0; $maxStep = 0.0; $inRange = $true
+    $samples = 20000
+    for ($i = 0; $i -lt $samples; $i++) {
+        $M::Dynamic($i * 0.01, $seed, $a)
+        $M::Dynamic($i * 0.01 + 0.01, $seed, $b)
+        $total = 0.0
+        for ($k = 0; $k -lt 4; $k++) {
+            if ($a[$k] -lt 0 -or $a[$k] -gt 1) { $inRange = $false }
+            if ($a[$k] -gt 0) { $present[$k]++ }
+            $total += $a[$k]
+            $maxStep = [math]::Max([double]$maxStep, [double][math]::Abs($b[$k] - $a[$k]))
+        }
+        if ($total -eq 0) { $empty++ }
+        $maxTotal = [math]::Max([double]$maxTotal, [double]$total)
+    }
+    Check "dynamic, seed ${seed}: amounts within 0..1" $inRange
+    Check "dynamic, seed ${seed}: total capped at 130%" ($maxTotal -le 1.3001) ("{0:F3}" -f $maxTotal)
+    Check "dynamic, seed ${seed}: no jump between frames a hundredth of a life apart" ($maxStep -lt 0.02) ("{0:F4}" -f $maxStep)
+    for ($k = 0; $k -lt 4; $k++) {
+        $share = $present[$k] / $samples
+        Check "dynamic, seed ${seed}: $($M::KindNames[$k]) comes and goes" ($share -gt 0.2 -and $share -lt 0.95) ("{0:P0} of the time" -f $share)
+    }
+    Check "dynamic, seed ${seed}: the sky is seldom empty" ($empty / $samples -lt 0.1) ("{0:P1} empty" -f ($empty / $samples))
+}
+
 Check "describe off" ($M::Describe(0, 0) -eq "off")
 Check "describe a blend" ($M::Describe(0, 0.5) -eq "cirrus-1 50% + cirrus-2 50%") $M::Describe(0, 0.5)
 

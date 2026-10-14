@@ -11,15 +11,16 @@ A new look for the in-game panel, fog that changes on its own, a third cloud sty
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-four lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
+`VolumetricClouds.xml` gains twenty-five lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `DynamicDistantClouds`
+(on: the distant clouds show for everyone), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
-back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (on), `FogChangesWithWeather`, `MorningFog`,
+back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (off), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
 only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
-before, so nothing changes for anyone until they move one. Profiles saved before read the new
+before, so apart from the distant clouds nothing changes for anyone until they move one. Profiles saved before read the new
 sliders at those values. Thirteen settings get a value at sunset and at night (*Day, sunset and
 night*): twenty-five more lines, each written with the player's own value of that setting, so their
 sky is the same at every hour, and `PanelOpenClocks` (empty). The seven lines of the two 1.3.0 night
@@ -63,13 +64,13 @@ the screen's alpha.
 ### New: changing fog
 
 Three sliders at the bottom of the Fog tab, under *Changing fog*, each 0% to 100%, 0% by default,
-and a *Dynamic fog* switch above them (on) that turns all three off at once without losing their
-values. With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
+and a *Dynamic fog* switch above them (off) that turns all three on and off at once without losing their
+values. *Override fog* on the Now tab overrides them too: with it on, the fog is the amount set
+there and nothing changes it. With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
 you get: these only ever make it thinner, lower or wispier than that.
 
 - *Fog changes with the weather*: the fog is thickest at night and in heavy fog. On a sunny
   afternoon it is thinner, lower and wispier, and a light foggy spell is lighter than a heavy one.
-  With *Override fog* too.
 - *Morning fog*: thick, low fog forms overnight and is thickest around sunrise. During the morning
   it lifts off the ground, thins and breaks up, and by mid-morning it is gone. Some mornings are
   foggier than others. Needs the day/night cycle.
@@ -147,8 +148,11 @@ reading it ignores that one line and draws *Classic*.
 
 ### New: distant clouds
 
-A tab of its own in the in-game panel, *Distant clouds*, with four sliders, each 0% to 100%, 0% by
-default. They draw real skies, photographed, behind the mod's own clouds: *Cirrus* (high, thin
+A tab of its own in the in-game panel, *Distant clouds*. *Dynamic distant clouds* (on by default, so
+every player sees them after the update) mixes the four kinds by itself: each comes and goes slowly
+as the sky travels, the city's own mix, never one grey sheet of all four. Turned off, four sliders
+take over, each 0% to 100%, 0% by default; with it on they are greyed (hidden unless *Show advanced
+options* is on). They draw real skies, photographed, behind the mod's own clouds: *Cirrus* (high, thin
 streaks), *Sheep clouds* (small puffs in fields), *Cumulus on the horizon* and *Cloud layers*
 (several kinds at once). They add up, so cirrus can stand over sheep clouds over far cumulus. Only
 the clouds are taken from the photographs: the game's sun and sky light them, so they turn gold at
@@ -198,13 +202,15 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 
 ### New: the mod's defaults in the profile list
 
-- The profile list has a fixed entry under *(no profile)*: *(Mod defaults)*. Picking it puts every
+- *(no profile)* is gone from the profile list; it starts with *(mod defaults)*. Picking it puts every
   setting a profile holds back to the mod's default; like picking a profile, it leaves the Now tab
   and the quality settings alone, and turns the volumetric fog off (its default). Change anything
-  afterwards and the list shows *(no profile)*; pick *(Mod defaults)* again to throw those changes
-  away. It can't be saved over or deleted. The list shows it whenever no profile is picked and the
-  sky is at the defaults, so a new player starts on it.
-- A new profile's name can't be all in parentheses, like *(no profile)*: those are the list's own.
+  with no profile picked and the list shows *(unsaved profile)*, with *Unsaved changes* beside it:
+  **Save** then names it as a new profile, and picking *(mod defaults)* again throws the changes away.
+  *(mod defaults)* can't be saved over or deleted. The list shows it whenever no profile is picked and the
+  sky is at the defaults, so a new player starts on it. A profile is let go only by deleting it or by
+  *Reset all*.
+- A new profile's name can't be all in parentheses, like *(mod defaults)*: those are the list's own.
   Profiles you already have keep their names.
 - **Revert**, beside **Save**: while the picked profile has unsaved changes, it puts the profile's
   saved sky back and throws the changes away.

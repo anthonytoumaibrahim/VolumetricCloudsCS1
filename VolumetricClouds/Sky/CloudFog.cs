@@ -147,10 +147,14 @@ namespace VolumetricClouds.Sky
             get { return Singleton<WeatherManager>.exists ? Mathf.Clamp01(Singleton<WeatherManager>.instance.m_groundWetness) : 0f; }
         }
 
-        /// <summary>"Dynamic fog" (1.5.0): off, the three below read 0 -- the fog as it always was.</summary>
+        /// <summary>
+        /// "Dynamic fog" (1.5.0): off, the three below read 0 -- the fog as it always was. "Override
+        /// fog" turns it off too (the author: the override overrides the changing fog as well): the
+        /// fog is then the amount set on the Now tab, in the sliders' look, and nothing else.
+        /// </summary>
         public static bool Dynamic
         {
-            get { return Settings.DynamicFog != null ? Settings.DynamicFog.value : Settings.Defaults.DynamicFog; }
+            get { return (Settings.DynamicFog != null ? Settings.DynamicFog.value : Settings.Defaults.DynamicFog) && !Overridden; }
         }
 
         /// <summary>"Fog changes with the weather", 0..1; 0 with Dynamic fog off.</summary>

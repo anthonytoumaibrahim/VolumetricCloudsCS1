@@ -521,6 +521,8 @@ namespace VolumetricClouds
         /// one amount per kind, 0..1; they add up. 0 is off, and with all four at 0 nothing of it exists.
         /// A kind's amount walks through its pictures, thinnest first (Sky/SkyLayerMix).
         /// </summary>
+        /// <summary>On: the four below are not read; the mod mixes the kinds itself, changing as the sky travels.</summary>
+        public static BoolSetting DynamicDistantClouds { get; private set; }
         public static FloatSetting SkyCirrus { get; private set; }
         public static FloatSetting SkySheepClouds { get; private set; }
         public static FloatSetting SkyFarClouds { get; private set; }
@@ -809,7 +811,13 @@ namespace VolumetricClouds
             /// <summary>Every row's clock closed (the author's call): a player's opening is kept in the file.</summary>
             public const string PanelOpenClocks = "";
 
-            /// <summary>Distant clouds (1.5.0): all off, so new rows change nobody's sky (invariant 15).</summary>
+            /// <summary>
+            /// "Dynamic distant clouds" (1.5.0, the author's call: on by default): the four below are
+            /// set by the mod (Sky.SkyLayerMix.Dynamic), a mix that changes as the sky travels.
+            /// </summary>
+            public const bool DynamicDistantClouds = true;
+
+            /// <summary>Distant clouds (1.5.0): the sliders all at 0, read only with DynamicDistantClouds off.</summary>
             public const float SkyCirrus = 0f;
             public const float SkySheepClouds = 0f;
             public const float SkyFarClouds = 0f;
@@ -924,10 +932,10 @@ namespace VolumetricClouds
             public const float FogSpeed = 3.6f;
 
             /// <summary>
-            /// All three 0 (1.5.0): off for new AND existing players (the author's condition for every
-            /// new fog option), and at 0 the fog is exactly what it was, bit for bit.
+            /// All three 0 and the switch off (1.5.0): off for new AND existing players (the author's
+            /// condition for every new fog option), and at 0 the fog is exactly what it was, bit for bit.
             /// </summary>
-            public const bool DynamicFog = true;
+            public const bool DynamicFog = false;
             public const float FogChangesWithWeather = 0f;
             public const float MorningFog = 0f;
             public const float MistAfterRain = 0f;
@@ -1153,6 +1161,7 @@ namespace VolumetricClouds
                 CloudShadeColorNight = new ColorSetting("CloudShadeColorNight", Defaults.ShadeColorNight);
                 // Not "HighCloud*": that was September's rejected concept (none is in any file, checked
                 // 2026-10-12, but the names stay clear of it).
+                DynamicDistantClouds = new BoolSetting("DynamicDistantClouds", Defaults.DynamicDistantClouds);
                 SkyCirrus = new FloatSetting("SkyCirrus", Defaults.SkyCirrus);
                 SkySheepClouds = new FloatSetting("SkySheepClouds", Defaults.SkySheepClouds);
                 SkyFarClouds = new FloatSetting("SkyFarClouds", Defaults.SkyFarClouds);

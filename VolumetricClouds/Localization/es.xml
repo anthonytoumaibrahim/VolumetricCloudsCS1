@@ -41,11 +41,11 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">Perfil</String>
-  <String key="Profiles.None">(sin perfil)</String>
-  <String key="Profiles.Defaults">(Valores del mod)</String>
+  <String key="Profiles.UnsavedProfile">(perfil sin guardar)</String>
+  <String key="Profiles.Defaults">(valores del mod)</String>
   <String key="Profiles.Save">Guardar</String>
   <String key="Profiles.Revert">Revertir</String>
-  <String key="Profiles.Reverted">Perfil guardado restaurado.</String>
+  <String key="Profiles.Reverted">¡Revertido!</String>
   <String key="Profiles.NewName">Perfil {0}</String>
   <String key="Profiles.Naming">Escribe un nombre. Enter guarda, Esc cancela.</String>
   <String key="Profiles.Added">Guardado como perfil nuevo.</String>
@@ -130,6 +130,7 @@
 
   <String key="Group.SkyLayer">Nubes lejanas</String>
 
+  <String key="DynamicDistantClouds.Label">Nubes lejanas dinámicas</String>
   <String key="SkyCirrus.Label">Cirros</String>
 
   <String key="SkySheepClouds.Label">Nubes aborregadas</String>

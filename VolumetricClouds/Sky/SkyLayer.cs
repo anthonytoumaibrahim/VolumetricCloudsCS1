@@ -101,6 +101,7 @@ namespace VolumetricClouds.Sky
 
         private string _logged;
         private bool _loggedOn;
+        private bool _loggedDynamic;
 
         public SkyLayer(Shader shader, Transform parent, Mesh box)
         {
@@ -119,9 +120,24 @@ namespace VolumetricClouds.Sky
             _renderer.enabled = false;
         }
 
-        /// <summary>The rows' amounts, 0..1 (cirrus, sheep clouds, far clouds, cloud layers).</summary>
+        /// <summary>"Dynamic distant clouds" (1.5.0): the mod mixes the kinds itself and the four sliders are not read.</summary>
+        public static bool Dynamic
+        {
+            get { return Settings.DynamicDistantClouds != null ? Settings.DynamicDistantClouds.value : Settings.Defaults.DynamicDistantClouds; }
+        }
+
+        /// <summary>
+        /// The amounts, 0..1 (cirrus, sheep clouds, far clouds, cloud layers): the rows', or with
+        /// <see cref="Dynamic"/> the mix at how far the sky has travelled (so it stops with the game).
+        /// </summary>
         private void ReadAmounts()
         {
+            if (Dynamic)
+            {
+                SkyLayerMix.Dynamic(_travel / Lifetime, SkyPattern.FieldSeed, _amounts);
+                return;
+            }
+
             _amounts[SkyLayerMix.Cirrus] = Amount(Settings.SkyCirrus);
             _amounts[SkyLayerMix.Sheep] = Amount(Settings.SkySheepClouds);
             _amounts[SkyLayerMix.Far] = Amount(Settings.SkyFarClouds);
@@ -139,12 +155,12 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public void Update(Material clouds)
         {
+            AdvanceFlow();
             ReadAmounts();
             bool any = false;
             for (int k = 0; k < SkyLayerMix.Kinds; k++)
                 any |= _amounts[k] > 0f;
 
-            AdvanceFlow();
             LogState(clouds != null && any);
 
             if (clouds == null || !any)
@@ -265,16 +281,23 @@ namespace VolumetricClouds.Sky
                 text = line.ToString();
             }
 
+            // The dynamic mix moves on its own: a line each time a percent changes would be a stream, so
+            // only its switching on or off is always said.
+            bool dynamic = Dynamic;
+            if (dynamic)
+                text = "dynamic, " + text;
+
             if (text == _logged)
                 return;
 
-            if (_logged == null || on != _loggedOn)
+            if (_logged == null || on != _loggedOn || dynamic != _loggedDynamic)
                 Log.Msg("sky layer: " + text);
             else if (Log.Detailed)
                 Log.Detail("sky layer: " + text);
 
             _logged = text;
             _loggedOn = on;
+            _loggedDynamic = dynamic;
         }
 
         /// <summary>
@@ -404,7 +427,7 @@ namespace VolumetricClouds.Sky
         {
             if (!_renderer.enabled)
                 return "off";
-            return (_amounts[0] * 100f).ToString("F0") + "/" + (_amounts[1] * 100f).ToString("F0") + "/" +
+            return (Dynamic ? "dynamic " : "") + (_amounts[0] * 100f).ToString("F0") + "/" + (_amounts[1] * 100f).ToString("F0") + "/" +
                    (_amounts[2] * 100f).ToString("F0") + "/" + (_amounts[3] * 100f).ToString("F0") + "%";
         }
 

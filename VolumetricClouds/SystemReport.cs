@@ -79,7 +79,8 @@ namespace VolumetricClouds
                         // 1.5.0: Smoother clouds.
                         " smootherClouds=" + On(Settings.CloudTemporal, Settings.Defaults.Temporal) +
                         " fragments=" + Sky.CloudFragments.Describe() +
-                        // 1.5.0: distant clouds (cirrus/sheep/far/layers).
+                        // 1.5.0: distant clouds (dynamic, or cirrus/sheep/far/layers by hand).
+                        " dynamicDistantClouds=" + On(Settings.DynamicDistantClouds, Settings.Defaults.DynamicDistantClouds) +
                         " skyLayer=" + Percent(Settings.SkyCirrus, 0f) + "/" + Percent(Settings.SkySheepClouds, 0f) + "/" +
                         Percent(Settings.SkyFarClouds, 0f) + "/" + Percent(Settings.SkyCloudLayers, 0f) +
                         " volumetricFog=" + On(Settings.FogEnabled, false) +

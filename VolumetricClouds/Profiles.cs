@@ -15,8 +15,8 @@ namespace VolumetricClouds
     /// THE MODEL: a profile is a SAVED sky. Picking one puts its values in; what is changed after
     /// that belongs to the sky (VolumetricClouds.xml, as always) until "Save" writes it into the
     /// picked profile. "+" saves the sky as it is as a new profile and picks it; "-" deletes the
-    /// picked one's file, the sky staying as it is; "(no profile)" lets go -- which is where every
-    /// player was before profiles. While the sky differs from the picked profile the bar says so,
+    /// picked one's file, the sky staying as it is; "Reset all" lets go -- which is where every
+    /// player was before profiles (1.5.0: the list's "(no profile)" is gone). While the sky differs from the picked profile the bar says so,
     /// and picking another profile then asks first: it would throw those changes away.
     ///
     /// (The first build wrote every change into the picked profile too: no Save button, nothing
@@ -29,9 +29,10 @@ namespace VolumetricClouds
     /// a complete sky), the fog switch included: the player's own click on a sky they saved or
     /// chose, like "Reset all" (invariant 12).
     ///
-    /// "(Mod defaults)" (1.5.0, asked for by the author): a fixed entry that is the mod's own
+    /// "(mod defaults)" (1.5.0, asked for by the author): a fixed entry that is the mod's own
     /// defaults -- it cannot be saved over or deleted. Picking it puts every default in; changing
-    /// anything afterwards shows "(no profile)"; picking it again throws those changes away. It is
+    /// anything afterwards shows "(unsaved profile)" (Save names it as a new profile); picking it
+    /// again throws those changes away. It is
     /// never a file nor a name in &lt;Profile&gt; (players already have profiles called "Default"):
     /// the bar shows it whenever no profile is picked and the sky is the defaults.
     ///
@@ -144,7 +145,7 @@ namespace VolumetricClouds
         /// The built-in "(Mod defaults)" entry (1.5.0): no profile is picked and every value a profile
         /// carries is the mod's default. Not stored anywhere -- &lt;Profile&gt; stays empty, so an older
         /// version reads the file as "no profile" -- but seen: change anything and the bar says
-        /// "(no profile)"; pick it again (<see cref="SelectDefaults"/>) and the changes go.
+        /// "(unsaved profile)"; pick it again (<see cref="SelectDefaults"/>) and the changes go.
         /// </summary>
         public static bool SkyIsDefaults
         {
@@ -339,7 +340,7 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// "(no profile)": lets the picked profile go. No value changes and its file stays: the
+        /// Lets the picked profile go ("Reset all"). No value changes and its file stays: the
         /// settings file alone runs the sky again. The caller saves.
         /// </summary>
         public static void Detach(string why)

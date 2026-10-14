@@ -75,6 +75,53 @@ namespace VolumetricClouds.Sky
             weights[pictures[a + 1]] = f;
         }
 
+        // "Dynamic distant clouds" (1.5.0): each kind's greatest amount, and how long (in lives of the
+        // travelling copies, SkyLayer.Lifetime) its two waves take. The periods share no common
+        // measure, so the mix never comes round again; each is several lives long, so the kinds
+        // change more slowly than the pictures fade in and out.
+        private static readonly float[] DynamicMost = { 0.75f, 0.55f, 0.55f, 0.45f };
+        private static readonly double[] DynamicSlow = { 7.3, 9.1, 8.2, 11.7 };
+        private static readonly double[] DynamicFast = { 2.9, 3.7, 3.3, 4.3 };
+
+        /// <summary>A kind is gone while its waves are below this share (0..1): each is away some of the time.</summary>
+        private const float DynamicAbsent = 0.4f;
+
+        /// <summary>The most the four may add up to, so the mixed sky never turns into one grey sheet.</summary>
+        private const float DynamicTotal = 1.3f;
+
+        /// <summary>
+        /// "Dynamic distant clouds" (1.5.0): the four kinds' amounts (<paramref name="amounts"/>, 0..1 each)
+        /// at <paramref name="lives"/> -- how far the sky has travelled, in lives of its copies -- for a city
+        /// of <paramref name="seed"/>. Each kind comes and goes on two slow waves of its own, the city's
+        /// seed placing them; together they never add up to more than <see cref="DynamicTotal"/>.
+        /// </summary>
+        public static void Dynamic(double lives, int seed, float[] amounts)
+        {
+            float total = 0f;
+            for (int k = 0; k < Kinds; k++)
+            {
+                uint hash = unchecked((uint)seed * 2654435761u + (uint)k * 40503u);
+                hash ^= hash >> 15;
+                hash = unchecked(hash * 2246822519u);
+                hash ^= hash >> 13;
+                double phaseSlow = (hash & 0xFFFF) / 65536.0;
+                double phaseFast = (hash >> 16) / 65536.0;
+
+                double wave = 0.65 * Math.Sin(2.0 * Math.PI * (lives / DynamicSlow[k] + phaseSlow))
+                            + 0.35 * Math.Sin(2.0 * Math.PI * (lives / DynamicFast[k] + phaseFast));
+                float share = (float)(0.5 + 0.5 * wave);
+                float t = Clamp01((share - DynamicAbsent) / (1f - DynamicAbsent));
+                amounts[k] = t * t * (3f - 2f * t) * DynamicMost[k];
+                total += amounts[k];
+            }
+
+            if (total > DynamicTotal)
+            {
+                for (int k = 0; k < Kinds; k++)
+                    amounts[k] *= DynamicTotal / total;
+            }
+        }
+
         /// <summary>For the log: "off", or the pictures shown, e.g. "cirrus-1 40% + cirrus-2 60%".</summary>
         public static string Describe(int kind, float amount)
         {

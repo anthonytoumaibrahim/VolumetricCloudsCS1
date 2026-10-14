@@ -41,11 +41,11 @@
   <!-- The messages beside the buttons have about two short lines of room. -->
 
   <String key="Profiles.Label">Profil</String>
-  <String key="Profiles.None">(aucun profil)</String>
-  <String key="Profiles.Defaults">(Réglages du mod)</String>
+  <String key="Profiles.UnsavedProfile">(profil non enregistré)</String>
+  <String key="Profiles.Defaults">(réglages du mod)</String>
   <String key="Profiles.Save">Enregistrer</String>
   <String key="Profiles.Revert">Rétablir</String>
-  <String key="Profiles.Reverted">Profil enregistré rétabli.</String>
+  <String key="Profiles.Reverted">Rétabli !</String>
   <String key="Profiles.NewName">Profil {0}</String>
   <String key="Profiles.Naming">Entrez un nom. Entrée valide, Échap annule.</String>
   <String key="Profiles.Added">Nouveau profil enregistré.</String>
@@ -130,6 +130,7 @@
 
   <String key="Group.SkyLayer">Nuages lointains</String>
 
+  <String key="DynamicDistantClouds.Label">Nuages lointains dynamiques</String>
   <String key="SkyCirrus.Label">Cirrus</String>
 
   <String key="SkySheepClouds.Label">Nuages moutonnés</String>
