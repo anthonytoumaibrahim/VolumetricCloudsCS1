@@ -79,6 +79,18 @@ Check "day/night off: no time of day, only the spell (density 0.625, top 1, wisp
 $l = $S::WeatherLook([single]0.5, [single]0.25, [single]14, $true)
 Check "50%: half way (density 0.6875)" (Near $l.Density 0.6875) (Text $l)
 
+# ---- under an overcast sky (1.5.0) ---------------------------------------------------------------
+
+$clear = $S::WeatherLook([single]1, [single]0.25, [single]14, $true, [single]0)
+$same = $S::WeatherLook([single]1, [single]0.25, [single]14, $true)
+Check "a clear sky: exactly the look as before" (($clear.Density -eq $same.Density) -and ($clear.Top -eq $same.Top) -and ($clear.Wisp -eq $same.Wisp)) (Text $clear)
+$grey = $S::WeatherLook([single]1, [single]0.25, [single]14, $true, [single]1)
+$night = $S::WeatherLook([single]1, [single]0.25, [single]2, $true)
+Check "full overcast, 14:00: the night's fog (no burn-off)" ((Near $grey.Density $night.Density) -and ($grey.Top -eq 1) -and ($grey.Wisp -eq 0)) (Text $grey)
+$half = $S::WeatherLook([single]1, [single]1, [single]14, $true, [single]0.5)
+Check "half overcast, 14:00, full spell: half the thinning (density 0.8)" (Near $half.Density 0.8) (Text $half)
+Check "morning fog: all of it under a clear sky, half under a full overcast" (($S::MorningUnderCover([single]0) -eq 1) -and ($S::MorningUnderCover([single]1) -eq 0.5) -and ($S::MorningUnderCover([single]2) -eq 0.5))
+
 Check "afternoon: none at 07:00 and 20:00, whole at 12, 14, 16" (($S::Afternoon(7) -eq 0) -and ($S::Afternoon(20) -eq 0) -and ($S::Afternoon(12) -eq 1) -and ($S::Afternoon(14) -eq 1) -and ($S::Afternoon(16) -eq 1))
 $jump = 0.0
 foreach ($h in (Hours 0.01)) { $d = [math]::Abs($S::Afternoon([single]($h + 0.01)) - $S::Afternoon([single]$h)); if ($d -gt $jump) { $jump = $d } }

@@ -438,6 +438,11 @@ namespace VolumetricClouds.Sky
 
             float wetness = GroundWetness;
 
+            // How overcast the sky is (1.5.0), as the rows with a cloud button take it (Sky.Overcast:
+            // straight in the cover): the afternoon sun thins the fog only as much as it gets through,
+            // and an overcast night forms less morning fog. A clear sky: exactly as before.
+            float overcast = Mathf.Clamp01(CloudShaderParams.Coverage);
+
             float target = 0f;
             float morningTarget = 0f;
             float mistTarget = 0f;
@@ -451,7 +456,7 @@ namespace VolumetricClouds.Sky
                 if (morning > 0f && dayNight)
                 {
                     _morningPeak = morning * FogSources.MorningPeak(FogSources.MorningKey(cycle, hour));
-                    morningTarget = _morningPeak * FogSources.MorningShare(hour);
+                    morningTarget = _morningPeak * FogSources.MorningShare(hour) * FogSources.MorningUnderCover(overcast);
                 }
 
                 float mist = MistSetting;
@@ -479,7 +484,7 @@ namespace VolumetricClouds.Sky
             // the morning fog's and the mist's by how much of each there is. The SLIDERS are applied
             // where it is used (LayerBase...), so dragging one is as immediate as ever.
             FogLook look = FogSources.Blend(
-                _weatherAmount, FogSources.WeatherLook(ChangeWithWeather, _weatherAmount, hour, dayNight),
+                _weatherAmount, FogSources.WeatherLook(ChangeWithWeather, _weatherAmount, hour, dayNight, overcast),
                 _morningAmount, FogSources.MorningLook(hour),
                 _mistAmount, FogSources.MistLook);
             _look = appearing ? look : _look.Towards(look, k);

@@ -100,6 +100,37 @@ namespace VolumetricClouds.Sky
                 a.b * dayShare + b.b * sunsetShare + c.b * nightShare, 1f);
         }
 
+        /// <summary>
+        /// The tint for a colour row with a clock and a cloud button (1.5.0, <see cref="Overcast"/>): at
+        /// each time of day its Clear sky colour and its Overcast one blended by <paramref name="overcast"/>
+        /// (<see cref="Blend"/>), then the three by their shares. Each Overcast colour the same as its Clear
+        /// sky one -- every existing player's -- is exactly <see cref="Blend3"/>.
+        /// </summary>
+        public static Color Blend6(Color32 day, Color32 sunset, Color32 night,
+            Color32 dayOvercast, Color32 sunsetOvercast, Color32 nightOvercast, float overcast,
+            float dayShare, float sunsetShare, float nightShare)
+        {
+            if (Same(dayOvercast, day) && Same(sunsetOvercast, sunset) && Same(nightOvercast, night))
+                return Blend3(day, sunset, night, dayShare, sunsetShare, nightShare);
+
+            Color a = Blend(day, dayOvercast, overcast);
+            Color b = Blend(sunset, sunsetOvercast, overcast);
+            Color c = Blend(night, nightOvercast, overcast);
+
+            if (sunsetShare >= 1f)
+                return b;
+
+            if (nightShare >= 1f)
+                return c;
+
+            if (dayShare >= 1f)
+                return a;
+
+            return new Color(a.r * dayShare + b.r * sunsetShare + c.r * nightShare,
+                a.g * dayShare + b.g * sunsetShare + c.g * nightShare,
+                a.b * dayShare + b.b * sunsetShare + c.b * nightShare, 1f);
+        }
+
         /// <summary>The same picked colour (alpha aside: the settings keep every colour opaque).</summary>
         private static bool Same(Color32 a, Color32 b)
         {

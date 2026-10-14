@@ -195,6 +195,16 @@
   <String key="Time.AtSunset">{0} at sunset</String>
   <String key="Time.AtNight">{0} at night</String>
 
+  <!-- A row's cloud button: its value under a clear sky and under a full overcast. Weather.WhenOvercast
+       names an Overcast value in the settings file's comments ({0} = its clear sky value's name). -->
+  <String key="Weather.Clear">Clear sky</String>
+  <String key="Weather.Overcast">Overcast</String>
+  <String key="Weather.Changes">Changes with the weather</String>
+  <String key="Weather.ChangesBoth">Changes with time and weather</String>
+  <String key="Weather.Open">Show clear sky and overcast</String>
+  <String key="Weather.Close">Hide clear sky and overcast</String>
+  <String key="Weather.WhenOvercast">{0}, overcast</String>
+
   <!-- ==================== In-game panel: Fog ==================== -->
 
   <String key="FogEnabled.Label">Volumetric fog</String>
@@ -301,17 +311,12 @@
 
   <String key="CloudShadowFullness.Label">Shadow fullness</String>
 
-  <String key="Group.Brightness">Cloud brightness</String>
+  <String key="Group.Brightness">Brightness and density</String>
 
-  <String key="CloudBrightnessAuto.Label">Brightness follows the cloud intensity</String>
+  <String key="CloudLight.Label">Cloud brightness</String>
 
-  <String key="CloudBrightnessClear.Label">Brightness: clear sky</String>
-
-  <String key="CloudBrightnessOvercast.Label">Brightness: full overcast</String>
-
-  <String key="CloudBrightness.Label">Cloud brightness (fixed)</String>
-
-  <String key="MinIllumination.Label">Clouds dim at full overcast to</String>
+  <!-- Not in the panel since 1.5.0 (the settings file only): it dims the fog's sunlight. -->
+  <String key="MinIllumination.Label">The fog's sunlight dims at full overcast to</String>
 
   <String key="CloudDensity.Label">Cloud density</String>
 
@@ -428,6 +433,7 @@
   <String key="HudButtonY.Label">The mod's button (without Unified UI): distance from the top edge</String>
   <String key="PanelOpenGroups.Label">The in-game panel's open headings (advanced options on), comma separated</String>
   <String key="PanelOpenClocks.Label">The in-game panel's rows showing day, sunset and night, comma separated</String>
+  <String key="PanelOpenWeather.Label">The in-game panel's rows showing clear sky and overcast, comma separated</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

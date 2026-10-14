@@ -101,6 +101,12 @@ namespace VolumetricClouds.Sky
         /// <summary>The least of the slider a morning gets; the rest is that morning's luck.</summary>
         public const float LeastMorning = 0.6f;
 
+        /// <summary>
+        /// How much less morning fog a fully overcast sky makes (1.5.0): morning fog forms on clear
+        /// nights, as the ground cools under an open sky; under a full overcast half as much.
+        /// </summary>
+        public const float MorningOvercastCut = 0.5f;
+
         // ---- mist after rain ----
 
         /// <summary>Mist: the whole height, a third of the density, half way to wispy.</summary>
@@ -137,8 +143,19 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public static FogLook WeatherLook(float change, float amount, float hour, bool dayNight)
         {
+            return WeatherLook(change, amount, hour, dayNight, 0f);
+        }
+
+        /// <summary>
+        /// The same under a sky <paramref name="overcast"/> overcast (1.5.0, 0..1, the cloud cover as the
+        /// rows with a cloud button take it): the afternoon sun thins, lowers and frays the fog only as
+        /// much as it gets through -- an overcast afternoon keeps the night's fog, as real fog lingers
+        /// under a grey sky and burns off in sunshine. 0: the clear sky's, exactly as before.
+        /// </summary>
+        public static FogLook WeatherLook(float change, float amount, float hour, bool dayNight, float overcast)
+        {
             float w = Clamp01(change);
-            float day = dayNight ? Afternoon(hour) : 0f;
+            float day = dayNight ? Afternoon(hour) * (1f - Clamp01(overcast)) : 0f;
             float spell = SmallSpellDensity + (1f - SmallSpellDensity) * Clamp01(amount);
 
             return new FogLook(0f,
@@ -172,6 +189,15 @@ namespace VolumetricClouds.Sky
             if (h < LiftStart || h >= FormingStart)
                 return 0f;
             return Smooth((h - LiftStart) / (LiftEnd - LiftStart));
+        }
+
+        /// <summary>
+        /// 0.5..1: the share of a morning's fog a sky <paramref name="overcast"/> overcast lets form
+        /// (<see cref="MorningOvercastCut"/>); 1 under a clear sky, exactly.
+        /// </summary>
+        public static float MorningUnderCover(float overcast)
+        {
+            return 1f - MorningOvercastCut * Clamp01(overcast);
         }
 
         /// <summary>

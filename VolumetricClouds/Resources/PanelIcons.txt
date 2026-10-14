@@ -10,3 +10,4 @@ icon-cloud-sun-rain 28 28 24 24 0 0 0 0
 icon-lightbulb 55 28 24 24 0 0 0 0
 icon-sunset 82 28 24 24 0 0 0 0
 icon-moon 1 55 24 24 0 0 0 0
+icon-cloud-sun 28 55 24 24 0 0 0 0

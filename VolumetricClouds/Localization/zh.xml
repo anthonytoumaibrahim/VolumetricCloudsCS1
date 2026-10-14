@@ -168,6 +168,13 @@
   <String key="Time.ByDay">白天{0}</String>
   <String key="Time.AtSunset">日落时{0}</String>
   <String key="Time.AtNight">夜间{0}</String>
+  <String key="Weather.Clear">晴空</String>
+  <String key="Weather.Overcast">阴天</String>
+  <String key="Weather.Changes">随天气变化</String>
+  <String key="Weather.ChangesBoth">随时间和天气变化</String>
+  <String key="Weather.Open">显示晴空和阴天</String>
+  <String key="Weather.Close">隐藏晴空和阴天</String>
+  <String key="Weather.WhenOvercast">阴天时{0}</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -275,17 +282,11 @@
 
   <String key="CloudShadowFullness.Label">阴影饱满度</String>
 
-  <String key="Group.Brightness">云层亮度</String>
+  <String key="Group.Brightness">亮度与密度</String>
 
-  <String key="CloudBrightnessAuto.Label">亮度跟随云层强度</String>
+  <String key="CloudLight.Label">云层亮度</String>
 
-  <String key="CloudBrightnessClear.Label">亮度：晴空</String>
-
-  <String key="CloudBrightnessOvercast.Label">亮度：阴天</String>
-
-  <String key="CloudBrightness.Label">云层亮度（固定）</String>
-
-  <String key="MinIllumination.Label">阴天时最低亮度</String>
+  <String key="MinIllumination.Label">阴天时雾中阳光最低亮度</String>
 
   <String key="CloudDensity.Label">云层密度</String>
 
@@ -395,6 +396,7 @@
   <String key="HudButtonY.Label">模组按钮（不使用 Unified UI）：距上边缘</String>
   <String key="PanelOpenGroups.Label">游戏内面板中展开的标题（启用高级选项时），以逗号分隔</String>
   <String key="PanelOpenClocks.Label">游戏内面板中显示白天、日落和夜间的行，以逗号分隔</String>
+  <String key="PanelOpenWeather.Label">游戏内面板中显示晴空和阴天的行，以逗号分隔</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

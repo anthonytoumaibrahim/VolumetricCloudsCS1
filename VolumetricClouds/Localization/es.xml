@@ -154,6 +154,13 @@
   <String key="Time.ByDay">{0} de día</String>
   <String key="Time.AtSunset">{0} al atardecer</String>
   <String key="Time.AtNight">{0} de noche</String>
+  <String key="Weather.Clear">Cielo despejado</String>
+  <String key="Weather.Overcast">Cubierto</String>
+  <String key="Weather.Changes">Cambia con el tiempo</String>
+  <String key="Weather.ChangesBoth">Cambia con la hora y el tiempo</String>
+  <String key="Weather.Open">Mostrar cielo despejado y cubierto</String>
+  <String key="Weather.Close">Ocultar cielo despejado y cubierto</String>
+  <String key="Weather.WhenOvercast">{0}, cielo cubierto</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -261,17 +268,11 @@
 
   <String key="CloudShadowFullness.Label">Fuerza de sombras</String>
 
-  <String key="Group.Brightness">Brillo de las nubes</String>
+  <String key="Group.Brightness">Brillo y densidad</String>
 
-  <String key="CloudBrightnessAuto.Label">El brillo sigue la intensidad de nubes</String>
+  <String key="CloudLight.Label">Brillo de las nubes</String>
 
-  <String key="CloudBrightnessClear.Label">Brillo: cielo despejado</String>
-
-  <String key="CloudBrightnessOvercast.Label">Brillo: cielo cubierto</String>
-
-  <String key="CloudBrightness.Label">Brillo de nubes (fijo)</String>
-
-  <String key="MinIllumination.Label">Con cielo cubierto, las nubes bajan a</String>
+  <String key="MinIllumination.Label">Con cielo cubierto, la luz del sol en la niebla baja a</String>
 
   <String key="CloudDensity.Label">Densidad de nubes</String>
 
@@ -375,6 +376,7 @@
   <String key="HudButtonY.Label">Botón del mod (sin Unified UI): distancia desde arriba</String>
   <String key="PanelOpenGroups.Label">Encabezados abiertos del panel del juego (opciones avanzadas activadas), separados por comas</String>
   <String key="PanelOpenClocks.Label">Filas del panel del juego que muestran día, atardecer y noche, separadas por comas</String>
+  <String key="PanelOpenWeather.Label">Filas del panel del juego que muestran cielo despejado y cubierto, separadas por comas</String>
 
   <!-- ==================== Slider readouts ==================== -->
 

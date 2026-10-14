@@ -164,5 +164,68 @@ Check "no switch (before 1.3.0): the Day value" ($null -eq (OlderNight (Values @
 Check "switch on, value missing: its old default" ((OlderNight (Values @{ CloudNightBrightness = 'true' })) -eq '150')
 Check "switch unreadable: the Day value"       ($null -eq (OlderNight (Values @{ CloudNightBrightness = 'maybe'; CloudNightBrightnessClear = '120' })))
 
+"=== the weather (Sky.Overcast) ==="
+$overcast = $asm.GetType('VolumetricClouds.Sky.Overcast', $true)
+$wblend = $overcast.GetMethods() | Where-Object { $_.Name -eq 'Blend' -and $_.GetParameters().Count -eq 3 }
+function WBlend([single]$c, [single]$o, [single]$s) { return [single]$wblend.Invoke($null, [object[]]@($c, $o, $s)) }
+$lerp = $mathf.GetMethod('Lerp', [type[]]@([single], [single], [single]))
+function Lerp([single]$a, [single]$b, [single]$t) { return [single]$lerp.Invoke($null, [object[]]@($a, $b, $t)) }
+
+$lerpOk = $true; $worst = ''
+foreach ($pair in @(@(1.85, 0.15), @(3, 3), @(0.5, 1.5), @(2.4, 0.8), @(0.25, 0.1125))) {
+    for ($s = -0.25; $s -le 1.25; $s += 0.01) {
+        $a = WBlend $pair[0] $pair[1] $s; $b = Lerp $pair[0] $pair[1] $s
+        if ($a -ne $b) { $lerpOk = $false; $worst = "$($pair[0])/$($pair[1]) at $s : $a vs $b" }
+    }
+}
+Check "clear to overcast is Mathf.Lerp bit for bit (1.4.0's brightness curve)" $lerpOk $worst
+Check "the two equal: the Clear sky value exactly, any cover" (((WBlend 0.37 0.37 0.61) -eq [single]0.37) -and ((WBlend 0.37 0.37 1) -eq [single]0.37))
+
+# Cloud brightness = per time the clear/overcast blend, then the times: what 1.4.0 drew with Auto on.
+$sameOk = $true
+for ($e = -20.0; $e -le 30.0; $e += 0.5) {
+    $w = Shares $e
+    foreach ($cov in 0, 0.3, 0.93, 1) {
+        $old = Blend (Lerp 1.85 0.15 $cov) (Lerp 3 3 $cov) (Lerp 1.2 0.55 $cov) $w
+        $new = Blend (WBlend 1.85 0.15 $cov) (WBlend 3 3 $cov) (WBlend 1.2 0.55 $cov) $w
+        if ($old -ne $new) { $sameOk = $false }
+    }
+}
+Check "Cloud brightness draws 1.4.0's automatic brightness exactly (every hour, every cover)" $sameOk
+
+$blend6c = $tint.GetMethod('Blend6')
+$grey = C32 170 178 190
+$sixOk = $true
+for ($e = -20.0; $e -le 30.0; $e += 0.5) {
+    $w = Shares $e
+    $six = $blend6c.Invoke($null, [object[]]@($white, $white, $amber, $white, $white, $amber, [single]0.7, $w[0], $w[1], $w[2]))
+    $three = $blend3.Invoke($null, [object[]]@($white, $white, $amber, $w[0], $w[1], $w[2]))
+    if ((Exact $six) -ne (Exact $three)) { $sixOk = $false }
+}
+Check "colours, overcast the same as clear: exactly Blend3" $sixOk
+$fullGrey = $blend6c.Invoke($null, [object[]]@($white, $white, $white, $grey, $grey, $grey, [single]1, [single]1, [single]0, [single]0))
+$greyTint = $tint.GetMethod('Of').Invoke($null, [object[]]@($grey))
+Check "colours, full overcast by day: the overcast colour's tint" ((Exact $fullGrey) -eq (Exact $greyTint))
+
+"=== an older file's brightness (SettingsCatalog.OlderLight) ==="
+$catalog = $asm.GetType('VolumetricClouds.UI.SettingsCatalog', $true)
+$olderLight = $catalog.GetMethod('OlderLight', [System.Reflection.BindingFlags]'Static,NonPublic,Public')
+function OlderLight($values, [bool]$overcast, [int]$time) {
+    return $olderLight.Invoke($null, [object[]]@([System.Collections.Generic.IDictionary[string, string]]$values, $overcast, $time))
+}
+# His 1.4.0-era file: Auto on, clear 185/300/120, overcast 15/300/55.
+$his = Values @{ CloudBrightnessAuto = 'true'; CloudBrightnessClear = '185'; CloudBrightnessClearSunset = '300'; CloudBrightnessClearNight = '120';
+                 CloudBrightnessOvercast = '15'; CloudBrightnessOvercastSunset = '300'; CloudBrightnessOvercastNight = '55';
+                 CloudBrightness = '45'; CloudBrightnessSunset = '45'; CloudBrightnessNight = '5'; MinIllumination = '100' }
+Check "Auto on: clear sky 185/300/120" (((OlderLight $his $false 0) -eq '185') -and ((OlderLight $his $false 1) -eq '300') -and ((OlderLight $his $false 2) -eq '120'))
+Check "Auto on: overcast 15/300/55" (((OlderLight $his $true 0) -eq '15') -and ((OlderLight $his $true 1) -eq '300') -and ((OlderLight $his $true 2) -eq '55'))
+$fixed = Values @{ CloudBrightnessAuto = 'false'; CloudBrightness = '45'; CloudBrightnessNight = '20'; MinIllumination = '50'; CloudBrightnessClear = '185' }
+Check "Auto off: the fixed value under a clear sky (45, sunset = day, night 20)" (((OlderLight $fixed $false 0) -eq '45') -and ((OlderLight $fixed $false 1) -eq '45') -and ((OlderLight $fixed $false 2) -eq '20'))
+Check "Auto off: overcast = fixed x the floor (22.5, 10)" (((OlderLight $fixed $true 0) -eq '22.5') -and ((OlderLight $fixed $true 2) -eq '10'))
+$v13 = Values @{ CloudBrightnessAuto = 'true'; CloudBrightnessClear = '150'; CloudBrightnessOvercast = '50'; CloudNightBrightness = 'true'; CloudNightBrightnessClear = '90' }
+Check "a 1.3.0 file: Sunset = Day, Night from the night switch (overcast night: its old default 50)" (((OlderLight $v13 $false 1) -eq '150') -and ((OlderLight $v13 $false 2) -eq '90') -and ((OlderLight $v13 $true 2) -eq '50'))
+$bare = Values @{ }
+Check "nothing written: 1.4.0's defaults, 150 and 50" (((OlderLight $bare $false 0) -eq '150') -and ((OlderLight $bare $true 0) -eq '50'))
+
 Write-Host ""
 if ($failed -eq 0) { Write-Host "all passed" } else { Write-Host "$failed FAILED"; exit 1 }

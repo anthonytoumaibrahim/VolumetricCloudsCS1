@@ -49,11 +49,13 @@ namespace VolumetricClouds.UI
         private readonly List<UIComponent> _valueParts = new List<UIComponent>();
 
         /// <summary>
-        /// The own line of a colour row with a clock (1.5.0), drawn while its three times are the same
-        /// and its clock is closed: a pick goes to all three, so it stays one colour all day, and its
-        /// reset puts all three back (SettingsCatalog.ResetClock).
+        /// The values this row stands for (1.5.0), when more than its own: the own line of a colour row
+        /// with a clock while they are all the same and its buttons are closed (every value), a Day line
+        /// while its clear and overcast colours are the same (both), a Clear sky line (its three times).
+        /// A pick goes to all of them, so they stay one colour, and the reset puts them all back
+        /// (SettingsCatalog.ResetRows). Null: the row's own colour only.
         /// </summary>
-        public bool AllDay;
+        public IList<Row> Targets;
 
         private Color32 _shown;
         private string _logged;
@@ -142,8 +144,8 @@ namespace VolumetricClouds.UI
                 _reset.eventClick += (component, e) =>
                 {
                     // It logs the change itself; Refresh shows it.
-                    if (AllDay)
-                        SettingsCatalog.ResetClock(_row);
+                    if (Targets != null)
+                        SettingsCatalog.ResetRows(_row, Targets);
                     else
                         SettingsCatalog.ResetRow(_row);
                     _logged = ColorText.Format(Current);
@@ -232,13 +234,13 @@ namespace VolumetricClouds.UI
             _row.Colour.value = colour;
             _shown = _row.Colour.value;
 
-            // One colour all day: the Sunset and Night values go with it.
-            if (AllDay && _row.Times != null)
+            // One colour for all it stands for: the others go with it.
+            if (Targets != null)
             {
-                foreach (Row time in _row.Times)
+                foreach (Row value in Targets)
                 {
-                    if (time.Colour != null)
-                        time.Colour.value = colour;
+                    if (value.Colour != null)
+                        value.Colour.value = colour;
                 }
             }
 
@@ -264,7 +266,7 @@ namespace VolumetricClouds.UI
         /// </summary>
         private bool ResetWanted
         {
-            get { return (AllDay ? !SettingsCatalog.ClockAtResetValue(_row) : !_row.IsAtResetValue) && _row.IsEnabled; }
+            get { return (Targets != null ? !SettingsCatalog.AtResetValue(Targets) : !_row.IsAtResetValue) && _row.IsEnabled; }
         }
 
         /// <summary>Its reset's tooltip, which follows the profile pick (the panel sets it).</summary>
@@ -285,7 +287,20 @@ namespace VolumetricClouds.UI
                 return;
 
             _logged = hex;
-            Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + (AllDay ? ", all day" : "") + ")");
+            Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + (Targets != null ? ", with " + Others() : "") + ")");
+        }
+
+        /// <summary>For the log: the other values a pick went to.</summary>
+        private string Others()
+        {
+            var names = new List<string>();
+            foreach (Row value in Targets)
+            {
+                if (value != _row)
+                    names.Add(value.Name);
+            }
+
+            return names.Count > 0 ? string.Join(", ", names.ToArray()) : "nothing else";
         }
 
         private void Submit(string text)
@@ -369,7 +384,7 @@ namespace VolumetricClouds.UI
         }
 
         /// <summary>The game's own colour field, cloned out of the transport-line template.</summary>
-        private static UIColorField CreateSwatch(UIComponent parent, Vector3 position)
+        internal static UIColorField CreateSwatch(UIComponent parent, Vector3 position)
         {
             try
             {
@@ -421,6 +436,146 @@ namespace VolumetricClouds.UI
             _probed = true;
             Log.Msg("colour rows: the game's colour field (" + LineTemplate + "/" + LineColour + ") " +
                     (_swatch != null ? "cloned, picker " + (_swatch.colorPicker != null ? "ok" : "MISSING") : "NOT FOUND -- text field only"));
+        }
+    }
+
+    /// <summary>
+    /// One colour in the panel's table (1.5.0, a row's Clear sky and Overcast side by side at a time of
+    /// day): the game's swatch and the #RRGGBB field, no name, no buttons -- the table's line has the
+    /// reset. A pick is logged once, as ColourRow does.
+    /// </summary>
+    internal sealed class ColourCell
+    {
+        private const float SwatchSize = 26f;
+        private const float Gap = 6f;
+
+        private readonly Builder _ui;
+        private readonly Row _row;
+        private readonly UIColorField _swatch;
+        private readonly UITextField _text;
+        private readonly List<UIComponent> _parts = new List<UIComponent>();
+        private Color32 _shown;
+        private string _logged;
+        private bool _refreshing;
+
+        public ColourCell(Builder ui, UIComponent parent, Row row, float x, float y, float width)
+        {
+            _ui = ui;
+            _row = row;
+            _shown = Current;
+            _logged = ColorText.Format(_shown);
+
+            _swatch = ColourRow.CreateSwatch(parent, new Vector3(x, y + 4f));
+            if (_swatch != null)
+            {
+                _swatch.selectedColor = _shown;
+                _swatch.eventSelectedColorChanged += (component, colour) =>
+                {
+                    if (!_refreshing)
+                        Store(colour);
+                };
+                _swatch.eventSelectedColorReleased += (component, colour) =>
+                {
+                    if (_refreshing)
+                        return;
+
+                    Store(colour);
+                    Commit("picked");
+                };
+                _parts.Add(_swatch);
+            }
+
+            float textX = x + SwatchSize + Gap;
+            _text = _ui.AddTextField(parent, new Vector2(Mathf.Max(40f, x + width - textX), 26f), new Vector3(textX, y + 4f), 64);
+            _text.text = ColorText.Format(_shown);
+            _text.eventTextSubmitted += (component, text) => Submit(text);
+            _text.eventTextCancelled += (component, text) => ShowValid();
+            _parts.Add(_text);
+        }
+
+        /// <summary>Everything that greys out and hides with it.</summary>
+        public IList<UIComponent> Parts
+        {
+            get { return _parts; }
+        }
+
+        private Color32 Current
+        {
+            get { return _row.Colour != null ? _row.Colour.value : _row.DefaultColour; }
+        }
+
+        public void Refresh()
+        {
+            _refreshing = true;
+            try
+            {
+                Color32 current = Current;
+                if (!ColorText.Same(current, _shown))
+                {
+                    _shown = current;
+                    if (_swatch != null)
+                        _swatch.selectedColor = current;
+                    if (!_text.hasFocus)
+                        ShowValid();
+                }
+            }
+            finally
+            {
+                _refreshing = false;
+            }
+        }
+
+        private void Store(Color32 colour)
+        {
+            if (_row.Colour == null)
+                return;
+
+            _row.Colour.value = colour;
+            _shown = _row.Colour.value;
+
+            _refreshing = true;
+            try
+            {
+                if (_swatch != null && !ColorText.Same((Color32)_swatch.selectedColor, _shown))
+                    _swatch.selectedColor = _shown;
+                if (!_text.hasFocus)
+                    ShowValid();
+            }
+            finally
+            {
+                _refreshing = false;
+            }
+        }
+
+        private void Submit(string text)
+        {
+            if (_refreshing)
+                return;
+
+            Color32 colour;
+            if (ColorText.TryParse(text, out colour))
+            {
+                Store(colour);
+                Commit("typed");
+            }
+
+            ShowValid();
+        }
+
+        private void Commit(string how)
+        {
+            string hex = ColorText.Format(Current);
+            if (hex == _logged)
+                return;
+
+            _logged = hex;
+            Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + ")");
+        }
+
+        private void ShowValid()
+        {
+            _text.text = ColorText.Format(_shown);
+            _text.textColor = _ui.Theme.FieldText;
         }
     }
 }

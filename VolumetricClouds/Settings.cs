@@ -104,6 +104,12 @@ namespace VolumetricClouds
         public static StringSetting PanelOpenClocks { get; private set; }
 
         /// <summary>
+        /// (1.5.0) The same for the rows whose cloud button is OPEN -- their Clear sky and Overcast
+        /// values shown. All closed by default, kept here, never part of a profile.
+        /// </summary>
+        public static StringSetting PanelOpenWeather { get; private set; }
+
+        /// <summary>
         /// The cloud cover the OVERRIDE asks for, 0..1. Only in effect while
         /// <see cref="CoverageOverride"/> is on; rendering reads CloudWeather.Coverage, never this.
         /// </summary>
@@ -302,10 +308,21 @@ namespace VolumetricClouds
         public static FloatSetting FogBrightnessSunset { get; private set; }
         public static FloatSetting FogBrightnessNight { get; private set; }
 
+        // THE WEATHER (1.5.0, Sky.Overcast): a row with a cloud button has these too -- each time of
+        // day's value under an overcast sky (the name of its Clear sky value + "Overcast"), blended
+        // with the Clear sky one by the cloud cover. Equal to them for every existing player (a file
+        // without them is read as such: Row.OlderFile).
+        public static FloatSetting FogBrightnessOvercast { get; private set; }
+        public static FloatSetting FogBrightnessSunsetOvercast { get; private set; }
+        public static FloatSetting FogBrightnessNightOvercast { get; private set; }
+
         /// <summary>-1 cool blue-grey .. 0 neutral .. +1 warm. The fog's lean, on top of the light it is in.</summary>
         public static FloatSetting FogTint { get; private set; }
         public static FloatSetting FogTintSunset { get; private set; }
         public static FloatSetting FogTintNight { get; private set; }
+        public static FloatSetting FogTintOvercast { get; private set; }
+        public static FloatSetting FogTintSunsetOvercast { get; private set; }
+        public static FloatSetting FogTintNightOvercast { get; private set; }
 
         /// <summary>
         /// The fog's colour (1.1.0), on top of the light it is in and the lean above: hue and
@@ -315,6 +332,9 @@ namespace VolumetricClouds
         public static ColorSetting FogColor { get; private set; }
         public static ColorSetting FogColorSunset { get; private set; }
         public static ColorSetting FogColorNight { get; private set; }
+        public static ColorSetting FogColorOvercast { get; private set; }
+        public static ColorSetting FogColorSunsetOvercast { get; private set; }
+        public static ColorSetting FogColorNightOvercast { get; private set; }
 
         /// <summary>
         /// The city's lights (lamps, buildings, vehicles) light our fog round them. On by
@@ -349,6 +369,11 @@ namespace VolumetricClouds
         /// (it meant that already: the name stays).
         /// </summary>
         public static FloatSetting CloudNightOpacity { get; private set; }
+
+        /// <summary>"Clouds hide the sky" under an overcast sky (1.5.0), by day, at sunset, at night.</summary>
+        public static FloatSetting CloudDayOpacityOvercast { get; private set; }
+        public static FloatSetting CloudSunsetOpacityOvercast { get; private set; }
+        public static FloatSetting CloudNightOpacityOvercast { get; private set; }
 
         /// <summary>Multiplier on the faint pale glow under the clouds at night. 0 = off.</summary>
         public static FloatSetting NightGlow { get; private set; }
@@ -515,6 +540,12 @@ namespace VolumetricClouds
         public static ColorSetting CloudSunlitColorNight { get; private set; }
         public static ColorSetting CloudShadeColorSunset { get; private set; }
         public static ColorSetting CloudShadeColorNight { get; private set; }
+        public static ColorSetting CloudSunlitColorOvercast { get; private set; }
+        public static ColorSetting CloudSunlitColorSunsetOvercast { get; private set; }
+        public static ColorSetting CloudSunlitColorNightOvercast { get; private set; }
+        public static ColorSetting CloudShadeColorOvercast { get; private set; }
+        public static ColorSetting CloudShadeColorSunsetOvercast { get; private set; }
+        public static ColorSetting CloudShadeColorNightOvercast { get; private set; }
 
         /// <summary>
         /// DISTANT CLOUDS (1.5.0, Sky/SkyLayer; its own panel tab): photographed skies behind the clouds,
@@ -532,6 +563,9 @@ namespace VolumetricClouds
         public static FloatSetting CloudDensity { get; private set; }
         public static FloatSetting CloudDensitySunset { get; private set; }
         public static FloatSetting CloudDensityNight { get; private set; }
+        public static FloatSetting CloudDensityOvercast { get; private set; }
+        public static FloatSetting CloudDensitySunsetOvercast { get; private set; }
+        public static FloatSetting CloudDensityNightOvercast { get; private set; }
 
         /// <summary>
         /// The light inside the clouds, one setting for three parts (the author, 2026-10-04: "merge
@@ -542,6 +576,9 @@ namespace VolumetricClouds
         public static FloatSetting LightInsideClouds { get; private set; }
         public static FloatSetting LightInsideCloudsSunset { get; private set; }
         public static FloatSetting LightInsideCloudsNight { get; private set; }
+        public static FloatSetting LightInsideCloudsOvercast { get; private set; }
+        public static FloatSetting LightInsideCloudsSunsetOvercast { get; private set; }
+        public static FloatSetting LightInsideCloudsNightOvercast { get; private set; }
 
         /// <summary>
         /// The clouds keep the low sun's light, redder, until it has set for them (Sky/SunsetLight):
@@ -550,30 +587,20 @@ namespace VolumetricClouds
         public static FloatSetting SunsetLight { get; private set; }
 
         /// <summary>
-        /// Multiplier on how brightly clouds are lit, when <see cref="CloudBrightnessAuto"/>
-        /// is off. Its saved value is untouched by the curve, so switching Auto off reproduces
-        /// exactly what the mod did before the curve existed.
+        /// "Cloud brightness" (1.5.0): how brightly the clouds are lit, under a clear sky and under a
+        /// full overcast, at each time of day -- a multiplier on their light. One row with a clock and a
+        /// cloud button where 1.4.0 had four: "Brightness follows the cloud intensity" (Auto) with its
+        /// "clear sky" and "full overcast", and the fixed brightness. Their names are retired
+        /// (SettingsXml.Retired; never reuse them) and read once to carry an older file over exactly
+        /// (SettingsCatalog.OlderLight): Auto on, its clear sky and full overcast; Auto off, the fixed
+        /// value under both, the overcast one dimmed by "Clouds dim at full overcast to" as it was.
         /// </summary>
-        public static FloatSetting CloudBrightness { get; private set; }
-        public static FloatSetting CloudBrightnessSunset { get; private set; }
-        public static FloatSetting CloudBrightnessNight { get; private set; }
-
-        /// <summary>
-        /// Cloud brightness follows the cloud intensity instead of sitting on one number: a
-        /// scattered fair-weather sky wants far more light than a full overcast, and one
-        /// value cannot be right for both.
-        /// </summary>
-        public static BoolSetting CloudBrightnessAuto { get; private set; }
-
-        /// <summary>Auto: the brightness at 0% intensity.</summary>
-        public static FloatSetting CloudBrightnessClear { get; private set; }
-        public static FloatSetting CloudBrightnessClearSunset { get; private set; }
-        public static FloatSetting CloudBrightnessClearNight { get; private set; }
-
-        /// <summary>Auto: the brightness at 100% intensity.</summary>
-        public static FloatSetting CloudBrightnessOvercast { get; private set; }
-        public static FloatSetting CloudBrightnessOvercastSunset { get; private set; }
-        public static FloatSetting CloudBrightnessOvercastNight { get; private set; }
+        public static FloatSetting CloudLight { get; private set; }
+        public static FloatSetting CloudLightSunset { get; private set; }
+        public static FloatSetting CloudLightNight { get; private set; }
+        public static FloatSetting CloudLightOvercast { get; private set; }
+        public static FloatSetting CloudLightSunsetOvercast { get; private set; }
+        public static FloatSetting CloudLightNightOvercast { get; private set; }
 
         /// <summary>Raymarch steps per pixel. Cost scales linearly.</summary>
         public static FloatSetting CloudQuality { get; private set; }
@@ -588,15 +615,15 @@ namespace VolumetricClouds
         public static BoolSetting CloudTemporal { get; private set; }
 
         /// <summary>
-        /// World illumination at 100% coverage, 0..1. Overcast, not night. Bypassed entirely
-        /// while <see cref="CloudBrightnessAuto"/> is on: the curve is then the one and only
-        /// coverage-to-brightness relationship the CLOUD has (the light everything else
-        /// stands in still carries it).
+        /// World illumination at 100% coverage, 0..1. Overcast, not night. The CLOUD never takes it
+        /// since 1.5.0 (Cloud brightness has its own Overcast values; with Auto brightness on it never
+        /// did): it dims only the fog's sunlight. Kept for the players who set it,
+        /// out of the panel (the author: "keep it since it's an old setting").
         /// </summary>
         public static FloatSetting MinIllumination { get; private set; }
 
         // "Brightness differs at night" (1.3.0: CloudNightBrightness and its three night values)
-        // became the three brightness rows' Night values in 1.5.0; its names are retired
+        // became the brightness's Night values in 1.5.0; its names are retired
         // (SettingsXml.Retired), read only to carry an older file's night over. Never reuse them.
 
         /// <summary>Draw the clouds at all. Off: no clouds, no shadows, no rain from them.</summary>
@@ -788,12 +815,6 @@ namespace VolumetricClouds
             public const float DensityNight = Density;
             public const float LightInsideCloudsSunset = LightInsideClouds;
             public const float LightInsideCloudsNight = LightInsideClouds;
-            public const float BrightnessSunset = Brightness;
-            public const float BrightnessNight = Brightness;
-            public const float BrightnessClearSunset = BrightnessClear;
-            public const float BrightnessClearNight = BrightnessClear;
-            public const float BrightnessOvercastSunset = BrightnessOvercast;
-            public const float BrightnessOvercastNight = BrightnessOvercast;
             public const float SunsetOpacity = DayOpacity;
             public const float ShadowDarknessSunset = ShadowDarkness;
             public const float ShadowDarknessNight = ShadowDarkness;
@@ -808,8 +829,52 @@ namespace VolumetricClouds
             public static readonly Color32 FogColorSunset = new Color32(255, 255, 255, 255);
             public static readonly Color32 FogColorNight = new Color32(255, 255, 255, 255);
 
+            // ---- the weather (1.5.0): each row with a cloud button, under a full overcast ----
+            // New installs, a Reset and "(Mod defaults)" only: an existing file or profile without them
+            // carries its Clear sky values over (Row.OlderFile). Each is its Clear sky default for now --
+            // the same sky in every weather -- but Cloud density (the author: 80% overcast) and Cloud
+            // brightness (its old "full overcast"), until the author sends his values.
+            public static readonly Color32 SunlitColorOvercast = SunlitColor;
+            public static readonly Color32 SunlitColorSunsetOvercast = SunlitColor;
+            public static readonly Color32 SunlitColorNightOvercast = SunlitColor;
+            public static readonly Color32 ShadeColorOvercast = ShadeColor;
+            public static readonly Color32 ShadeColorSunsetOvercast = ShadeColor;
+            public static readonly Color32 ShadeColorNightOvercast = ShadeColor;
+            public const float DensityOvercast = 0.8f;
+            public const float DensitySunsetOvercast = DensityOvercast;
+            public const float DensityNightOvercast = DensityOvercast;
+            public const float LightInsideCloudsOvercast = LightInsideClouds;
+            public const float LightInsideCloudsSunsetOvercast = LightInsideClouds;
+            public const float LightInsideCloudsNightOvercast = LightInsideClouds;
+            public const float DayOpacityOvercast = DayOpacity;
+            public const float SunsetOpacityOvercast = DayOpacity;
+            public const float NightOpacityOvercast = NightOpacity;
+            public const float FogBrightnessOvercast = FogBrightness;
+            public const float FogBrightnessSunsetOvercast = FogBrightness;
+            public const float FogBrightnessNightOvercast = FogBrightness;
+            public const float FogTintOvercast = FogTint;
+            public const float FogTintSunsetOvercast = FogTint;
+            public const float FogTintNightOvercast = FogTint;
+            public static readonly Color32 FogColorOvercast = new Color32(255, 255, 255, 255);
+            public static readonly Color32 FogColorSunsetOvercast = new Color32(255, 255, 255, 255);
+            public static readonly Color32 FogColorNightOvercast = new Color32(255, 255, 255, 255);
+
+            /// <summary>
+            /// Cloud brightness (1.5.0, the four rows merged): a new install's sky as 1.4.0's -- Auto on,
+            /// its clear sky and full overcast ends, the same at every hour.
+            /// </summary>
+            public const float Light = BrightnessClear;
+            public const float LightSunset = BrightnessClear;
+            public const float LightNight = BrightnessClear;
+            public const float LightOvercast = BrightnessOvercast;
+            public const float LightSunsetOvercast = BrightnessOvercast;
+            public const float LightNightOvercast = BrightnessOvercast;
+
             /// <summary>Every row's clock closed (the author's call): a player's opening is kept in the file.</summary>
             public const string PanelOpenClocks = "";
+
+            /// <summary>Every row's cloud button closed, as the clocks.</summary>
+            public const string PanelOpenWeather = "";
 
             /// <summary>
             /// "Dynamic distant clouds" (1.5.0, the author's call: on by default): the four below are
@@ -823,7 +888,10 @@ namespace VolumetricClouds
             public const float SkyFarClouds = 0f;
             public const float SkyCloudLayers = 0f;
 
-            /// <summary>The manual brightness, used when the curve below is switched off.</summary>
+            // The 1.4.0 brightness rows' defaults (their settings are retired): what a file or profile
+            // written then means where it lacks one (SettingsCatalog.OlderLight). Never change them.
+
+            /// <summary>The manual brightness, used when the curve below was switched off.</summary>
             public const float Brightness = 0.25f;
 
             public const bool BrightnessAuto = true;
@@ -835,7 +903,7 @@ namespace VolumetricClouds
             public const float BrightnessClear = 1.5f;
             public const float BrightnessOvercast = 0.5f;
 
-            /// <summary>1 = off. Only consulted when the brightness curve is off.</summary>
+            /// <summary>1 = off. Dims the fog's sunlight at full overcast (never the clouds' since 1.5.0).</summary>
             public const float MinIllumination = 1f;
 
             /// <summary>
@@ -1074,12 +1142,21 @@ namespace VolumetricClouds
                 FogBrightness = new FloatSetting("FogBrightness", Defaults.FogBrightness);
                 FogBrightnessSunset = new FloatSetting("FogBrightnessSunset", Defaults.FogBrightnessSunset);
                 FogBrightnessNight = new FloatSetting("FogBrightnessNight", Defaults.FogBrightnessNight);
+                FogBrightnessOvercast = new FloatSetting("FogBrightnessOvercast", Defaults.FogBrightnessOvercast);
+                FogBrightnessSunsetOvercast = new FloatSetting("FogBrightnessSunsetOvercast", Defaults.FogBrightnessSunsetOvercast);
+                FogBrightnessNightOvercast = new FloatSetting("FogBrightnessNightOvercast", Defaults.FogBrightnessNightOvercast);
                 FogTint = new FloatSetting("FogTint", Defaults.FogTint);
                 FogTintSunset = new FloatSetting("FogTintSunset", Defaults.FogTintSunset);
                 FogTintNight = new FloatSetting("FogTintNight", Defaults.FogTintNight);
+                FogTintOvercast = new FloatSetting("FogTintOvercast", Defaults.FogTintOvercast);
+                FogTintSunsetOvercast = new FloatSetting("FogTintSunsetOvercast", Defaults.FogTintSunsetOvercast);
+                FogTintNightOvercast = new FloatSetting("FogTintNightOvercast", Defaults.FogTintNightOvercast);
                 FogColor = new ColorSetting("FogColor", Defaults.FogColor);
                 FogColorSunset = new ColorSetting("FogColorSunset", Defaults.FogColorSunset);
                 FogColorNight = new ColorSetting("FogColorNight", Defaults.FogColorNight);
+                FogColorOvercast = new ColorSetting("FogColorOvercast", Defaults.FogColorOvercast);
+                FogColorSunsetOvercast = new ColorSetting("FogColorSunsetOvercast", Defaults.FogColorSunsetOvercast);
+                FogColorNightOvercast = new ColorSetting("FogColorNightOvercast", Defaults.FogColorNightOvercast);
                 FogBreakup = new FloatSetting("FogBreakup", Defaults.FogBreakup);
                 FogSpeed = new FloatSetting("FogSpeed", Defaults.FogSpeed);
                 DynamicFog = new BoolSetting("DynamicFog", Defaults.DynamicFog);
@@ -1094,6 +1171,9 @@ namespace VolumetricClouds
                 CloudDayOpacity = new FloatSetting("CloudDayOpacity", Defaults.DayOpacity);
                 CloudSunsetOpacity = new FloatSetting("CloudSunsetOpacity", Defaults.SunsetOpacity);
                 CloudNightOpacity = new FloatSetting("CloudNightOpacity", Defaults.NightOpacity);
+                CloudDayOpacityOvercast = new FloatSetting("CloudDayOpacityOvercast", Defaults.DayOpacityOvercast);
+                CloudSunsetOpacityOvercast = new FloatSetting("CloudSunsetOpacityOvercast", Defaults.SunsetOpacityOvercast);
+                CloudNightOpacityOvercast = new FloatSetting("CloudNightOpacityOvercast", Defaults.NightOpacityOvercast);
                 // "NightCloudGlow" in the .cgs, not "CityGlow": that scaled an orange projection of
                 // the city's buildings. This is an even pale luminance, and a much smaller one.
                 NightGlow = new FloatSetting("NightGlow", Defaults.NightGlow, "NightCloudGlow");
@@ -1127,25 +1207,29 @@ namespace VolumetricClouds
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudDensitySunset = new FloatSetting("CloudDensitySunset", Defaults.DensitySunset);
                 CloudDensityNight = new FloatSetting("CloudDensityNight", Defaults.DensityNight);
+                CloudDensityOvercast = new FloatSetting("CloudDensityOvercast", Defaults.DensityOvercast);
+                CloudDensitySunsetOvercast = new FloatSetting("CloudDensitySunsetOvercast", Defaults.DensitySunsetOvercast);
+                CloudDensityNightOvercast = new FloatSetting("CloudDensityNightOvercast", Defaults.DensityNightOvercast);
                 LightInsideClouds = new FloatSetting("LightInsideClouds", Defaults.LightInsideClouds);
                 LightInsideCloudsSunset = new FloatSetting("LightInsideCloudsSunset", Defaults.LightInsideCloudsSunset);
                 LightInsideCloudsNight = new FloatSetting("LightInsideCloudsNight", Defaults.LightInsideCloudsNight);
+                LightInsideCloudsOvercast = new FloatSetting("LightInsideCloudsOvercast", Defaults.LightInsideCloudsOvercast);
+                LightInsideCloudsSunsetOvercast = new FloatSetting("LightInsideCloudsSunsetOvercast", Defaults.LightInsideCloudsSunsetOvercast);
+                LightInsideCloudsNightOvercast = new FloatSetting("LightInsideCloudsNightOvercast", Defaults.LightInsideCloudsNightOvercast);
                 SunsetLight = new FloatSetting("SunsetLight", Defaults.SunsetLight);
                 CloudDetail = new FloatSetting("CloudDetail", Defaults.Detail);
                 CloudBreakup = new FloatSetting("CloudBreakup", Defaults.Breakup);
                 CloudBreakupScale = new FloatSetting("CloudBreakupScale", Defaults.BreakupScale);
                 CloudFragments = new FloatSetting("CloudFragments", Defaults.Fragments);
                 CloudFragmentStyle = new IntSetting("CloudFragmentStyle", Defaults.FragmentStyle);
-                CloudBrightness = new FloatSetting("CloudBrightness", Defaults.Brightness);
-                CloudBrightnessSunset = new FloatSetting("CloudBrightnessSunset", Defaults.BrightnessSunset);
-                CloudBrightnessNight = new FloatSetting("CloudBrightnessNight", Defaults.BrightnessNight);
-                CloudBrightnessAuto = new BoolSetting("CloudBrightnessAuto", Defaults.BrightnessAuto);
-                CloudBrightnessClear = new FloatSetting("CloudBrightnessClear", Defaults.BrightnessClear);
-                CloudBrightnessClearSunset = new FloatSetting("CloudBrightnessClearSunset", Defaults.BrightnessClearSunset);
-                CloudBrightnessClearNight = new FloatSetting("CloudBrightnessClearNight", Defaults.BrightnessClearNight);
-                CloudBrightnessOvercast = new FloatSetting("CloudBrightnessOvercast", Defaults.BrightnessOvercast);
-                CloudBrightnessOvercastSunset = new FloatSetting("CloudBrightnessOvercastSunset", Defaults.BrightnessOvercastSunset);
-                CloudBrightnessOvercastNight = new FloatSetting("CloudBrightnessOvercastNight", Defaults.BrightnessOvercastNight);
+                // Not CloudBrightness*: those were the four rows this one replaced, retired (new
+                // meaning, new name).
+                CloudLight = new FloatSetting("CloudLight", Defaults.Light);
+                CloudLightSunset = new FloatSetting("CloudLightSunset", Defaults.LightSunset);
+                CloudLightNight = new FloatSetting("CloudLightNight", Defaults.LightNight);
+                CloudLightOvercast = new FloatSetting("CloudLightOvercast", Defaults.LightOvercast);
+                CloudLightSunsetOvercast = new FloatSetting("CloudLightSunsetOvercast", Defaults.LightSunsetOvercast);
+                CloudLightNightOvercast = new FloatSetting("CloudLightNightOvercast", Defaults.LightNightOvercast);
                 CloudQuality = new FloatSetting("CloudQuality", Defaults.Quality);
                 CloudDepthOcclusion = new BoolSetting("CloudDepthOcclusion", Defaults.DepthOcclusion);
                 CloudTemporal = new BoolSetting("CloudTemporal", Defaults.Temporal);
@@ -1159,6 +1243,12 @@ namespace VolumetricClouds
                 CloudShadeColor = new ColorSetting("CloudShadeColor", Defaults.ShadeColor);
                 CloudShadeColorSunset = new ColorSetting("CloudShadeColorSunset", Defaults.ShadeColorSunset);
                 CloudShadeColorNight = new ColorSetting("CloudShadeColorNight", Defaults.ShadeColorNight);
+                CloudSunlitColorOvercast = new ColorSetting("CloudSunlitColorOvercast", Defaults.SunlitColorOvercast);
+                CloudSunlitColorSunsetOvercast = new ColorSetting("CloudSunlitColorSunsetOvercast", Defaults.SunlitColorSunsetOvercast);
+                CloudSunlitColorNightOvercast = new ColorSetting("CloudSunlitColorNightOvercast", Defaults.SunlitColorNightOvercast);
+                CloudShadeColorOvercast = new ColorSetting("CloudShadeColorOvercast", Defaults.ShadeColorOvercast);
+                CloudShadeColorSunsetOvercast = new ColorSetting("CloudShadeColorSunsetOvercast", Defaults.ShadeColorSunsetOvercast);
+                CloudShadeColorNightOvercast = new ColorSetting("CloudShadeColorNightOvercast", Defaults.ShadeColorNightOvercast);
                 // Not "HighCloud*": that was September's rejected concept (none is in any file, checked
                 // 2026-10-12, but the names stay clear of it).
                 DynamicDistantClouds = new BoolSetting("DynamicDistantClouds", Defaults.DynamicDistantClouds);
@@ -1197,6 +1287,7 @@ namespace VolumetricClouds
                 CurrentProfile = new StringSetting("Profile", Defaults.Profile);
                 PanelOpenGroups = new StringSetting("PanelOpenGroups", Defaults.PanelOpenGroups);
                 PanelOpenClocks = new StringSetting("PanelOpenClocks", Defaults.PanelOpenClocks);
+                PanelOpenWeather = new StringSetting("PanelOpenWeather", Defaults.PanelOpenWeather);
 
                 // Before the file is read: reading it walks the catalog, and building the
                 // catalog calls Init.
@@ -1219,32 +1310,16 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// How brightly the clouds are lit right now: the curve if Auto is on, the slider
-        /// otherwise. The curve's endpoints are positions on the same scale as the slider, so
-        /// switching Auto off changes only which number is used. Each time of day (1.5.0, the
-        /// rows' clocks) has its own numbers: its curve, or its fixed value, worked out, then the
-        /// three blended by the sun's height (Sky.TimeOfDay) -- with Sunset at Day's, exactly as
-        /// "Brightness differs at night" blended the day's and the night's from 1.3.0.
+        /// How brightly the clouds are lit right now (1.5.0): Cloud brightness, each time of day's
+        /// Clear sky and Overcast values blended by the cover (Sky.Overcast, the share
+        /// CloudVolume.ApplyLighting has just set from the same cover), then the three by the sun's
+        /// height (Sky.TimeOfDay) -- the sum 1.4.0's curve made for each time (Mathf.Lerp of its clear
+        /// sky and full overcast, then the times), so a file carried over draws what it drew.
         /// </summary>
-        public static float EffectiveBrightness(float coverage)
+        public static float EffectiveBrightness()
         {
-            bool auto = BrightnessAuto;
-            float day = auto
-                ? BrightnessCurve(ValueOf(CloudBrightnessClear, Defaults.BrightnessClear),
-                    ValueOf(CloudBrightnessOvercast, Defaults.BrightnessOvercast), coverage)
-                : ValueOf(CloudBrightness, Defaults.Brightness);
-
-            float sunset = auto
-                ? BrightnessCurve(ValueOf(CloudBrightnessClearSunset, ValueOf(CloudBrightnessClear, Defaults.BrightnessClear)),
-                    ValueOf(CloudBrightnessOvercastSunset, ValueOf(CloudBrightnessOvercast, Defaults.BrightnessOvercast)), coverage)
-                : ValueOf(CloudBrightnessSunset, ValueOf(CloudBrightness, Defaults.Brightness));
-
-            float night = auto
-                ? BrightnessCurve(ValueOf(CloudBrightnessClearNight, ValueOf(CloudBrightnessClear, Defaults.BrightnessClear)),
-                    ValueOf(CloudBrightnessOvercastNight, ValueOf(CloudBrightnessOvercast, Defaults.BrightnessOvercast)), coverage)
-                : ValueOf(CloudBrightnessNight, ValueOf(CloudBrightness, Defaults.Brightness));
-
-            return Sky.TimeOfDay.Blend(day, sunset, night);
+            return Now(CloudLight, CloudLightSunset, CloudLightNight,
+                CloudLightOvercast, CloudLightSunsetOvercast, CloudLightNightOvercast, Defaults.Light);
         }
 
         private static float ValueOf(FloatSetting setting, float fallback)
@@ -1262,6 +1337,22 @@ namespace VolumetricClouds
             return Sky.TimeOfDay.Blend(d, ValueOf(sunset, d), ValueOf(night, d));
         }
 
+        /// <summary>
+        /// A row with a clock and a cloud button right now (1.5.0): at each time of day its Clear sky
+        /// and Overcast values blended by the cover (Sky.Overcast), then the three by the sun's height.
+        /// Each Overcast value the same as its Clear sky one -- every existing player's -- is exactly
+        /// the clock alone.
+        /// </summary>
+        public static float Now(FloatSetting day, FloatSetting sunset, FloatSetting night,
+            FloatSetting dayOvercast, FloatSetting sunsetOvercast, FloatSetting nightOvercast, float fallback)
+        {
+            float d = ValueOf(day, fallback);
+            float s = ValueOf(sunset, d);
+            float n = ValueOf(night, d);
+            return Sky.TimeOfDay.Blend(Sky.Overcast.Blend(d, ValueOf(dayOvercast, d)),
+                Sky.Overcast.Blend(s, ValueOf(sunsetOvercast, s)), Sky.Overcast.Blend(n, ValueOf(nightOvercast, n)));
+        }
+
         /// <summary>A colour row with a clock right now, as the light multiplier it makes (Sky.CloudTint.Blend3).</summary>
         public static Color TintNow(ColorSetting day, ColorSetting sunset, ColorSetting night, Color32 fallback)
         {
@@ -1270,22 +1361,35 @@ namespace VolumetricClouds
                 Sky.TimeOfDay.Day, Sky.TimeOfDay.Sunset, Sky.TimeOfDay.Night);
         }
 
-        /// <summary>The clouds' density right now (the visible clouds; their shadows take the day's).</summary>
-        public static float CloudDensityNow
+        /// <summary>A colour row with a clock and a cloud button right now (1.5.0, Sky.CloudTint.Blend6).</summary>
+        public static Color TintNow(ColorSetting day, ColorSetting sunset, ColorSetting night,
+            ColorSetting dayOvercast, ColorSetting sunsetOvercast, ColorSetting nightOvercast, Color32 fallback)
         {
-            get { return Now(CloudDensity, CloudDensitySunset, CloudDensityNight, Defaults.Density); }
+            Color32 d = day != null ? day.value : fallback;
+            Color32 s = sunset != null ? sunset.value : d;
+            Color32 n = night != null ? night.value : d;
+            return Sky.CloudTint.Blend6(d, s, n, dayOvercast != null ? dayOvercast.value : d,
+                sunsetOvercast != null ? sunsetOvercast.value : s, nightOvercast != null ? nightOvercast.value : n,
+                Sky.Overcast.Share, Sky.TimeOfDay.Day, Sky.TimeOfDay.Sunset, Sky.TimeOfDay.Night);
         }
 
-        /// <summary>The clouds' density by day: what the shadow map is drawn with, whatever the hour.</summary>
+        /// <summary>The clouds' density right now (the visible clouds; their shadows take the clear sky's by day).</summary>
+        public static float CloudDensityNow
+        {
+            get
+            {
+                return Now(CloudDensity, CloudDensitySunset, CloudDensityNight,
+                    CloudDensityOvercast, CloudDensitySunsetOvercast, CloudDensityNightOvercast, Defaults.Density);
+            }
+        }
+
+        /// <summary>
+        /// The clouds' density by day under a clear sky: what the shadow map is drawn with, whatever the
+        /// hour and the weather (a thinner overcast deck must not lighten the ground under it: invariant 3).
+        /// </summary>
         public static float CloudDensityDay
         {
             get { return ValueOf(CloudDensity, Defaults.Density); }
-        }
-
-        /// <summary>True while the brightness curve is driving the clouds.</summary>
-        public static bool BrightnessAuto
-        {
-            get { return CloudBrightnessAuto != null && CloudBrightnessAuto.value; }
         }
 
         /// <summary>

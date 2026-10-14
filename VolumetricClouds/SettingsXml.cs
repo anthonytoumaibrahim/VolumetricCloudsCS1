@@ -722,7 +722,7 @@ namespace VolumetricClouds
                 if (NotProfiled.Count > 0)
                     text += "; ignored, not part of a profile: " + List(NotProfiled);
                 if (Retired.Count > 0)
-                    text += "; retired in 1.5.0, read only for the night they held: " + List(Retired);
+                    text += "; retired in 1.5.0, read only for what an older file meant: " + List(Retired);
                 if (Duplicates.Count > 0)
                     text += "; written twice, the last one taken: " + List(Duplicates);
                 if (Version > SettingsXmlFormat.Version)
@@ -803,13 +803,14 @@ namespace VolumetricClouds
                     bool found = values.TryGetValue(row.Name, out value);
                     if (!found && (startup || missingMeansDefault) && row.OlderFile != null)
                     {
-                        // Written before the row existed (1.5.0, a clock's Sunset and Night): what the
-                        // file meant, from the file itself -- its Day value, or an older night. The Day
-                        // row comes first in the catalog, so it has just been read.
+                        // Written before the row existed (1.5.0, a clock's Sunset and Night, a cloud
+                        // button's Overcast values): what the file meant, from the file itself -- its Day
+                        // value, an older night, its Clear sky value. Those rows come first in the
+                        // catalog, so they have just been read.
                         string was = ValueText(row);
                         string derived = row.OlderFile(written);
-                        if (derived == null && row.TimeOf != null)
-                            derived = ValueText(row.TimeOf);
+                        if (derived == null && (row.OvercastOf ?? row.TimeOf) != null)
+                            derived = ValueText(row.OvercastOf ?? row.TimeOf);
 
                         if (derived != null)
                         {
@@ -903,13 +904,19 @@ namespace VolumetricClouds
         /// Names no row has any more, read only for what an older file meant by them (Row.OlderFile),
         /// and never used again for anything. 1.5.0: the 1.3.0 night switches and their values, now the
         /// Night values of the rows with a clock -- "Brightness differs at night" and its three,
-        /// "Different colors at night" and its two. A file of 1.4.0 or before has them all; the first
-        /// save leaves them out.
+        /// "Different colors at night" and its two; and the four brightness rows that became Cloud
+        /// brightness (CloudLight) -- "Brightness follows the cloud intensity", its clear sky and full
+        /// overcast, the fixed brightness, each with its Sunset and Night. A file of 1.4.0 or before has
+        /// the first seven, one of the clock's days the rest; the first save leaves them out.
         /// </summary>
         internal static readonly HashSet<string> Retired = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "CloudNightBrightness", "CloudNightBrightnessClear", "CloudNightBrightnessOvercast", "CloudNightBrightnessFixed",
             "CloudNightColors", "CloudMoonlitColor", "CloudNightShadeColor",
+            "CloudBrightnessAuto",
+            "CloudBrightnessClear", "CloudBrightnessClearSunset", "CloudBrightnessClearNight",
+            "CloudBrightnessOvercast", "CloudBrightnessOvercastSunset", "CloudBrightnessOvercastNight",
+            "CloudBrightness", "CloudBrightnessSunset", "CloudBrightnessNight",
         };
 
         /// <summary>Stores one value written as text. Returns what went wrong, or null.</summary>
@@ -1072,11 +1079,12 @@ namespace VolumetricClouds
                     if (!ImportOne(row, key, out problem))
                     {
                         // Newer than the .cgs: what an older file means (Row.OlderFileInt; a clock's
-                        // Sunset and Night, its Day value, imported just before them).
+                        // Sunset and Night, its Day value, imported just before them; an Overcast value,
+                        // its Clear sky one).
                         if (row.OlderFileInt.HasValue && row.Int != null)
                             row.Int.value = row.OlderFileInt.Value;
-                        else if (row.TimeOf != null)
-                            ApplyText(row, ValueText(row.TimeOf));
+                        else if ((row.OvercastOf ?? row.TimeOf) != null)
+                            ApplyText(row, ValueText(row.OvercastOf ?? row.TimeOf));
                         continue;
                     }
 

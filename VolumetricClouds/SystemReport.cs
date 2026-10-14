@@ -126,21 +126,20 @@ namespace VolumetricClouds
         }
 
         /// <summary>
-        /// The cloud brightness as set by day: "auto 90%..40%", or "fixed 25%" with automatic
-        /// brightness off. Sunset's and night's, where they differ, are in the time-of-day part.
+        /// Cloud brightness by day (1.5.0): "90%..40%", clear sky to full overcast, as 1.4.0's
+        /// automatic brightness wrote its curve. Sunset's and night's, where they differ, are in the
+        /// time-of-day part.
         /// </summary>
         private static string Brightness()
         {
-            bool auto = Settings.BrightnessAuto;
-            return auto
-                ? "auto " + Percent(Settings.CloudBrightnessClear, Settings.Defaults.BrightnessClear) + ".." +
-                  Percent(Settings.CloudBrightnessOvercast, Settings.Defaults.BrightnessOvercast)
-                : "fixed " + Percent(Settings.CloudBrightness, Settings.Defaults.Brightness);
+            return Percent(Settings.CloudLight, Settings.Defaults.Light) + ".." +
+                   Percent(Settings.CloudLightOvercast, Settings.Defaults.LightOvercast);
         }
 
         /// <summary>
-        /// The rows with a clock (1.5.0) set apart by time: "CloudDensity 100/25/100, ..." (day /
-        /// sunset / night, as the settings file writes them), or "the same all day".
+        /// The rows with a clock (1.5.0) set apart by time or weather: "CloudDensity 100/25/100, ..."
+        /// (day / sunset / night, as the settings file writes them), "overcast 80/80/80" after it where
+        /// the Overcast values differ from them, or "the same all day".
         /// </summary>
         private static string TimeRows()
         {
@@ -150,11 +149,18 @@ namespace VolumetricClouds
                 string day = SettingsXml.ValueOf(row.Times[0]);
                 string sunset = SettingsXml.ValueOf(row.Times[1]);
                 string night = SettingsXml.ValueOf(row.Times[2]);
-                if (sunset != day || night != day)
-                    parts.Add(row.Name + " " + day + "/" + sunset + "/" + night);
+                bool weather = !UI.SettingsCatalog.SameInEveryWeather(row);
+                if (sunset == day && night == day && !weather)
+                    continue;
+
+                string text = row.Name + " " + day + "/" + sunset + "/" + night;
+                if (weather)
+                    text += " overcast " + SettingsXml.ValueOf(row.Overcasts[0]) + "/" + SettingsXml.ValueOf(row.Overcasts[1]) +
+                            "/" + SettingsXml.ValueOf(row.Overcasts[2]);
+                parts.Add(text);
             }
 
-            return parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "every row the same all day";
+            return parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "every row the same all day and in every weather";
         }
 
         private static string Percent(FloatSetting setting, float fallback)

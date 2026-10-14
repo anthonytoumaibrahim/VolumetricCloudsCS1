@@ -17,3 +17,7 @@ lightbulb | M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2
 # above and these two.
 sunset | M12 10V2 | m4.93 10.93 1.41 1.41 | M2 18h2 | M20 18h2 | m19.07 10.93-1.41 1.41 | M22 22H2 | m16 6-4 4-4-4 | M16 18a4 4 0 0 0-8 0
 moon | M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z
+#
+# The weather (1.5.0): a row's cloud button is "cloud" above; its Overcast line "cloudy" above, its Clear
+# sky line this one.
+cloud-sun | M12 2v2 | m4.93 4.93 1.41 1.41 | M20 12h2 | m19.07 4.93-1.41 1.41 | M15.947 12.65a4 4 0 0 0-5.925-4.128 | M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z

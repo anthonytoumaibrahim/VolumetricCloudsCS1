@@ -154,6 +154,13 @@
   <String key="Time.ByDay">{0} le jour</String>
   <String key="Time.AtSunset">{0} au couchant</String>
   <String key="Time.AtNight">{0} la nuit</String>
+  <String key="Weather.Clear">Ciel clair</String>
+  <String key="Weather.Overcast">Couvert</String>
+  <String key="Weather.Changes">Change selon la météo</String>
+  <String key="Weather.ChangesBoth">Change selon l'heure et la météo</String>
+  <String key="Weather.Open">Afficher ciel clair et ciel couvert</String>
+  <String key="Weather.Close">Masquer ciel clair et ciel couvert</String>
+  <String key="Weather.WhenOvercast">{0}, ciel couvert</String>
 
   <!-- ==================== In-game panel: Fog ==================== -->
 
@@ -261,17 +268,11 @@
 
   <String key="CloudShadowFullness.Label">Densité des ombres</String>
 
-  <String key="Group.Brightness">Luminosité des nuages</String>
+  <String key="Group.Brightness">Luminosité et densité</String>
 
-  <String key="CloudBrightnessAuto.Label">Luminosité selon l’intensité des nuages</String>
+  <String key="CloudLight.Label">Luminosité des nuages</String>
 
-  <String key="CloudBrightnessClear.Label">Luminosité : ciel clair</String>
-
-  <String key="CloudBrightnessOvercast.Label">Luminosité : ciel couvert</String>
-
-  <String key="CloudBrightness.Label">Luminosité des nuages (fixe)</String>
-
-  <String key="MinIllumination.Label">Assombrir les nuages à ciel couvert à</String>
+  <String key="MinIllumination.Label">Assombrir le soleil dans le brouillard à ciel couvert à</String>
 
   <String key="CloudDensity.Label">Densité des nuages</String>
 
@@ -375,6 +376,7 @@
   <String key="HudButtonY.Label">Bouton du mod (sans Unified UI) : distance depuis le bord supérieur</String>
   <String key="PanelOpenGroups.Label">Titres ouverts du panneau en jeu (options avancées activées), séparés par des virgules</String>
   <String key="PanelOpenClocks.Label">Lignes du panneau en jeu qui montrent le jour, le couchant et la nuit, séparées par des virgules</String>
+  <String key="PanelOpenWeather.Label">Lignes du panneau en jeu qui montrent le ciel clair et le ciel couvert, séparées par des virgules</String>
 
   <!-- ==================== Slider readouts ==================== -->
 
