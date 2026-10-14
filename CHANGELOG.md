@@ -76,8 +76,9 @@ the screen's alpha.
 
 Three sliders at the bottom of the Fog tab, under *Changing fog*, each 0% to 100%, 0% by default,
 and a *Dynamic fog* switch above them (off) that turns all three on and off at once without losing their
-values. *Override fog* on the Now tab overrides them too: with it on, the fog is the amount set
-there and nothing changes it. With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
+values. *Override fog* on the Now tab overrides them too, and *Fog over water* and *Fog fills
+valleys* as well: with it on, the fog is the amount set there and nothing else adds to it or
+changes it. With any of them on, *Fog density*, *Fog starts at*, *Fog height* and *Fog break-up* are the most fog
 you get: these only ever make it thinner, lower or wispier than that.
 
 - *Fog changes with the weather*: the fog is thickest at night and in heavy fog. On a sunny

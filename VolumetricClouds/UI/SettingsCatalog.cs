@@ -1887,7 +1887,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.FogInValleys,
                 DefaultFloat = Settings.Defaults.FogInValleys,
                 Min = 0f, Max = 100f, Step = 5f,
-                Enabled = () => FogOn() && CloudFog.FollowsGround,
+                Enabled = () => FogOn() && CloudFog.FollowsGround && !CloudFog.Overridden,
             });
 
             Add(new Row
@@ -2081,7 +2081,8 @@ namespace VolumetricClouds.UI
                 Float = Settings.FogOverWater,
                 DefaultFloat = Settings.Defaults.FogOverWater,
                 Min = 0f, Max = 100f, Step = 5f,
-                Enabled = FogOn,
+                // "Override fog" overrides every amount of fog, this one too (the author's call).
+                Enabled = () => FogOn() && !CloudFog.Overridden,
             });
         }
 

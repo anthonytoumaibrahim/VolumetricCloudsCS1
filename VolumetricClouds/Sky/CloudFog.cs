@@ -187,20 +187,27 @@ namespace VolumetricClouds.Sky
             }
         }
 
-        /// <summary>"Fog fills valleys" as drawn, 0..1: the slider, while the fog follows the ground; 0 for a level fog.</summary>
+        /// <summary>
+        /// "Fog fills valleys" as drawn, 0..1: the slider, while the fog follows the ground; 0 for a level
+        /// fog, and 0 under "Override fog" (the author: it overrides EVERY amount of fog).
+        /// </summary>
         public static float Valleys
         {
             get
             {
                 float slider = Settings.FogInValleys != null ? Mathf.Clamp01(Settings.FogInValleys.value) : Settings.Defaults.FogInValleys;
-                return FollowsGround ? slider : 0f;
+                return FollowsGround && !Overridden ? slider : 0f;
             }
         }
 
-        /// <summary>"Fog over water", 0..1.</summary>
+        /// <summary>"Fog over water", 0..1; 0 under "Override fog", which overrides every amount of fog.</summary>
         public static float WaterSetting
         {
-            get { return Settings.FogOverWater != null ? Mathf.Clamp01(Settings.FogOverWater.value) : Settings.Defaults.FogOverWater; }
+            get
+            {
+                if (Overridden) return 0f;
+                return Settings.FogOverWater != null ? Mathf.Clamp01(Settings.FogOverWater.value) : Settings.Defaults.FogOverWater;
+            }
         }
 
         /// <summary>The share of the water with fog banks now, 0..1, eased (1.5.0).</summary>
