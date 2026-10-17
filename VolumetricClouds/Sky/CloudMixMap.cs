@@ -5,93 +5,38 @@ using UnityEngine;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// The Mixed style's maps on the GPU (<see cref="CloudMix.Baker"/>): the cloud map, and its own
-    /// copy of the empty-sky map that knows where the separate clouds reach. Baked on a worker thread
-    /// whenever the intensity moves by <see cref="CloudMix.BakeStep"/> (or the pattern, the weather
-    /// repeat or the seed changes), one bake at a time, and uploaded on the main thread. Until the
-    /// first one is up the style is drawn Classic (CloudStyle.MixedDrawn), as while its noise is being
-    /// made.
+    /// The Mixed style's TYPE MAP on the GPU (<see cref="CloudMix.BakeType"/>, in its alpha): which way
+    /// each stretch of sky leans, towards the layer or the puffs. Baked on a worker thread once per city's
+    /// seed and weather map size (Larger weather pattern), uploaded on the main thread. Until it is up the
+    /// style is drawn Classic (CloudStyle.MixedDrawn), as while its noise is being made.
     /// </summary>
     /// <remarks>
-    /// The first build (2026-10-05) worked the layout out per pixel and step -- four cells, their
-    /// random numbers, two weather-map reads each -- and cost the author's 4K frame 20-85 ms. The
-    /// layout only changes with the weather, so it is worked out here, once per step of the intensity.
-    /// 1.5.0: one texture (the type in its alpha; no id map) -- the cloud pass has no sampler to spare,
-    /// so it is read through the score texture's (CloudCommon.cginc).
+    /// Until 2026-10-17 the map also held Mixed's separate clouds, baked again whenever the intensity
+    /// moved by half a percent, with an empty-sky map of its own; the puffs that replaced them are cut in
+    /// the shader. The cloud pass has no sampler to spare, so it is read through the score texture's
+    /// (CloudCommon.cginc).
     /// </remarks>
     public static class CloudMixMap
     {
         public static Texture2D Map { get; private set; }
 
-        /// <summary>The empty-sky map for this style (EmptySky.WithPresence); null until the first bake.</summary>
-        public static Texture2D EmptySkyTexture { get; private set; }
-
-        /// <summary>Maps for the current pattern are on the GPU.</summary>
+        /// <summary>The map for the current seed and size is on the GPU.</summary>
         public static bool Ready { get; private set; }
 
         /// <summary>A bake threw: the style is drawn Classic for the rest of the session, said once.</summary>
         public static bool Failed { get; private set; }
 
-        /// <summary>
-        /// The pattern size (the slider) the map on the GPU was baked for: the shader's scales must be
-        /// its. With Larger weather pattern the map spans the field's Scale x it.
-        /// </summary>
-        public static float BakedTile
-        {
-            get { return _uploaded != null ? _uploaded.Tile : 0f; }
-        }
-
-        /// <summary>The player's shape the map on the GPU was baked with: its bands are stored over it.</summary>
-        public static CloudMix.Shape BakedShape
-        {
-            get { return _uploaded != null ? _uploaded.Shape : CloudMix.Shape.Plain; }
-        }
-
-        /// <summary>
-        /// Metres above the base of the tallest cloud in the map on the GPU (CloudMix.Baker.TallestTop;
-        /// 0 with none): its tops are stored over it, and the march's slab ends there.
-        /// </summary>
-        public static float BakedTallest
-        {
-            get { return _uploaded != null ? _uploaded.Tallest : 0f; }
-        }
-
-        /// <summary>
-        /// The empty-sky bytes on the GPU (<see cref="EmptySkyTexture"/>'s), or null. The skip may only use them
-        /// while they were made from the field's current bytes (<see cref="EmptySkyFor"/>).
-        /// </summary>
-        public static byte[] EmptySkyBytes { get; private set; }
-
-        /// <summary>The map on the GPU was baked from these empty-sky bytes of the field (CloudDensityField.EmptySkyBytes).</summary>
-        public static bool EmptySkyFor(byte[] fieldBytes)
-        {
-            return _uploaded != null && ReferenceEquals(_uploaded.EmptyBase, fieldBytes);
-        }
-
         private sealed class Job
         {
             public int Generation;
-            public int Step;
-            public float Tile;
-            public int Scale;        // the field's (Larger weather pattern): the map is MapSizeFor it
-            public bool Stale;       // the field changed size under the bake: nothing to upload
-            public int UploadMs;
             public int Seed;
-            public CloudMix.Shape Shape;
-            public float Tallest;
-            public int FieldVersion;
-            public CloudDensityField Field;
-            public byte[] EmptyBase;
-            public byte[] EmptyBytes;
+            public int Scale;        // the field's (Larger weather pattern): the map is MapSizeFor it
+            public byte[] Type;
             public int Milliseconds;
             public string Error;
         }
 
-        // One slot: a bake starts only after the previous one is uploaded, so the worker never writes
-        // what the main thread is reading.
-        private static CloudMix.Baker _baker;
-        private static Color32[] _mapColours, _emptyColours;
-
+        // One slot: a bake starts only after the previous one is uploaded.
         private static volatile Job _done;
         private static volatile bool _working;
         private static int _generation;
@@ -101,22 +46,11 @@ namespace VolumetricClouds.Sky
         private static Job _uploaded;
         private static Job _asked;
 
-        // Read by the bakes (built on the worker): the weather map's scores per field and version, and
-        // the type pattern per seed.
-        private static CloudDensityField _scoresField;
-        private static int _scoresVersion = -1;
-        private static byte[] _scores;
-        private static int _typeSeed;
-        private static int _typeScale;
-        private static byte[] _type;
-
-        private static bool _loggedFirst;
-
         /// <summary>
         /// Main thread, from the shader parameters, at most once a frame: uploads a finished bake and
-        /// starts the next when what is wanted has moved (the player's shape included).
+        /// starts the next when the seed or the weather map's size has moved.
         /// </summary>
-        public static void Update(CloudDensityField field, float intensity, float weatherTile, int seed, CloudMix.Shape shape)
+        public static void Update(CloudDensityField field, int seed)
         {
             if (Failed || field == null || _frame == Time.frameCount)
                 return;
@@ -129,39 +63,19 @@ namespace VolumetricClouds.Sky
                 Finish(done);
             }
 
-            // A map baked for the other size (Larger weather pattern just switched) would draw every
-            // cloud four times too big or too small: drawn Classic until the new one is up.
-            if (_uploaded != null && _uploaded.Scale != field.Scale)
-            {
+            // A map baked for the other size (Larger weather pattern just switched) would tip the sky in
+            // patches four times too big or too small: drawn Classic until the new one is up.
+            if (_uploaded != null && (_uploaded.Scale != field.Scale || _uploaded.Seed != seed))
                 Ready = false;
-                _loggedFirst = false;   // the first bake at the new size goes on the log
-            }
 
             if (_working || Failed)
                 return;
 
-            int step = Mathf.RoundToInt(Mathf.Clamp01(intensity) / CloudMix.BakeStep);
-            Job want = new Job
-            {
-                Generation = _generation,
-                Step = step,
-                Tile = weatherTile,
-                Scale = field.Scale,
-                Seed = seed,
-                Shape = shape ?? CloudMix.Shape.Plain,
-                FieldVersion = field.Version,
-                Field = field,
-                EmptyBase = field.EmptySkyBytes,
-            };
-
             Job have = _asked ?? _uploaded;
-            if (have != null && have.Step == want.Step && Mathf.Approximately(have.Tile, want.Tile) && have.Scale == want.Scale &&
-                have.Seed == want.Seed &&
-                have.Shape.SameAs(want.Shape) &&
-                have.FieldVersion == want.FieldVersion && ReferenceEquals(have.Field, want.Field) &&
-                ReferenceEquals(have.EmptyBase, want.EmptyBase))
+            if (have != null && have.Seed == seed && have.Scale == field.Scale)
                 return;
 
+            Job want = new Job { Generation = _generation, Seed = seed, Scale = field.Scale };
             _asked = want;
             _working = true;
 
@@ -173,26 +87,19 @@ namespace VolumetricClouds.Sky
             thread.Start();
         }
 
-        /// <summary>City unloaded: the textures go, and a bake still running is dropped when it lands.</summary>
+        /// <summary>City unloaded: the texture goes, and a bake still running is dropped when it lands.</summary>
         public static void Release()
         {
             _generation++;
-            DestroyTexture(Map);
-            DestroyTexture(EmptySkyTexture);
+            if (Map != null)
+                UnityEngine.Object.Destroy(Map);
             Map = null;
-            EmptySkyTexture = null;
-            EmptySkyBytes = null;
             Ready = false;
             Failed = false;
             _uploaded = null;
             _asked = null;
             _done = null;
-            _scoresField = null;
-            _scores = null;
-            _scoresVersion = -1;
-            _type = null;
             _frame = -1;
-            _loggedFirst = false;
         }
 
         // Worker thread.
@@ -201,52 +108,9 @@ namespace VolumetricClouds.Sky
             DateTime start = DateTime.UtcNow;
             try
             {
-                if (!ReferenceEquals(_scoresField, job.Field) || _scoresVersion != job.FieldVersion || _scores == null)
-                {
-                    _scores = job.Field.ScoreBytes();
-                    _scoresField = job.Field;
-                    _scoresVersion = job.FieldVersion;
-                }
-
-                // The field may have been given a map of another size since the job was asked for
-                // (Larger weather pattern switched): these scores are then not the job's. The next
-                // frame asks again, for the field as it is.
-                int scoreSize = CloudDensityField.BaseResolution * job.Scale;
-                int mapSize = CloudMix.MapSizeFor(job.Scale);
-                int cells = scoreSize / EmptySky.CellTexels;
-                if (_scores.Length != scoreSize * scoreSize || job.EmptyBase == null || job.EmptyBase.Length != cells * cells * 4)
-                {
-                    _scoresField = null;
-                    job.Stale = true;
-                }
-                else
-                {
-                    float seedX, seedZ;
-                    CloudMix.SeedOffsets(job.Seed, out seedX, out seedZ);
-                    if (_type == null || _typeSeed != job.Seed || _typeScale != job.Scale)
-                    {
-                        _type = CloudMix.BakeType(mapSize, seedX, seedZ, job.Scale);
-                        _typeSeed = job.Seed;
-                        _typeScale = job.Scale;
-                    }
-
-                    if (_baker == null || _baker.Size != mapSize)
-                    {
-                        _baker = null;
-                        _mapColours = null;
-                        _emptyColours = null;
-                        _baker = new CloudMix.Baker(mapSize, cells);
-                        _mapColours = new Color32[mapSize * mapSize];
-                        _emptyColours = new Color32[cells * cells];
-                    }
-
-                    _baker.Bake(_scores, scoreSize, _type, job.Step * CloudMix.BakeStep, job.Tile, seedX, seedZ, job.Shape, job.Scale);
-                    job.Tallest = _baker.TallestTop;
-                    ToColours(_baker.Map, _mapColours);
-
-                    job.EmptyBytes = EmptySky.WithPresence(job.EmptyBase, _baker.Presence, cells);
-                    ToColours(job.EmptyBytes, _emptyColours);
-                }
+                float seedX, seedZ;
+                CloudMix.SeedOffsets(job.Seed, out seedX, out seedZ);
+                job.Type = CloudMix.BakeType(CloudMix.MapSizeFor(job.Scale), seedX, seedZ, job.Scale);
             }
             catch (Exception e)
             {
@@ -268,105 +132,55 @@ namespace VolumetricClouds.Sky
             {
                 Failed = true;
                 Ready = false;
-                Log.Warn("mixed style: the cloud map could not be baked (" + job.Error + "); the clouds are drawn Classic");
+                Log.Warn("mixed style: the type map could not be baked (" + job.Error + "); the clouds are drawn Classic");
                 return;
             }
 
-            // Baked for a field that has since changed size: the next Update asks again.
-            if (job.Stale)
-            {
-                if (ReferenceEquals(_asked, job))
-                    _asked = null;
-                return;
-            }
-
-            int mapSize = _baker.Size;
-            int cells = _baker.PresenceSize;
+            int size = CloudMix.MapSizeFor(job.Scale);
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 // Made again at another size (Larger weather pattern switched).
-                if (Map != null && Map.width != mapSize)
+                if (Map != null && Map.width != size)
                 {
-                    DestroyTexture(Map);
+                    UnityEngine.Object.Destroy(Map);
                     Map = null;
                 }
-                if (EmptySkyTexture != null && EmptySkyTexture.width != cells)
+
+                // LINEAR: the bytes are data (the type), never colours to decode.
+                if (Map == null)
                 {
-                    DestroyTexture(EmptySkyTexture);
-                    EmptySkyTexture = null;
+                    Map = new Texture2D(size, size, TextureFormat.ARGB32, false, true)
+                    {
+                        name = "VolumetricCloudsMixMap",
+                        wrapMode = TextureWrapMode.Repeat,
+                        filterMode = FilterMode.Bilinear,
+                        anisoLevel = 0,
+                    };
                 }
 
-                if (Map == null)
-                    Map = NewTexture("VolumetricCloudsMixMap", mapSize, FilterMode.Bilinear);
-                if (EmptySkyTexture == null)
-                    EmptySkyTexture = NewTexture("VolumetricCloudsMixEmptySky", cells, FilterMode.Point);
-
-                Map.SetPixels32(_mapColours);
+                var colours = new Color32[size * size];
+                for (int i = 0; i < colours.Length; i++)
+                    colours[i] = new Color32(0, 0, 0, job.Type[i]);
+                Map.SetPixels32(colours);
                 Map.Apply(false);
-                EmptySkyTexture.SetPixels32(_emptyColours);
-                EmptySkyTexture.Apply(false);
             }
             catch (Exception e)
             {
                 Failed = true;
                 Ready = false;
-                Log.Warn("mixed style: the cloud map could not be uploaded (" + e.GetType().Name + ": " + e.Message +
+                Log.Warn("mixed style: the type map could not be uploaded (" + e.GetType().Name + ": " + e.Message +
                          "); the clouds are drawn Classic");
                 return;
             }
 
             _uploaded = job;
-            EmptySkyBytes = job.EmptyBytes;
             if (ReferenceEquals(_asked, job))
                 _asked = null;
             Ready = true;
-            job.UploadMs = (int)watch.Elapsed.TotalMilliseconds;
 
-            // The upload is on the main thread: with Larger weather pattern the map is 16x the bytes,
-            // so its time is on the line too.
-            int cellCount = cells * cells;
-            string text = "mixed style: cloud map baked for " + (job.Step * CloudMix.BakeStep * 100f).ToString("F1") + "% in " +
-                          job.Milliseconds + " ms, uploaded in " + job.UploadMs + " ms (" + mapSize + "^2) -- " + _baker.Clouds + " clouds over " +
-                          (100f * _baker.Covered / (mapSize * mapSize)).ToString("F1") + "% of the map, the tallest " +
-                          job.Tallest.ToString("F0") + " m, reaching " +
-                          (100f * _baker.CellsReached / cellCount).ToString("F0") + "% of the empty-sky cells";
-            if (!_loggedFirst)
-            {
-                _loggedFirst = true;
-                Log.Msg(text);
-            }
-            else if (Log.Detailed)
-            {
-                Log.Detail(text);
-            }
-        }
-
-        private static Texture2D NewTexture(string name, int size, FilterMode filter)
-        {
-            // LINEAR: the bytes are data (a profile, a height, a type), never colours to decode.
-            return new Texture2D(size, size, TextureFormat.ARGB32, false, true)
-            {
-                name = name,
-                wrapMode = TextureWrapMode.Repeat,
-                filterMode = filter,
-                anisoLevel = 0,
-            };
-        }
-
-        private static void ToColours(byte[] rgba, Color32[] colours)
-        {
-            for (int i = 0; i < colours.Length; i++)
-            {
-                int o = i * 4;
-                colours[i] = new Color32(rgba[o], rgba[o + 1], rgba[o + 2], rgba[o + 3]);
-            }
-        }
-
-        private static void DestroyTexture(Texture2D texture)
-        {
-            if (texture != null)
-                UnityEngine.Object.Destroy(texture);
+            Log.Msg("mixed style: type map baked for seed " + job.Seed + " in " + job.Milliseconds + " ms, uploaded in " +
+                    (int)watch.Elapsed.TotalMilliseconds + " ms (" + size + "^2)");
         }
     }
 }

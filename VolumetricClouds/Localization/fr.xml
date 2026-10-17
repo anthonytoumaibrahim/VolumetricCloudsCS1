@@ -101,9 +101,6 @@
   <String key="CumulusSize.Label">Taille des cumulus</String>
   <String key="CumulusHeight.Label">Hauteur des cumulus</String>
   <String key="CumulusAmount.Label">Quantité de cumulus</String>
-  <String key="MixedBigClouds.Label">Grands nuages</String>
-  <String key="MixedShapes.Label">Formes des nuages (rondes à irrégulières)</String>
-  <String key="MixedTextureVariety.Label">Variété de texture</String>
 
   <String key="Group.CloudShape">Altitude et forme</String>
   <String key="CloudAltitude.Label">Altitude des nuages</String>

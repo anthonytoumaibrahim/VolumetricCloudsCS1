@@ -29,14 +29,22 @@ namespace VolumetricClouds.Sky
     /// fringe of strands just outside every puff (<see cref="Look.Fringe"/>: the cotton-candy edge).
     /// Every lookup is pushed about by the 64^3 noise (<see cref="Look.Warp"/>) so the shreds twist
     /// instead of lining up on the noise's own cells.</item>
-    /// <item>Near 100% an overcast floor (<see cref="Floor"/>) makes every stretch inside the cut at
-    /// least a big cloud, so a full sky is a broken overcast on every city's map.</item>
+    /// <item>THE CLASSIC LAYER from <see cref="Look.LayerFrom"/> up (<see cref="LayerCover"/>, the
+    /// author's call 2026-10-17: "the classic layer fill after a threshold so the pattern doesn't appear,
+    /// basically like we did with Cumulus"): the noise alone repeats every 2.3 km, and once the map is
+    /// over the cut nearly everywhere that repeat was all there was to see. The puffs stop spreading at
+    /// <see cref="Look.PuffCap"/> (<see cref="PuffCoverage"/>, Cumulus's HeapCap) and the layer, which
+    /// follows the 13.5 km map, carries the high end; where both are, the denser wins.</item>
     /// </list>
-    /// Classic's map and threshold table, cut at a higher cover (<see cref="EdgeTable"/>): Classic's
-    /// clouds lie inside Soft's envelope, so the rain (always under a higher threshold, invariant 2) and
-    /// lightning's cloud test hold as they are, and the empty-sky skip tests what it always did (the
-    /// density is 0 wherever the map is under the cut). Nothing of this is in a save. Its light is the
-    /// Cumulus style's (EVE's lobes) at its own level (<see cref="Look.LightScale"/>).
+    /// Classic's map and threshold table, the puffs cut at a higher cover (<see cref="EdgeTable"/>) up to
+    /// their cap. The rain and lightning's cloud test are cut at the larger of the puffs' and the layer's
+    /// cover, never more than the intensity (<see cref="DrawnCoverage"/>: the intensity itself while the
+    /// Classic layer row is at 100%), so they always fall from drawn cloud (invariant 2). Nothing of this
+    /// is in a save. Its light is the Cumulus style's (EVE's lobes), the puffs at their own level
+    /// (<see cref="LightScaleAt"/>).
+    ///
+    /// The MIXED style draws the same puffs, cut as at a share of its intensity (CloudMix.PuffIntensity),
+    /// beside its own layer, their cut tipped by its type pattern.
     ///
     /// Pure, and in C# 5: the offline preview (docs/previews) and tools/test-soft.ps1 compile this very
     /// file. The shader's SoftDensity (CloudCommon.cginc) is its twin: change one, change the other.
@@ -71,8 +79,17 @@ namespace VolumetricClouds.Sky
             /// </summary>
             public float Fill, FillSpan;
 
-            /// <summary>The intensity the overcast floor starts at, and the floor at 100% (units of c): see <see cref="Floor"/>.</summary>
-            public float OvercastFrom, OvercastFloor;
+            /// <summary>
+            /// The intensity the puffs' cut stops rising at (<see cref="PuffCoverage"/>): above it the Classic
+            /// layer fills the sky in, and the noise's repeat no longer spreads over the whole map.
+            /// </summary>
+            public float PuffCap;
+
+            /// <summary>
+            /// Soft's Classic layer comes in between these intensities (smoothstep; <see cref="LayerCover"/>):
+            /// none below the first, Classic's own cover from the second. (Mixed's layer has its own curves, CloudMix.)
+            /// </summary>
+            public float LayerFrom, LayerTo;
 
             /// <summary>How deep the fine read carves, in units of c.</summary>
             public float Wisp;
@@ -108,11 +125,18 @@ namespace VolumetricClouds.Sky
             public float Extinction;
 
             /// <summary>
-            /// The clouds' sun and sky light, times this (the brightness settings' meaning kept): light
-            /// reaches all through a thin cloud, so at the same Cloud brightness its sky was much brighter
-            /// than Cumulus's, whose heaps shade themselves -- at the author's 185% a flat, clipped white.
+            /// The clouds' sun and sky light, times this where the puffs carry the sky (the brightness
+            /// settings' meaning kept): light reaches all through a thin cloud, so at the same Cloud
+            /// brightness its sky was much brighter than Cumulus's, whose heaps shade themselves -- at the
+            /// author's 185% a flat, clipped white. See <see cref="LightScaleAt"/>.
             /// </summary>
             public float LightScale;
+
+            /// <summary>
+            /// The same where the Classic layer carries the sky, and the intensity Soft's light starts to
+            /// rise to it at (reaching it at 100%): <see cref="LightShare"/>.
+            /// </summary>
+            public float LayerLight, LightFrom;
 
             /// <summary>The tallest cloud, times "Layer thickness".</summary>
             public float TallestPerThickness;
@@ -137,7 +161,6 @@ namespace VolumetricClouds.Sky
         public const float Erosion = 1.5f;
         public const float Softness = 0.2f;
         public const float Fill = 0.8f, FillSpan = 1.5f;
-        public const float OvercastFrom = 0.9f, OvercastFloor = 1.4f;
         public const float Wisp = 0.25f;
         public const float WispMultiple = 4f;
         public const float WispHeight = 0.3f;
@@ -149,20 +172,37 @@ namespace VolumetricClouds.Sky
         public const float LightScale = 0.5f;
         public const float TallestPerThickness = 2.0f;
 
+        // The layer and the cap (2026-10-17 evening, the author: Soft "in high intensity the pattern is too
+        // obvious"), chosen on offline renders (render-detail.ps1 -Set soft-layer*). Round 3's overcast floor
+        // (every stretch inside the cut at least a big cloud from 90%, 1.4 at 100%) went with it: it is what
+        // made a full sky all noise.
+        public const float PuffCap = 0.8f;
+        public const float LayerFrom = 0.6f, LayerTo = 0.95f;
+
+        // The light with the layer (render-detail.ps1 -Set soft-measure-layer, -layer2: the clouds' mean
+        // brightness against Cumulus's at the same Cloud brightness): x0.5 still matches up to 85% -- the
+        // layer there mostly fills holes inside the puffs' outline -- x0.6 at 90%, x0.67 at 95%, x0.8 at
+        // 100%. Lit at the layer's share instead (x0.9 at 85%) the sky came out 10% brighter than Cumulus's.
+        public const float LayerLight = 0.8f, LightFrom = 0.85f;
+
         /// <summary>
         /// The cover Soft's map is cut at per 5% of the intensity, solved offline (render-detail.ps1
         /// -Set soft-calib, bisected and averaged over three cities' seeds: 12345/67890, 23456/78901,
         /// 34567/89012) so the share of the sky that is cloud from below (optical depth over 0.5) is the
         /// Cumulus style's at its default height ("about as much as Cumulus"). The noise carves most of
         /// the map's outer reaches away, so Soft needs far more of it for that: at 47% it is cut where
-        /// Classic is at ~87%. At 100% the whole map, with the overcast floor: 78-95% of the sky on the
-        /// three maps (Cumulus 83-90%). Never under the intensity (EdgeCoverage).
+        /// Classic is at ~87%. Never under the intensity (EdgeCoverage). Past <see cref="PuffCap"/> the
+        /// cut stays (<see cref="PuffCoverage"/>): the tail repeats the cap's value. With the Classic layer
+        /// (2026-10-17 evening) the entries up to the cap are round 3's: below the cap the layer only fills
+        /// holes inside the puffs' outline (+0.1-0.4% of the sky at 75-80% on the test maps). Above it the
+        /// layer brings the amount to Cumulus's (95%: 44% of the sky on the first map, Cumulus 46%; 100%:
+        /// 90%, Cumulus 90%).
         /// </summary>
         public static readonly float[] EdgeTable =
         {
             0.0000f, 0.3738f, 0.5668f, 0.6611f, 0.7155f, 0.7563f, 0.7891f, 0.8187f, 0.8432f, 0.8663f,
-            0.8855f, 0.9027f, 0.9186f, 0.9323f, 0.9432f, 0.9533f, 0.9634f, 0.9726f, 0.9773f, 0.9787f,
-            1.0000f,
+            0.8855f, 0.9027f, 0.9186f, 0.9323f, 0.9432f, 0.9533f, 0.9634f, 0.9634f, 0.9634f, 0.9634f,
+            0.9634f,
         };
 
         /// <summary>The look as built.</summary>
@@ -180,8 +220,9 @@ namespace VolumetricClouds.Sky
                 look.Softness = Softness;
                 look.Fill = Fill;
                 look.FillSpan = FillSpan;
-                look.OvercastFrom = OvercastFrom;
-                look.OvercastFloor = OvercastFloor;
+                look.PuffCap = PuffCap;
+                look.LayerFrom = LayerFrom;
+                look.LayerTo = LayerTo;
                 look.Wisp = Wisp;
                 look.WispMultiple = WispMultiple;
                 look.WispHeight = WispHeight;
@@ -193,6 +234,8 @@ namespace VolumetricClouds.Sky
                 look.EdgeFade = EdgeFade;
                 look.Extinction = Extinction;
                 look.LightScale = LightScale;
+                look.LayerLight = LayerLight;
+                look.LightFrom = LightFrom;
                 look.TallestPerThickness = TallestPerThickness;
                 look.AmountTable = EdgeTable;
                 return look;
@@ -200,10 +243,8 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The cover the weather map is cut at (CloudDensityField.GetThreshold, Classic's table) for an
-        /// intensity: never less than the intensity, so Classic's clouds -- and the rain, always under a
-        /// smaller cover -- lie inside these (invariant 2). 0 at 0, 1 at 1, rising all the way
-        /// (tools/test-soft.ps1 checks the table built).
+        /// The amount table at an intensity, never less than the intensity (null table: the intensity
+        /// itself, Classic's own). <see cref="PuffCoverage"/> reads it up to the cap.
         /// </summary>
         public static float EdgeCoverage(Look look, float coverage)
         {
@@ -218,6 +259,70 @@ namespace VolumetricClouds.Sky
             return Math.Max(c, Clamp01(table[i] + (table[i + 1] - table[i]) * f));
         }
 
+        /// <summary>
+        /// The cover the weather map is cut at for the puffs (CloudDensityField.GetThreshold, Classic's
+        /// table) at an intensity: the amount table, rising to <see cref="Look.PuffCap"/> and staying there
+        /// above it. Never less than the intensity up to the cap, so there Classic's clouds lie inside the
+        /// puffs' envelope. 0 at 0.
+        /// </summary>
+        public static float PuffCoverage(Look look, float coverage)
+        {
+            return EdgeCoverage(look, Math.Min(Clamp01(coverage), look.PuffCap));
+        }
+
+        /// <summary>
+        /// How much of Classic's own cover the Classic layer is cut at under Soft, 0..1 at an intensity,
+        /// before the "Classic layer" row: 0 up to <see cref="Look.LayerFrom"/>, 1 from <see cref="Look.LayerTo"/>.
+        /// </summary>
+        public static float LayerShare(Look look, float coverage)
+        {
+            float t = Clamp01((coverage - look.LayerFrom) / Math.Max(look.LayerTo - look.LayerFrom, 1e-3f));
+            return t * t * (3f - 2f * t);
+        }
+
+        /// <summary>
+        /// The cover Soft's Classic layer is cut at: the intensity times <see cref="LayerShare"/> times the
+        /// "Classic layer" row (<paramref name="amount"/>, 0..1; 100% = Classic's own cover from LayerTo up,
+        /// its gaps kept, as under Cumulus). Never more than the intensity.
+        /// </summary>
+        public static float LayerCover(Look look, float coverage, float amount)
+        {
+            float c = Clamp01(coverage);
+            return c * LayerShare(look, c) * Clamp01(amount);
+        }
+
+        /// <summary>
+        /// The cover the rain, lightning's cloud test and the rainbow's are cut at under Soft: the larger of
+        /// the puffs' and the layer's (where the map passes either, cloud is drawn), never more than the
+        /// intensity. The intensity itself while the "Classic layer" row is at 100%: up to the cap's table
+        /// value the puffs' cover is past it, and from LayerTo up the layer's is the intensity.
+        /// </summary>
+        public static float DrawnCoverage(Look look, float coverage, float amount)
+        {
+            float c = Clamp01(coverage);
+            return Math.Min(c, Math.Max(PuffCoverage(look, c), LayerCover(look, c, amount)));
+        }
+
+        /// <summary>
+        /// How much the layer carries Soft's sky for its light, 0..1: 0 up to <see cref="Look.LightFrom"/>,
+        /// 1 at 100% (smoothstep), times the "Classic layer" row (<paramref name="amount"/>).
+        /// </summary>
+        public static float LightShare(Look look, float coverage, float amount)
+        {
+            float t = Clamp01((coverage - look.LightFrom) / Math.Max(1f - look.LightFrom, 1e-3f));
+            return t * t * (3f - 2f * t) * Clamp01(amount);
+        }
+
+        /// <summary>
+        /// The clouds' light level for a share of the sky the layer carries (0..1, <see cref="LightShare"/>):
+        /// the puffs' <see cref="Look.LightScale"/> where they carry it, <see cref="Look.LayerLight"/> where
+        /// the layer does -- lit at the puffs' level, the layer was darker than under Cumulus.
+        /// </summary>
+        public static float LightScaleAt(Look look, float layerShare)
+        {
+            return look.LightScale + (look.LayerLight - look.LightScale) * Clamp01(layerShare);
+        }
+
         /// <summary>The tallest cloud, metres above the base, for a "Layer thickness" in metres.</summary>
         public static float Tallest(Look look, float thickness)
         {
@@ -225,26 +330,13 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The overcast floor for an intensity, in units of c: 0 up to <see cref="Look.OvercastFrom"/>,
-        /// then rising (smoothstep) to <see cref="Look.OvercastFloor"/> at 100%. Everywhere inside the cut
-        /// is at least that big a cloud, so a full sky looks the same on every city's map: how far each
-        /// map's low end lies over the cut at 100% differs (the cut alone left one of the three test maps
-        /// at 52% of the sky there, another at 89%), and a lift added to all of them kept the difference.
-        /// </summary>
-        public static float Floor(Look look, float coverage)
-        {
-            float t = Clamp01((coverage - look.OvercastFrom) / Math.Max(1f - look.OvercastFrom, 1e-3f));
-            return look.OvercastFloor * t * t * (3f - 2f * t);
-        }
-
-        /// <summary>
         /// How big the cloud is here, in units of c (0 at the cut, 1 <see cref="Look.Span"/> in, more
-        /// deep inside the biggest): the weather over the cut, never under the overcast <paramref name="floor"/>.
-        /// 0 wherever the map is at or under the cut, floor or not (the empty-sky skip's promise).
+        /// deep inside the biggest): the weather over the cut. 0 wherever the map is at or under the cut
+        /// (the empty-sky skip's promise).
         /// </summary>
-        public static float Size(Look look, float excess, float floor)
+        public static float Size(Look look, float excess)
         {
-            return excess <= 0f ? 0f : Math.Max(excess / look.Span, floor);
+            return excess <= 0f ? 0f : excess / look.Span;
         }
 
         /// <summary>
@@ -253,9 +345,9 @@ namespace VolumetricClouds.Sky
         /// coverage curve), so a cloud only reaches as high and as low as its c lets it. 0..1; 0 outside
         /// the slab.
         /// </summary>
-        public static float Body(Look look, float excess, float floor, float y, float tallest)
+        public static float Body(Look look, float excess, float y, float tallest)
         {
-            float c = Clamp01(Size(look, excess, floor));
+            float c = Clamp01(Size(look, excess));
             if (c <= 0f || y <= 0f || y >= tallest)
                 return 0f;
 
@@ -268,21 +360,20 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The density at one point, 0..1 (times the Density slider and <see cref="Look.Extinction"/> for
-        /// the march): <paramref name="excess"/> the weather there minus the threshold, <paramref name="floor"/>
-        /// as <see cref="Floor"/>, <paramref name="y"/> metres above the base, <paramref name="tallest"/> as
-        /// <see cref="Tallest"/>, <paramref name="noise"/> the Cumulus noise as read (at the warped point),
-        /// <paramref name="fine"/> its fine read, <paramref name="wisps"/> how much of that (0 for the
-        /// light's looks and far away, where it would only shimmer).
+        /// the march): <paramref name="excess"/> the weather there minus the puffs' threshold,
+        /// <paramref name="y"/> metres above the base, <paramref name="tallest"/> as <see cref="Tallest"/>,
+        /// <paramref name="noise"/> the Cumulus noise as read (at the warped point), <paramref name="fine"/>
+        /// its fine read, <paramref name="wisps"/> how much of that (0 for the light's looks and far away,
+        /// where it would only shimmer).
         /// </summary>
-        public static float Density(Look look, float excess, float floor, float y, float tallest, float noise, float fine, float wisps)
+        public static float Density(Look look, float excess, float y, float tallest, float noise, float fine, float wisps)
         {
-            float body = Body(look, excess, floor, y, tallest);
+            float body = Body(look, excess, y, tallest);
             if (body <= 0f)
                 return 0f;
 
-            // Deep inside the biggest clouds (c past 1) the carving eases off: their middles solid, and
-            // at 100% a closed sky.
-            float size = Size(look, excess, floor);
+            // Deep inside the biggest clouds (c past 1) the carving eases off: their middles solid.
+            float size = Size(look, excess);
             float fill = look.Fill * Clamp01((size - 1f) / look.FillSpan);
             float n = Clamp01((noise - look.NoiseMiddle) * look.NoiseContrast + 0.5f);
             float v = body - look.Erosion * (1f - fill) * (1f - n);
@@ -316,7 +407,11 @@ namespace VolumetricClouds.Sky
                    look.Warp.ToString("F0", c) + " m; clouds as tall as the weather is high, up to " + Tallest(look, thickness).ToString("F0", c) +
                    " m, widest " + (look.Middle * 100f).ToString("F0", c) + "% up, " + (look.Extinction * 1000f).ToString("F1", c) +
                    "/km at full (at the default density), light x" + look.LightScale.ToString("F2", c) +
-                   "; cut at Classic's map at the cover Cumulus's sky needs (47% -> " + (EdgeCoverage(look, 0.47f) * 100f).ToString("F0", c) + "%)";
+                   "; cut at Classic's map at the cover Cumulus's sky needs (47% -> " + (EdgeCoverage(look, 0.47f) * 100f).ToString("F0", c) +
+                   "%), no further than at " + (look.PuffCap * 100f).ToString("F0", c) + "% (" + (PuffCoverage(look, 1f) * 100f).ToString("F0", c) +
+                   "%); the Classic layer from " + (look.LayerFrom * 100f).ToString("F0", c) + "%, Classic's own cover from " +
+                   (look.LayerTo * 100f).ToString("F0", c) + "% (times the Classic layer row); light rising to x" +
+                   look.LayerLight.ToString("F2", c) + " from " + (look.LightFrom * 100f).ToString("F0", c) + "% as the layer carries the sky";
         }
 
         private static float Clamp01(float v)

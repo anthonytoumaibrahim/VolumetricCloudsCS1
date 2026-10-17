@@ -133,7 +133,8 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The share of fine cells the Classic layer leaves empty at this threshold (the shader's test:
-        /// most weather at or under it), 0..1. For the log and for whether the skip is worth asking.
+        /// most weather at or under it), 0..1. For the log and for whether the skip is worth asking. Under
+        /// Soft and Mixed the threshold is the lowest any of their clouds starts at.
         /// </summary>
         public static float EmptyShare(byte[] rgba, float threshold)
         {
@@ -161,46 +162,6 @@ namespace VolumetricClouds.Sky
                     continue;
 
                 empty++;
-            }
-
-            return empty / (float)cells;
-        }
-
-        /// <summary>
-        /// The Mixed style (Sky.CloudMix): the map's bytes with the score channels -- which only the
-        /// Cumulus heaps need -- replaced by where its separate clouds reach (CloudMix.Baker.Presence,
-        /// 255 or 0 per fine cell, m x m): b = the fine cell's, a = its coarse cell's. r, g, the weather,
-        /// as they were. A new array; <paramref name="rgba"/> is not changed.
-        /// </summary>
-        public static byte[] WithPresence(byte[] rgba, byte[] presence, int m)
-        {
-            byte[] coarse = Coarse(presence, m, CoarseCells);
-            var result = (byte[])rgba.Clone();
-            for (int i = 0; i < m * m; i++)
-            {
-                result[i * 4 + 2] = presence[i];
-                result[i * 4 + 3] = coarse[i];
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// The share of fine cells empty under the Mixed style: the most weather at or under the layer's
-        /// LOWEST threshold anywhere (its type varies it), and no separate cloud reaching the cell -- the
-        /// shader's test, CloudMedia CellEmpty. <paramref name="rgba"/>: <see cref="WithPresence"/>'s.
-        /// </summary>
-        public static float EmptyShareMixed(byte[] rgba, float lowestThreshold)
-        {
-            int cells = rgba.Length / 4;
-            if (cells == 0)
-                return 0f;
-
-            int empty = 0;
-            for (int i = 0; i < cells; i++)
-            {
-                if (rgba[i * 4] / 255f <= lowestThreshold && rgba[i * 4 + 2] == 0)
-                    empty++;
             }
 
             return empty / (float)cells;

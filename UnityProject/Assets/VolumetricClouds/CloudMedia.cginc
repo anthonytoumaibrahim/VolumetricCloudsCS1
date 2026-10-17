@@ -197,23 +197,19 @@ float MarchJitter(float2 pixel)
 // 4 x 4 fine cells. r, g = the most weather (as read, rounded up) in the fine and the coarse cell;
 // b, a = the same for the Cumulus score.
 sampler2D _EmptySkyTex;
-float4 _EmptySky;          // x = 1: skip (0 with fragments, at a full cover, or by the test switch),
-                           // y = fine cells along a weather tile, z = fine cells along a coarse cell
+float4 _EmptySky;          // x = 1: skip (0 with fragments, or at a full cover), y = fine cells along a
+                           // weather tile, z = fine cells along a coarse cell, w = under Soft and Mixed
+                           // the lowest threshold any of their clouds starts at (puffs or layer, any type)
 
 // No cloud at all in a cell with these most-weather and most-score: the layer is cut at _Threshold
 // (SampleDensityLod, LayerDensity), and under Cumulus the heaps' coverage line (CumulusDensity) is
 // at or under 0 at its highest score -- it only rises with the score, which the C# side checks
-// is so (_CumulusShape.y >= 0). Under Mixed the map is the style's own copy (CloudMixMap), whose
-// "score" says whether any separate cloud reaches the cell (0 or 1), and the layer is cut at least
-// at _MixThreshold.x, its lowest threshold anywhere. Under Soft its clouds are cut at _Threshold too
-// (SoftDensity), with no heaps.
+// is so (_CumulusShape.y >= 0). Under Soft and Mixed the puffs and the layer are both cuts of the map
+// (SoftDensity, LayerDensity), none under _EmptySky.w.
 bool CellEmpty(float weather, float score)
 {
-    if (_CloudStyle > 2.5)
-        return weather <= _Threshold;
-
     if (_CloudStyle > 1.5)
-        return weather <= _MixThreshold.x && score <= 0.0;
+        return weather <= _EmptySky.w;
 
     if (weather > _Threshold)
         return false;

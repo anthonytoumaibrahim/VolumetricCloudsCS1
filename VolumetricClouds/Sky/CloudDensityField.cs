@@ -294,20 +294,6 @@ namespace VolumetricClouds.Sky
         public float EmptySkyBuildMs { get; private set; }
 
         /// <summary>
-        /// The empty-sky map's bytes as the texture holds them (Sky.EmptySky.Build), for the Mixed
-        /// style's own copy (CloudMixMap). Built if it isn't. Main thread; a new pattern makes a new
-        /// array, so one handed out is never written again.
-        /// </summary>
-        public byte[] EmptySkyBytes
-        {
-            get
-            {
-                EnsureEmptySky();
-                return _emptySky;
-            }
-        }
-
-        /// <summary>
         /// The share of the map's cells that hold no cloud at this threshold (and, under Cumulus, this
         /// heap line): what the skip has to jump over (Sky.EmptySky.EmptyShare).
         /// </summary>

@@ -54,13 +54,6 @@ namespace VolumetricClouds.Sky
         private static readonly int IdLayerShapeMax = Shader.PropertyToID("_LayerShapeMax");
         private static readonly int IdDetailLodShift = Shader.PropertyToID("_DetailLodShift");
         private static readonly int IdMixMap = Shader.PropertyToID("_MixMap");
-        private static readonly int IdMixScale = Shader.PropertyToID("_MixScale");
-        private static readonly int IdMixCarve = Shader.PropertyToID("_MixCarve");
-        private static readonly int IdMixNoise = Shader.PropertyToID("_MixNoise");
-        private static readonly int IdMixPhase = Shader.PropertyToID("_MixPhase");
-        private static readonly int IdMixNoise2 = Shader.PropertyToID("_MixNoise2");
-        private static readonly int IdMixPhase2 = Shader.PropertyToID("_MixPhase2");
-        private static readonly int IdMixEnvelope = Shader.PropertyToID("_MixEnvelope");
         private static readonly int IdMixThreshold = Shader.PropertyToID("_MixThreshold");
 
         /// <summary>Metres the Cumulus slab reaches above the tallest cloud: the march must not clip its tops.</summary>
@@ -69,19 +62,16 @@ namespace VolumetricClouds.Sky
         /// <summary>
         /// The top of what is marched, in metres above the base: the layer's thickness for
         /// Classic; for Cumulus the tallest heap the curve allows or the thickest the layer gets,
-        /// whichever is higher; for Mixed its tallest separate cloud or the thickest layer; for Soft
-        /// its tallest cloud (no layer).
+        /// whichever is higher; for Soft and Mixed their puffs' tallest or the thickest layer.
         /// </summary>
         public static float LayerHeight
         {
             get
             {
                 float thickness = Mathf.Max(50f, Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness);
-                if (CloudStyle.SoftDrawn)
-                    return CloudStyle.SoftTallestNow;
-                if (CloudStyle.MixedDrawn)
-                    return Mathf.Max(CloudMixMap.BakedTallest + CumulusTopMargin, thickness * CloudStyle.LayerThickest);
-                if (CloudStyle.Drawn)
+                if (CloudStyle.PuffsDrawn)
+                    return Mathf.Max(CloudStyle.SoftTallestNow, thickness * CloudStyle.LayerThickest);
+                if (CloudStyle.HeapsDrawn)
                     return Mathf.Max(CloudStyle.TallestNow + CumulusTopMargin, thickness * CloudStyle.LayerThickest);
 
                 return thickness;
@@ -102,20 +92,30 @@ namespace VolumetricClouds.Sky
         /// "Classic layer" share while Cumulus is drawn (1.3.0: 100% = as in 1.2, 0% = the heaps
         /// alone). The heaps, the rain and lightning's cloud test keep the full cover. Under Mixed the
         /// layer's own cover for the intensity (CloudMix.LayerCover; the type tips it per stretch of sky),
-        /// times the same "Classic layer" share (CloudStyle.MixedLayer). Under Soft the cover its clouds
-        /// are cut at (CloudSoft.EdgeCoverage): never less than the cover in effect, so Classic's clouds
-        /// and the rain lie inside them.
+        /// times the same "Classic layer" share (CloudStyle.MixedLayer). Under Soft its layer's cover
+        /// (CloudSoft.LayerCover: none below its threshold), times the same share.
         /// </summary>
         public static float LayerCoverage
         {
             get
             {
                 if (CloudStyle.SoftDrawn)
-                    return CloudSoft.EdgeCoverage(CloudStyle.SoftLook, Coverage);
+                    return CloudSoft.LayerCover(CloudStyle.SoftLook, Coverage, CloudStyle.LayerAmount);
                 if (CloudStyle.MixedDrawn)
                     return CloudStyle.MixedLayer(Coverage);
-                return CloudStyle.Drawn ? Coverage * CloudStyle.LayerAmount : Coverage;
+                return CloudStyle.HeapsDrawn ? Coverage * CloudStyle.LayerAmount : Coverage;
             }
+        }
+
+        /// <summary>
+        /// The cover the PUFFS are cut at (Soft and Mixed, `_SoftThreshold`): Soft's one
+        /// (CloudSoft.PuffCoverage), or Mixed's where its type leans to layer (<paramref name="area"/> 0),
+        /// neither way (1) or to puffs (2): Soft's at CloudMix.PuffIntensity.
+        /// </summary>
+        public static float PuffCoverage(int area)
+        {
+            float intensity = CloudStyle.MixedDrawn ? CloudMix.PuffIntensity(Coverage, area) : Coverage;
+            return CloudSoft.PuffCoverage(CloudStyle.SoftLook, intensity);
         }
 
         /// <summary>
@@ -143,10 +143,8 @@ namespace VolumetricClouds.Sky
             float bottom = Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude;
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
             float tile = Settings.WeatherTileSize != null ? Settings.WeatherTileSize.value : Settings.Defaults.WeatherTileSize;
-            // The map's repeat (Larger weather pattern: 4x the slider's, the map 4x the texels), and
-            // the slider's own size, which the Mixed style's clouds are shaped for.
+            // The map's repeat (Larger weather pattern: 4x the slider's, the map 4x the texels).
             float weatherTile = field.TileFor(tile);
-            float patternSize = Mathf.Max(500f, tile);
             float detailScale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
 
             material.SetTexture(IdWeatherTex, field.DensityTexture);
@@ -175,9 +173,9 @@ namespace VolumetricClouds.Sky
             material.SetFloat(IdRainThreshold, field.GetThreshold(CloudRain.RainCoverage));
             material.SetVector(IdRainSlant, CloudRain.Slant);
 
-            // The layer is drawn in both styles, with all of Classic's settings: its fragments and
-            // its detail too. Under Cumulus the heaps come on top (ApplyStyle).
-            ApplyStyle(material, field, patternSize, thickness, detailScale, density);
+            // The layer is drawn in every style, with all of Classic's settings: its fragments and
+            // its detail too. Under Cumulus the heaps come on top, under Soft and Mixed the puffs (ApplyStyle).
+            ApplyStyle(material, field, thickness, detailScale, density);
             ApplyFragments(material, field, weatherTile, thickness);
             ApplyDetail(material, detailScale);
             ApplyEmptySky(material, field);
@@ -198,45 +196,37 @@ namespace VolumetricClouds.Sky
         private static bool _emptyShareCumulus;
         private static int _emptyShareVersion = -1;
         private static float _emptyShare;
-        private static byte[] _emptyShareMixBytes;
 
         /// <summary>
         /// SKIP THE EMPTY SKY (1.5.0, Sky.EmptySky): the cloud march jumps over cells of the weather map
         /// that hold no cloud at this cover. Nothing on screen changes. Off with cloud fragments (they
         /// read the map turned and finer, which a cell's bound says nothing about), off while hardly any
-        /// cell is empty. Only the cloud march reads it. Under the
-        /// Mixed style its own copy of the map (CloudMixMap: where the separate clouds reach), and only
-        /// while that copy was made from the field's current one.
+        /// cell is empty. Only the cloud march reads it. Under Soft and Mixed a cell is empty when its
+        /// most weather is at or under the lowest threshold any of their clouds starts at (the puffs' or
+        /// the layer's, in any of Mixed's type areas): `_EmptySky.w`.
         /// </summary>
         private static void ApplyEmptySky(Material material, CloudDensityField field)
         {
-            // Fragments are the layer's: Soft draws none, and its clouds are zero where the map is at or
-            // under _Threshold, Classic's test (CellEmpty).
-            bool fragments = CloudFragments.On && !CloudStyle.SoftDrawn;
-            bool mixed = CloudStyle.MixedDrawn;
-            byte[] mixBytes = mixed && CloudMixMap.EmptySkyFor(field.EmptySkyBytes) ? CloudMixMap.EmptySkyBytes : null;
+            bool fragments = FragmentShare > 0f;
+            bool puffs = CloudStyle.PuffsDrawn;
 
             float share = 0f;
-            if (!fragments && mixed)
+            float threshold = field.GetThreshold(LayerCoverage);
+            if (puffs)
             {
-                // The layer's lowest threshold anywhere (its type varies it): the shader's test (CellEmpty).
-                float lowest = field.GetThreshold(CloudStyle.MixedLayerInLayerArea(Coverage));
-                if (mixBytes == null)
-                    _emptyShare = 0f;
-                else if (lowest != _emptyShareThreshold || !ReferenceEquals(mixBytes, _emptyShareMixBytes))
-                    _emptyShare = EmptySky.EmptyShareMixed(mixBytes, lowest);
-
-                // (Remembered for the other styles' test below too: it then works its share out again.)
-                _emptyShareThreshold = mixBytes != null ? lowest : float.NaN;
-                _emptyShareMixBytes = mixBytes;
-                _emptyShareVersion = -1;
-                share = _emptyShare;
+                // Each of these is a cut of the same map; the lowest of them bounds them all (Mixed's
+                // type lerps between its three).
+                threshold = Mathf.Min(threshold, field.GetThreshold(PuffCoverage(1)));
+                if (CloudStyle.MixedDrawn)
+                {
+                    threshold = Mathf.Min(threshold, field.GetThreshold(CloudStyle.MixedLayerInLayerArea(Coverage)));
+                    threshold = Mathf.Min(threshold, Mathf.Min(field.GetThreshold(PuffCoverage(0)), field.GetThreshold(PuffCoverage(2))));
+                }
             }
-            else if (!fragments)
+
+            if (!fragments)
             {
-                _emptyShareMixBytes = null;
-                bool cumulus = CloudStyle.Drawn;
-                float threshold = field.GetThreshold(LayerCoverage);
+                bool cumulus = CloudStyle.HeapsDrawn;
                 float lineA = 0f, lineB = 0f;
                 if (cumulus)
                     CloudStyle.Line(CloudStyle.HeapEdge(CloudStyle.HeapCoverage(Coverage)), out lineA, out lineB);
@@ -260,9 +250,9 @@ namespace VolumetricClouds.Sky
             // the state (and the log).
             bool on = !fragments && share >= (_emptySkyLogged == "on" ? EmptySkyMinShare * 0.5f : EmptySkyMinShare);
             int cells = field.Resolution / EmptySky.CellTexels;
-            material.SetVector(IdEmptySky, new Vector4(on ? 1f : 0f, cells, EmptySky.CoarseCells, 0f));
+            material.SetVector(IdEmptySky, new Vector4(on ? 1f : 0f, cells, EmptySky.CoarseCells, puffs ? threshold : 0f));
             if (on)
-                material.SetTexture(IdEmptySkyTex, mixed ? CloudMixMap.EmptySkyTexture : field.EmptySkyTexture);
+                material.SetTexture(IdEmptySkyTex, field.EmptySkyTexture);
 
             // Always on the log, once per state: it is the one thing in the march that decides what is
             // NOT looked at, so a hole in the sky after this would start here.
@@ -289,32 +279,30 @@ namespace VolumetricClouds.Sky
         /// <summary>
         /// The cloud style (CloudStyle). Classic -- or Cumulus, Mixed or Soft before their noise exists --
         /// writes 0 and nothing else: every use of the Cumulus uniforms sits behind that branch, every
-        /// use of the Mixed ones behind _CloudStyle 2, of the Soft ones behind 3.
+        /// use of the puffs' (Soft's and Mixed's) behind _CloudStyle 2 and 3, of Mixed's type behind 2.
         /// </summary>
-        private static void ApplyStyle(Material material, CloudDensityField field, float patternSize, float thickness, float breakupScale,
-            float density)
+        private static void ApplyStyle(Material material, CloudDensityField field, float thickness, float breakupScale, float density)
         {
-            // Mixed: its cloud map is baked off the main thread as the weather moves (once a frame at most),
-            // over the whole map (Larger weather pattern: field.Scale x the pattern size).
+            // Mixed: its type map is baked off the main thread once per seed and map size.
             if (CloudStyle.MixedWanted)
-                CloudMixMap.Update(field, Coverage, patternSize, SkyPattern.FieldSeed, CloudStyle.MixShape);
+                CloudMixMap.Update(field, SkyPattern.FieldSeed);
 
             bool soft = CloudStyle.SoftDrawn;
-            bool drawn = CloudStyle.Drawn;
+            bool heaps = CloudStyle.HeapsDrawn;
             bool mixed = CloudStyle.MixedDrawn;
             string name = CloudStyle.Name(CloudStyle.Current);
 
             // Always on the log: it changes what is drawn. Once per state. Chosen but not there
             // yet is the few seconds its noise takes to make (CloudVolume), or a failure, said once.
             bool failed = CloudStyle.Failed || (CloudStyle.IsMixed && CloudMixMap.Failed);
-            string state = soft ? "soft" : mixed ? "mixed" : drawn ? "cumulus" : !CloudStyle.UsesNoise ? "classic" : failed ? "failed" : "waiting";
+            string state = soft ? "soft" : mixed ? "mixed" : heaps ? "cumulus" : !CloudStyle.UsesNoise ? "classic" : failed ? "failed" : "waiting";
             if (state != _styleLogged)
             {
                 _styleLogged = state;
                 Log.Msg(state == "soft"
                     ? "cloud style: Soft -- " + CloudSoft.Describe(CloudStyle.SoftLook, thickness)
                     : state == "mixed"
-                    ? "cloud style: Mixed -- " + CloudMix.DescribeShape(patternSize, CloudStyle.MixShape, field.Scale)
+                    ? "cloud style: Mixed -- " + CloudMix.DescribeShape(thickness, field.Scale)
                     : state == "cumulus"
                         ? "cloud style: Cumulus -- " + CloudStyle.DescribeShape()
                         : state == "classic"
@@ -324,18 +312,28 @@ namespace VolumetricClouds.Sky
                                 : "cloud style: " + name + " chosen; its noise or map is being made, drawn Classic until it is there");
             }
 
-            material.SetFloat(IdCloudStyle, soft ? 3f : mixed ? 2f : drawn ? 1f : 0f);
-            if (soft)
+            material.SetFloat(IdCloudStyle, soft ? 3f : mixed ? 2f : heaps ? 1f : 0f);
+            if (!soft && !mixed && !heaps)
+                return;
+
+            // The layer beside the heaps or the puffs: Classic's, its thickness following the map. `lod`
+            // is the Cumulus noise's (at the heaps' repeat now, Cumulus size, or the puffs'); the layer's
+            // detail is finer by the ratio of their texels.
+            float noiseTile = heaps ? CloudStyle.NoiseTileNow : CloudStyle.SoftLook.NoiseTile;
+            float[] layerLine = CloudStyle.LayerLineCached;
+            material.SetVector(IdLayerShape, new Vector4(Mathf.Max(50f, thickness), layerLine[0], layerLine[1], CloudStyle.LayerThinnest));
+            material.SetFloat(IdLayerShapeMax, CloudStyle.LayerThickest);
+            material.SetFloat(IdDetailLodShift, Mathf.Log(noiseTile / CloudDetail.Tile(breakupScale), 2f));
+            material.SetTexture(IdCumulusTex, CloudStyle.Texture);
+            material.SetTexture(IdWeatherScoreTex, field.ScoreTexture);
+
+            if (!heaps)
             {
-                ApplySoft(material, density);
+                ApplySoft(material, field, density);
+                if (mixed)
+                    ApplyMix(material, field);
                 return;
             }
-
-            if (!drawn)
-                return;
-
-            if (mixed)
-                ApplyMix(material, field, density);
 
             float[] c0 = CloudStyle.Cubics[0];
             float[] c1 = CloudStyle.Cubics[1];
@@ -346,18 +344,7 @@ namespace VolumetricClouds.Sky
             float lineA, lineB;
             CloudStyle.Line(CloudStyle.HeapEdge(CloudStyle.HeapCoverage(Coverage)), out lineA, out lineB);
 
-            // The layer beside them: Classic's, its thickness following the map. `lod` is the
-            // Cumulus noise's (at its repeat now: Cumulus size); the layer's detail is finer by the
-            // ratio of their texels.
-            float noiseTile = CloudStyle.NoiseTileNow;
-            float[] layerLine = CloudStyle.LayerLineCached;
-            material.SetVector(IdLayerShape, new Vector4(Mathf.Max(50f, thickness), layerLine[0], layerLine[1], CloudStyle.LayerThinnest));
-            material.SetFloat(IdLayerShapeMax, CloudStyle.LayerThickest);
-            material.SetFloat(IdDetailLodShift, Mathf.Log(noiseTile / CloudDetail.Tile(breakupScale), 2f));
-
             // Cumulus size and height (1.5.0): the noise's repeat and the coverage curve's span.
-            material.SetTexture(IdCumulusTex, CloudStyle.Texture);
-            material.SetTexture(IdWeatherScoreTex, field.ScoreTexture);
             material.SetVector(IdCumulusShape, new Vector4(lineA, lineB, CloudStyle.CoverageMax, 1f / CloudStyle.SpanNow));
 
             // Density in the units the march multiplies by _Absorption: the default Density slider
@@ -376,53 +363,18 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The Mixed style (CloudMix): its cloud map (CloudMixMap) and how to read it, the noise that
-        /// carves the clouds, and the layer's three thresholds (in a stretch of sky the type tips towards
-        /// layer, between, towards separate clouds) with the type's strength. Only while it is drawn:
-        /// the shader reads none of it otherwise. The scales are the map's own: the weather repeat it was
-        /// baked for.
+        /// The Mixed style (CloudMix): its type map (CloudMixMap) and the layer's three thresholds (in a
+        /// stretch of sky the type tips towards layer, between, towards puffs) with the type's strength;
+        /// the puffs' three are ApplySoft's. Only while it is drawn: the shader reads none of it otherwise.
         /// </summary>
-        private static void ApplyMix(Material material, CloudDensityField field, float density)
+        private static void ApplyMix(Material material, CloudDensityField field)
         {
             float cover = Coverage;
-            float bakedTile = CloudMixMap.BakedTile;
-            CloudMix.Shape shape = CloudMixMap.BakedShape;
-            float noiseTile = CloudMix.NoiseTile(bakedTile, shape);
-
             material.SetTexture(IdMixMap, CloudMixMap.Map);
-
-            // Metres per unit of what the map stores: x = a top (the tallest cloud the bake drew), y = a
-            // band (for the shape it was baked with); z = the base's soft metres.
-            material.SetVector(IdMixScale, new Vector4(CloudMixMap.BakedTallest, CloudMix.BandScale(bakedTile, shape),
-                CloudMix.BaseSoftness, 0f));
-
-            // The carving (EVE's in-between coverage), and the density at full in the units the march
-            // multiplies by _Absorption, scaled by the Density slider as the Cumulus heaps are.
-            material.SetVector(IdMixCarve, new Vector4(CloudMix.CoreCover, CloudMix.ErosionDepth, 1f / (1f - CloudMix.Hardness),
-                CloudMix.Extinction / Absorption * density / Settings.Defaults.Density));
-
-            // The noise: 1 / its repeat, its middle and stretch, and w the mip levels it sits above the
-            // Cumulus noise's (the march works its level out for that repeat). It moves WITH the clouds
-            // (the weather's drift over its own repeat): each cloud keeps its shape as it drifts.
-            // TEXTURE VARIETY (1.5.0): a finer repeat where the type leans to layer, a chunkier one where
-            // it leans to separate clouds (_MixNoise2), blended; at 0% one repeat, one read, as before.
-            float variety = CloudStyle.TextureVariety;
-            float fineTile = noiseTile * (1f - CloudMix.TextureFine * variety);
-            float chunkyTile = noiseTile * (1f + CloudMix.TextureChunky * variety);
-            float cumulusTile = CloudStyle.NoiseTileNow;
-            material.SetVector(IdMixNoise, new Vector4(1f / fineTile, CloudMix.NoiseMiddle, CloudMix.NoiseContrast,
-                Mathf.Log(cumulusTile / fineTile, 2f)));
-            material.SetVector(IdMixNoise2, new Vector4(1f / chunkyTile, Mathf.Log(cumulusTile / chunkyTile, 2f), variety > 0f ? 1f : 0f, 0f));
-            Vector2 phase = CloudWind.WeatherPhase(fineTile);
-            material.SetVector(IdMixPhase, new Vector4(phase.x, 0f, phase.y, 0f));
-            Vector2 phase2 = CloudWind.WeatherPhase(chunkyTile);
-            material.SetVector(IdMixPhase2, new Vector4(phase2.x, 0f, phase2.y, 0f));
-            material.SetVector(IdMixEnvelope, new Vector4(CloudMix.EnvelopeStart, CloudMix.EnvelopeGain, 0f, 0f));
 
             // The layer: Classic's own table (the gamma-decoded reading it was tuned on), so at 100%
             // all three are Classic's 100% (times the "Classic layer" share). x/z = a layer area / a
-            // separate-cloud area (x is the lowest, which the empty-sky skip tests against); w = the
-            // type's strength.
+            // puff area; w = the type's strength.
             material.SetVector(IdMixThreshold, new Vector4(
                 field.GetThreshold(CloudStyle.MixedLayerInLayerArea(cover)),
                 field.GetThreshold(CloudStyle.MixedLayer(cover)),
@@ -440,6 +392,7 @@ namespace VolumetricClouds.Sky
 
         private static int _mixLogged = -1;
 
+        private static readonly int IdSoftThreshold = Shader.PropertyToID("_SoftThreshold");
         private static readonly int IdSoftShape = Shader.PropertyToID("_SoftShape");
         private static readonly int IdSoftNoise = Shader.PropertyToID("_SoftNoise");
         private static readonly int IdSoftCarve = Shader.PropertyToID("_SoftCarve");
@@ -449,26 +402,30 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSoftPhase = Shader.PropertyToID("_SoftPhase");
 
         /// <summary>
-        /// The Soft style (CloudSoft): its look as uniforms for SoftDensity (CloudCommon.cginc), which
-        /// cuts the map at _Threshold (LayerCoverage: CloudSoft.EdgeCoverage), carves with the Cumulus
-        /// noise at its own repeat and phase (the fine read at a whole multiple of them, so it shares the
-        /// phase) and pushes both lookups about by the 64^3 noise at the Classic layer's lookup
-        /// (_NoiseTile, _NoisePhase). Only while Soft is drawn: the shader reads none of it otherwise.
+        /// The puffs (CloudSoft), under Soft and Mixed: their look as uniforms for SoftDensity
+        /// (CloudCommon.cginc), which cuts the map at _SoftThreshold (PuffCoverage: Soft's one, or Mixed's
+        /// three for its type), carves with the Cumulus noise at its own repeat and phase (the fine read
+        /// at a whole multiple of them, so it shares the phase) and pushes both lookups about by the 64^3
+        /// noise at the Classic layer's lookup (_NoiseTile, _NoisePhase). Only while they are drawn: the
+        /// shader reads none of it otherwise.
         /// </summary>
-        private static void ApplySoft(Material material, float density)
+        private static void ApplySoft(Material material, CloudDensityField field, float density)
         {
             CloudSoft.Look look = CloudStyle.SoftLook;
             float tallest = CloudStyle.SoftTallestNow;
             float multiple = Mathf.Max(1f, Mathf.Round(look.WispMultiple));
 
+            float middle = field.GetThreshold(PuffCoverage(1));
+            bool mixed = CloudStyle.MixedDrawn;
+            material.SetVector(IdSoftThreshold, new Vector4(mixed ? field.GetThreshold(PuffCoverage(0)) : middle, middle,
+                mixed ? field.GetThreshold(PuffCoverage(2)) : middle, 0f));
+
             // The density at full in the units the march multiplies by _Absorption: the default Density
             // slider is look.Extinction per metre, and the slider scales it as it scales the others.
             material.SetVector(IdSoftShape, new Vector4(1f / look.Span, tallest, look.Middle,
                 look.Extinction / Absorption * density / Settings.Defaults.Density));
-            material.SetTexture(IdCumulusTex, CloudStyle.Texture);
             material.SetVector(IdSoftNoise, new Vector4(1f / look.NoiseTile, look.NoiseMiddle, look.NoiseContrast, look.Erosion));
-            material.SetVector(IdSoftCarve, new Vector4(1f / look.Softness, look.Fill, 1f / look.FillSpan,
-                CloudSoft.Floor(look, Coverage)));
+            material.SetVector(IdSoftCarve, new Vector4(1f / look.Softness, look.Fill, 1f / look.FillSpan, 0f));
             material.SetVector(IdSoftWisp, new Vector4(look.Wisp, multiple, Mathf.Log(multiple, 2f),
                 1f / Mathf.Max(look.WispHeight * tallest, 1f)));
             material.SetVector(IdSoftFringe, new Vector4(look.Fringe, 1f / look.FringeReach, Mathf.Clamp01(look.EdgeFade), look.Warp));
@@ -537,16 +494,16 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Metres per texel of the noise the style in use carves with: cloud detail's texture for
-        /// Classic, the Cumulus noise (at its repeat now: Cumulus size) for Cumulus and Mixed, the
-        /// Cumulus noise at Soft's own repeat for Soft (its fine read is log2 of the multiple finer).
+        /// Classic, the Cumulus noise (at its repeat now: Cumulus size) for Cumulus, the Cumulus noise at
+        /// the puffs' own repeat for Soft and Mixed (their fine read is log2 of the multiple finer).
         /// </summary>
         public static float NoiseTexel
         {
             get
             {
-                if (CloudStyle.SoftDrawn)
+                if (CloudStyle.PuffsDrawn)
                     return CloudStyle.SoftLook.NoiseTile / CumulusNoise3D.Size;
-                if (CloudStyle.Drawn)
+                if (CloudStyle.HeapsDrawn)
                     return CloudStyle.NoiseTileNow / CumulusNoise3D.Size;
 
                 float scale = Settings.CloudBreakupScale != null ? Settings.CloudBreakupScale.value : Settings.Defaults.BreakupScale;
@@ -561,27 +518,45 @@ namespace VolumetricClouds.Sky
         public static float DetailLod(float metres)
         {
             // Under Cumulus unclamped: the layer's detail, finer than the Cumulus noise, clamps its
-            // own level in the shader (SampleDensityLod). Under Soft too: its fine read fades out above 0.
+            // own level in the shader (SampleDensityLod). Under Soft and Mixed too: their fine read fades out above 0.
             float lod = Mathf.Log(Mathf.Max(metres, 1e-3f) / NoiseTexel, 2f);
             return CloudStyle.LobesLight ? lod : Mathf.Max(0f, lod);
         }
 
         /// <summary>
-        /// Cloud fragments (CloudFragments), round the layer's clouds in both styles. Off, the
+        /// The share of the sky cloud fragments cover now, 0 = none: the slider's (CloudFragments.Share),
+        /// under Soft times its layer's share -- they shape the layer, which Soft draws only at high
+        /// intensity, so below it Soft's sky stays as it is with fragments on.
+        /// </summary>
+        public static float FragmentShare
+        {
+            get
+            {
+                return CloudStyle.SoftDrawn
+                    ? CloudFragments.Share * CloudSoft.LayerShare(CloudStyle.SoftLook, Coverage) * CloudStyle.LayerAmount
+                    : CloudFragments.Share;
+            }
+        }
+
+        /// <summary>
+        /// Cloud fragments (CloudFragments), round the layer's clouds in every style. Off, the
         /// amount is written as 0 and nothing else is looked at: every use of them sits behind that
         /// uniform branch.
         /// </summary>
         private static void ApplyFragments(Material material, CloudDensityField field, float weatherTile, float thickness)
         {
-            bool on = CloudFragments.On;
+            float share = FragmentShare;
+            bool on = share > 0f;
             CloudFragments.Style style = CloudFragments.Current;
-            string logged = on ? style.Name : null;
+            bool waiting = !on && CloudFragments.On;
+            string logged = on ? style.Name : waiting ? "waiting" : null;
             if (logged != _fragmentsLogged)
             {
                 // Always on the log: it changes what is drawn. Once per switch or style, not per
                 // material and not per tick of the amount slider.
                 _fragmentsLogged = logged;
-                Log.Msg("cloud fragments: " + (on ? "ON, " : "") + CloudFragments.Describe());
+                Log.Msg("cloud fragments: " + (on ? "ON, " : "") + CloudFragments.Describe() +
+                        (waiting ? " -- none drawn until Soft's Classic layer comes in" : ""));
             }
 
             if (!on)
@@ -599,7 +574,6 @@ namespace VolumetricClouds.Sky
             // AreaShare of the sky, so their own share is raised to match: the total is about
             // what the slider says. A style let in everywhere gets an area threshold no weather
             // value is under.
-            float share = CloudFragments.Share;
             float softness = CloudDensityField.EdgeSoftness;
             bool everywhere = style.AreaShare >= 1f;
             material.SetFloat(IdFragAmount, share);

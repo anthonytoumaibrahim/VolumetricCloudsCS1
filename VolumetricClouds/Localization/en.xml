@@ -138,9 +138,6 @@
   <String key="CumulusSize.Label">Cumulus size</String>
   <String key="CumulusHeight.Label">Cumulus height</String>
   <String key="CumulusAmount.Label">Cumulus amount</String>
-  <String key="MixedBigClouds.Label">Big clouds</String>
-  <String key="MixedShapes.Label">Cloud shapes (round to irregular)</String>
-  <String key="MixedTextureVariety.Label">Texture variety</String>
 
   <String key="Group.CloudShape">Height and shape</String>
   <String key="CloudAltitude.Label">Cloud altitude</String>

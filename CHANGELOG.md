@@ -11,15 +11,14 @@ A new look for the in-game panel, fog that changes on its own, two new cloud sty
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-five lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `DynamicDistantClouds`
+`VolumetricClouds.xml` gains twenty-two lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `DynamicDistantClouds`
 (on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
 back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (off), `FogChangesWithWeather`, `MorningFog`,
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
-(off), `WindDirection` (0: follow the game) with `WindAngle`, `CumulusSize`, `CumulusHeight` and
-`CumulusAmount` at 100%, and `MixedBigClouds`, `MixedShapes` and `MixedTextureVariety` at 50% (read
-only under the new *Mixed* style). At those values the fog, the clouds and the wind are exactly as
+(off), `WindDirection` (0: follow the game) with `WindAngle`, and `CumulusSize`, `CumulusHeight` and
+`CumulusAmount` at 100%. At those values the fog, the clouds and the wind are exactly as
 before, so apart from the distant clouds nothing changes for anyone until they move one. Profiles saved before read the new
 sliders at those values. Thirteen settings get a value at sunset and at night (*Day, sunset and
 night*): twenty-five more lines, each written with the player's own value of that setting, so their
@@ -121,25 +120,19 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
 A third choice for *Cloud style* on the Clouds tab, next to *Classic* and *Cumulus*: one style for
 every kind of weather, so there's no need to switch between the other two.
 
-- In a light sky the clouds are separate: many of them, spread across the sky, each with its own
-  size and height, puffy on top and flat underneath, like fair-weather cumulus.
+- In a light sky the clouds are the *Soft* style's (below): puffs of many sizes with soft, wispy
+  edges, fewer of them than under *Soft* at the same intensity.
 - As the intensity rises they grow and gather, and the Classic layer comes in under and between
-  them. From about 85% the layer takes over, with some cumulus rising out of it.
+  them. From about 85% the layer takes over, with puffs rising out of it.
 - At 100% the sky is as fully covered as *Classic* at 100%.
-- The mix isn't the same everywhere: some stretches of sky lean toward separate clouds, others
-  toward the layer, and the balance changes as the weather moves through.
-- New clouds form out of a few small puffs and grow, rather than appearing all at once.
+- The mix isn't the same everywhere: some stretches of sky lean toward puffs, others toward the
+  layer, and the balance changes as the weather moves through.
 - Rain, lightning, the cloud shadows and the rainbows follow the clouds as they're drawn. The
   layer's settings (*Layer thickness*, *Cloud detail*, *Break-up*, *Cloud fragments*) shape its
-  layer, as they do under *Cumulus*. *Classic layer* sets how much of the layer comes in, as it does
-  under *Cumulus*.
-- Its own variety, each 0% to 100%, 50% by default (0% is the style as first built):
-  - *Big clouds*: now and then a cloud grows bigger and a little taller than the rest, like the
-    occasional towering cumulus in a fair-weather sky (one in ten at 50%, one in five at 100%).
-  - *Cloud shapes (round to irregular)*: the clouds get more lobes, spread wider, and some are drawn
-    out one way, so they don't all look like one family.
-  - *Texture variety*: chunkier lobes where the sky leans toward separate clouds, finer ones where
-    it leans toward the layer.
+  layer, as they do under *Cumulus*; *Layer thickness* also sets how tall the puffs can get (twice
+  the thickness). *Classic layer* sets how much of the layer comes in, as it does under *Cumulus*.
+- The clouds are lit at their own level, as under *Soft*, so at the same *Cloud brightness* a *Mixed*
+  sky is about as bright as a *Cumulus* one.
 
 ### New: the Soft cloud style
 
@@ -151,22 +144,24 @@ A fourth choice for *Cloud style*: fair-weather clouds made of many puffs, with 
   The middles of the biggest clouds stay solid.
 - A cloud's height follows how strong the weather is there: in a light sky the clouds are small and
   low, and in heavier weather they grow taller. Their bases are nearly flat.
-- About as much of the sky is cloudy as under *Cumulus* at the same intensity. At full intensity the
-  sky turns into a broken overcast.
+- About as much of the sky is cloudy as under *Cumulus* at the same intensity.
+- From about 60% the Classic layer comes in among the puffs, as under *Cumulus*, and from about 80%
+  the puffs stop spreading: the layer, which follows the weather's big shapes, carries the heavy end,
+  so a full sky doesn't show the same pattern of puffs over and over. At full intensity the sky is a
+  broken overcast. *Classic layer* sets how much of the layer comes in (0%: none).
 - The clouds are lit at their own level, so at the same *Cloud brightness* a *Soft* sky is about as
   bright as a *Cumulus* one.
 - Rain, lightning, the cloud shadows and the rainbows follow the clouds as they do under *Classic*.
 - *Layer thickness* sets how tall the clouds can get (twice the thickness). The rows that shape the
-  Classic layer (*Cloud detail*, *Break-up*, *Break-up detail*, *Cloud fragments*) do nothing under
-  *Soft* and are hidden while it's picked (greyed when advanced options are on).
+  Classic layer (*Cloud detail*, *Break-up*, *Break-up detail*, *Cloud fragments*) shape its layer
+  here too; cloud fragments come in with the layer.
 - Like *Cumulus*, it takes a few seconds after you pick it (or load a city) to get ready; the clouds
   are drawn *Classic* until then.
 
 ### New: cumulus size, height and amount
 
-Three sliders on the Clouds tab, shown under *Cumulus* and *Mixed*, 100% by default (the clouds as
-before). Under *Cumulus* they shape the heaps, under *Mixed* the separate clouds; the Classic layer
-keeps its own settings.
+Three sliders on the Clouds tab, shown under *Cumulus*, 100% by default (the clouds as before). They
+shape the heaps; the Classic layer keeps its own settings.
 
 - *Cumulus size*, 50% to 200%: smaller or bigger clouds, wider and taller together, their lobes with them.
 - *Cumulus height*, 50% to 200%: flatter or taller for their width.
@@ -358,8 +353,27 @@ blocks") were a lens carved gently by the 64^3 noise: "big lumps with hard edges
 Round 3, from his photo of fair-weather cumulus ("too lumpy ... wispy like cotton candy ... parts of
 them are floating away"): the Cumulus noise carves the shapes, the weather map only gathers them, a
 fine read frays the edges, an overcast floor from 90%, the amount table solved again; it waits for the
-Cumulus noise (drawn Classic until then). In his session no dearer than Cumulus. Left: the next steps
-he has in mind, the Workshop description and change note.
+Cumulus noise (drawn Classic until then). In his session no dearer than Cumulus. Left: the Workshop
+description and change note.
+
+Then, the same evening, after "Soft in low overcast/intensity -> beautiful. But in high intensity the
+pattern is too obvious": the Classic layer from 60% (Classic's own cover from 95%, times *Classic
+layer*), the puffs stop spreading at 80% (cut at 96% of the map; following the intensity past it put
+puffs over the whole map at 100% -- the threshold falls steeply there), the overcast floor gone, the
+light rising from the puffs' x0.5 to x0.8 between 85% and 100% (measured against Cumulus's brightness on
+the offline renders; at the layer's share it was 10% brighter), fragments coming in with the layer, the
+layer rows no longer greyed. Rain and lightning: the larger of the puffs' and the layer's cover, the
+intensity itself with *Classic layer* at 100%. Amount against Cumulus (three maps): the same from 95% up
+(46/47% of the sky at 95%, 88/87% at 100%), 25-33% against 29-38% at 80-90%. Built with Mixed's change
+below, one bundle (AMD check passes). To check in-game: Soft at 85-100% zoomed out (the 2.3 km repeat
+gone), 25-60% unchanged, no band where the layer comes in, the brightness at 90-100% against Cumulus;
+the log's `cloud style: Soft -- ... the Classic layer from 60%, ...` and the frame line's `emptySky=`.
+Then its COST (2026-10-17 night, his "the performance of the Soft clouds is absolutely awful"; his log, one
+view: Soft 100-135 ms at 54-100%, Cumulus 40-45 ms): Soft and Mixed now march the Quality setting's steps
+(96, was 192 -- their 900 m slab put 2.4x Cumulus's steps in every cloud) and read the fine detail in the
+first of the light's sun looks only. Offline: half the density reads per pixel, within 0.3-0.5/255 of
+before on average. To check in-game: the frame line (`steps=96 ... style=Soft`) against those numbers in
+the same view, and no new grain on the near clouds (Smoother clouds off too).
 
 Built, awaiting the in-game test:
 
@@ -434,7 +448,16 @@ Built, awaiting the in-game test:
   mean instead of the noise, and the empty-sky skip knows where its clouds reach. Tested 2026-10-12:
   liked ("I do like Mixed"), no dearer than Cumulus with *Smoother clouds* on (42%: 26-27 ms against
   Cumulus's 29.7; 84%: both 38-41 ms). Then "can we add more variety?": the cumulus rows and Mixed's
-  three variety rows (written up above), built the same day, awaiting the in-game look.
+  three variety rows, built the same day. 2026-10-17 evening, after "Mixed -> ugly in low intensity
+  [separate, similar-sized cut-outs] but fine in high intensity": its separate clouds became the *Soft*
+  style's puffs, cut as at a share of the intensity (solved so the sky is as cloudy as before, on average
+  over three maps: 47% about 5.5% of the sky), its layer and type pattern unchanged; the map holds only
+  the type now, baked once per city (no bakes as the weather moves). Its light: the puffs' x0.5 rising
+  to x0.8 with the intensity (measured against Cumulus's brightness; its old x1 was 6% brighter). *Big clouds*, *Cloud shapes* and
+  *Texture variety* removed (never released; his settings file and profiles lose the three lines: the
+  `settings:` line names them once as unknown); the cumulus rows shape only *Cumulus* now. To check
+  in-game: Mixed at 10-40% looks like Soft (no cut-outs), 70-100% as before, the type stretches still
+  read as variety, cost against Mixed before; the log's `mixed style: type map baked ...` once per city.
 - *Distant clouds* (written up above): built 2026-10-12 from the author's picks (C2, C3, C6, S1, S7,
   F2, F6, M2 of 30 shortlisted Poly Haven skies; `tools/make-skylayer.ps1` cuts the clouds out of
   each 4K HDR), dropped the same day ("a cubemap does the same"), RESTORED 2026-10-13 on the author's

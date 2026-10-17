@@ -451,8 +451,8 @@ namespace VolumetricClouds
         /// THE CLOUD STYLE (Sky.CloudStyle, 1.2), stored by VALUE (append only): 0 Classic, the
         /// cloud layer the mod has always drawn; 1 Cumulus, EVE-Redux V5's model -- every cloud
         /// carved from one big noise, each with its own height; 2 Mixed (1.5.0, Sky.CloudMix),
-        /// separate clouds with the Classic layer coming in as the intensity rises; 3 Soft (1.5.0,
-        /// Sky.CloudSoft), clouds thin all through with no hard edge. Classic by
+        /// Soft's puffs with the Classic layer coming in as the intensity rises; 3 Soft (1.5.0,
+        /// Sky.CloudSoft), puffs with soft, wispy edges, the layer at high intensity. Classic by
         /// default, for everyone: the others are chosen on the panel. A settings file from before
         /// the row existed means Classic too, whatever the default (Row.OlderFileInt).
         /// </summary>
@@ -462,30 +462,21 @@ namespace VolumetricClouds
         /// Under Cumulus, how much of the Classic layer is mixed in among the heaps, 0..1 (1.3.0,
         /// asked for: "For Cumulus we combined them with our classic style... Maybe we can give the
         /// user the control for this too?"). The layer's share of the cover: 1 = the combination as
-        /// it shipped in 1.2 (the default, so nobody's sky changes), 0 = the heaps alone.
+        /// it shipped in 1.2 (the default, so nobody's sky changes), 0 = the heaps alone. Under Mixed
+        /// and Soft (1.5.0) the same share of their layer.
         /// </summary>
         public static FloatSetting CumulusLayer { get; private set; }
 
         /// <summary>
-        /// 1.5.0, the author: "can we add more variety? ... multiple options for the mixed clouds
-        /// themselves? ... Same goes for cumulus". The CUMULUS rows, shared by both styles that draw
-        /// cumulus -- Cumulus's heaps, Mixed's separate clouds (Sky.CloudStyle, Sky.CloudMix): their
-        /// size (width and height, 0.5..2), their height alone (0.5..2) and their amount at a given
-        /// intensity (0..2). 1 = the clouds as they were (the defaults: nobody's sky changes).
+        /// 1.5.0, the author: "can we add more variety? ... Same goes for cumulus". The CUMULUS rows,
+        /// Cumulus's heaps (Sky.CloudStyle): their size (width and height, 0.5..2), their height alone
+        /// (0.5..2) and their amount at a given intensity (0..2). 1 = the heaps as they were (the
+        /// defaults: nobody's sky changes). (Mixed's three rows of its own, Big clouds, Cloud shapes and
+        /// Texture variety, went with its separate clouds before release, 2026-10-17.)
         /// </summary>
         public static FloatSetting CumulusSize { get; private set; }
         public static FloatSetting CumulusHeight { get; private set; }
         public static FloatSetting CumulusAmount { get; private set; }
-
-        /// <summary>
-        /// 1.5.0, Mixed only (Sky.CloudMix.Shape and the shader's texture variety), 0..1 each: Big
-        /// clouds (the occasional towering one among the small), Cloud shapes (round to irregular)
-        /// and Texture variety (chunkier lobes where the sky leans to separate clouds, finer where it
-        /// leans to layer). 0 = Mixed as first built.
-        /// </summary>
-        public static FloatSetting MixedBigClouds { get; private set; }
-        public static FloatSetting MixedShapes { get; private set; }
-        public static FloatSetting MixedTextureVariety { get; private set; }
 
         /// <summary>Vertical extent of the cloud layer, in metres.</summary>
         public static FloatSetting CloudThickness { get; private set; }
@@ -765,12 +756,6 @@ namespace VolumetricClouds
 
             /// <summary>The cumulus rows (1.5.0): the clouds as they were, so a new row changes nobody's sky.</summary>
             public const float CumulusSize = 1f, CumulusHeight = 1f, CumulusAmount = 1f;
-
-            /// <summary>
-            /// Mixed's variety (1.5.0): half way, asked for ("can we add more variety?"). Mixed is new
-            /// in 1.5.0 too, so no player's sky had it before.
-            /// </summary>
-            public const float MixedBigClouds = 0.5f, MixedShapes = 0.5f, MixedTextureVariety = 0.5f;
 
             public const float Altitude = 750f;
             public const float Thickness = 400f;
@@ -1201,9 +1186,6 @@ namespace VolumetricClouds
                 CumulusSize = new FloatSetting("CumulusSize", Defaults.CumulusSize);
                 CumulusHeight = new FloatSetting("CumulusHeight", Defaults.CumulusHeight);
                 CumulusAmount = new FloatSetting("CumulusAmount", Defaults.CumulusAmount);
-                MixedBigClouds = new FloatSetting("MixedBigClouds", Defaults.MixedBigClouds);
-                MixedShapes = new FloatSetting("MixedShapes", Defaults.MixedShapes);
-                MixedTextureVariety = new FloatSetting("MixedTextureVariety", Defaults.MixedTextureVariety);
                 CloudThickness = new FloatSetting("CloudThickness", Defaults.Thickness);
                 CloudDensity = new FloatSetting("CloudDensity", Defaults.Density);
                 CloudDensitySunset = new FloatSetting("CloudDensitySunset", Defaults.DensitySunset);

@@ -3,14 +3,12 @@
 #   dotnet build VolumetricClouds/VolumetricClouds.csproj
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\test-mix.ps1
 #
-# What it guards: the march's slab holds every top; the layer's three covers keep their order (the
-# rain is cut at the smallest, so it always falls from drawn cloud -- invariant 2; the empty-sky skip
-# tests the layer at the largest) and at 100% are all Classic's own (the author: "100% should mean
-# 100%"); the curves only ever rise with the intensity; the cells and the noise fit every weather
-# repeat the slider allows; the hash -- part of what a city's seed reproduces (invariant 14) -- is in
-# range, steady and even; the bake is the same every time, its map holds the type and a top under
-# every profile, and the empty-sky cells it marks hold every point that can read a cloud (a missed
-# one would be a hole in the sky); and the light's cheap looks are the carving's mean (1.5.0).
+# What it guards: the layer's three covers keep their order (the rain is cut at the smallest, so it
+# always falls from drawn cloud -- invariant 2) and at 100% are all Classic's own (the author: "100%
+# should mean 100%"); the curves only ever rise with the intensity; the puffs (Soft's, since 2026-10-17)
+# are cut as at a share of the intensity that keeps their order across the type's areas; the hash -- part
+# of what a city's seed reproduces (invariant 14) -- is in range, steady and even; the type pattern
+# repeats with the weather map and bakes the same at the larger pattern.
 
 param(
     [string]$Dll = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\Addons\Mods\VolumetricClouds\VolumetricClouds.dll"
@@ -47,43 +45,6 @@ public static class MixResolver
 
 public static class MixBytes
 {
-    public static bool Same(byte[] a, byte[] b)
-    {
-        if (a.Length != b.Length) return false;
-        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
-        return true;
-    }
-
-    // Texels with a profile whose bilinear footprint (a texel each way) reaches an unmarked empty-sky
-    // cell: the corners of that square name every cell it touches (a cell is wider than the square).
-    public static int Missed(byte[] map, int size, byte[] presence, int m)
-    {
-        int missed = 0;
-        for (int j = 0; j < size; j++)
-            for (int i = 0; i < size; i++)
-            {
-                if (map[(j * size + i) * 4] == 0) continue;
-                bool ok = true;
-                for (int c = 0; c < 4 && ok; c++)
-                {
-                    double x = i + 0.5 + ((c & 1) == 0 ? -0.999 : 0.999), y = j + 0.5 + ((c & 2) == 0 ? -0.999 : 0.999);
-                    int cx = Wrap((int)Math.Floor(x / size * m), m), cy = Wrap((int)Math.Floor(y / size * m), m);
-                    if (presence[cy * m + cx] == 0) ok = false;
-                }
-                if (!ok) missed++;
-            }
-        return missed;
-    }
-
-    static int Wrap(int v, int n) { int r = v % n; return r < 0 ? r + n : r; }
-
-    public static bool SameF(float[] a, float[] b)
-    {
-        if (a.Length != b.Length) return false;
-        for (int i = 0; i < a.Length; i++) if (BitConverter.DoubleToInt64Bits(a[i]) != BitConverter.DoubleToInt64Bits(b[i])) return false;
-        return true;
-    }
-
     // The largest step between neighbouring texels of a square byte map, across its wrap too.
     public static int MaxStep(byte[] map, int size)
     {
@@ -98,20 +59,11 @@ public static class MixBytes
         return most;
     }
 
-    // The carving's mean over a noise volume at one profile (the shader's formula; the test checks it
-    // is the DLL's twin, CloudMix.CarvedDensity, before trusting it).
-    public static double Mean(byte[] noise, double profile, double cc, double ed, double hard, double mid, double con)
+    public static bool Same(byte[] a, byte[] b)
     {
-        var hist = new long[256];
-        foreach (byte b in noise) hist[b]++;
-        double sum = 0;
-        for (int i = 0; i < 256; i++)
-        {
-            if (hist[i] == 0) continue;
-            double n = Math.Max(0, Math.Min(1, (i / 255.0 - mid) * con + 0.5));
-            sum += Math.Max(0, Math.Min(1, (profile * cc - ed * (1 - n)) / (1 - hard))) * hist[i];
-        }
-        return sum / noise.Length;
+        if (a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+        return true;
     }
 }
 "@
@@ -121,6 +73,7 @@ public static class MixBytes
 [void][System.Reflection.Assembly]::LoadFrom("$managed\UnityEngine.dll")
 $asm = [System.Reflection.Assembly]::Load([System.IO.File]::ReadAllBytes($Dll))
 $mix = $asm.GetType("VolumetricClouds.Sky.CloudMix")
+$soft = $asm.GetType("VolumetricClouds.Sky.CloudSoft")
 $failed = 0
 function Check([bool]$ok, [string]$what) {
     if ($ok) { "  ok   $what" } else { "FAIL $what"; $script:failed++ }
@@ -131,32 +84,25 @@ function Call([string]$name, [object[]]$arguments) {
     return $m.Invoke($null, $arguments)
 }
 
-"=== the bubbles ==="
-$sideExtent = [double](Value "SatelliteDistance") + [double](Value "SatelliteDistanceSpan") + [double](Value "SatelliteRadius") + [double](Value "SatelliteRadiusSpan")
-Check ([Math]::Abs([double](Value "Extent") - $sideExtent) -lt 1e-6) ("the bake reaches {0:F2} x a cloud's radius: as far as its side bubbles go" -f $sideExtent)
-$sideHeight = [double](Value "SatelliteHeight") + [double](Value "SatelliteHeightSpan")
-$tallest = [double](Call "Tallest" @([single]13500)); $cell = [double](Call "CellSize" @([single]13500))
-$expected = [double](Value "RadiusMax") * $cell * ([double](Value "Aspect") + [double](Value "AspectVariety") / 2) * [Math]::Max(1.0, $sideHeight)
-Check ([Math]::Abs($tallest - $expected) -lt 0.5) ("the tallest cloud ({0:F0} m) is the largest cloud's tallest bubble: the march's slab holds every top" -f $tallest)
-
 "=== the layer's covers (CloudShaderParams.ApplyMix, CloudStyle.CloudTestCoverage) ==="
-$ordered = $true; $risesL = $true; $risesM = $true; $risesC = $true; $risesS = $true; $underCover = $true
-$prev = @(-1.0, -1.0, -1.0, -1.0)
+$ordered = $true; $risesL = $true; $risesM = $true; $risesC = $true; $underCover = $true; $shareOk = $true
+$prev = @(-1.0, -1.0, -1.0)
 for ($i = 0; $i -le 200; $i++) {
     $x = [single]($i / 200.0)
     $l = [double](Call "LayerCoverInLayerArea" @($x)); $m = [double](Call "LayerCover" @($x)); $c = [double](Call "LayerCoverInCumulusArea" @($x))
-    $s = [double](Call "FieldShare" @($x))
     if (-not ($l -ge $m - 1e-6 -and $m -ge $c - 1e-6)) { $ordered = $false }
     if ($c -gt $x + 1e-6) { $underCover = $false }
     if ($l -lt $prev[0] - 1e-6) { $risesL = $false }; if ($m -lt $prev[1] - 1e-6) { $risesM = $false }
-    if ($c -lt $prev[2] - 1e-6) { $risesC = $false }; if ($s -lt $prev[3] - 1e-6) { $risesS = $false }
-    $prev = @($l, $m, $c, $s)
+    if ($c -lt $prev[2] - 1e-6) { $risesC = $false }
+    if ([Math]::Abs([double](Call "LayerShare" @($x)) * $x - $m) -gt 1e-6) { $shareOk = $false }
+    $prev = @($l, $m, $c)
 }
-Check $ordered "in a layer area >= between >= in a separate-cloud area, at every intensity (the rain, cut at the last, is always under drawn layer)"
+Check $ordered "in a layer area >= between >= in a puff area, at every intensity (the rain, cut at the last, is always under drawn layer)"
 Check $underCover "the rain's cover is never more than the cover in effect"
 Check ($risesL -and $risesM -and $risesC) "the three layer covers only rise with the intensity"
-Check $risesS "the share of cells holding a cloud only rises with the intensity"
-Check ([double](Call "FieldShare" @([single]0)) -eq 0) "no separate clouds at 0%"
+Check $shareOk "the layer's share is its cover over the intensity"
+$lightFrom = [double](Value "LightFrom")
+Check ([double](Call "LightShare" @([single]$lightFrom)) -eq 0 -and [Math]::Abs([double](Call "LightShare" @([single]1)) - 1) -lt 1e-6) ("the puffs' light rises to the layer's from {0:P0} to 100%" -f $lightFrom)
 $at1 = @((Call "LayerCoverInLayerArea" @([single]1)), (Call "LayerCover" @([single]1)), (Call "LayerCoverInCumulusArea" @([single]1)))
 Check (($at1 | Where-Object { [Math]::Abs([double]$_ - 1.0) -gt 1e-6 }).Count -eq 0) "at 100% all three covers are 1: the layer is Classic's own 100% (no gaps from below)"
 Check ([double](Call "TypeStrength" @([single]1)) -eq 0) "at 100% the type is gone: every stretch of sky the same"
@@ -164,20 +110,28 @@ Check ([double](Call "TypeStrength" @([single]0.9)) -eq 1) "up to 90% the type t
 Check ([double](Call "LayerCover" @([single]0.2)) -eq 0) "no layer at 20% (between)"
 Check ([Math]::Abs([double](Call "LayerCover" @([single]0.9)) - 0.9) -lt 1e-6) "from 85% the layer is cut at the cover in effect, as Classic's"
 
-"=== the cells over every weather repeat the slider allows (3-20 km) ==="
-$cellsOk = $true; $worst = ""; $noiseOk = $true
-foreach ($tile in 3000, 3500, 4500, 7000, 10000, 13500, 16750, 20000) {
-    $n = [int](Call "Cells" @([single]$tile)); $size = [double](Call "CellSize" @([single]$tile)); $tall = [double](Call "Tallest" @([single]$tile))
-    $noise = [double](Call "NoiseTile" @([single]$tile))
-    if ($n -lt 1 -or $size -lt 600 -or $size -gt 1500 -or [Math]::Abs($n * $size - $tile) -gt 0.5 -or $tall -gt 1100) { $cellsOk = $false; $worst += " $tile" }
-    if ($noise -lt 300 -or $noise -gt 800) { $noiseOk = $false }
-    "  {0,6} m: {1,2} cells of {2,4:F0} m, tallest cloud {3,4:F0} m, noise every {4,3:F0} m" -f $tile, $n, $size, $tall, $noise
+"=== the puffs (Soft's, cut as at CloudMix.PuffIntensity) ==="
+$table = [single[]](Value "PuffTable")
+Check ($table.Length -eq 21 -and ($table | Where-Object { $_ -lt 0 -or $_ -gt 2 }).Count -eq 0) "the puffs' share of the intensity: one value per 5%, 0..2"
+$puffOrder = $true; $puffRange = $true; $line = ""
+for ($i = 0; $i -le 100; $i++) {
+    $x = [single]($i / 100.0)
+    $a0 = [double](Call "PuffIntensity" @($x, [int]0)); $a1 = [double](Call "PuffIntensity" @($x, [int]1)); $a2 = [double](Call "PuffIntensity" @($x, [int]2))
+    if (-not ($a0 -le $a1 + 1e-6 -and $a1 -le $a2 + 1e-6)) { $puffOrder = $false }
+    if ($a0 -lt 0 -or $a2 -gt 1) { $puffRange = $false }
+    if ($i % 20 -eq 0 -or $i -eq 47) { $line += (" {0}%: {1:F2}/{2:F2}/{3:F2}" -f $i, $a0, $a1, $a2) }
 }
-Check $cellsOk "a whole number of cells per repeat, 600-1500 m each, the tallest cloud under 1.1 km$worst"
-Check $noiseOk "the clouds' noise repeats every 300-800 m: lobes at the clouds' own scale"
+"  cut as at (layer area / between / puff area):$line"
+Check $puffOrder "fewer puffs where the type leans to layer, more where it leans to puffs, at every intensity"
+Check $puffRange "the intensity they are cut as at stays within 0..1"
+Check ([double](Call "PuffIntensity" @([single]0, [int]2)) -eq 0) "no puffs at 0%"
+$look = $soft.GetProperty("Default").GetValue($null, $null)
+$puffCover = $soft.GetMethod("PuffCoverage")
+$c47 = [double]$puffCover.Invoke($null, [object[]]@($look, [single](Call "PuffIntensity" @([single]0.47, [int]1))))
+$s47 = [double]$puffCover.Invoke($null, [object[]]@($look, [single]0.47))
+Check ($c47 -le $s47 + 1e-6) ("at 47% Mixed's puffs are cut at {0:P0} of the map, Soft's at {1:P0}: Mixed's light sky stays lighter, as before" -f $c47, $s47)
 
-"=== the hash (CloudMix.Hash: where the bake puts the clouds) ==="
-$sx = [single]0; $sz = [single]0
+"=== the hash (CloudMix.Hash: the type pattern's lattice) ==="
 $offsets = $mix.GetMethod("SeedOffsets")
 $seedsOk = $true
 foreach ($seed in 0, 1, 12345, -7, 2147483647, -2147483648, 89997) {
@@ -199,16 +153,16 @@ for ($z = 0; $z -lt $n; $z++) { for ($x = 0; $x -lt $n; $x++) {
     $pairs += ($h - 0.5) * ($hRight - 0.5); $pairsK += ($h - 0.5) * ($hK - 0.5) } }
 $mean = $sum / $count; $var = $sum2 / $count - $mean * $mean
 $corr = ($pairs / $count) / $var; $corrK = ($pairsK / $count) / $var
-Check $inRange "0 <= hash < 1 over $count cells"
+Check $inRange "0 <= hash < 1 over $count lattice points"
 Check ([Math]::Abs($mean - 0.5) -lt 0.03) ("its mean is {0:F3} (0.5 for an even spread)" -f $mean)
 Check ([Math]::Abs($var - 1.0 / 12.0) -lt 0.01) ("its variance is {0:F4} (1/12 = 0.0833 for an even spread)" -f $var)
-Check ([Math]::Abs($corr) -lt 0.08) ("neighbouring cells are unrelated (correlation {0:F3})" -f $corr)
-Check ([Math]::Abs($corrK) -lt 0.08) ("a cell's numbers are unrelated to each other (correlation {0:F3})" -f $corrK)
+Check ([Math]::Abs($corr) -lt 0.08) ("neighbouring points are unrelated (correlation {0:F3})" -f $corr)
+Check ([Math]::Abs($corrK) -lt 0.08) ("a point's numbers are unrelated to each other (correlation {0:F3})" -f $corrK)
 $again = [double]$hash.Invoke($null, [object[]]@([single]7, [single]11, [single]4, [single]517, [single]93))
 $again2 = [double]$hash.Invoke($null, [object[]]@([single]7, [single]11, [single]4, [single]517, [single]93))
-Check ($again -eq $again2) "the same cell gives the same number every time"
+Check ($again -eq $again2) "the same point gives the same number every time"
 
-"=== the type pattern (CloudMix.TypeAt, the cloud map's alpha) ==="
+"=== the type pattern (CloudMix.TypeAt, the type map's alpha) ==="
 # Over many cities: one weather repeat holds only a few of the pattern's lattice values, so a single
 # city leans one way or the other -- but the map drifts through all of it, and over cities neither wins.
 $typeOk = $true; $periodic = $true; $sumT = 0.0; $countT = 0; $both = 0; $cities = 24
@@ -230,160 +184,31 @@ Check $typeOk "the type stays within 0..1"
 Check $periodic "the type repeats with the weather map (the same at its two edges): it drifts with the clouds"
 Check ($both -ge [int]($cities * 0.75)) ("both kinds of sky occur in {0} of {1} cities' repeats" -f $both, $cities)
 Check ([Math]::Abs($sumT / $countT - 0.5) -lt 0.08) ("over {0} cities neither kind wins (mean {1:F2})" -f $cities, ($sumT / $countT))
-$typeBytes = [byte[]](Call "BakeType" @([int]64, [single]517, [single]93))
-Check ($typeBytes.Length -eq 64 * 64) "the type pattern bakes one byte per texel (the map's alpha)"
 
-"=== the bake (CloudMix.Baker, the maps CloudMixMap uploads) ==="
-$fieldType = $asm.GetType("VolumetricClouds.Sky.CloudDensityField")
-$field = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345))
-$scores = [byte[]]$fieldType.GetMethod("ScoreBytes").Invoke($field, @())
-$res = [int]$fieldType.GetField("BaseResolution").GetValue($null)
-$emptyType = $asm.GetType("VolumetricClouds.Sky.EmptySky")
-$cells = [int]($res / [int]$emptyType.GetField("CellTexels").GetValue($null))
-$bakerType = $mix.GetNestedType("Baker")
-$size = [int](Value "MapSize")
 $args3 = [object[]]@([int]12345, [single]0, [single]0); [void]$mix.GetMethod("SeedOffsets").Invoke($null, $args3)
 $sx = [single]$args3[1]; $sz = [single]$args3[2]
+$size = [int](Value "MapSize")
+$sw = [Diagnostics.Stopwatch]::StartNew()
 $type = [byte[]](Call "BakeType" @([int]$size, $sx, $sz))
-$bake7 = @($bakerType.GetMethods() | Where-Object { $_.Name -eq "Bake" -and $_.GetParameters().Count -eq 7 })[0]
-function Bake($baker, [double]$intensity) {
-    [void]$bake7.Invoke($baker, [object[]]@($scores, $res, $type, [single]$intensity, [single]13500, $sx, $sz))
-}
-$a = [Activator]::CreateInstance($bakerType, [object[]]@($size, $cells)); $b = [Activator]::CreateInstance($bakerType, [object[]]@($size, $cells))
-$sw = [Diagnostics.Stopwatch]::StartNew(); Bake $a 0.47; $ms = $sw.Elapsed.TotalMilliseconds
-Bake $b 0.47
-$same = [MixBytes]::Same([byte[]]$a.Map, [byte[]]$b.Map) -and [MixBytes]::Same([byte[]]$a.Presence, [byte[]]$b.Presence)
-Check $same ("the same map every time for the same seed and intensity ({0:F0} ms here; {1} clouds over {2:F1}% of the map, reaching {3:F0}% of the empty-sky cells)" -f $ms, $a.Clouds, (100.0 * $a.Covered / ($size * $size)), (100.0 * $a.CellsReached / ($cells * $cells)))
-Check ($ms -lt 500) "a bake is quick enough to redo as the weather moves"
+$typeMs = $sw.Elapsed.TotalMilliseconds
+$type2 = [byte[]](Call "BakeType" @([int]$size, $sx, $sz))
+Check ($type.Length -eq $size * $size -and [MixBytes]::Same($type, $type2)) ("the type map bakes one byte per texel, the same every time ({0:F0} ms here, once per seed)" -f $typeMs)
 
-Bake $b 0
-Check ($b.Clouds -eq 0 -and $b.Covered -eq 0) "no clouds at 0%"
-$prevClouds = -1; $prevCovered = -1; $rises = $true; $line = ""
-foreach ($x in 0.15, 0.30, 0.47, 0.65, 0.80, 0.90) {
-    Bake $b $x; $line += (" {0:P0}: {1}/{2:F1}%" -f $x, $b.Clouds, (100.0 * $b.Covered / ($size * $size)))
-    if ($b.Clouds -lt $prevClouds -or $b.Covered -lt $prevCovered) { $rises = $false }
-    $prevClouds = $b.Clouds; $prevCovered = $b.Covered }
-"  clouds / share of the map:$line"
-Check $rises "more clouds, over more of the map, as the intensity rises"
-
-$missedAll = 0; $topsOk = $true; $typeKept = $true; $seam = $false
-foreach ($x in 0.30, 0.65, 0.90) {
-    Bake $b $x
-    $map = [byte[]]$b.Map
-    for ($k = 0; $k -lt $size * $size; $k++) {
-        $o = $k * 4
-        if ($map[$o + 3] -ne $type[$k]) { $typeKept = $false }
-        if ($map[$o] -gt 0 -and $map[$o + 1] -eq 0) { $topsOk = $false } }
-    $missedAll += [MixBytes]::Missed($map, $size, [byte[]]$b.Presence, $cells)
-    if ($x -eq 0.65) {
-        for ($j = 0; $j -lt $size -and -not $seam; $j++) {
-            if ($map[($j * $size) * 4] -gt 0 -and $map[($j * $size + $size - 1) * 4] -gt 0) { $seam = $true } } }
-}
-Check $typeKept "the map's alpha is the type pattern, everywhere, whatever the intensity"
-Check $topsOk "wherever a cloud has a profile it has a top"
-Check ($missedAll -eq 0) "every point that can read a cloud from the map lies in a marked empty-sky cell (at 30, 65, 90%; missed: $missedAll)"
-Check $seam "a cloud across the map's edge is drawn on both sides of it (the map repeats with the weather map)"
-
-"=== the player's shape (1.5.0: Cumulus size / height / amount, Big clouds, Cloud shapes) ==="
-$shapeType = $mix.GetNestedType("Shape")
-function NewShape([double]$s, [double]$h, [double]$a, [double]$big, [double]$out) {
-    return [Activator]::CreateInstance($shapeType, [object[]]@([single]$s, [single]$h, [single]$a, [single]$big, [single]$out)) }
-$bake8 = @($bakerType.GetMethods() | Where-Object { $_.Name -eq "Bake" -and $_.GetParameters().Count -eq 8 })[0]
-function BakeShaped($baker, [double]$intensity, $shape) {
-    [void]$bake8.Invoke($baker, [object[]]@($scores, $res, $type, [single]$intensity, [single]13500, $sx, $sz, $shape))
-}
-$tallest2 = @($mix.GetMethods() | Where-Object { $_.Name -eq "Tallest" -and $_.GetParameters().Count -eq 2 })[0]
-Bake $a 0.65
-BakeShaped $b 0.65 (NewShape 1 1 1 0 0)
-Check ([MixBytes]::Same([byte[]]$a.Map, [byte[]]$b.Map) -and [MixBytes]::Same([byte[]]$a.Presence, [byte[]]$b.Presence)) "100% size, height, amount and no variety bake exactly the clouds as first built"
-BakeShaped $b 0.65 (NewShape 1 1 0 0 0)
-Check ($b.Clouds -eq 0) "Cumulus amount 0%: no separate clouds"
-$shapesOk = $true; $tallOk = $true; $line = ""
-foreach ($sh in @(@(1.5, 1.5, 1.5, 1, 1), @(0.5, 0.5, 0.5, 0, 1), @(2, 2, 2, 1, 0), @(1, 1, 1, 0.5, 0.5))) {
-    $shape = NewShape $sh[0] $sh[1] $sh[2] $sh[3] $sh[4]
-    foreach ($x in 0.30, 0.65) {
-        BakeShaped $b $x $shape
-        $missed = [MixBytes]::Missed([byte[]]$b.Map, $size, [byte[]]$b.Presence, $cells)
-        if ($missed -gt 0) { $shapesOk = $false }
-        $worst = [double]$tallest2.Invoke($null, [object[]]@([single]13500, $shape))
-        if ($b.Clouds -gt 0 -and ($b.TallestTop -le 0 -or $b.TallestTop -gt $worst + 1e-3)) { $tallOk = $false } }
-    $line += (" [{0}]: tallest {1:F0} m of {2:F0}" -f ($sh -join ","), $b.TallestTop, $worst) }
-"  at 65%:$line"
-Check $shapesOk "with any shape (bigger, drawn out, five bubbles) every point that can read a cloud lies in a marked empty-sky cell"
-Check $tallOk "the slab ends at the tallest cloud drawn, never above what the shape allows"
-BakeShaped $b 0.65 (NewShape 1 1 1 0 0); $plainCovered = $b.Covered; $plainClouds = $b.Clouds
-BakeShaped $b 0.65 (NewShape 1 1 1 1 0)
-Check ($b.Clouds -eq $plainClouds -and $b.Covered -gt $plainCovered) "Big clouds makes some clouds bigger, never more of them"
-BakeShaped $b 0.65 (NewShape 1 1 2 0 0)
-Check ($b.Clouds -gt $plainClouds) "Cumulus amount 200%: more clouds than at 100%"
-
-# The empty-sky map under Mixed: the field's weather bounds kept, the score's channels replaced by
-# where the clouds reach, a coarse cell marked wherever one of its fine cells is.
-$fieldEmpty = [byte[]]$emptyType.GetMethod("Build").Invoke($null, [object[]]@([byte[]](New-Object byte[] ($res * $res)), $scores, $res, $false))
-$withP = [byte[]]$emptyType.GetMethod("WithPresence").Invoke($null, [object[]]@($fieldEmpty, [byte[]]$b.Presence, $cells))
-$keptW = $true; $presOk = $true; $coarseOk = $true
-for ($k = 0; $k -lt $cells * $cells; $k++) {
-    if ($withP[$k * 4] -ne $fieldEmpty[$k * 4] -or $withP[$k * 4 + 1] -ne $fieldEmpty[$k * 4 + 1]) { $keptW = $false }
-    if ($withP[$k * 4 + 2] -ne $b.Presence[$k]) { $presOk = $false }
-    if ($withP[$k * 4 + 2] -gt $withP[$k * 4 + 3]) { $coarseOk = $false } }
-Check ($keptW -and $presOk -and $coarseOk) "the style's empty-sky map: weather bounds kept, b = where the clouds reach, a >= b (its coarse cell)"
-
-"=== the light's cheap looks (CloudMix.EnvelopeDensity: the carving's mean, no noise read) ==="
-$twin = $true
-foreach ($pn in @(@(0.3, 0.6), @(0.8, 0.75), @(1.0, 0.5), @(0.5, 0.95))) {
-    $n01 = [Math]::Max([double]0, [Math]::Min([double]1, ($pn[1] - [double](Value "NoiseMiddle")) * [double](Value "NoiseContrast") + 0.5))
-    $want = [Math]::Max([double]0, [Math]::Min([double]1, ($pn[0] * [double](Value "CoreCover") - [double](Value "ErosionDepth") * (1 - $n01)) / (1 - [double](Value "Hardness"))))
-    if ([Math]::Abs([double](Call "CarvedDensity" @([single]$pn[0], [single]$pn[1])) - $want) -gt 1e-4) { $twin = $false } }
-Check $twin "CloudMix.CarvedDensity is the shader's carving"
-$gen = $asm.GetType("VolumetricClouds.Sky.CumulusNoise3D")
-$levels = [byte[][]]$gen.GetMethod("Generate").Invoke($null, [object[]]@([int]$gen.GetField("Size").GetValue($null), [int]$gen.GetMethod("SeedFor").Invoke($null, [object[]]@(67890)), 0))
-$worstFit = 0.0; $fitLine = ""
-foreach ($lv in 0, 2) {
-    for ($s = 0; $s -le 20; $s++) {
-        $pr = $s / 20.0
-        $mean = [MixBytes]::Mean($levels[$lv], $pr, [double](Value "CoreCover"), [double](Value "ErosionDepth"), [double](Value "Hardness"), [double](Value "NoiseMiddle"), [double](Value "NoiseContrast"))
-        $fit = [double](Call "EnvelopeDensity" @([single]$pr))
-        $worstFit = [Math]::Max($worstFit, [Math]::Abs($fit - $mean))
-        if ($lv -eq 0 -and $s % 5 -eq 0) { $fitLine += (" {0:F2}: {1:F3}/{2:F3}" -f $pr, $mean, $fit) } } }
-"  profile: mean/fit$fitLine"
-Check ($worstFit -lt 0.02) ("the fit is within {0:F3} of the carving's mean on the Cumulus noise (levels 0 and 2)" -f $worstFit)
-
-"=== Larger weather pattern (1.5.0: the weather map and this map 4x wider, the clouds the same size) ==="
+"=== Larger weather pattern (1.5.0: the weather map and the type map 4x wider, the patches the same size) ==="
+$fieldType = $asm.GetType("VolumetricClouds.Sky.CloudDensityField")
 $larger = [int]$fieldType.GetField("LargerScale").GetValue($null)
-$sw = [Diagnostics.Stopwatch]::StartNew()
-$big = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345, $larger))
-$bigMs = $sw.Elapsed.TotalMilliseconds
-$bigRes = [int]$fieldType.GetProperty("Resolution").GetValue($big)
-$big2 = [Activator]::CreateInstance($fieldType, [object[]]@([int]12345, $larger))
-$anyField = [Reflection.BindingFlags]"Instance,NonPublic"
-Check ($bigRes -eq $res * $larger -and [MixBytes]::SameF([single[]]$fieldType.GetField("_density", $anyField).GetValue($big), [single[]]$fieldType.GetField("_density", $anyField).GetValue($big2))) ("the larger weather map is {0}^2 and the same for the same seed, whatever the threads ({1:F0} ms on {2})" -f $bigRes, $bigMs, $fieldType.GetProperty("BuildThreads").GetValue($big))
-Check ([double]$fieldType.GetMethod("TileFor").Invoke($big, @([single]13500)) -eq 13500 * $larger -and [double]$fieldType.GetMethod("TileFor").Invoke($field, @([single]13500)) -eq 13500) "it repeats 4x further apart; the usual map at the slider's size"
-$bigScores = [byte[]]$fieldType.GetMethod("ScoreBytes").Invoke($big, @())
-$bigCells = [int]($bigRes / [int]$emptyType.GetField("CellTexels").GetValue($null))
 $bigSize = [int](Call "MapSizeFor" @($larger))
-$bigType = [byte[]](Call "BakeType" @([int]$bigSize, $sx, $sz, $larger))
-$typeStep = [MixBytes]::MaxStep($bigType, $bigSize); $smallStep = [MixBytes]::MaxStep($type, $size)
-Check ($bigType.Length -eq $bigSize * $bigSize -and [Math]::Abs($typeStep - $smallStep) -le 2) ("the larger type pattern: a byte per texel, as smooth per texel (so per metre) as the usual one, seamless over its repeat (largest step {0}, usual {1})" -f $typeStep, $smallStep)
-$bigBaker = [Activator]::CreateInstance($bakerType, [object[]]@($bigSize, $bigCells))
-$bake9 = @($bakerType.GetMethods() | Where-Object { $_.Name -eq "Bake" -and $_.GetParameters().Count -eq 9 })[0]
-$plain = $mix.GetNestedType("Shape").GetField("Plain").GetValue($null)
 $sw = [Diagnostics.Stopwatch]::StartNew()
-[void]$bake9.Invoke($bigBaker, [object[]]@($bigScores, $bigRes, $bigType, [single]0.47, [single]13500, $sx, $sz, $plain, $larger))
-$bigBakeMs = $sw.Elapsed.TotalMilliseconds
-Bake $b 0.47
-$expected = $b.Clouds * $larger * $larger
-Check ([Math]::Abs($bigBaker.Clouds - $expected) -lt 0.2 * $expected) ("about {0}x the clouds over {0}x the map: {1} (the usual map's x {0}: {2}), {3:F0} ms" -f ($larger * $larger), $bigBaker.Clouds, $expected, $bigBakeMs)
-$shareSmall = $b.Covered / [double]($size * $size); $shareBig = $bigBaker.Covered / [double]($bigSize * $bigSize)
-Check ([Math]::Abs($shareBig - $shareSmall) -lt 0.35 * $shareSmall) ("the same share of the sky under them: {0:P1} (the usual map: {1:P1})" -f $shareBig, $shareSmall)
-$bigTall = [double]$bigBaker.TallestTop; $smallTall = [double]$b.TallestTop
-Check ($bigTall -le [double](Call "Tallest" @([single]13500, $plain)) + 1) ("no cloud taller than the shape allows: the tallest {0} m (the usual map's {1} m)" -f $bigTall, $smallTall)
-Check ([MixBytes]::Missed([byte[]]$bigBaker.Map, $bigSize, [byte[]]$bigBaker.Presence, $bigCells) -eq 0) "every cloud texel of the larger map is in a marked empty-sky cell"
-"  " + [string](Call "DescribeShape" @([single]13500, $plain, $larger))
+$bigType = [byte[]](Call "BakeType" @([int]$bigSize, $sx, $sz, $larger))
+$bigMs = $sw.Elapsed.TotalMilliseconds
+$typeStep = [MixBytes]::MaxStep($bigType, $bigSize); $smallStep = [MixBytes]::MaxStep($type, $size)
+Check ($bigType.Length -eq $bigSize * $bigSize -and [Math]::Abs($typeStep - $smallStep) -le 2) ("the larger type pattern: a byte per texel, as smooth per texel (so per metre) as the usual one, seamless over its repeat (largest step {0}, usual {1}; {2:F0} ms)" -f $typeStep, $smallStep, $bigMs)
 
 "=== the log ==="
-$shape = [string](Call "DescribeShape" @([single]13500))
+$shape = [string](Call "DescribeShape" @([single]450, [int]1))
 "  " + $shape
-Check ($shape -match "14 x 14 cells") "the shape line names the cells"
+Check ($shape -match "puffs" -and $shape -match "generator 2" -and $shape -cmatch '^[\x20-\x7E]+$') "the shape line names the puffs and the generator, ASCII"
+"  " + [string](Call "DescribeShape" @([single]450, $larger))
 "  " + [string](Call "DescribeMix" @([single]0.47))
 
 ""

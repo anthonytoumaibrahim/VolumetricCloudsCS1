@@ -231,18 +231,20 @@ Shader "VolumetricClouds/CloudRaymarch"
 
             // The sun's optical depth at p: seven stretches towards it, 0-6-12-24 m read WITH the
             // detail (the small billows shading each other), then four growing ones out to about
-            // the layer's thickness from the big shape only.
+            // the layer's thickness from the big shape only. Under Soft and Mixed only the first is read
+            // with the detail (their cost, 2026-10-17: offline under 0.5/255 from all three, at 100%).
             float SunDepth(float3 p, float lod)
             {
                 float tau = 0.0;
                 float prev = 0.0;
                 float s = 6.0;
+                int detailedLooks = _CloudStyle > 1.5 ? 1 : 3;
 
                 [loop]
                 for (int k = 0; k < 7; k++)
                 {
                     float segment = s - prev;
-                    tau += SampleDensityLod(p + _SunDir * (prev + segment * 0.5), k < 3, lod) * segment;
+                    tau += SampleDensityLod(p + _SunDir * (prev + segment * 0.5), k < detailedLooks, lod) * segment;
                     prev = s;
                     s *= k < 2 ? 2.0 : _DetailLight2.y;
                 }
@@ -557,7 +559,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float2 dc = dir.xz * (_EmptySky.y / _WeatherTile);
                 float askAt = -1.0;
 
-                // 192: the Quality setting's 96 at most, twice that under Cumulus, Mixed or Soft (CloudStyle.StepFactor).
+                // 192: the Quality setting's 96 at most, twice that under Cumulus (CloudStyle.StepFactor).
                 [loop]
                 for (int s = 0; s < 192; s++)
                 {

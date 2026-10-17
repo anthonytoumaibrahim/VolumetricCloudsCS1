@@ -121,8 +121,9 @@ namespace VolumetricClouds.Sky
             Active = wanted && cloudsShowing && shadersAvailable && field != null;
             Amount = Active ? CloudWeather.Rain : 0f;
 
-            // Under the Mixed style the cover its layer is drawn at where it is thinnest, so the rain
-            // stays a subset of drawn cloud there too; Classic and Cumulus: the cover in effect.
+            // Under the Mixed style the cover its layer is drawn at where it is thinnest, under Soft the
+            // larger of its puffs' and its layer's (the cover in effect with Classic layer at 100%), so
+            // the rain stays a subset of drawn cloud there too; Classic and Cumulus: the cover in effect.
             float spread = Mathf.Pow(Mathf.Clamp01(Amount / RainForFullSpread), 0.75f);
             RainCoverage = CloudStyle.CloudTestCoverage(CloudWeather.Coverage) * spread;
 
