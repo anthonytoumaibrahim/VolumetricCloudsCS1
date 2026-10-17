@@ -103,7 +103,7 @@ float3 _DetailTexPhase;  // the wind's drift over one repeat of it (CloudWind.No
 // and a heaped top) -- with the CLASSIC LAYER among and under them (the author's idea: "combine the
 // classic and cumulus clouds"), its thickness following the map. _CloudStyle == 0 is Classic: the
 // layer alone, computed exactly as it always was.
-float _CloudStyle;          // 0 Classic, 1 Cumulus, 2 Mixed (below)
+float _CloudStyle;          // 0 Classic, 1 Cumulus, 2 Mixed, 3 Soft (below); above 0.5 the Cumulus light
 float4 _LayerShape;         // the layer under the Cumulus style: x = Layer thickness in metres; its
                             // factor on that is a line in the map's score, y + z * score (thick where
                             // the map is high), within w .. _LayerShapeMax
@@ -360,9 +360,90 @@ float LayerDensity(float3 p, bool detailed, float lod, float h, float weather, f
     return d * _DensityScale;
 }
 
+// THE SOFT STYLE (Sky/CloudSoft.cs, 1.5.0): fair-weather clouds made of puffs, soft at the edges. The
+// weather map over _Threshold (cut at CloudSoft.EdgeCoverage: never inside Classic's clouds) says where
+// they gather and how big they may grow (c); the Cumulus noise at Soft's own repeat carves them deep --
+// a cloud is a bunch of clumps, small lone puffs where the map is low -- and a fine read of it frays the
+// edges (strands near the base, billows higher, a faint fringe round every puff), both lookups pushed
+// about by the 64^3 noise. No layer, no fragments, no cloud detail. _CloudStyle == 3; nothing of it is
+// read otherwise. CloudSoft.Density is its C# twin: change one, change the other.
+float4 _SoftShape;      // x = 1 / the span (weather over the cut where c reaches 1), y = the tallest cloud
+                        // (m above the base), z = the widest level (share of the tallest), w = the density
+                        // at full, in _Absorption's units
+float4 _SoftNoise;      // the Cumulus noise: x = 1 / its repeat (m), y = its middle, z = its contrast, w = how deep it carves
+float4 _SoftCarve;      // x = 1 / the softness, y = the carving gone deep in the biggest clouds, z = 1 / the span
+                        // of that past c = 1, w = the overcast floor now (CloudSoft.Floor)
+float4 _SoftWisp;       // the fine read: x = how deep, y = its multiple (whole), z = log2 of that,
+                        // w = 1 / the height (m) over which its strands turn to billows
+float4 _SoftFringe;     // x = the fringe's density, y = 1 / its reach, z = the edge fade, w = the push (m)
+float2 _SoftWarpMiddle; // the 64^3 noise's R and G middles, as read (sRGB-decoded)
+float3 _SoftPhase;      // the Cumulus noise's drift over Soft's repeat (CloudWind.NoisePhase)
+
+// The Cumulus noise as read, stretched round its middle (CloudSoft: (n - middle) x contrast + 0.5).
+float SoftStretch(float n)
+{
+    return saturate((n - _SoftNoise.y) * _SoftNoise.z + 0.5);
+}
+
+// `lod`: the Cumulus noise's mip level at Soft's repeat (CloudShaderParams.NoiseTexel; negative near).
+// The fine read's is _SoftWisp.z more and fades out above 0, where it would only shimmer. Not `detailed`
+// (the light's looks): a level blurrier, no fine read. `weather`: the map at p.
+float SoftDensity(float3 p, bool detailed, float lod, float weather)
+{
+    float excess = weather - _Threshold;
+    if (excess <= 0.0)
+        return 0.0;
+
+    // How big the cloud is here, never under the overcast floor (CloudSoft.Size), and its body at this
+    // height: c less how far it is from the widest level, the underside rounding up quickly (Body).
+    float size = max(excess * _SoftShape.x, _SoftCarve.w);
+    float c = saturate(size);
+    float y = p.y - _CloudBottom;
+    float h = y / _SoftShape.y;
+    float mid = _SoftShape.z;
+    float off = h < mid ? (mid - h) / mid : (h - mid) / (1.0 - mid);
+    float body = saturate(c - (h < mid ? off * off : off));
+    if (body <= 0.0)
+        return 0.0;
+
+    // The push: both lookups moved by the 64^3 noise at the Classic layer's lookup.
+    float2 push = tex3Dlod(_NoiseTex, float4(p / _NoiseTile - _NoisePhase, 0)).rg - _SoftWarpMiddle;
+    float3 uv = (p + float3(push.x, (push.x - push.y) * 0.5, push.y) * _SoftFringe.w) * _SoftNoise.x - _SoftPhase;
+
+    // The carving, eased off deep inside the biggest clouds (c past 1).
+    float fill = _SoftCarve.y * saturate((size - 1.0) * _SoftCarve.z);
+    float n = SoftStretch(tex3Dlod(_CumulusTex, float4(uv, max(detailed ? lod : lod + 1.0, 0.0))).a);
+    float v = body - _SoftNoise.w * (1.0 - fill) * (1.0 - n);
+
+    float wisps = 0.0;
+    float f = 0.0;
+    if (detailed)
+    {
+        float fineLod = lod + _SoftWisp.z;
+        wisps = saturate(1.0 - fineLod * 0.5);
+        [branch]
+        if (wisps > 0.0)
+        {
+            // Strands at the base (the fine puffs' middles carved, their borders left), billows higher.
+            f = SoftStretch(tex3Dlod(_CumulusTex, float4(uv * _SoftWisp.y, max(fineLod, 0.0))).a);
+            v -= _SoftWisp.x * wisps * (f + (1.0 - 2.0 * f) * saturate(y * _SoftWisp.w));
+        }
+    }
+
+    float d = saturate(v * _SoftCarve.x);
+
+    // The fringe: a faint, see-through edge of strands round every puff.
+    if (wisps > 0.0 && _SoftFringe.x > 0.0)
+        d = max(d, _SoftFringe.x * wisps * f * f * saturate(1.0 + v * _SoftFringe.y));
+
+    // The puffs out where the map is low fainter (the edge fade).
+    return d * (1.0 - _SoftFringe.z * (1.0 - c)) * _SoftShape.w;
+}
+
 // `lod` is the mip level of the style's noise (Classic: cloud detail's texture; Cumulus: the
-// Cumulus noise, the detail's being _DetailLodShift more): distant detail averages away instead
-// of aliasing (the raymarch works it out from the pixel's footprint, the shadow map from its texel).
+// Cumulus noise, the detail's being _DetailLodShift more; Soft: the Cumulus noise at its own repeat):
+// distant detail averages away instead of aliasing (the raymarch works it out from the pixel's
+// footprint, the shadow map from its texel).
 float SampleDensityLod(float3 p, bool detailed, float lod)
 {
     float h = (p.y - _CloudBottom) / (_CloudTop - _CloudBottom);
@@ -370,6 +451,10 @@ float SampleDensityLod(float3 p, bool detailed, float lod)
         return 0.0;
 
     float2 uvWeather = p.xz / _WeatherTile - _WeatherPhase;
+
+    [branch]
+    if (_CloudStyle > 2.5)
+        return SoftDensity(p, detailed, lod, tex2Dlod(_WeatherTex, float4(uvWeather, 0, 0)).r);
 
     if (_CloudStyle > 0.5)
     {

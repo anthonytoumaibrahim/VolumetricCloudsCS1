@@ -451,7 +451,8 @@ namespace VolumetricClouds
         /// THE CLOUD STYLE (Sky.CloudStyle, 1.2), stored by VALUE (append only): 0 Classic, the
         /// cloud layer the mod has always drawn; 1 Cumulus, EVE-Redux V5's model -- every cloud
         /// carved from one big noise, each with its own height; 2 Mixed (1.5.0, Sky.CloudMix),
-        /// separate clouds with the Classic layer coming in as the intensity rises. Classic by
+        /// separate clouds with the Classic layer coming in as the intensity rises; 3 Soft (1.5.0,
+        /// Sky.CloudSoft), clouds thin all through with no hard edge. Classic by
         /// default, for everyone: the others are chosen on the panel. A settings file from before
         /// the row existed means Classic too, whatever the default (Row.OlderFileInt).
         /// </summary>

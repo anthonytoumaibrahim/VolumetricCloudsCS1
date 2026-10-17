@@ -7,7 +7,7 @@ below; the mods list shows it after the mod's name, and the first line of
 
 ## 1.5.0 — unreleased
 
-A new look for the in-game panel, fog that changes on its own, a third cloud style, more say over
+A new look for the in-game panel, fog that changes on its own, two new cloud styles, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
@@ -37,8 +37,8 @@ undersides at full overcast now dim with it too (they didn't). The thirteen old 
 (`CloudBrightnessAuto`, `CloudBrightness`, `CloudBrightnessClear`, `CloudBrightnessOvercast`, each of the
 three with its sunset and night); profiles saved before are read the same way. *Clouds dim at full
 overcast to* leaves the panel and stays in the settings file, now dimming only the fog's sunlight, as
-it always did for anyone with the automatic brightness on. *Cloud style* gains a third choice, *Mixed*: nobody's style changes with
-the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
+it always did for anyone with the automatic brightness on. *Cloud style* gains two choices, *Mixed* and *Soft*: nobody's style
+changes with the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
 photographed skies).
 
 ### New: the panel's look
@@ -140,6 +140,27 @@ every kind of weather, so there's no need to switch between the other two.
     out one way, so they don't all look like one family.
   - *Texture variety*: chunkier lobes where the sky leans toward separate clouds, finer ones where
     it leans toward the layer.
+
+### New: the Soft cloud style
+
+A fourth choice for *Cloud style*: fair-weather clouds made of many puffs, with soft, wispy edges.
+
+- Each cloud is a bunch of rounded puffs of different sizes, with sky showing between them, instead
+  of one smooth shape. Small loose puffs float around and between the bigger clouds.
+- The edges fray into faint, see-through wisps, like cotton candy, most of all along the bottoms.
+  The middles of the biggest clouds stay solid.
+- A cloud's height follows how strong the weather is there: in a light sky the clouds are small and
+  low, and in heavier weather they grow taller. Their bases are nearly flat.
+- About as much of the sky is cloudy as under *Cumulus* at the same intensity. At full intensity the
+  sky turns into a broken overcast.
+- The clouds are lit at their own level, so at the same *Cloud brightness* a *Soft* sky is about as
+  bright as a *Cumulus* one.
+- Rain, lightning, the cloud shadows and the rainbows follow the clouds as they do under *Classic*.
+- *Layer thickness* sets how tall the clouds can get (twice the thickness). The rows that shape the
+  Classic layer (*Cloud detail*, *Break-up*, *Break-up detail*, *Cloud fragments*) do nothing under
+  *Soft* and are hidden while it's picked (greyed when advanced options are on).
+- Like *Cumulus*, it takes a few seconds after you pick it (or load a city) to get ready; the clouds
+  are drawn *Classic* until then.
 
 ### New: cumulus size, height and amount
 
@@ -330,6 +351,15 @@ the two C# changes above stay. The far deck's code was unchanged from the versio
 2026-10-12 until that pattern; what changed between "love it" and "undone" was the sky it was seen
 in: Cumulus then, Mixed now, plus *Smoother clouds* and *Distant clouds* (which draws nothing at or
 under the horizon). To judge: the band as on 2026-10-12, then the same view in Cumulus.
+
+*Soft* cloud style (written up above): LIKED in-game 2026-10-17 ("Love the Soft clouds"), round 3.
+Rounds 1-2 (2026-10-16, after his UE5 game's stock clouds: "so soft, unlike ours which look like hard
+blocks") were a lens carved gently by the 64^3 noise: "big lumps with hard edges", then soft blobs.
+Round 3, from his photo of fair-weather cumulus ("too lumpy ... wispy like cotton candy ... parts of
+them are floating away"): the Cumulus noise carves the shapes, the weather map only gathers them, a
+fine read frays the edges, an overcast floor from 90%, the amount table solved again; it waits for the
+Cumulus noise (drawn Classic until then). In his session no dearer than Cumulus. Left: the next steps
+he has in mind, the Workshop description and change note.
 
 Built, awaiting the in-game test:
 

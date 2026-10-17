@@ -132,6 +132,7 @@
   <String key="CloudStyle.Classic">Classic</String>
   <String key="CloudStyle.Cumulus">Cumulus</String>
   <String key="CloudStyle.Mixed">Mixed</String>
+  <String key="CloudStyle.Soft">Soft</String>
 
   <String key="CumulusLayer.Label">Classic layer</String>
   <String key="CumulusSize.Label">Cumulus size</String>

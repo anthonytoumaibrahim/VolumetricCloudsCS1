@@ -175,7 +175,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                                     // (_DetailLight2, the rest of it, is in CloudMedia.cginc,
                                     // with CloudLod, which reads its lod offset)
 
-            // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0): EVE-Redux
+            // The Cumulus style's light (Sky/CloudStyle.cs; only while _CloudStyle > 0: Mixed and Soft too): EVE-Redux
             // V5's four phase lobes -- two of single scattering (the silver lining), two of multiple
             // scattering (the soft glow deep inside, through a reduced extinction).
             float4 _CumulusLight;   // x = the multiple scattering's share of the extinction, y = the
@@ -557,7 +557,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float2 dc = dir.xz * (_EmptySky.y / _WeatherTile);
                 float askAt = -1.0;
 
-                // 192: the Quality setting's 96 at most, twice that under Cumulus (CloudStyle.StepFactor).
+                // 192: the Quality setting's 96 at most, twice that under Cumulus, Mixed or Soft (CloudStyle.StepFactor).
                 [loop]
                 for (int s = 0; s < 192; s++)
                 {

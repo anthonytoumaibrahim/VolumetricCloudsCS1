@@ -95,6 +95,7 @@
   <String key="CloudStyle.Classic">Classique</String>
   <String key="CloudStyle.Cumulus">Cumulus</String>
   <String key="CloudStyle.Mixed">Mixte</String>
+  <String key="CloudStyle.Soft">Doux</String>
 
   <String key="CumulusLayer.Label">Couche classique</String>
   <String key="CumulusSize.Label">Taille des cumulus</String>

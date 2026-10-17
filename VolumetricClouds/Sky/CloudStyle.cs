@@ -5,7 +5,8 @@ namespace VolumetricClouds.Sky
 {
     /// <summary>
     /// The cloud styles (1.2; MIXED, the third, in 1.5.0: <see cref="CloudMix"/>, which shares this
-    /// style's noise, light and layer). CLASSIC is the mod's cloud layer as it has always been: the
+    /// style's noise, light and layer; SOFT, the fourth, 1.5.0: <see cref="CloudSoft"/>, this style's
+    /// light alone). CLASSIC is the mod's cloud layer as it has always been: the
     /// weather map thresholded into clouds, one thickness for all of them. CUMULUS adds HEAPS to that
     /// layer: EVE-Redux V5's cloud model (blackrack's KSP clouds, which the author asked to match "as
     /// close as" possible), every heap carved out of one big noise (<see cref="CumulusNoise3D"/>),
@@ -48,6 +49,13 @@ namespace VolumetricClouds.Sky
         /// <summary>1.5.0: separate clouds with the Classic layer coming in as the intensity rises (<see cref="CloudMix"/>).</summary>
         public const int Mixed = 2;
 
+        /// <summary>
+        /// 1.5.0: fair-weather clouds made of puffs, soft at the edges (<see cref="CloudSoft"/>). No
+        /// Classic layer: the weather map gathers them, the Cumulus noise carves them (so, like Cumulus,
+        /// drawn Classic the few seconds that noise takes to make). It takes the Cumulus style's light.
+        /// </summary>
+        public const int Soft = 3;
+
         /// <summary>The setting's value (the default without one).</summary>
         public static int Current
         {
@@ -64,10 +72,41 @@ namespace VolumetricClouds.Sky
             get { return Current == Mixed; }
         }
 
-        /// <summary>A style carved from the Cumulus noise: Cumulus, or Mixed (its separate clouds).</summary>
+        /// <summary>The Soft style is chosen (drawn once its noise is there: <see cref="SoftDrawn"/>).</summary>
+        public static bool IsSoft
+        {
+            get { return Current == Soft; }
+        }
+
+        /// <summary>The Soft style is drawn: chosen AND the Cumulus noise it is carved from is there. Until then, Classic.</summary>
+        public static bool SoftDrawn
+        {
+            get { return IsSoft && Texture != null; }
+        }
+
+        /// <summary>
+        /// The chosen style draws the Classic layer (Classic, Cumulus and Mixed beside their own clouds):
+        /// the rows that shape only it -- cloud detail, break-up, fragments -- do nothing under Soft and
+        /// grey. (What is drawn this frame: !<see cref="SoftDrawn"/>.)
+        /// </summary>
+        public static bool DrawsLayer
+        {
+            get { return !IsSoft; }
+        }
+
+        /// <summary>
+        /// The Cumulus style's light is on: Cumulus, Mixed or Soft drawn. Its uniforms (CloudVolume's
+        /// ApplyDetailLight) and the noise's mip level from a pixel's footprint key on this.
+        /// </summary>
+        public static bool LobesLight
+        {
+            get { return Drawn || SoftDrawn; }
+        }
+
+        /// <summary>A style carved from the Cumulus noise: Cumulus, Mixed (its separate clouds) or Soft.</summary>
         public static bool UsesNoise
         {
-            get { return IsCumulus || IsMixed; }
+            get { return IsCumulus || IsMixed || IsSoft; }
         }
 
         /// <summary>
@@ -221,6 +260,30 @@ namespace VolumetricClouds.Sky
         private static float Clamp(float v, float lo, float hi)
         {
             return Math.Max(lo, Math.Min(hi, v));
+        }
+
+        // ---- the Soft style (1.5.0) -------------------------------------------------------------
+
+        /// <summary>The Soft style's numbers: <see cref="CloudSoft.Default"/> (one place for options later).</summary>
+        public static CloudSoft.Look SoftLook
+        {
+            get { return CloudSoft.Default; }
+        }
+
+        /// <summary>
+        /// The clouds' own light level (their sun and sky light, CloudVolume.ApplyLighting): Soft's
+        /// <see cref="CloudSoft.Look.LightScale"/> while it is drawn, 1 for every other style. What reads
+        /// those two lights back for something else (the distant clouds, SkyLayer) divides it out again.
+        /// </summary>
+        public static float CloudLightScale
+        {
+            get { return SoftDrawn ? Math.Max(0f, SoftLook.LightScale) : 1f; }
+        }
+
+        /// <summary>The Soft style's tallest cloud now, metres above the base: "Layer thickness" times its factor.</summary>
+        public static float SoftTallestNow
+        {
+            get { return CloudSoft.Tallest(SoftLook, Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness); }
         }
 
         /// <summary>
@@ -561,7 +624,8 @@ namespace VolumetricClouds.Sky
 
         public static string Name(int style)
         {
-            return style == Cumulus ? "Cumulus" : style == Classic ? "Classic" : style == Mixed ? "Mixed" : "unknown (" + style + ")";
+            return style == Cumulus ? "Cumulus" : style == Classic ? "Classic" : style == Mixed ? "Mixed" : style == Soft ? "Soft" :
+                   "unknown (" + style + ")";
         }
 
         public static string Describe()
@@ -573,6 +637,8 @@ namespace VolumetricClouds.Sky
                        (HeightFactor * 100f).ToString("F0", c) + "%, amount " + (AmountFactor * 100f).ToString("F0", c) + "%)";
             if (Current == Mixed)
                 return Name(Current) + layer + MixShape + ", texture variety " + (TextureVariety * 100f).ToString("F0", c) + "%)";
+            if (Current == Soft)
+                return Name(Current) + " (up to " + SoftTallestNow.ToString("F0", c) + " m tall)";
             return Name(Current);
         }
 

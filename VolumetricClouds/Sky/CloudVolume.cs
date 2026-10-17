@@ -748,14 +748,15 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// The raymarch's step count: the Quality setting, times <see cref="CloudStyle.StepFactor"/>
-        /// while Cumulus is drawn (its slab is ~2.8x Classic's height).
+        /// while Cumulus or Mixed is drawn (its slab is ~2.8x Classic's height), or Soft (twice the
+        /// layer's thickness).
         /// </summary>
         private static float MarchSteps
         {
             get
             {
                 float steps = Settings.CloudQuality != null ? Settings.CloudQuality.value : Settings.Defaults.Quality;
-                return CloudStyle.Drawn ? steps * CloudStyle.StepFactor : steps;
+                return CloudStyle.LobesLight ? steps * CloudStyle.StepFactor : steps;
             }
         }
 
@@ -1080,7 +1081,9 @@ namespace VolumetricClouds.Sky
         /// </summary>
         private void ApplyDetailLight()
         {
-            bool cumulus = CloudStyle.Drawn;
+            // The Cumulus light: Cumulus or Mixed drawn, or Soft (which has no layer, and so none of
+            // cloud detail's light).
+            bool cumulus = CloudStyle.LobesLight;
             if (!cumulus && (!CloudDetail.On || CloudDetail.Texture == null))
                 return;
 
@@ -1088,10 +1091,11 @@ namespace VolumetricClouds.Sky
             // the whole span of its curve or the thickest the layer gets (as the renders it was
             // chosen on), whichever is more.
             // (Under Mixed the span is its own, the height its previews measured the sky light over.
-            // Both grow with Cumulus size and height, 1.5.0.)
+            // Both grow with Cumulus size and height, 1.5.0. Under Soft its tallest cloud, both.)
             float thickness = Settings.CloudThickness != null ? Settings.CloudThickness.value : Settings.Defaults.Thickness;
-            float span = CloudStyle.MixedDrawn ? CloudMix.LightSpanFor(CloudMixMap.BakedShape) : CloudStyle.SpanNow;
-            float reach = cumulus ? Mathf.Max(span, thickness * CloudStyle.LayerThickest) : thickness;
+            float span = CloudStyle.SoftDrawn ? CloudStyle.SoftTallestNow
+                : CloudStyle.MixedDrawn ? CloudMix.LightSpanFor(CloudMixMap.BakedShape) : CloudStyle.SpanNow;
+            float reach = CloudStyle.SoftDrawn ? span : cumulus ? Mathf.Max(span, thickness * CloudStyle.LayerThickest) : thickness;
 
             // After the three fine steps (6, 12, 24 m) four more grow by this much each, to about
             // 1.1 x that: 2x for the 350 m layer cloud detail's look was chosen on.
@@ -1277,9 +1281,14 @@ namespace VolumetricClouds.Sky
                 Settings.CloudShadeColorNight, Settings.CloudShadeColorOvercast, Settings.CloudShadeColorSunsetOvercast,
                 Settings.CloudShadeColorNightOvercast, Settings.Defaults.ShadeColor);
 
+            // The Soft style lights its clouds at its own level (CloudSoft.Look.LightScale): light reaches all
+            // through a thin cloud, and at the same Cloud brightness its sky was a clipped white beside
+            // Cumulus's. The clouds' two lights only: the rain below keeps the cloud's sun as it was.
+            float styleLight = CloudStyle.CloudLightScale;
+
             _material.SetVector(IdSunDir, sunDir.normalized);
-            _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint));
-            _material.SetVector(IdAmbientColor, AsVector(cloudAmbient * shadeTint));
+            _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint) * styleLight);
+            _material.SetVector(IdAmbientColor, AsVector(cloudAmbient * shadeTint) * styleLight);
 
             // The light in the clouds' shade (CloudShade): the sky light at the base as a share of the
             // top's, and the sunlit ground's light on the undersides as a share of the sun above (the
@@ -1495,10 +1504,10 @@ namespace VolumetricClouds.Sky
                        Screen.width + "x" + Screen.height +
                        " | steps=" + MarchSteps.ToString("F0") +
                        " reach=" + (Reach / 1000f).ToString("F0") + "km" +
-                       " style=" + (CloudStyle.Drawn ? CloudStyle.Describe() : "Classic") +
+                       " style=" + (CloudStyle.LobesLight ? CloudStyle.Describe() : "Classic") +
                        (CloudStyle.MixedDrawn ? " mix=(" + CloudMix.DescribeMix(CloudShaderParams.Coverage) + ")" : "") +
                        " detail=" + CloudDetail.Describe() +
-                       " fragments=" + (CloudFragments.On ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
+                       " fragments=" + (CloudFragments.On && !CloudStyle.SoftDrawn ? (CloudFragments.Share * 100f).ToString("F0") + "%" : "off") +
                        // 1.5.0: the share of the weather map's cells the march jumps over (0: not skipping).
                        " emptySky=" + (CloudShaderParams.EmptyShareNow * 100f).ToString("F0") + "%" +
                        // 1.5.0 trial: how much of the far deck shows (0 under 90% cover).
@@ -1656,6 +1665,11 @@ namespace VolumetricClouds.Sky
             float deeper = density / Settings.Defaults.Density;
             if (CloudStyle.Drawn)
                 deeper *= CloudStyle.SizeFactor * CloudStyle.HeightFactor;
+            // Soft: its clouds' extinction against Classic's at full (both at the default Density), over
+            // its height against the layer's.
+            else if (CloudStyle.SoftDrawn)
+                deeper *= CloudStyle.SoftLook.Extinction / (CloudShaderParams.Absorption * Settings.Defaults.Density) *
+                          CloudStyle.SoftLook.TallestPerThickness;
             _material.SetVector(IdFarLight, new Vector4(FarDeckSunDepth * deeper, 0.5f * density * 90f, 0f, 0f));
 
             // A small, even, pale luminance under the clouds. A night cloud is nearly black

@@ -217,9 +217,12 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdFlow, new Vector4(w0, w1, LayerHeight, _behind));
 
             // The clouds' own light (CloudVolume.ApplyLighting set it this frame), and their distance fade.
+            // Without the Soft style's own light level (CloudStyle.CloudLightScale): the pictures are lit
+            // as under every other style.
+            float styleLight = Mathf.Max(1e-3f, CloudStyle.CloudLightScale);
             _material.SetVector(IdSunDir, clouds.GetVector(IdSunDir));
-            _material.SetVector(IdSunColor, clouds.GetVector(IdSunColor));
-            _material.SetVector(IdAmbientColor, clouds.GetVector(IdAmbientColor));
+            _material.SetVector(IdSunColor, clouds.GetVector(IdSunColor) / styleLight);
+            _material.SetVector(IdAmbientColor, clouds.GetVector(IdAmbientColor) / styleLight);
             _material.SetVector(IdSunsetEdge, clouds.GetVector(IdSunsetEdge));
             for (int i = 0; i < IdFade.Length; i++)
                 _material.SetFloat(IdFade[i], clouds.GetFloat(IdFade[i]));

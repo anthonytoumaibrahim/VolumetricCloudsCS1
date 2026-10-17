@@ -109,6 +109,7 @@
   <String key="CloudStyle.Classic">经典</String>
   <String key="CloudStyle.Cumulus">积云</String>
   <String key="CloudStyle.Mixed">混合</String>
+  <String key="CloudStyle.Soft">柔和</String>
 
   <String key="CumulusLayer.Label">经典云层</String>
   <String key="CumulusSize.Label">积云大小</String>

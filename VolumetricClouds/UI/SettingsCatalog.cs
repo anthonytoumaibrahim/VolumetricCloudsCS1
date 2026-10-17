@@ -1144,6 +1144,12 @@ namespace VolumetricClouds.UI
             return CloudStyle.IsMixed;
         }
 
+        /// <summary>The style draws the Classic layer: every style but Soft (1.5.0), which has no layer to shape.</summary>
+        private static bool LayerDrawn()
+        {
+            return CloudStyle.DrawsLayer;
+        }
+
         // ---- the time of day (1.5.0) ------------------------------------------------------------
 
         /// <summary>
@@ -1550,9 +1556,10 @@ namespace VolumetricClouds.UI
             });
 
             // Classic, the layer the mod has always drawn, Cumulus, EVE-Redux V5's model
-            // (Sky.CloudStyle), or Mixed (1.5.0, Sky.CloudMix): separate clouds with the layer coming
-            // in as the intensity rises. Stored by value, append only. A settings file from before the
-            // row means Classic: an update never swaps a player's clouds (Row.OlderFileInt).
+            // (Sky.CloudStyle), Mixed (1.5.0, Sky.CloudMix): separate clouds with the layer coming
+            // in as the intensity rises, or Soft (1.5.0, Sky.CloudSoft): clouds thin all through. Stored
+            // by value, append only. A settings file from before the row means Classic: an update never
+            // swaps a player's clouds (Row.OlderFileInt).
             Add(new Row
             {
                 Kind = RowKind.Choice,
@@ -1560,8 +1567,8 @@ namespace VolumetricClouds.UI
                 Int = Settings.CloudStyle,
                 DefaultInt = Settings.Defaults.CloudStyle,
                 OlderFileInt = Settings.Defaults.CloudStyleForOlderFiles,
-                ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus", "CloudStyle.Mixed" },
-                ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus, CloudStyle.Mixed },
+                ChoiceKeys = new[] { "CloudStyle.Classic", "CloudStyle.Cumulus", "CloudStyle.Mixed", "CloudStyle.Soft" },
+                ChoiceValues = new[] { CloudStyle.Classic, CloudStyle.Cumulus, CloudStyle.Mixed, CloudStyle.Soft },
                 AfterChange = State("cloud style", CloudStyle.Describe),
             });
 
@@ -1654,8 +1661,10 @@ namespace VolumetricClouds.UI
                 Format = Metres,
             });
 
-            // The rows from here to the fragments shape the Classic layer, which both styles draw
-            // (under Cumulus beside its heaps, which make their own heights and billows).
+            // The rows from here to the fragments shape the Classic layer, which Classic, Cumulus and
+            // Mixed draw (under Cumulus beside its heaps, which make their own heights and billows).
+            // Soft (1.5.0) has no layer: the thickness sets how tall its clouds get (Sky.CloudSoft), the
+            // rest does nothing there and greys (hidden on this basic tab unless advanced is on).
             Add(new Row
             {
                 Kind = RowKind.Value,
@@ -1676,6 +1685,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.CloudDetail,
                 DefaultFloat = Settings.Defaults.Detail,
                 Min = 0f, Max = 100f, Step = 5f,
+                Enabled = LayerDrawn,
             });
 
             Add(new Row
@@ -1685,6 +1695,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.CloudBreakup,
                 DefaultFloat = Settings.Defaults.Breakup,
                 Min = 0f, Max = 100f, Step = 5f,
+                Enabled = LayerDrawn,
             });
 
             // Break-up detail: on an Advanced tab in 1.4.0, back here in 1.5.0 (the author: "Remove the
@@ -1697,6 +1708,7 @@ namespace VolumetricClouds.UI
                 DefaultFloat = Settings.Defaults.BreakupScale,
                 Min = 1.5f, Max = 10f, Step = 0.25f,
                 Format = Times2,
+                Enabled = LayerDrawn,
             });
 
             // Small, thin shreds round the big clouds, same layer and base (Sky.CloudFragments).
@@ -1709,6 +1721,7 @@ namespace VolumetricClouds.UI
                 Float = Settings.CloudFragments,
                 DefaultFloat = Settings.Defaults.Fragments,
                 Min = 0f, Max = 50f, Step = 1f,
+                Enabled = LayerDrawn,
             });
 
             // Their style: three looks chosen side by side from offline renders (Sky.CloudFragments).
@@ -1721,7 +1734,7 @@ namespace VolumetricClouds.UI
                 DefaultInt = Settings.Defaults.FragmentStyle,
                 ChoiceKeys = new[] { "CloudFragmentStyle.Clustered", "CloudFragmentStyle.Scattered", "CloudFragmentStyle.Wispy" },
                 ChoiceValues = new[] { 0, 1, 2 },
-                Enabled = FragmentsOn,
+                Enabled = () => FragmentsOn() && LayerDrawn(),
             });
 
             // Grading: the two lights a cloud stands in, each tinted on its own. The colour

@@ -205,9 +205,13 @@ float4 _EmptySky;          // x = 1: skip (0 with fragments, at a full cover, or
 // at or under 0 at its highest score -- it only rises with the score, which the C# side checks
 // is so (_CumulusShape.y >= 0). Under Mixed the map is the style's own copy (CloudMixMap), whose
 // "score" says whether any separate cloud reaches the cell (0 or 1), and the layer is cut at least
-// at _MixThreshold.x, its lowest threshold anywhere.
+// at _MixThreshold.x, its lowest threshold anywhere. Under Soft its clouds are cut at _Threshold too
+// (SoftDensity), with no heaps.
 bool CellEmpty(float weather, float score)
 {
+    if (_CloudStyle > 2.5)
+        return weather <= _Threshold;
+
     if (_CloudStyle > 1.5)
         return weather <= _MixThreshold.x && score <= 0.0;
 
@@ -255,7 +259,7 @@ float EmptyAhead(float3 p, float2 dc, out float askAgain)
 // The noise's mip level at distance t from this pixel's footprint (the detail's, or the Cumulus
 // style's: _DetailLight2.z is set for whichever is in use): far billows average away instead of
 // sparkling. Under Cumulus it goes in unclamped: the layer's detail is _DetailLodShift levels
-// finer, and clamps there itself.
+// finer, and clamps there itself. Under Soft too: its fine read fades out above 0 (SoftDensity).
 float CloudLod(float t)
 {
     if (_CloudStyle > 0.5)
