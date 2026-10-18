@@ -44,8 +44,10 @@ Shader "VolumetricClouds/CloudShadowMap"
                 float3 origin = _LightPos + _LightRight * local.x + _LightUp * local.y;
                 float3 dir = _LightForward;
 
-                // Sun at or below the horizon: nothing sensible to cast.
-                if (dir.y > -0.02)
+                // Sun at or below the horizon: nothing sensible to cast. The shadows fade out over
+                // the last degrees (2.9 -> 1.15) rather than all vanishing in one frame.
+                float sunUp = saturate((-dir.y - 0.02) / 0.03);
+                if (sunUp <= 0.0)
                     return float4(1, 1, 1, 1);
 
                 float sTop = (_CloudTop - origin.y) / dir.y;
@@ -78,7 +80,7 @@ Shader "VolumetricClouds/CloudShadowMap"
                 // thinner parts letting most sunlight through. Shadows read better fuller than
                 // that, so they get their own multiplier on the same optical depth.
                 float transmittance = exp(-opticalDepth * stepLen * _Absorption * max(_ShadowFullness, 0.01));
-                float lit = 1.0 - (1.0 - transmittance) * _ShadowDepth;
+                float lit = 1.0 - (1.0 - transmittance) * _ShadowDepth * sunUp;
 
                 return float4(lit, lit, lit, lit);
             }

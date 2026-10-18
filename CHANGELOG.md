@@ -318,6 +318,10 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   the line of sight was drawn over the bolt, including the ones behind it. Now only the clouds in
   front of a bolt, and those up to a quarter of its distance behind it, cover it. The bolt still
   disappears into the cloud it comes out of, as before. The same goes for rain and fog behind a bolt.
+- Cloud shadows flickered at sunrise and sunset. With the sun that low, they move across the
+  ground very fast, and the shadow map only kept up 20 times a second. Now it is redrawn every
+  frame while the shadows move that fast. Shadows also used to vanish all at once just before
+  sunset. Now they fade out over the last two degrees.
 
 ### To do before release (remove this section when 1.5.0 ships)
 

@@ -73,6 +73,8 @@ namespace VolumetricClouds.Sky
         private float _nextUpdate;
         private float _nextProbe;
         private int _resolution;
+        private Vector3 _drawnForward;
+        private bool _everyFrame;
 
         public RenderTexture Texture
         {
@@ -151,7 +153,9 @@ namespace VolumetricClouds.Sky
             if (sun == null || field == null || noise == null)
                 return;
 
-            if (Time.time < _nextUpdate && IsReady)
+            Transform t = sun.transform;
+
+            if (Time.time < _nextUpdate && IsReady && !SunMovedShadows(t.forward))
                 return;
 
             _nextUpdate = Time.time + UpdateInterval;
@@ -159,7 +163,7 @@ namespace VolumetricClouds.Sky
             if (!EnsureTexture())
                 return;
 
-            Transform t = sun.transform;
+            _drawnForward = t.forward;
 
             // The DAY's density (1.5.0): the density's clock is for the clouds you see; the shadows
             // follow "Shadow darkness" and its own clock.
@@ -193,6 +197,40 @@ namespace VolumetricClouds.Sky
                 Probe();
             }
         }
+
+        /// <summary>
+        /// True when the sun has turned far enough since the map was drawn to move the shadows on
+        /// the ground by more than one texel. A shadow falls height / tan(elevation) from its
+        /// cloud, so a turn of a moves it by about height x a / sin^2(elevation): at 2 deg, with the
+        /// game's clock turning the sun ~0.4 deg a second, that is km a second, and a map drawn
+        /// 20 times a second showed it as shadows standing still and jumping hundreds of metres
+        /// (the flicker at sunset, 2026-10-18). Then the map is drawn every frame instead.
+        /// </summary>
+        private bool SunMovedShadows(Vector3 forward)
+        {
+            float sinElevation = -forward.y;
+            if (sinElevation < SunLowest)
+                return false;
+
+            float height = (Settings.CloudAltitude != null ? Settings.CloudAltitude.value : Settings.Defaults.Altitude) +
+                           CloudShaderParams.LayerHeight * 0.5f;
+            float turned = Vector3.Angle(_drawnForward, forward) * Mathf.Deg2Rad;
+            bool moved = height * turned / (sinElevation * sinElevation) > CookieSize / _resolution;
+
+            if (moved != _everyFrame)
+            {
+                _everyFrame = moved;
+                if (Log.Detailed)
+                    Log.Detail("cloud shadow map: " + (moved
+                        ? "drawn every frame -- the low sun (" + (Mathf.Asin(sinElevation) * Mathf.Rad2Deg).ToString("F1") + " deg) moves the shadows more than a texel between maps"
+                        : "back to " + (1f / UpdateInterval).ToString("F0") + " Hz"));
+            }
+
+            return moved;
+        }
+
+        /// <summary>Below this sine of the sun's elevation (1.15 deg) nothing casts (CloudShadowMap.shader).</summary>
+        private const float SunLowest = 0.02f;
 
         /// <summary>
         /// Reads a downsampled copy of the map back and logs what is in it. "Shadows are
