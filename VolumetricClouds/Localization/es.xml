@@ -87,6 +87,8 @@
 
   <String key="RainbowChance.Label">Prob. de arcoíris</String>
 
+  <String key="WaterspoutChance.Label">Prob. de trombas marinas</String>
+
   <!-- ==================== In-game panel: Clouds ==================== -->
 
   <String key="CloudsVisible.Label">Volumetric Weather</String>

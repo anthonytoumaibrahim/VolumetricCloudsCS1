@@ -101,6 +101,8 @@
 
   <String key="RainbowChance.Label">彩虹概率</String>
 
+  <String key="WaterspoutChance.Label">水龙卷概率</String>
+
   <!-- ==================== In-game panel: Clouds ==================== -->
 
   <String key="CloudsVisible.Label">体积天气</String>

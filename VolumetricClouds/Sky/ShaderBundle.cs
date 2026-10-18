@@ -34,6 +34,7 @@ namespace VolumetricClouds.Sky
         public const string Invisible = "VolumetricClouds/Invisible";
         public const string FogLamps = "VolumetricClouds/FogLamps";
         public const string SkyLayer = "VolumetricClouds/SkyLayer";
+        public const string FunnelDebris = "VolumetricClouds/FunnelDebris";
 
         /// <summary>
         /// "VolumetricClouds.Resources.volumetricclouds-win.bundle" and so on: the csproj's

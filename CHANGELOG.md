@@ -9,9 +9,10 @@ below; the mods list shows it after the mod's name, and the first line of
 
 A new look for the in-game panel, fog that changes on its own, two new cloud styles, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
-clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
-defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-two lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (off), `DynamicDistantClouds`
+clouds, a wind direction of your own, a larger weather pattern for zooming far out, the mod's
+defaults in the profile list, and waterspouts.
+`VolumetricClouds.xml` gains twenty-three lines: `WaterspoutChance` (100%: everyone may now see a
+waterspout now and then), `LargerWeatherPattern` (off), `CloudsToHorizon` (off), `DynamicDistantClouds`
 (on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel
@@ -19,7 +20,8 @@ back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (off
 `MistAfterRain`, `FogInValleys`, `FogOverWater` and `CloudDayOpacity`, all at 0%, `CloudTemporal`
 (off), `WindDirection` (0: follow the game) with `WindAngle`, and `CumulusSize`, `CumulusHeight` and
 `CumulusAmount` at 100%. At those values the fog, the clouds and the wind are exactly as
-before, so apart from the distant clouds nothing changes for anyone until they move one. Profiles saved before read the new
+before, so apart from the distant clouds and the waterspouts nothing changes for anyone until they
+move one. Profiles saved before read the new
 sliders at those values. Thirteen settings get a value at sunset and at night (*Day, sunset and
 night*): twenty-five more lines, each written with the player's own value of that setting, so their
 sky is the same at every hour, and `PanelOpenClocks` (empty). The seven lines of the two 1.3.0 night
@@ -192,7 +194,8 @@ streaks), *Sheep clouds* (small puffs in fields), *Cumulus on the horizon* and *
 (several kinds at once). They add up, so cirrus can stand over sheep clouds over far cumulus. Only
 the clouds are taken from the photographs: the game's sun and sky light them, so they turn gold at
 sunset, keep the light longest the higher they stand, glow round the sun, and go dark at night,
-where they hide the stars. Everything else in the sky, the mod's clouds, the rain, the fog and
+where they hide the stars. *Cloud brightness* lights them as it lights the mod's clouds, at night too,
+and *Glow under the clouds at night* lights them from below, the low ones most. Everything else in the sky, the mod's clouds, the rain, the fog and
 lightning, stands in front of them. They travel with the wind at half the speed of the mod's
 clouds, and slowly change as they go: the sky never repeats. Each city sees them turned its own
 way. The photographs are taken at their full sharpness, and the sun's glare and starburst in them
@@ -290,6 +293,22 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   weathers until it is set, and for everyone who has the mod every row starts the same in every
   weather, so nothing changes until an Overcast value is moved.
 
+### New: waterspouts
+
+- **Waterspouts**, for everyone: now and then, in showery weather, a small, wispy funnel hangs from
+  a cloud over the sea or near the shore, rising into the cloud and lit like it where they meet.
+  About half stay up there; three in ten stop part way, with only a faint thread down to a ring of
+  spray; one in five reaches the water. They are small (a few metres to 30 m across), last one to
+  five minutes, ride along with their cloud, and die when they come ashore.
+  Now and then two or three form under one line of cloud. Only to look at: they damage nothing and
+  the game does not know about them. *Waterspout chance* on the Now tab: 100% is about as often as
+  on a real showery coast (about one an hour of showery weather near water), 0% none, up to 400%.
+- They throw up what is under them: spray over the water (sand, leaves, dust or grit where one is
+  by the shore), as a cloud round their foot and, near the camera, as flying bits. The water under
+  them darkens a little, with faint foam turning into it.
+- Nothing of them is drawn without one, and the cloud pass costs what it did on every other frame.
+  Natural Disasters' tornadoes stay the game's.
+
 ### Changed
 
 - The Clouds tab's *Color (white leaves the clouds as they are)* heading is just *Color*.
@@ -324,6 +343,14 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   sunset. Now they fade out over the last two degrees.
 
 ### To do before release (remove this section when 1.5.0 ships)
+
+*Waterspouts* (built 2026-10-18, four rounds of his in-game looks, kept 2026-10-19): the Workshop
+description and change note. Natural Disasters' tornadoes drawn by the mod were built with them and
+taken out again on 2026-10-19 (his call: "I don't like the tornadoes at all ... remove the tornadoes
+entirely, keep the water sprouts"), with the temporary test key. The funnel variant's AMD registers
+(gfx1030/1100/1201): 145/128/108, no spills (the plain pass unchanged, 96/103/89). Check in the log:
+`features: ... waterspoutChance=100%`, `waterspout #N: forms ...`, `funnels: drawing N ...`, the
+frame line's `funnels=`.
 
 *Clear sky and overcast*: his default Overcast values after testing (Settings.Defaults, the "weather"
 block; only Cloud density's 80% so far); the Workshop description and change note.

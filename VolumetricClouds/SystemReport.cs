@@ -67,6 +67,8 @@ namespace VolumetricClouds
                         " rain=" + On(Settings.RainEnabled, true) +
                         " lightning=" + On(Settings.LightningEnabled, true) +
                         " rainbows=" + Sky.Rainbow.Describe() +
+                        // 1.5.0: our waterspouts.
+                        " waterspoutChance=" + Percent(Settings.WaterspoutChance, Settings.Defaults.WaterspoutChance) +
                         " style=" + Sky.CloudStyle.Describe() +
                         " detail=" + Sky.CloudDetail.Describe() +
                         " lightInside=" + (Sky.LightThrough.Setting * 100f).ToString("F0") + "%" +

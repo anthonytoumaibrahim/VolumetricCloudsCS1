@@ -157,6 +157,8 @@ namespace VolumetricClouds.Sky
         // Distant clouds (1.5.0, Sky/SkyLayer): photographed skies behind the clouds, a child of the box
         // with its own shader; null if the bundle lacks it.
         private SkyLayer _skyLayer;
+        // Their sky light, worked out with the clouds' each frame (ApplyLighting).
+        private Color _skyLayerAmbient;
         private static readonly int IdTemporalOn = Shader.PropertyToID("_TemporalOn");
 
         private static readonly int IdSteps = Shader.PropertyToID("_Steps");
@@ -279,6 +281,11 @@ namespace VolumetricClouds.Sky
         private static readonly int IdBowSun = Shader.PropertyToID("_BowSun");
         private static readonly int IdBowArch = Shader.PropertyToID("_BowArch");
         private static readonly int IdDrawPart = Shader.PropertyToID("_DrawPart");
+        private static readonly int IdFunnelAmbient = Shader.PropertyToID("_FunnelAmbient");
+        private static readonly int IdFunnelSun = Shader.PropertyToID("_FunnelSun");
+
+        /// <summary>The air's shader variant with the funnels in it (1.5.0).</summary>
+        private const string FunnelKeyword = "VC_FUNNELS";
         private static readonly int IdCloudBottom = Shader.PropertyToID("_CloudBottom");
         private static readonly int IdRainAmount = Shader.PropertyToID("_RainAmount");
 
@@ -509,7 +516,7 @@ namespace VolumetricClouds.Sky
             {
                 _airRenderer.enabled = false;
                 if (_skyLayer != null)
-                    _skyLayer.Update(null);
+                    _skyLayer.Update(null, Vector4.zero);
                 return;
             }
 
@@ -522,7 +529,7 @@ namespace VolumetricClouds.Sky
 
             // After the clouds' light is set: distant clouds take it from their material.
             if (_skyLayer != null)
-                _skyLayer.Update(_material);
+                _skyLayer.Update(_material, AsVector(_skyLayerAmbient));
         }
 
         /// <summary>The Smoother clouds setting is on.</summary>
@@ -982,6 +989,7 @@ namespace VolumetricClouds.Sky
             ApplyLighting();
             ApplyDetailLight();
             CloudLightning.ApplyTo(_material);
+            Funnels.ApplyTo(_material);
         }
 
         /// <summary>
@@ -1014,10 +1022,11 @@ namespace VolumetricClouds.Sky
             _split = height < bottom - (_split ? SplitLeave : SplitEnter);
 
             // The shader's own tests for its rain, fog and arch, a hair lower, so a rounding can never
-            // leave any of them undrawn.
+            // leave any of them undrawn. And the waterspouts' funnels (1.5.0).
             bool air = (_material.GetFloat(IdRainAmount) > 0.0009f && _material.GetFloat(IdRainShaftDensity) > 0f) ||
                        (_material.GetFloat(IdFogAmount) > 0.0009f && _material.GetFloat(IdFogDensity) > 0f) ||
-                       _material.GetVector(IdBowParams).z > 0.4f;
+                       _material.GetVector(IdBowParams).z > 0.4f ||
+                       Funnels.Count > 0;
 
             _material.renderQueue = _split ? EarlyQueue : LateQueue;
             _material.SetFloat(IdDrawPart, _split || air ? 1f : 0f);
@@ -1047,7 +1056,16 @@ namespace VolumetricClouds.Sky
                     _airMaterial.SetTexture(IdBowTex, _rainbowTable);
 
                 CloudLightning.ApplyTo(_airMaterial);
+                Funnels.ApplyTo(_airMaterial);
                 _airMaterial.SetFloat(IdDrawPart, 2f);
+
+                // The funnels' code is a variant of its own (CloudRaymarch.shader): only while there is
+                // one, so the pass costs what it did on every other frame. After CopyValues, which may
+                // carry the cloud material's keywords over.
+                if (Funnels.Count > 0)
+                    _airMaterial.EnableKeyword(FunnelKeyword);
+                else
+                    _airMaterial.DisableKeyword(FunnelKeyword);
             }
 
             _airRenderer.enabled = air;
@@ -1059,7 +1077,7 @@ namespace VolumetricClouds.Sky
                 // The queues as the materials hold them, read back: the constants are only what was
                 // asked for (in 1.3.0 this line said 3100 while the air was really at 2520).
                 string where = " (camera " + height.ToString("F0") + " m, cloud base " + bottom.ToString("F0") + " m)";
-                string airAt = "rain, fog and rainbow a draw of their own at " + _airMaterial.renderQueue +
+                string airAt = "rain, fog, rainbow and funnels a draw of their own at " + _airMaterial.renderQueue +
                                ", after the power lines, halos and particles (smoke)";
                 switch (state)
                 {
@@ -1294,6 +1312,13 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdSunColor, AsVector(cloudSun * sunlitTint) * styleLight);
             _material.SetVector(IdAmbientColor, AsVector(cloudAmbient * shadeTint) * styleLight);
 
+            // The distant clouds' sky light (SkyLayer): the clouds', without the style's level, and with
+            // the floor under Cloud brightness instead of over it. At night the game's sky light is below
+            // the floor (always under Real Light, which hands the clouds the game's), so the floor was all
+            // of it and the night's Cloud brightness never reached them (2026-10-18). By day, far above
+            // the floor, the same light as before.
+            _skyLayerAmbient = WithFloor(lightAmbient) * (brightness * underRealLight) * shadeTint;
+
             // The light in the clouds' shade (CloudShade): the sky light at the base as a share of the
             // top's, and the sunlit ground's light on the undersides as a share of the sun above (the
             // key's: moonlit ground at night). Both at 0%: (0.45, 0), the light from before.
@@ -1322,6 +1347,18 @@ namespace VolumetricClouds.Sky
             _material.SetVector(IdRainAmbient, AsVector(rainAmbient) * (snow ? 1f : 0.6f));
             _material.SetVector(IdRainSun, AsVector(cloudSun) * (snow ? 0.3f : 0.12f));
 
+            // The funnels (1.5.0, FunnelShape.cginc): low down in the air's light as the FOG has it (its
+            // fixed FogLightScale and lean, not the fog's own brightness/tint/colour rows: a funnel is not
+            // fog), turning higher up to the clouds' own light where they meet the base (the shader's
+            // CloudRadiance). The flecks and the water round their foot (FunnelDebris) take the same.
+            // (The clouds' sun -- under Real Light's sky x5 and more -- lit them a glowing white, 2026-10-19.)
+            Color funnelAmbient = WithFloor(airLightAmbient * FogLightScale) * 1.3f;
+            Color funnelSun = baseSun * (FogLightScale * 0.7f);
+            _material.SetVector(IdFunnelAmbient, AsVector(funnelAmbient));
+            _material.SetVector(IdFunnelSun, AsVector(funnelSun));
+            Funnels.AirAmbient = funnelAmbient;
+            Funnels.Sun = funnelSun;
+
             ApplyNight(night, shadeTint);
             ApplySkyGlow(properties);
             ApplyFog(airLightAmbient, baseSun);
@@ -1335,7 +1372,8 @@ namespace VolumetricClouds.Sky
             CloudShadowMap map = CloudShadowMap.Current;
             bool shadowMap = Settings.ShadowsCast && sun != null && map != null && map.IsReady && map.Texture != null;
             bool bow = ApplyRainbow(sun, key, cloudSun, shadowMap, sunElevation);
-            ApplyShadowLookup(sun, map, shadowMap && CloudShadowMap.Readable(CloudShaderParams.Coverage) && (CloudFog.Active || bow));
+            ApplyShadowLookup(sun, map, shadowMap && CloudShadowMap.Readable(CloudShaderParams.Coverage) &&
+                                        (CloudFog.Active || bow || Funnels.Count > 0));
 
             if (!_loggedLighting)
             {
@@ -1392,7 +1430,7 @@ namespace VolumetricClouds.Sky
                 if (Log.Detailed)
                 {
                     LogDetail(coverage, brightness, overcast);
-                    LogSun(properties, sun, key, cloudSun, _sunsetNote);
+                    LogSun(properties, sun, key, cloudSun, cloudAmbient, _skyLayerAmbient, _sunsetNote);
                 }
 
                 _frameCount = 0;
@@ -1523,6 +1561,8 @@ namespace VolumetricClouds.Sky
                        " skyLayer=" + (_skyLayer != null ? _skyLayer.Describe() : "none") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +
                        " rainbow=" + (Rainbow.Current > 0f ? (Rainbow.Current * 100f).ToString("F0") + "% " + Rainbow.DescribeArch() : "none") +
+                       // 1.5.0: the waterspouts' funnels in the air pass.
+                       " funnels=" + Funnels.Describe() +
                        " shadows=" + Settings.ShadowsCast +
                        " clouds=" + IsActive);
         }
@@ -1567,7 +1607,8 @@ namespace VolumetricClouds.Sky
         /// clouds are lit by and what reaches them, and the sky's three ambient colours. What the
         /// clouds' light does through a sunset, read straight off the log.
         /// </summary>
-        private static void LogSun(DayNightProperties properties, Light sun, Light key, Color cloudSun, string sunsetNote)
+        private static void LogSun(DayNightProperties properties, Light sun, Light key, Color cloudSun, Color cloudAmbient,
+                                   Color distantAmbient, string sunsetNote)
         {
             if (sun == null)
                 return;
@@ -1581,6 +1622,7 @@ namespace VolumetricClouds.Sky
                        " moon=" + (moon != null ? moon.intensity.ToString("F3") + "x" + Rgb(moon.color) : "none") +
                        " key=" + (key == null ? "none" : key == sun ? "sun" : "moon") +
                        " cloudSun=" + Rgb(cloudSun) +
+                       " cloudAmbient=" + Rgb(cloudAmbient) + " distantAmbient=" + Rgb(distantAmbient) +
                        " underRealLight=x" + SceneAmbient.CloudLight.ToString("F2") +
                        " | ambient " + RenderSettings.ambientMode +
                        " sky=" + Rgb(RenderSettings.ambientSkyColor) +

@@ -65,12 +65,20 @@ Shader "VolumetricClouds/SkyLayer"
             float4 _SkyFlow;
 
             // The clouds' own light, copied from the cloud material every frame (CloudVolume.ApplyLighting):
-            // their sun (or moon) with its brightness and tints, their sky light, Sunset light's edge
+            // their sun (or moon) with its brightness and tints, their sky light (with the night's floor
+            // under Cloud brightness: CloudVolume works it out for these pictures), Sunset light's edge
             // (_SunDir, towards the light, is CloudMedia's). Also their distance fade's values
             // (_CloudBottom, _MaxDistance, _CloudExtent, _EdgeStart, _NightOpacity), for BehindClouds.
             float3 _SunColor;
             float3 _AmbientColor;
             float4 _SunsetEdge;
+
+            // The glow under the clouds at night, the volumetric clouds' (0 by day): what shows a cloud at
+            // night, when the moon and the sky light leave it as dark as the sky behind (2026-10-18: "I
+            // don't see them at all at night"). Full on a kind up to GLOW_HEIGHT, less the higher it
+            // stands: the far clouds all of it, the cloud layers 2/3, the sheep clouds 4/9, cirrus 2/9.
+            float3 _NightGlow;
+            #define GLOW_HEIGHT 2000.0
 
             struct v2f
             {
@@ -161,7 +169,8 @@ Shader "VolumetricClouds/SkyLayer"
             }
 
             // A kind's light: the sun through its own cloud (Beer, with a floor for the light scattered
-            // round inside), in the clouds' phase, and the sky light, a little less on its thick parts.
+            // round inside), in the clouds' phase, the sky light, a little less on its thick parts, and
+            // at night the glow from below.
             float3 KindLight(float4 kind, float opacity, float tau, float cosTheta)
             {
                 float3 sun = _SunColor;
@@ -170,7 +179,8 @@ Shader "VolumetricClouds/SkyLayer"
                 float phase = 0.65 + 0.35 * min(HenyeyGreenstein(cosTheta, kind.z), 5.0);
                 float depth = tau * kind.y;
                 float through = max(exp(-depth), 0.5 * exp(-depth * 0.3));
-                return sun * (through * phase) + _AmbientColor * (1.0 - 0.2 * opacity);
+                return sun * (through * phase) + _AmbientColor * (1.0 - 0.2 * opacity) +
+                       _NightGlow * min(GLOW_HEIGHT / kind.x, 1.0);
             }
 
             // How much of the pictures may show in direction d, 0..1: the volumetric clouds' presence where

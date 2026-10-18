@@ -124,6 +124,8 @@
 
   <String key="RainbowChance.Label">Rainbow chance</String>
 
+  <String key="WaterspoutChance.Label">Waterspout chance</String>
+
   <!-- ==================== In-game panel: Clouds ==================== -->
 
   <String key="CloudsVisible.Label">Volumetric Weather</String>

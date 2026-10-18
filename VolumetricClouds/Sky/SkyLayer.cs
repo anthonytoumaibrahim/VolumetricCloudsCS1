@@ -18,7 +18,8 @@ namespace VolumetricClouds.Sky
     /// A child of the cloud box with its own shader (SkyLayer.shader) and queue: after the game's stars,
     /// before the lightning bolt and the clouds, so everything else in the sky lays itself over it. Lit
     /// with the clouds' own light, copied from their material each frame (their brightness and tints
-    /// included, invariant 8). Nothing of it exists until a row is above 0: then the eight pictures are
+    /// included, invariant 8), and at night by the glow under the clouds as well (2026-10-18, the author:
+    /// "I don't see them at all at night"). Nothing of it exists until a row is above 0: then the eight pictures are
     /// decoded once (two RGBA textures, ~45 MB of graphics memory with mips) and kept for the session.
     /// The pictures are turned per city (its seed), and carried by the wind at half the volumetric
     /// clouds' speed (2026-10-13; first built as HDRP's distortion, a little way along the wind and
@@ -85,6 +86,7 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSunColor = Shader.PropertyToID("_SunColor");
         private static readonly int IdAmbientColor = Shader.PropertyToID("_AmbientColor");
         private static readonly int IdSunsetEdge = Shader.PropertyToID("_SunsetEdge");
+        private static readonly int IdNightGlow = Shader.PropertyToID("_NightGlow");
         private static readonly int[] IdFade =
         {
             Shader.PropertyToID("_CloudBottom"), Shader.PropertyToID("_MaxDistance"), Shader.PropertyToID("_CloudExtent"),
@@ -173,9 +175,11 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Once a frame, after the cloud material has this frame's light (CloudVolume.UpdateMaterial).
-        /// <paramref name="clouds"/> null, or every row at 0: nothing is drawn.
+        /// <paramref name="ambient"/> is the pictures' sky light (CloudVolume.ApplyLighting: the clouds',
+        /// with the night's floor under Cloud brightness). <paramref name="clouds"/> null, or every row at
+        /// 0: nothing is drawn.
         /// </summary>
-        public void Update(Material clouds)
+        public void Update(Material clouds, Vector4 ambient)
         {
             AdvanceFlow();
             ReadAmounts();
@@ -218,11 +222,14 @@ namespace VolumetricClouds.Sky
 
             // The clouds' own light (CloudVolume.ApplyLighting set it this frame), and their distance fade.
             // Without the Soft style's own light level (CloudStyle.CloudLightScale): the pictures are lit
-            // as under every other style.
+            // as under every other style. Their glow at night is the clouds' (0 by day), "Glow under the
+            // clouds at night" with it: by night the moon and the sky light leave a cloud as dark as the
+            // sky behind it, and the glow is what shows the volumetric ones.
             float styleLight = Mathf.Max(1e-3f, CloudStyle.CloudLightScale);
             _material.SetVector(IdSunDir, clouds.GetVector(IdSunDir));
             _material.SetVector(IdSunColor, clouds.GetVector(IdSunColor) / styleLight);
-            _material.SetVector(IdAmbientColor, clouds.GetVector(IdAmbientColor) / styleLight);
+            _material.SetVector(IdAmbientColor, ambient);
+            _material.SetVector(IdNightGlow, clouds.GetVector(IdNightGlow));
             _material.SetVector(IdSunsetEdge, clouds.GetVector(IdSunsetEdge));
             for (int i = 0; i < IdFade.Length; i++)
                 _material.SetFloat(IdFade[i], clouds.GetFloat(IdFade[i]));

@@ -177,6 +177,13 @@ namespace VolumetricClouds
         /// </summary>
         public static FloatSetting RainbowChance { get; private set; }
 
+        /// <summary>
+        /// How often our small waterspouts form (1.5.0, Sky.Waterspouts, the Now tab): 1 = most like
+        /// real life on a showery coast, up to 4. 0 = none, and nothing of them runs. Visual only,
+        /// for every player, with or without Natural Disasters (whose tornadoes stay the game's).
+        /// </summary>
+        public static FloatSetting WaterspoutChance { get; private set; }
+
         /// <summary>Lightning lights the clouds and the rain from inside, and thunder gets our storm flashes.</summary>
         public static BoolSetting LightningEnabled { get; private set; }
 
@@ -955,6 +962,10 @@ namespace VolumetricClouds
             public const float Rainbows = 1f;
             public const float RainbowChance = 1f;
 
+            // ---- waterspouts (1.5.0) ----
+            // Reaches every settings file, on purpose (the author, 2026-10-18): at real life's rarity.
+            public const float WaterspoutChance = 1f;
+
             // ---- lightning ----
             public const bool LightningEnabled = true;
             public const bool LightningReplaceBolt = true;
@@ -1094,6 +1105,7 @@ namespace VolumetricClouds
                 RainLocalised = new BoolSetting("RainLocalised", Defaults.RainLocalised);
                 Rainbows = new FloatSetting("Rainbows", Defaults.Rainbows);
                 RainbowChance = new FloatSetting("RainbowChance", Defaults.RainbowChance);
+                WaterspoutChance = new FloatSetting("WaterspoutChance", Defaults.WaterspoutChance);
 
                 LightningEnabled = new BoolSetting("LightningEnabled", Defaults.LightningEnabled);
                 LightningReplaceBolt = new BoolSetting("LightningReplaceBolt", Defaults.LightningReplaceBolt);

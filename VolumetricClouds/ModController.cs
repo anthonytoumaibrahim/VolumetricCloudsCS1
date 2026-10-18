@@ -75,6 +75,7 @@ namespace VolumetricClouds
             gameObject.AddComponent<RainDrops>().Initialise(_field);
             gameObject.AddComponent<GameRain>();
             gameObject.AddComponent<CloudLightning>().Initialise(_field);
+            gameObject.AddComponent<FunnelDebris>().Initialise(_field);
             gameObject.AddComponent<TerrainHeightMap>();
             gameObject.AddComponent<GameFog>();
             gameObject.AddComponent<GameHorizon>();

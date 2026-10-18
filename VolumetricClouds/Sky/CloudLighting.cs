@@ -182,6 +182,10 @@ namespace VolumetricClouds.Sky
             // A new rain rolls its dice for rainbows (Rainbow Chance).
             Rainbow.Advance();
 
+            // The funnels (1.5.0): our waterspouts formed, moved with their clouds and aged -- after the
+            // wind, the cover and the rain they follow.
+            Funnels.Advance(_field, Time.deltaTime, simulationRate);
+
             // The fog is drawn by the volumetric cloud pass, so it needs that pass running.
             CloudFog.Advance(Time.deltaTime, CloudVolume.IsActive, CloudWeather.WindDirection, simulationRate);
 
@@ -258,6 +262,9 @@ namespace VolumetricClouds.Sky
             // The sound-and-wet-roads patch outlives the city; hand the game its rain back.
             CloudRain.Clear();
             Rainbow.Clear();
+
+            // No waterspout kept for the next city.
+            Funnels.Clear();
 
             // No city, no sky to save: an editor saving a map after this must not write the
             // city's sky into it.

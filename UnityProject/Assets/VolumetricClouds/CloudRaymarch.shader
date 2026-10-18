@@ -35,6 +35,11 @@ Shader "VolumetricClouds/CloudRaymarch"
             // level, unsupported on Metal: an EMPTY blob, no error). 3.5 is the same SM4.0
             // on D3D11 (blobs byte-identical), OpenGL 3.3, and Metal. tools/bundle-apis.ps1.
             #pragma target 3.5
+            // The waterspouts' funnels (1.5.0, FunnelShape.cginc) exist only in this
+            // variant, switched on on the air's material while there is a funnel (Sky/CloudVolume.cs):
+            // in the pass it raised every AMD chip's registers ~18% (fewer waves in flight on every
+            // frame, a funnel or not). Without it the pass is what it was.
+            #pragma multi_compile __ VC_FUNNELS
             #include "UnityCG.cginc"
             #include "CloudCommon.cginc"
             // The distance fade, the rain curtains, the fog and the jitter (CloudMedia.cginc).
@@ -533,6 +538,12 @@ Shader "VolumetricClouds/CloudRaymarch"
                 return radiance;
             }
 
+            // The waterspouts' funnels (1.5.0): marched in the air with the rain and the fog,
+            // and lit where they meet the base by the clouds' own light there (CloudRadiance, above).
+            #ifdef VC_FUNNELS
+            #include "FunnelShape.cginc"
+            #endif
+
             // The cloud slab between tEnter and tExit, before the distance fade (FinishClouds): light in
             // rgb, transmittance in a. `tStop`: a lightning bolt's BoltStop (1e9 without one): the march
             // ends there but keeps the steps of the whole ray, so the cloud in front of a bolt is marched
@@ -882,9 +893,13 @@ Shader "VolumetricClouds/CloudRaymarch"
             // `archT` (1.3.0): where the ray crosses the rainbow's arch (-1: not); `toArch` comes back
             // with what the rain leaves of the view up to each crossing -- the rain in front of the
             // arch dims it.
-            float4 MarchRain(float3 origin, float3 dir, float tStart, float tEnd, float jitter, float cosTheta, float2 archT, out float2 toArch)
+            // `tSplit` (1.5.0): where the first funnel along the ray begins; `front` comes back with the
+            // rain in front of it alone (light, transmittance), so the funnel goes in between (frag).
+            float4 MarchRain(float3 origin, float3 dir, float tStart, float tEnd, float jitter, float cosTheta, float2 archT,
+                             float tSplit, out float2 toArch, out float4 front)
             {
                 toArch = 1.0;
+                front = float4(0, 0, 0, 1);
                 if (tEnd <= tStart)
                     return float4(0, 0, 0, 1);
 
@@ -929,15 +944,34 @@ Shader "VolumetricClouds/CloudRaymarch"
                         // The rain before the arch: up to each crossing, or all of this step.
                         toArch = archT > tPrev ? transmittance * exp(-sigma * min(archT - tPrev, segment)) : toArch;
 
+                        // The rain before the funnels: up to where they begin, or all of this step.
+                        #ifdef VC_FUNNELS
+                        if (tSplit > tPrev)
+                        {
+                            float partT = exp(-sigma * min(tSplit - tPrev, segment));
+                            front = float4(light + transmittance * lit * (1.0 - partT), transmittance * partT);
+                        }
+                        #endif
+
                         light += transmittance * lit * (1.0 - stepT);
                         transmittance *= stepT;
                     }
+                    #ifdef VC_FUNNELS
+                    else if (tSplit > tPrev)
+                    {
+                        front = float4(light, transmittance);
+                    }
+                    #endif
 
                     tPrev = tNext;
                 }
 
                 // The march stopped, or the rain ended, before a crossing: all of it is in front.
                 toArch = archT >= tPrev ? transmittance : toArch;
+                #ifdef VC_FUNNELS
+                if (tSplit >= tPrev)
+                    front = float4(light, transmittance);
+                #endif
                 return float4(light, transmittance);
             }
 
@@ -991,9 +1025,13 @@ Shader "VolumetricClouds/CloudRaymarch"
             // `toArch` (1.3.0): what the fog leaves of the view up to each of the rainbow arch's
             // crossings `archT` -- which frag dims the arch by, so a fog bank in front of a shower
             // hides its rainbow (the author: "make sure the rainbow isn't 'over' the fog").
-            float4 MarchFog(float3 origin, float3 dir, float tEnd, float camAbove, float jitter, float cosTheta, float2 archT, out float2 toArch)
+            //
+            // `tSplit` and `front` (1.5.0): as MarchRain's, the fog in front of the funnels alone.
+            float4 MarchFog(float3 origin, float3 dir, float tEnd, float camAbove, float jitter, float cosTheta, float2 archT,
+                            float tSplit, out float2 toArch, out float4 front)
             {
                 toArch = 1.0;
+                front = float4(0, 0, 0, 1);
                 if (tEnd <= 0.0)
                     return float4(0, 0, 0, 1);
 
@@ -1170,16 +1208,35 @@ Shader "VolumetricClouds/CloudRaymarch"
                         // The fog before the arch: up to each crossing, or all of this step.
                         toArch = archT > tPrev ? transmittance * exp(-sigma * min(archT - tPrev, segment)) : toArch;
 
+                        // The fog before the funnels: up to where they begin, or all of this step.
+                        #ifdef VC_FUNNELS
+                        if (tSplit > tPrev)
+                        {
+                            float partT = exp(-sigma * min(tSplit - tPrev, segment));
+                            front = float4(light + transmittance * lit * (1.0 - partT), transmittance * partT);
+                        }
+                        #endif
+
                         float stepT = exp(-sigma * segment);
                         light += transmittance * lit * (1.0 - stepT);
                         transmittance *= stepT;
                     }
+                    #ifdef VC_FUNNELS
+                    else if (tSplit > tPrev)
+                    {
+                        front = float4(light, transmittance);
+                    }
+                    #endif
 
                     tPrev = tNext;
                 }
 
                 // The march stopped, or the fog ended, before a crossing: all of it is in front.
                 toArch = archT >= tPrev ? transmittance : toArch;
+                #ifdef VC_FUNNELS
+                if (tSplit >= tPrev)
+                    front = float4(light, transmittance);
+                #endif
 
                 return float4(light, transmittance);
             }
@@ -1250,6 +1307,19 @@ Shader "VolumetricClouds/CloudRaymarch"
                 bool drawClouds = _DrawPart < 1.5;
                 bool drawAir = _DrawPart < 0.5 || _DrawPart > 1.5;
 
+                // The waterspouts' funnels (1.5.0, FunnelShape.cginc): where the first one
+                // begins along this ray, so the rain and the fog say what of them stands in front of it
+                // (1e9 with none, and nothing of them runs), and the light of the cloud base they come up
+                // into -- here, first, while little else is held (FunnelBaseLight).
+                #ifdef VC_FUNNELS
+                float funnelEnd = min(min(sceneDist, boltStop), _FunnelParams.y);
+                int funnelFirst = 0;
+                float tFunnel = drawAir && _FunnelCount > 0.5 ? FunnelsEntry(origin, dir, funnelEnd, funnelFirst) : 1e9;
+                float3 funnelBase = tFunnel < 1e9 ? FunnelBaseLight(funnelFirst, tFunnel, cosTheta) : float3(0, 0, 0);
+                #else
+                float tFunnel = 1e9;
+                #endif
+
                 float4 clouds = float4(0, 0, 0, 1);
                 if (drawClouds)
                 {
@@ -1299,13 +1369,16 @@ Shader "VolumetricClouds/CloudRaymarch"
                 float2 archT = arch ? ArchCrossings(origin, dir) : float2(-1.0, -1.0);
                 float2 rainToArch = 1.0;
 
+                float4 rainFront = float4(0, 0, 0, 1);
+
                 if (drawAir && _RainAmount > 0.001 && _RainShaftDensity > 0.0)
-                    rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta, archT, rainToArch);
+                    rain = MarchRain(origin, dir, rStart, rEnd, jitter, cosTheta, archT, tFunnel, rainToArch, rainFront);
 
                 // MarchFog finds its own stretch of the ray, level fog or draped; all it needs is
                 // where the ray ends (and where the arch is, to say how much fog is in front of it).
                 float4 fog = float4(0, 0, 0, 1);
                 float2 fogToArch = 1.0;
+                float4 fogFront = float4(0, 0, 0, 1);
                 bool cameraInFog = false;
                 if (drawAir && _FogAmount > 0.001 && _FogDensity > 0.0)
                 {
@@ -1326,7 +1399,7 @@ Shader "VolumetricClouds/CloudRaymarch"
                         if (dir.y < 0.0)
                             fEnd = min(fEnd, (_FogFloor - origin.y) / dy);
 
-                        fog = MarchFog(origin, dir, fEnd, camAbove, jitter, cosTheta, archT, fogToArch);
+                        fog = MarchFog(origin, dir, fEnd, camAbove, jitter, cosTheta, archT, tFunnel, fogToArch, fogFront);
                     }
                 }
 
@@ -1346,6 +1419,18 @@ Shader "VolumetricClouds/CloudRaymarch"
                     lower.rgb += ArchLight(origin, dir, archT.x, rEnd) * inFront.x
                                + ArchLight(origin, dir, archT.y, rEnd) * inFront.y;
                 }
+
+                // The funnels between the rain and fog in front of them and what is behind: with `front`
+                // that part of `lower`, lower = front + T_front x behind, and the funnel goes in between --
+                // front + T_front x funnel + T_funnel x (lower - front). Exact where the rain and fog are.
+                #ifdef VC_FUNNELS
+                if (tFunnel < 1e9)
+                {
+                    float4 front = cameraInFog ? Over(fogFront, rainFront) : Over(rainFront, fogFront);
+                    float4 funnels = MarchFunnels(origin, dir, funnelEnd, jitter, cosTheta, funnelBase);
+                    lower = float4(front.rgb + front.a * funnels.rgb + funnels.a * (lower.rgb - front.rgb), lower.a * funnels.a);
+                }
+                #endif
 
                 float4 result = cameraBelowBase ? Over(lower, clouds) : Over(clouds, lower);
 

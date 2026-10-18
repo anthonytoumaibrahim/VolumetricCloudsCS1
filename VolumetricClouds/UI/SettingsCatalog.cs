@@ -1536,6 +1536,20 @@ namespace VolumetricClouds.UI
                 Profiled = false,
                 Enabled = () => RainbowsPossible() && Sky.Rainbow.Amount > 0f,
             });
+
+            // 1.5.0 (the author: "leave the chance slider in Now tab"): our small waterspouts, for
+            // every player (Sky.Waterspouts). 100% is real life on a showery coast; 0% none. Now-tab,
+            // so not in a profile. Customisation rows for them would go on the Weather tab (his call),
+            // none yet.
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Now,
+                Float = Settings.WaterspoutChance,
+                DefaultFloat = Settings.Defaults.WaterspoutChance,
+                Min = 0f, Max = 400f, Step = 5f,
+                Profiled = false,
+            });
         }
 
         /// <summary>F4 -> Clouds. The shape of the sky, which is judged against the sky.</summary>

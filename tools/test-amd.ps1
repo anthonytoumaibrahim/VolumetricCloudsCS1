@@ -17,6 +17,8 @@
 #     .shader sources the way Unity 5.6 compiles them (its defines and includes, the
 #     backwards-compatibility + level-3 flags, ps_4_0/vs_4_0 like every shipped program).
 #     2026-10-07 this rebuild matched the shipped cloud shader (same 109 texture reads, 12 loops).
+#     Every variant (1.5.0): a block is built once as it is and once per `#pragma multi_compile __ X`
+#     keyword with X defined (".X" in the table); the bundle route has every variant's bytes anyway.
 #
 # FAIL when a program does not compile for a chip, or when it spills registers to scratch
 # memory (the classic way a big shader becomes far slower on one vendor than another). The
@@ -168,13 +170,23 @@ foreach ($s in $shaders) {
         $text = $blocks[$b] -join "`n"
         $vert = if ($text -match '#pragma\s+vertex\s+(\w+)') { $Matches[1] } else { $null }
         $frag = if ($text -match '#pragma\s+fragment\s+(\w+)') { $Matches[1] } else { $null }
-        $file = Join-Path $hlsl "$($s.Short).$b.hlsl"
-        ($head + ($blocks[$b] | Where-Object { $_ -notmatch '^\s*#pragma\s+(vertex|fragment|target|multi_compile|shader_feature|only_renderers|exclude_renderers)' })) |
+
+        # Every variant (1.5.0: CloudRaymarch's VC_FUNNELS): the block as it is, and once more with each
+        # keyword a `#pragma multi_compile __ KEYWORD` line names defined. The bundle route takes them all
+        # from the bundle; this one has to make them.
+        $variants = @("")
+        foreach ($m in [regex]::Matches($text, '#pragma\s+multi_compile\s+__\s+(\w+)')) { $variants += $m.Groups[1].Value }
+
+        foreach ($keyword in $variants) {
+        $suffix = if ($keyword) { ".$keyword" } else { "" }
+        $file = Join-Path $hlsl "$($s.Short).$b$suffix.hlsl"
+        $define = if ($keyword) { @("#define $keyword 1") } else { @() }
+        ($head + $define + ($blocks[$b] | Where-Object { $_ -notmatch '^\s*#pragma\s+(vertex|fragment|target|multi_compile|shader_feature|only_renderers|exclude_renderers)' })) |
             Set-Content -Path $file -Encoding ascii
         foreach ($target in $SourceTargets) {
             foreach ($stage in @(@($frag, "ps_4_0", "ps"), @($vert, "vs_4_0", "vs"))) {
                 if (-not $stage[0]) { continue }
-                $tag = "$($s.Short).$b.$($stage[2])"
+                $tag = "$($s.Short).$b$suffix.$($stage[2])"
                 # 0x9000 = D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_OPTIMIZATION_LEVEL3
                 $log = & $Rga -s dx11 -c $target -f $stage[0] -p $stage[1] --DXFlags 36864 -I $UnityIncludes -I $srcDir `
                     --isa (Join-Path $isa "$tag.isa") -a (Join-Path $isa "$tag.csv") $file 2>&1 | Out-String
@@ -191,6 +203,7 @@ foreach ($s in $shaders) {
                 if ($st -and $st.SCRATCH_MEM -match '^\d+$' -and [int]$st.SCRATCH_MEM -gt 0) { $spills = [math]::Max($spills, [int]$st.SCRATCH_MEM) }
                 $rows.Add([pscustomobject]@{ Chip = "$target (src)"; Program = $tag; Size = $m.Size; VGPRs = $st.USED_VGPRs; SGPRs = $st.USED_SGPRs; Spills = $spills })
             }
+        }
         }
     }
 }

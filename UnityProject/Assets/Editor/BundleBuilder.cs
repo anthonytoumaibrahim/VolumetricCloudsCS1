@@ -31,6 +31,7 @@ public static class BundleBuilder
         "Assets/VolumetricClouds/Invisible.shader",
         "Assets/VolumetricClouds/FogLamps.shader",
         "Assets/VolumetricClouds/SkyLayer.shader",
+        "Assets/VolumetricClouds/FunnelDebris.shader",
     };
 
     private struct Target
