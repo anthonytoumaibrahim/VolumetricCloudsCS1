@@ -14,7 +14,9 @@ namespace VolumetricClouds.Sky
     /// Since 1.4.0 the share that dissolves passes only the part of the sky that is NOT the sun's:
     /// the game's skybox maths (Hidden/DayNight/Skybox, from its inputs, which DayNightProperties
     /// sets globally) worked out as it is and without the glow -- the sun's disc term out, the Mie
-    /// phase held at its value 90 degrees from the sun. Any change here goes into the shader too.
+    /// phase held at its value 90 degrees from the sun. Since 1.5.0 that share is painted instead
+    /// of let through (<see cref="Paint"/>, SkyPaint): a cubemap no longer shows through the far
+    /// clouds. Any change here goes into the shader too.
     /// </remarks>
     public sealed class SkyGlow
     {
@@ -42,6 +44,45 @@ namespace VolumetricClouds.Sky
         /// <summary>The sky's brightness along <paramref name="dir"/>, as it is and without the sun's disc and glow.</summary>
         private void Lumas(Vector3 dir, out float lumFull, out float lumGlowless)
         {
+            Vector3 full, glowless;
+            Sky(dir, out full, out glowless);
+            lumFull = Luma(ToneMap(full));
+            lumGlowless = Luma(ToneMap(glowless));
+        }
+
+        /// <summary>
+        /// The painted sky (1.5.0, CloudMedia SkyPaint): the game's sky along <paramref name="dir"/>
+        /// without the sun's disc and glow, graded as the skybox writes it -- <paramref name="compressed"/>:
+        /// its variant that squeezes the light under white first.
+        /// </summary>
+        public Vector3 Paint(Vector3 dir, bool compressed)
+        {
+            Vector3 full, glowless;
+            Sky(dir, out full, out glowless);
+            if (compressed)
+                for (int i = 0; i < 3; i++)
+                    glowless[i] = 1f - Mathf.Exp(-glowless[i]);
+            return ToneMap(glowless);
+        }
+
+        /// <summary>
+        /// The painted sky's brightness <paramref name="degrees"/> round from the sun at
+        /// <paramref name="elevation"/> degrees up -- for the log and tests.
+        /// </summary>
+        public float PaintAround(float degrees, float elevation, bool compressed)
+        {
+            Vector3 sun = SunDir.sqrMagnitude > 1e-8f ? SunDir.normalized : Vector3.up;
+            Vector3 flat = new Vector3(sun.x, 0f, sun.z);
+            flat = flat.sqrMagnitude > 1e-8f ? flat.normalized : Vector3.forward;
+            float a = degrees * Mathf.Deg2Rad;
+            Vector3 way = flat * Mathf.Cos(a) + new Vector3(flat.z, 0f, -flat.x) * Mathf.Sin(a);
+            float e = elevation * Mathf.Deg2Rad;
+            return Luma(Paint((way * Mathf.Cos(e) + Vector3.up * Mathf.Sin(e)).normalized, compressed));
+        }
+
+        /// <summary>The skybox's maths along <paramref name="dir"/>, before its grading: as it is, and without the sun's disc and glow.</summary>
+        private void Sky(Vector3 dir, out Vector3 full, out Vector3 glowless)
+        {
             float c = Vector3.Dot(dir, SunDir);
             float h = Mathf.Max(dir.y + 0.06f, 0.06f);
             float hw = Mathf.Max(dir.y, 0f);
@@ -64,7 +105,8 @@ namespace VolumetricClouds.Sky
             }
 
             float ex = Mathf.Abs(e.x) < 1e-6f ? 1e-6f : e.x;
-            Vector3 full = Vector3.zero, glowless = Vector3.zero;
+            full = Vector3.zero;
+            glowless = Vector3.zero;
             for (int i = 0; i < 3; i++)
             {
                 float mie = sM * e[i] / ex * MieConst[i];
@@ -72,9 +114,6 @@ namespace VolumetricClouds.Sky
                 full[i] = (0.75f * e[i] + phase * mie) * ray + night + Mathf.Min(mie, hw) * disc * tr[i];
                 glowless[i] = (0.75f * e[i] + Mathf.Min(phase, side) * mie) * ray + night;
             }
-
-            lumFull = Luma(ToneMap(full));
-            lumGlowless = Luma(ToneMap(glowless));
         }
 
         /// <summary>

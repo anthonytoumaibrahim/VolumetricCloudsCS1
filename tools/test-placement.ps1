@@ -295,4 +295,33 @@ $empty = [Activator]::CreateInstance($glowType)
 Check "no sky inputs at all (all zero): everything passes" ((Around $empty 0) -eq 1)
 
 ""
+"=== SkyGlow.Paint: the painted sky in the far clouds' fade (1.5.0) ==="
+# On the game's sky the painted share must be what the 1.4.0 share let through: its HDR variant's
+# brightness at 5 deg up = the sky's x the share, at every angle from the sun. The compressed variant
+# (what the game draws when HDR_ON is off) stays under white and never above the HDR one.
+$paintAround = $glowType.GetMethod("PaintAround")
+function Paint($sky, [double]$deg, [double]$up, [bool]$compressed) { return [double]$paintAround.Invoke($sky, [object[]]@([single]$deg, [single]$up, $compressed)) }
+$worstMatch = 0.0; $paintNan = $false; $underWhite = $true; $paintSteps = $true; $prevPaint = -1.0
+for ($d = 0.0; $d -le 180; $d += 0.5) {
+    $hdr = Paint $low $d 5 $false
+    $squeezed = Paint $low $d 5 $true
+    if ([double]::IsNaN($hdr) -or [double]::IsNaN($squeezed)) { $paintNan = $true }
+    if ($squeezed -gt 1.0001 -or $squeezed -gt $hdr + 1e-5) { $underWhite = $false }
+    if ($prevPaint -ge 0 -and [math]::Abs($hdr - $prevPaint) / [math]::Max([double]$hdr, 1e-6) -gt 0.03) { $paintSteps = $false }
+    $prevPaint = $hdr
+}
+# The pass/through pair above turns sideways from the sun at its own height; Paint at 8.6 deg up and
+# 0 deg round is the same direction as Around 0: their brightness must agree.
+$atSun = Paint $low 0 8.6 $false
+$atSunThrough = Through $low 0
+$worstMatch = [math]::Abs($atSun - $atSunThrough) / [math]::Max([double]$atSunThrough, 1e-6)
+"    painted (HDR) 5 deg up: 0={0:F3} 45={1:F3} 90={2:F3} 180={3:F3}; compressed 90={4:F3}" -f (Paint $low 0 5 $false), (Paint $low 45 5 $false), (Paint $low 90 5 $false), (Paint $low 180 5 $false), (Paint $low 90 5 $true)
+Check "never NaN" (-not $paintNan)
+Check "at the sun the painted sky is exactly what the 1.4.0 share let through" ($worstMatch -lt 1e-3)
+Check "the compressed variant stays under white and never above the HDR one" $underWhite
+Check "no edge round the sun: under 3% change per half degree" $paintSteps
+Check "a sun below the horizon paints no NaN" (-not [double]::IsNaN((Paint $night 0 5 $true)))
+Check "no sky inputs at all: paints black (nothing to paint)" ((Paint $empty 0 5 $true) -lt 1e-3)
+
+""
 if ($failed -eq 0) { "All checks passed." } else { "$failed check(s) FAILED."; exit 1 }

@@ -46,8 +46,10 @@ float2 _ColorCorrection;
 
 float4 _SkyGlow;             // xyz = towards the game's sun (not _SunDir: the moon's at night),
                              // w = the sky's _SunSize (32 / DayNightProperties.m_SunSize)
-float4 _SkyGlowMode;         // y = 1 while it applies (0: no game sky; the clouds fade into whatever
-                             // is there)
+float4 _SkyGlowMode;         // x = how much of what the clouds fade by the painted sky (SkyPaint)
+                             // fills, 0..1 (1; eased out under Real Light's sky);
+                             // y = 1 while SkyGlowPass applies (0: no game sky; the clouds fade into
+                             // whatever is there); z = 1: the skybox drawn is its compressed variant
 
 // The game's sky colour from its light, graded as its last lines do -- but never compressed, even
 // where its HDR_OFF variant would squeeze it under white: worked out on compressed values, the share
@@ -59,11 +61,10 @@ float3 SkyToneMap(float3 v)
     return pow(max(v * _ColorCorrection.x, 1e-10), _ColorCorrection.y);
 }
 
-// The share of the game's sky along `dir` that is not the sun's, 0..1: 1 away from the sun, small
-// at its disc. The skybox's own maths, once as it is and once with the sun's disc taken out and
-// the Mie glow held at its value 90 degrees from the sun; by brightness, since a blend weight has
-// one number for all three colours. The C# twin (SkyGlow.Pass) must stay the same.
-float SkyGlowPass(float3 dir)
+// The game's sky along `dir`, before its grading: the skybox's own maths, once as it is (`full`) and
+// once with the sun's disc taken out and the Mie glow held at its value 90 degrees from the sun
+// (`glowless`). The C# twin (SkyGlow.Lumas) must stay the same.
+void GameSky(float3 dir, out float3 full, out float3 glowless)
 {
     float c = dot(dir, _SkyGlow.xyz);
     float h = max(dir.y + 0.06, 0.06);
@@ -83,15 +84,41 @@ float SkyGlowPass(float3 dir)
     float ray = (1.0 + c * c) * _SkyMultiplier.y;
     float3 dusk = _SkyGlow.y < 0.25 ? _NightHorizonColor.xyz * q : float3(0.0, 0.0, 0.0);
 
-    float3 full = (0.75 * e + phase * mie) * ray + dusk;
-    float3 glowless = (0.75 * e + min(phase, side) * mie) * ray + dusk;
+    full = (0.75 * e + phase * mie) * ray + dusk;
+    glowless = (0.75 * e + min(phase, side) * mie) * ray + dusk;
     if (_SkyGlow.y > -0.1)
         full += min(mie, hw) * min(pow(max(_SkyGlow.w * (1.0 - c), 1e-6), -1.5), 1000.0) * tr;
+}
+
+// The share of the game's sky along `dir` that is not the sun's, 0..1: 1 away from the sun, small
+// at its disc. By brightness, since a blend weight has one number for all three colours. The C#
+// twin (SkyGlow.Pass) must stay the same.
+float SkyGlowPass(float3 dir)
+{
+    float3 full, glowless;
+    GameSky(dir, full, glowless);
 
     float3 luma = float3(0.2126, 0.7152, 0.0722);
     float lumFull = dot(SkyToneMap(full), luma);
     float lumGlowless = dot(SkyToneMap(glowless), luma);
     return lumFull > 1e-6 ? saturate(lumGlowless / lumFull) : 1.0;
+}
+
+// THE PAINTED SKY (1.5.0): what a far cloud fades by is filled with the game's own sky, without the
+// sun's disc and glow, instead of letting through whatever is behind it. On the game's sky that is
+// what showed there anyway, less the glow (the clouds block the sun, as SkyGlowPass made them); on a
+// cubemap, or any other sky, the far clouds no longer let it through (the author, 2026-10-18: the
+// clouds should hide the cubemap "even without this setting, without changing how the clouds look").
+// Graded as the skybox writes it: its compressed variant (_SkyGlowMode.z) squeezes it under white
+// first, 1 - exp. The inputs are DayNightProperties' globals, set whatever skybox is drawn. Not
+// painted: the game's fog over the sky near the horizon and its painted sky clouds, drawn after the
+// skybox. C# twin: SkyGlow.Paint.
+float3 SkyPaint(float3 dir)
+{
+    float3 full, glowless;
+    GameSky(dir, full, glowless);
+    float3 v = _SkyGlowMode.z > 0.5 ? 1.0 - exp(-glowless) : glowless;
+    return SkyToneMap(v);
 }
 
 float4 _DetailLight2;   // x = how strongly the cloud above takes the sky light away,

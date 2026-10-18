@@ -331,6 +331,9 @@ namespace VolumetricClouds.Sky
         private static readonly int IdSkyGlow = Shader.PropertyToID("_SkyGlow");
         private static readonly int IdSkyGlowMode = Shader.PropertyToID("_SkyGlowMode");
 
+        /// <summary>Over how much of Real Light's sky factor above 1 the painted sky eases out (ApplySkyGlow).</summary>
+        private const float RealLightPaintFade = 0.3f;
+
         /// <summary>The game's sky as the clouds read it (ApplySkyGlow), for the log.</summary>
         private readonly SkyGlow _skyGlow = new SkyGlow();
 
@@ -1683,48 +1686,64 @@ namespace VolumetricClouds.Sky
         }
 
         /// <summary>
-        /// The far clouds block the sun (CloudMedia.cginc SkyGlowPass, SkyGlow): what they let
-        /// through as they fade into the distance is the game's sky without the sun's disc and glow.
+        /// The far clouds block the sun and hide the sky behind them (CloudMedia.cginc SkyPaint,
+        /// SkyGlowPass; SkyGlow): what they fade by as they go into the distance is filled with the
+        /// game's sky without the sun's disc and glow.
         /// </summary>
         /// <remarks>
         /// The author: "like in real life: the clouds should block the sun". 1.2.1 to 1.3.x did it
         /// with a cone round the sun where the far clouds stayed solid; it showed as a disc, "a huge
-        /// ring" round the sun (2026-10-06), worst at a low brightness. The shader reads the sky's
-        /// own inputs, which DayNightProperties sets globally each frame (Render It! and Theme
-        /// Mixer change them there, so they are followed), and only needs the sun and the sun's size
-        /// (a skybox material value). With another
-        /// skybox shader in place the maths would be someone else's: the clouds then fade into
-        /// that sky as they did before 1.2.1.
+        /// ring" round the sun (2026-10-06), worst at a low brightness. 1.4.0 let through the share
+        /// of the sky that is not the sun's glow (SkyGlowPass), on the game's skybox only: a cubemap
+        /// still showed through the fade, its painted sun included. Since 1.5.0 the faded share is
+        /// PAINTED with the game's sky without the glow (SkyPaint) -- on the game's sky what showed
+        /// there anyway, on any other the far clouds now hide it (2026-10-18, the author: "make the
+        /// clouds hide the cubemap anyway, even without this setting"). The shader reads the sky's
+        /// own inputs, which DayNightProperties sets globally each frame whatever skybox is drawn
+        /// (Render It! and Theme Mixer change them there, so they are followed), and needs the sun,
+        /// the sun's size (a skybox material value) and which of the skybox's two variants is drawn.
+        /// The 1.4.0 share is kept for the shader's other path (no sun: nothing painted).
         /// </remarks>
         private void ApplySkyGlow(DayNightProperties properties)
         {
             Material skybox = RenderSettings.skybox;
-            bool gameSky = properties != null && properties.m_SunLight != null && skybox != null &&
-                           skybox.shader != null && skybox.shader.name == GameSkyboxShader;
-            if (!gameSky)
+            bool skyInputs = properties != null && properties.m_SunLight != null;
+            bool gameSky = skyInputs && skybox != null && skybox.shader != null && skybox.shader.name == GameSkyboxShader;
+            if (!skyInputs)
             {
                 _material.SetVector(IdSkyGlowMode, Vector4.zero);
                 if (_skyGlowLogged != 0)
                 {
                     _skyGlowLogged = 0;
-                    Log.Msg("sun glow: the sky is not the game's skybox ('" + (skybox != null && skybox.shader != null ? skybox.shader.name : "none") +
-                            "') -- the far clouds fade into it unchanged, the sun's glow included");
+                    Log.Msg("sun glow: no game sun -- the far clouds fade into the sky behind them unchanged, the sun's glow included");
                 }
                 return;
             }
 
             Vector3 sunDir = -properties.m_SunLight.forward;
-            float sunSize = skybox.HasProperty("_SunSize") ? skybox.GetFloat("_SunSize") : 32f / Mathf.Max(properties.m_SunSize, 1e-3f);
+            float sunSize = gameSky && skybox.HasProperty("_SunSize") ? skybox.GetFloat("_SunSize") : 32f / Mathf.Max(properties.m_SunSize, 1e-3f);
+
+            // The skybox's HDR_ON variant writes its light as it is, the other squeezes it under white
+            // first (1 - exp): the painted sky must be the variant drawn, which the keyword decides
+            // globally or on the game's skybox material. (SkyGlowPass's share is uncompressed either way.)
+            bool globalHdr = Shader.IsKeywordEnabled("HDR_ON");
+            bool materialHdr = gameSky && skybox.IsKeywordEnabled("HDR_ON");
+            bool compressed = !globalHdr && !materialHdr;
+
+            // Real Light's own sky (SceneAmbient.CloudLight above 1 while it is drawn) is 2-3x the
+            // game's maths: painted with those, the far clouds' fade would be a dark band in it. There
+            // they fade into the sky behind as in 1.4.0 -- it is no cubemap. Eased out over its first
+            // 30%, not cut: it fades in and out with the sun, x1.00 to x1.3 round sunset, and a cut
+            // there flipped the painting on and off every second (2026-10-18 log).
+            float paintShare = 1f - Mathf.Clamp01((SceneAmbient.CloudLight - 1f) / RealLightPaintFade);
+            bool paint = paintShare > 0f;
             _material.SetVector(IdSkyGlow, new Vector4(sunDir.x, sunDir.y, sunDir.z, sunSize));
-            _material.SetVector(IdSkyGlowMode, new Vector4(0f, 1f, 0f, 0f));
+            _material.SetVector(IdSkyGlowMode, new Vector4(paintShare, gameSky ? 1f : 0f, compressed ? 1f : 0f, 0f));
 
             // What the shader computes, worked out here with the same inputs: on the log when it
-            // starts or the sky's variant switch changes, every 10 s on the detailed log. The switch
-            // is only reported (SkyGlow uses the sky's light uncompressed either way): globally
-            // and on the skybox material, since the variant drawn is the two together.
-            bool globalHdr = Shader.IsKeywordEnabled("HDR_ON");
-            bool materialHdr = skybox.IsKeywordEnabled("HDR_ON");
-            int mode = (globalHdr ? 2 : 1) + (materialHdr ? 2 : 0);
+            // starts or the sky or its variant switch changes, every 10 s on the detailed log. (Real
+            // Light's sky coming and going is on its own "lighting:" line.)
+            int mode = (globalHdr ? 2 : 1) + (materialHdr ? 2 : 0) + (gameSky ? 0 : 10);
             bool detail = Log.Detailed && Time.time >= _nextSkyGlowDetail;
             if (mode == _skyGlowLogged && !detail)
                 return;
@@ -1741,21 +1760,28 @@ namespace VolumetricClouds.Sky
             _skyGlow.SkyMultiplier = Shader.GetGlobalVector("_SkyMultiplier");
             _skyGlow.ColorCorrection = Shader.GetGlobalVector("_ColorCorrection");
 
-            var text = new StringBuilder("sun glow: the far clouds let the sky through but not the sun's glow (sun ");
+            var text = new StringBuilder(paint
+                ? "sun glow: the far clouds fade into the game's sky painted without the sun's glow, " + (paintShare * 100f).ToString("F0") + "% painted (sun "
+                : "sun glow: Real Light's sky is drawn -- the far clouds let it through, not the sun's glow, nothing painted (sun ");
             text.Append((Mathf.Asin(Mathf.Clamp(sunDir.y, -1f, 1f)) * Mathf.Rad2Deg).ToString("F1"))
-                .Append(" deg up) -- sky let through, by degrees from the sun:");
+                .Append(" deg up) -- share of the sky that is not the glow, by degrees from the sun:");
             for (int i = 0; i < SkyGlowLogAngles.Length; i++)
                 text.Append(' ').Append(SkyGlowLogAngles[i]).Append('=').Append((_skyGlow.PassAround(SkyGlowLogAngles[i]) * 100f).ToString("F0")).Append('%');
+            text.Append(" | painted ").Append(compressed ? "(compressed)" : "(HDR)").Append(", 5 deg up, by degrees from the sun:");
+            for (int i = 0; i < SkyGlowLogAngles.Length; i++)
+                text.Append(' ').Append(SkyGlowLogAngles[i]).Append('=').Append(_skyGlow.PaintAround(SkyGlowLogAngles[i], 5f, compressed).ToString("F3"));
 
             if (mode != _skyGlowLogged)
             {
+                text.Append(" | skybox '").Append(skybox != null && skybox.shader != null ? skybox.shader.name : "none")
+                    .Append(gameSky ? "' (the game's)" : "' (not the game's: its sky no longer shows through the far clouds)");
                 text.Append(" | sky inputs: betaR=").Append(_skyGlow.BetaR.ToString("F5")).Append(" betaM=").Append(_skyGlow.BetaM.ToString("F5"))
                     .Append(" miePhase=").Append(_skyGlow.MiePhaseG.ToString("F4")).Append(" mieConst=").Append(_skyGlow.MieConst.ToString("F4"))
                     .Append(" skyMultiplier=").Append(_skyGlow.SkyMultiplier.ToString("F3")).Append(" colorCorrection=").Append(_skyGlow.ColorCorrection.ToString("F3"))
                     .Append(" sunSize=").Append(sunSize.ToString("F2"))
                     .Append(" nightZenith=").Append(_skyGlow.NightZenith.ToString("F5")).Append(" nightHorizon=").Append(_skyGlow.NightHorizon.ToString("F5"))
                     .Append(" | HDR_ON keyword: global=").Append(globalHdr).Append(" material=").Append(materialHdr)
-                    .Append(" (material keywords: ").Append(skybox.shaderKeywords != null ? string.Join(" ", skybox.shaderKeywords) : "").Append(')');
+                    .Append(" (material keywords: ").Append(skybox != null && skybox.shaderKeywords != null ? string.Join(" ", skybox.shaderKeywords) : "").Append(')');
                 Log.Msg(text.ToString());
             }
             else

@@ -109,6 +109,11 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   100% the far clouds stay solid, and only toward the horizon thin out gently into the haze of
   whatever sky is behind them, so a full overcast doesn't end on a line above the horizon. The Light
   tab's *At night* heading is now *Day and night*.
+- Even with *Clouds hide the sky* at 0%, a cubemap (or any sky that isn't the game's) no longer
+  shows through far clouds: where they fade into the distance they now fade into the game's own
+  sky, without the sun's glow, instead of letting through whatever is behind them. With the game's
+  sky that's what showed there anyway, so the clouds look as before. For everyone, nothing to turn
+  on. Under Real Light's sky the far clouds fade into it as before.
 - *Clouds to the horizon* on the Weather tab (advanced panel), on by default: under a full
   overcast (95% cover or more, fading in from 90%), the cloud deck now carries on all the way to
   the horizon, following the curve of the Earth, instead of ending a few degrees above it with clear

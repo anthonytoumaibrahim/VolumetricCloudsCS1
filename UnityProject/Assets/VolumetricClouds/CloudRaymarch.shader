@@ -621,13 +621,24 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // the clouds run out (CloudMedia).
                 float presence = CloudPresence(tEnter);
 
-                // What dissolves lets the sky behind it through -- all of it but the sun's glow and
-                // disc (CloudMedia SkyGlowPass, 1.4.0), so the clouds still block the sun.
+                // What dissolves in front of the sky is filled with the game's sky without the sun's
+                // glow (CloudMedia SkyPaint, 1.5.0): a cubemap behind no longer shows through. Without
+                // the game's sky inputs it lets the sky behind through -- all of it but the sun's glow
+                // and disc where that sky is the game's (CloudMedia SkyGlowPass, 1.4.0).
+                float faded = (1.0 - transmittance) * (1.0 - presence);
+                float3 painted = float3(0.0, 0.0, 0.0);
                 float sky = 1.0;
-                if (skyBehind && _SkyGlowMode.y > 0.5 && presence < 1.0 && transmittance < 1.0)
-                    sky = SkyGlowPass(dir);
+                if (skyBehind && faded > 0.0)
+                {
+                    // _SkyGlowMode.x is how much is painted, 0..1 (eased out under Real Light's sky).
+                    float paint = _SkyGlowMode.x;
+                    if (paint > 0.0)
+                        painted = (faded * paint) * SkyPaint(dir);
+                    float glowless = (paint < 1.0 && _SkyGlowMode.y > 0.5) ? SkyGlowPass(dir) : 1.0;
+                    sky = (1.0 - paint) * glowless;
+                }
 
-                return float4(light * presence, transmittance + (1.0 - transmittance) * (1.0 - presence) * sky);
+                return float4(light * presence + painted, transmittance + faded * sky);
             }
 
             // The cloud slab between tEnter and tExit, marched and finished (see the two above).
@@ -854,9 +865,16 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // disc (as the near deck's fade). So do its "gaps", as much as it covers: they are an
                 // average, not holes, and a 2% gap still showed a sun low behind a full overcast
                 // (2026-10-12, "can the endless clouds hide the sun too?"). From nothing where it covers
-                // nothing, so no edge round the sun.
-                float sky = _SkyGlowMode.y > 0.5 ? SkyGlowPass(dir) : 1.0;
-                return float4(radiance * alpha, (1.0 - covered) * lerp(1.0, sky, covered) + (covered - alpha) * sky);
+                // nothing, so no edge round the sun. With the painted sky (1.5.0, as the near deck's fade)
+                // those shares are filled with the game's sky without the glow instead.
+                // As much as _SkyGlowMode.x says (eased out under Real Light's sky).
+                float paint = _SkyGlowMode.x;
+                float3 light = radiance * alpha;
+                if (paint > 0.0)
+                    light += (paint * ((1.0 - covered) * covered + (covered - alpha))) * SkyPaint(dir);
+                float sky = (paint < 1.0 && _SkyGlowMode.y > 0.5) ? SkyGlowPass(dir) : 1.0;
+                float through = (1.0 - covered) * lerp(1.0, sky, covered) + (covered - alpha) * sky;
+                return float4(light, lerp(through, (1.0 - covered) * (1.0 - covered), paint));
             }
 
             // Rain hanging under the clouds: the grey curtains seen from a distance, and the
