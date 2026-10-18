@@ -160,7 +160,7 @@
   <String key="Time.Day">白天</String>
   <String key="Time.Sunset">日落</String>
   <String key="Time.Night">夜间</String>
-  <String key="Time.Changes">随一天中的时间变化</String>
+  <String key="Time.Changes">动态</String>
   <String key="Time.Open">显示白天、日落和夜间</String>
   <String key="Time.Close">隐藏白天、日落和夜间</String>
   <String key="Time.ByDay">白天{0}</String>
@@ -168,8 +168,8 @@
   <String key="Time.AtNight">夜间{0}</String>
   <String key="Weather.Clear">晴空</String>
   <String key="Weather.Overcast">阴天</String>
-  <String key="Weather.Changes">随天气变化</String>
-  <String key="Weather.ChangesBoth">随时间和天气变化</String>
+  <String key="Weather.Changes">动态</String>
+  <String key="Weather.ChangesBoth">动态</String>
   <String key="Weather.Open">显示晴空和阴天</String>
   <String key="Weather.Close">隐藏晴空和阴天</String>
   <String key="Weather.WhenOvercast">阴天时{0}</String>

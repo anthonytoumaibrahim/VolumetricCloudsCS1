@@ -1634,7 +1634,7 @@ namespace VolumetricClouds.Sky
             // its own: by day at the default 0% a ticked switch did nothing.)
             float cover = Mathf.Clamp01(CloudShaderParams.Coverage);
             float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
-            bool toHorizon = Settings.CloudsToHorizon == null || Settings.CloudsToHorizon.value;
+            bool toHorizon = Settings.CloudsToHorizon != null && Settings.CloudsToHorizon.value;
             _farDeckShown = toHorizon ? overcast : 0f;
 
             // How soon before that they start to thin: the last 30% at night, as always (the stars stay

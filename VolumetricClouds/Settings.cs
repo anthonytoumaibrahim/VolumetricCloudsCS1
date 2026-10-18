@@ -408,7 +408,7 @@ namespace VolumetricClouds
         public static BoolSetting LargerWeatherPattern { get; private set; }
 
         /// <summary>
-        /// CLOUDS TO THE HORIZON (1.5.0, on): under a full overcast the deck carries on to the horizon
+        /// CLOUDS TO THE HORIZON (1.5.0, off): under a full overcast the deck carries on to the horizon
         /// (Sky.CloudVolume's far deck, CloudRaymarch MarchFarDeck). Built as a test switch, kept and made
         /// always on, then a real row again (the author, 2026-10-13: "We'll need to add it as a real
         /// option under Weather").
@@ -736,8 +736,11 @@ namespace VolumetricClouds
             /// <summary>Off: every city keeps the pattern it had (the author: "By default let's not change it").</summary>
             public const bool LargerWeatherPattern = false;
 
-            /// <summary>On: the far deck as it was kept (2026-10-12, "We'll keep this"). Only over 90% cover.</summary>
-            public const bool CloudsToHorizon = true;
+            /// <summary>
+            /// Off (2026-10-18, the author: "let's disable Clouds to the horizon by default"). Was on since
+            /// 2026-10-12 ("We'll keep this"); never released on. Only over 90% cover.
+            /// </summary>
+            public const bool CloudsToHorizon = false;
 
             // ---- the clouds ----
             public const bool CloudsVisible = true;

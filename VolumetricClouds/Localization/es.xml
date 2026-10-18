@@ -146,7 +146,7 @@
   <String key="Time.Day">Día</String>
   <String key="Time.Sunset">Atardecer</String>
   <String key="Time.Night">Noche</String>
-  <String key="Time.Changes">Cambia con la hora del día</String>
+  <String key="Time.Changes">Dinámico</String>
   <String key="Time.Open">Mostrar día, atardecer y noche</String>
   <String key="Time.Close">Ocultar día, atardecer y noche</String>
   <String key="Time.ByDay">{0} de día</String>
@@ -154,8 +154,8 @@
   <String key="Time.AtNight">{0} de noche</String>
   <String key="Weather.Clear">Cielo despejado</String>
   <String key="Weather.Overcast">Cubierto</String>
-  <String key="Weather.Changes">Cambia con el tiempo</String>
-  <String key="Weather.ChangesBoth">Cambia con la hora y el tiempo</String>
+  <String key="Weather.Changes">Dinámico</String>
+  <String key="Weather.ChangesBoth">Dinámico</String>
   <String key="Weather.Open">Mostrar cielo despejado y cubierto</String>
   <String key="Weather.Close">Ocultar cielo despejado y cubierto</String>
   <String key="Weather.WhenOvercast">{0}, cielo cubierto</String>

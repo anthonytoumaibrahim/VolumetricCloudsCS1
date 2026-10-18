@@ -146,7 +146,7 @@
   <String key="Time.Day">Jour</String>
   <String key="Time.Sunset">Couchant</String>
   <String key="Time.Night">Nuit</String>
-  <String key="Time.Changes">Change selon l'heure du jour</String>
+  <String key="Time.Changes">Dynamique</String>
   <String key="Time.Open">Afficher le jour, le couchant et la nuit</String>
   <String key="Time.Close">Masquer le jour, le couchant et la nuit</String>
   <String key="Time.ByDay">{0} le jour</String>
@@ -154,8 +154,8 @@
   <String key="Time.AtNight">{0} la nuit</String>
   <String key="Weather.Clear">Ciel clair</String>
   <String key="Weather.Overcast">Couvert</String>
-  <String key="Weather.Changes">Change selon la météo</String>
-  <String key="Weather.ChangesBoth">Change selon l'heure et la météo</String>
+  <String key="Weather.Changes">Dynamique</String>
+  <String key="Weather.ChangesBoth">Dynamique</String>
   <String key="Weather.Open">Afficher ciel clair et ciel couvert</String>
   <String key="Weather.Close">Masquer ciel clair et ciel couvert</String>
   <String key="Weather.WhenOvercast">{0}, ciel couvert</String>

@@ -11,7 +11,7 @@ A new look for the in-game panel, fog that changes on its own, two new cloud sty
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, and the mod's
 defaults in the profile list.
-`VolumetricClouds.xml` gains twenty-two lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (on), `DynamicDistantClouds`
+`VolumetricClouds.xml` gains twenty-two lines: `LargerWeatherPattern` (off), `CloudsToHorizon` (off), `DynamicDistantClouds`
 (on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
 (3: the new *Frosted glass* look, the one change everybody sees; *Vanilla* puts the old panel

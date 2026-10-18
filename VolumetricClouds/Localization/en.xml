@@ -186,7 +186,7 @@
   <String key="Time.Day">Day</String>
   <String key="Time.Sunset">Sunset</String>
   <String key="Time.Night">Night</String>
-  <String key="Time.Changes">Changes with the time of day</String>
+  <String key="Time.Changes">Dynamic</String>
   <String key="Time.Open">Show day, sunset and night</String>
   <String key="Time.Close">Hide day, sunset and night</String>
   <String key="Time.ByDay">{0} by day</String>
@@ -197,8 +197,8 @@
        names an Overcast value in the settings file's comments ({0} = its clear sky value's name). -->
   <String key="Weather.Clear">Clear sky</String>
   <String key="Weather.Overcast">Overcast</String>
-  <String key="Weather.Changes">Changes with the weather</String>
-  <String key="Weather.ChangesBoth">Changes with time and weather</String>
+  <String key="Weather.Changes">Dynamic</String>
+  <String key="Weather.ChangesBoth">Dynamic</String>
   <String key="Weather.Open">Show clear sky and overcast</String>
   <String key="Weather.Close">Hide clear sky and overcast</String>
   <String key="Weather.WhenOvercast">{0}, overcast</String>
