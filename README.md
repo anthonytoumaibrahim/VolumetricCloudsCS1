@@ -1,149 +1,163 @@
 # Volumetric Weather
 
-**Cities: Skylines 1 — Windows, and since 1.1.1 Mac and Linux (experimental)**
+**Volumetric clouds, weather and fog for Cities: Skylines 1** on Windows, Mac and Linux.
 
-Raymarched volumetric clouds that cast real shadows on your city, follow the game's weather,
-and bring their own rain, lightning, fog and night sky with them.
+Raymarched 3D clouds that cast real shadows on your city, follow the game's weather, and bring
+their own rain, snow, lightning, rainbows and fog with them.
 
-> **Status:** on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3805863507).
-> Performance has only ever been measured on one high-end Windows GPU and one MacBook Air.
-> This mod was written almost entirely by an AI under human direction — read the
-> [AI disclosure](#ai-disclosure) before you rely on it.
+**[Subscribe on the Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3805863507)**
+· [Changelog](CHANGELOG.md) · [Building from source](BUILDING.md)
+
+> Features marked **1.5** are in this repository and come to the Workshop with the next update.
 
 ## Features
 
-- **Volumetric clouds** — a real 3D layer you can fly through, not a sky texture. Altitude,
-  thickness, break-up, density and brightness are all adjustable.
-- **Two cloud styles** — *Cumulus* (1.2): heaped clouds of every size and height, with flat
-  bases and billowing tops, modelled on the KSP clouds of EVE-Redux, among the classic layer.
-  *Classic*, the default: the even layer the mod has always drawn.
-- **Cloud detail** (1.2) — crisp edges, puffy billows and real light and shade, on by default;
-  0% gives the old soft look. **Cloud fragments** (1.1.1) — small, thin shreds round and
-  between the big clouds, off by default.
-- **Real cloud shadows** on terrain and buildings, drifting with the wind. Gaps get full sun;
-  nothing is dimmed globally.
-- **Follows the game's weather** — cover, rain, fog and wind direction are read from the game,
-  so random weather, disasters and mods such as Play It! all drive the sky. Any channel can be
-  overridden from the in-game panel, and one button hands control back to the game.
-- **Rain that belongs to the clouds** — curtains hang under the clouds that are actually
-  raining, streaks fall near the camera, and rain sound and wet roads follow the clouds instead
-  of falling everywhere at once. On winter maps (1.3.0) the snow does the same: whiter curtains,
-  the game's own snowflakes near the camera only where it is snowing, and road snow that builds
-  up only there.
-- **Rainbows** (1.3.0) — an arch standing in a sunlit shower near where you look, fixed in the
-  world while you look around it: feet on the ground, top under the clouds, the fainter second
-  bow outside, shown only where it passes through rain in sunshine.
-  Colours from the physics of a raindrop (Airy's theory, per wavelength and drop size). Strength
-  on the Weather tab, a chance per rain on the Now tab.
-- **Lightning** — flashes light the clouds and rain from inside, the bolt is redrawn, and
-  thunder arrives after a speed-of-sound delay. Storm lightning is visual-only and never starts
-  a fire; the game's own strikes are left untouched.
-- **Volumetric fog** *(opt-in, expensive)* — fog as a cloud layer, with a top surface,
-  self-shadowing and sun shafts. Level from sea level, or draped over the terrain; from the
-  bottom up, or only above a height you choose. At night it glows round street lamps, building
-  lights and headlights. Off by default.
-- **Night sky** — clouds hide the stars behind them and carry a faint pale glow underneath.
-  Since 1.3.0 they can have a brightness of their own at night, blended in through dusk and
-  dawn (*Brightness differs at night*, on the Light tab).
-- **Cloud colours** — tint the sunlit side and the shaded side of the clouds separately: warm
-  tops over cool bases, a golden hour, an orange city glow under the clouds at night. Only the
-  hue changes, never the brightness; white, the default, leaves the clouds as they are. The
-  game's own colour picker, a field for `#FFC0CB` or `255, 192, 203`, Copy, Paste and a reset.
-  Since 1.3.0 the clouds can have a second pair of colours for the night, blended in through
-  dusk and dawn. The volumetric fog has a colour of its own, the same way.
-- **Profiles** (1.3.0) — save the whole sky under a name and switch between skies from the list
-  at the top of the in-game panel. Each profile is a plain XML file in a
-  `VolumetricCloudsProfiles` folder beside the settings file, easy to share; the settings that
-  describe your computer (quality, language, keys) are never part of one.
-- **Light halos** *(opt-in)* — shrinks the game's oversized night halos on street lamps,
-  building lights and vehicles, with separate control for lamps close to the camera. Also fixes
-  the game bug that turns a halo into a solid box at negative fog values.
-- **One place to tune it** — an F4 panel with the sky's settings, and three advanced tabs for
-  the rest when you want them. One quality preset moves the expensive settings together.
+### Clouds
+
+- **Volumetric clouds**: a real 3D layer you can fly through, not a painted sky. Height,
+  thickness, break-up, density and brightness are all yours to set.
+- **Real cloud shadows** on the ground and on buildings, drifting with the wind. The gaps get full
+  sun; nothing is dimmed across the whole map.
+- **Four cloud styles**:
+  - *Classic*, the default: an even, broken layer.
+  - *Cumulus*: heaped clouds of every size, with flat bases and billowing tops, standing among the
+    Classic layer. **1.5** adds sliders for their size, height and amount.
+  - *Soft* (**1.5**): fair-weather clouds made of many puffs, with wispy, cotton-candy edges. As the
+    weather gets heavier the Classic layer comes in among them.
+  - *Mixed* (**1.5**): one style for every kind of weather. Soft puffs in a light sky grow and
+    gather into the Classic layer toward overcast, and the balance changes across the sky.
+- **Cloud detail and fragments**: crisp edges and billows, and small shreds of cloud around and
+  between the big ones.
+- **Light inside the clouds**: thin cloud glows with the sun behind it, shaded sides are softer,
+  and the sunlit city lights the cloud bases. At sunset the clouds keep the low sun's light, turning
+  orange and then red, a little after the sun has set for the city below.
+- **Distant clouds** (**1.5**): photographed skies behind the mod's own clouds, with cirrus, sheep
+  clouds, cumulus on the horizon and layered skies. They're lit by the game's sun, go gold at
+  sunset, drift with the wind and slowly change as they go. By default they come and go on their
+  own, following the weather; or set each kind yourself.
+- **To the horizon**: under a full overcast the cloud deck carries on to the horizon, following
+  the curve of the Earth. *Clouds hide the sky* (**1.5**) keeps a cubemap's sun from shining through
+  a thick daytime overcast.
+- **Cloud colors**: tint the sunlit and shaded sides separately, for warm tops over cool bases, a
+  golden hour, or an orange city glow at night. Only the hue changes; white leaves the clouds as
+  they are.
+
+### Weather
+
+- **Follows the game's weather**: cloud cover, rain, fog and wind come from the game, so random
+  weather, disasters and mods such as Play It! drive the sky. Any of them can be overridden from
+  the in-game panel.
+- **Wind direction** (**1.5**): follow the game's wind, follow it slowly so the sky doesn't swing
+  round every few minutes, or fix it in one direction.
+- **Rain from the clouds**: rain curtains hang under the clouds that are actually raining, streaks
+  fall near the camera, and the rain sound and wet roads follow the showers instead of covering
+  the whole map at once. On winter maps the snow does the same.
+- **Lightning**: flashes light the clouds and rain from inside, bolts are redrawn, and thunder
+  arrives after the right delay for its distance. Storm lightning is visual only and never starts
+  a fire.
+- **Rainbows**: an arch standing in a sunlit shower near where you look, with its fainter second
+  bow, colored by the physics of real raindrops.
+- **Larger weather pattern** (**1.5**): the cloud layout repeats four times further apart, for
+  zooming far out with a camera mod.
+
+### Fog *(opt-in)*
+
+- **Volumetric fog**: fog as a layer of its own with a top surface, self-shadowing and sun shafts.
+  Level from the sea, or draped over the terrain. At night it glows around street lamps, building
+  lights and headlights.
+- **Changing fog** (**1.5**): fog that changes with the weather and the time of day, morning fog
+  that lifts as the day warms up, and mist rising from the wet ground after rain.
+- **Fog fills valleys** and **fog over water** (**1.5**): fog that gathers in hollows and river
+  gorges, and fog banks that drift ashore from the sea, lakes and rivers.
+
+### Day, night and weather
+
+- **Day, sunset and night** (**1.5**): a clock button on eleven settings (cloud colors, brightness,
+  density, shadows, the fog and more) gives each a value for the day, the sunset and the night,
+  blended by the sun's height.
+- **Clear sky and overcast** (**1.5**): a cloud button on nine of them gives a value for a clear
+  sky and one for a full overcast, blended by the cloud cover.
+- **Night sky**: the clouds hide the stars behind them and carry a faint glow underneath.
+
+### The panel
+
+- **One panel for everything**: press **F4** (or use the mod's button) for the in-game panel.
+  Every setting has its own reset button.
+- **Four looks** (**1.5**): *Frosted glass* (the default), *See-through*, *Blue*, or *Vanilla*, the
+  game's own style.
+- **Profiles**: save the whole sky under a name and switch skies from a list. Each profile is a
+  plain XML file, easy to share. The list also has the mod's defaults (**1.5**).
+- **Languages**: English, Spanish, French and Simplified Chinese.
+- **Light halos** *(opt-in)*: smaller night halos on street lamps, buildings and vehicles, and a fix
+  for the game bug that turns a halo into a solid box.
+- **Smoother clouds** (**1.5**, opt-in): blends frames together for cleaner, grain-free clouds.
 
 ## Requirements and installation
 
 | | |
 | --- | --- |
-| Game | Cities: Skylines (2015). **Windows** (Direct3D 11, or OpenGL with `-force-glcore`). **Mac** (Metal) and the **native Linux** version (OpenGL 3.3) since 1.1.1 — new and experimental: tested on one Apple Silicon MacBook Air, not yet on native Linux; the mod's options page says so there. Proton on Linux and Steam Deck runs the Windows version as before. |
-| Required | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402) (Workshop 2040656402) |
-| Optional | [Unified UI](https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700) — the mod's button appears there; without it you get a button on the HUD |
+| Game | Cities: Skylines (2015). **Windows** (Direct3D 11, or OpenGL with `-force-glcore`), **Mac** (Metal) and **native Linux** (OpenGL 3.3). Proton and the Steam Deck run the Windows version. |
+| Required | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402) |
+| Optional | [Unified UI](https://steamcommunity.com/sharedfiles/filedetails/?id=2966990700): the mod's button goes there; without it, the button sits on the HUD |
 
-For a manual install, put `VolumetricClouds.dll`, `UnifiedUILib.dll` and
-`CitiesHarmony.API.dll` from the release in their own folder under
+The easiest way is to subscribe on the
+[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3805863507). To install by
+hand, put `VolumetricClouds.dll`, `UnifiedUILib.dll` and `CitiesHarmony.API.dll` from a
+[release](../../releases) in their own folder under
 `%LOCALAPPDATA%\Colossal Order\Cities_Skylines\Addons\Mods\`, then enable the mod in
-Content Manager → Mods. Use only one installation: if you later subscribe on the Workshop,
-remove or disable the local copy first.
+Content Manager → Mods. Use only one copy: if you subscribe later, remove the local one first.
 
-The mod runs in a loaded city — new game or load game — not in the editors, and not yet when
-starting a scenario.
+The mod runs in a loaded city (new game or saved game), not in the editors or scenarios.
 
-It keeps a small record of each city's sky in the savegame (77 bytes under its own key, 61
-before 1.3.0: the cloud pattern, how far the wind has carried it, and where you moved the
-clouds), so a city looks the same when you come back. Nothing of the game's own data is written. Removing the mod should not corrupt a save:
-the game keeps mod data as opaque key/value pairs, loads the save the same way without the
-mod, and writes the record back unread on the next save. That said, the mod is provided as-is
-and I am not responsible for anything that goes wrong, lost or damaged saves included. Keep
-backups of the cities you care about.
+Each city keeps a small record of its sky in the savegame (77 bytes under the mod's own key: the
+cloud pattern, how far the wind has carried it, and where you moved the clouds), so a city looks
+the same when you come back. None of the game's own data is changed, and a save still loads with
+the mod removed. The mod is provided as-is; keep backups of the cities you care about.
 
 ## Quick start
 
-1. Load a city. The clouds replace the game's dynamic weather straight away; nothing needs
-   configuring.
-2. Press **F4** (rebindable), or the Unified UI button, to open the in-game panel.
-3. **Now** — what the weather is doing, and every override. **Clouds** and **Fog** — the look,
-   the cloud colours included. **Light** — the cloud shadows and how brightly the clouds are lit.
-4. For every other setting, tick *Show advanced options in the in-game panel* on the mod's
-   page in the game's **Options** screen: *Weather* and *Halos* join the F4 panel. That page
-   also has the quality preset (at the top; set to *Custom*, it shows its three settings under
-   it), how the clouds are drawn, the language, the panel's key and the reset buttons.
+1. **Load a city.** The clouds replace the game's weather right away; nothing needs setting up.
+2. **Press F4** (rebindable), or click the mod's button, to open the panel.
+3. **Now** shows what the weather is doing and lets you override it. **Clouds**, **Distant
+   clouds** and **Fog** set the look; **Light** sets the shadows and how the clouds are lit.
+4. For every setting, tick *Show advanced options in the in-game panel* on the mod's page in the
+   game's **Options**: the *Weather* and *Halos* tabs join the panel. That page also has the quality
+   preset, the panel's look, the language, the panel's key and the reset buttons.
 
-*Volumetric fog* and *Light halos* are off until you turn them on. *Reset all settings to
-defaults* (on the mod's options page) restores
-everything, including turning volumetric fog and *Show advanced options in the in-game panel*
-off.
+Volumetric fog and light halos stay off until you turn them on. *Reset all settings to defaults*
+on the options page puts everything back.
 
 ## Compatibility
 
-- **Render It!, Theme Mixer** — no conflict; the mod never writes the sun's intensity. While
-  the clouds are shown, the game fog's horizon band is kept off the sky (1.3.0); whatever value
-  Render It! gives it comes back when they are hidden.
-- **Play It!** — its rain, fog and cloud sliders drive this mod's sky.
-- **Cloud replacer mods** — the game's painted sky layer is left alone. Only the rain-cloud
-  dome is switched off while these clouds show, and it is restored afterwards.
-- **Intersection Marking Tool** — lamps placed as IMT props get the same halo settings as
-  ordinary street lamps.
-- **Persistent Fog Adjuster** — no longer needed for smaller halos.
+- **Render It!, Theme Mixer**: no conflict. The mod never changes the sun's strength, and whatever
+  Render It! sets for the game's fog comes back when the clouds are hidden.
+- **Play It!**: its rain, fog and cloud sliders drive the sky.
+- **AD Cloud Replacer and other cloud replacers**: the game's painted sky is left alone; only its
+  rain-cloud dome is switched off while these clouds show.
+- **Fog Controller**: tested together, no conflict.
+- **Intersection Marking Tool**: lamps placed as IMT props get the same halo settings as street
+  lamps.
 
-Everything the mod touches on game objects — the sun's light cookie, rain and lightning
-materials, fog fields (the horizon band included), halo materials, star render order — is put
-back when the city unloads.
+Everything the mod touches on game objects (the sun's light cookie, rain and lightning materials,
+fog fields, halo materials, star render order) is put back when the city unloads.
 
 ## Performance
 
-All tuning so far was done on an RTX 5070 Ti, which hides costs. The **High** preset is the
-only one that has been measured; **Low** and **Medium** are provisional. On a fanless
-MacBook Air M1 an empty city ran at 22 to 33 ms a frame on High at 1680x1050 with 1.1.1, more
-with the fog on: expect a lower frame rate on a Mac than on a Windows PC. Cloud detail and the
-Cumulus style (1.2) cost more wherever there is cloud; *Cloud detail* at 0% with the *Classic*
-style costs what 1.1 did. Volumetric fog is by far
-the most expensive feature, which is why it is opt-in. The *Quality preset*, at the top of the
-mod's options page, sets the clouds', the fog's and the shadows' quality together; the
-raymarch quality slider and the shadow map's resolution and update rate are the finer levers if
-frames are tight (under the preset when it is set to *Custom*).
+The **Quality preset** at the top of the mod's options page sets the clouds', the fog's and the
+shadows' quality together; set it to *Custom* for finer control. *Classic* is the cheapest cloud
+style; *Cumulus*, *Soft*, *Mixed* and *Cloud detail* cost more wherever there is cloud. Clear sky
+costs little: the mod skips the parts of the sky that can't hold any cloud. Volumetric fog and
+*Smoother clouds* are off by default. Macs have less graphics power to spare, so expect a lower
+frame rate there than on a Windows PC.
 
 ## Known limitations
 
-- Mac and Linux support is new (1.1.1) and experimental: one Mac tested, no native Linux
-  machine yet, and the clouds cost more there than on a Windows PC. Where the graphics
-  cannot run the shaders at all (they need shader model 4, Metal, or OpenGL 3.3) the mod
-  switches itself off when a city loads and says so once per launch; nothing in the city is
-  changed by it.
-- No moon shadows — cloud shadows are cast by the sun only.
-- 100% intensity is not a sealed overcast: the 3D noise erodes the layer, so sun patches
-  remain. That is deliberate.
-- Secondary cameras (reflections) also render the cloud volume.
-- Scenarios get no clouds.
+- Mac support has been tested on an Apple Silicon MacBook Air; native Linux is supported but less
+  tested. Where the graphics can't run the shaders (they need shader model 4, Metal or OpenGL 3.3)
+  the mod switches itself off and says so once per launch, leaving the city unchanged.
+- Cloud shadows come from the sun only, not the moon.
+- 100% intensity is a heavy overcast, not a sealed one: some sun patches remain, on purpose.
+- Reflection cameras also draw the clouds.
 
 ## Bug reports
 
@@ -155,87 +169,62 @@ Mac:      ~/Library/Application Support/Colossal Order/Cities_Skylines/Volumetri
 Linux:    ~/.local/share/Colossal Order/Cities_Skylines/VolumetricClouds.log
 ```
 
-It always records the system, every feature switch and anything that can suppress rendering.
-For a report, tick *Detailed logging* (on the mod's options page), reproduce the problem, and
-attach that file together with your game version, GPU and a screenshot. A screenshot on its
-own rarely identifies the cause.
+Tick *Detailed logging* on the mod's options page, make the problem happen again, and attach that
+file together with the game's `output_log.txt`, your graphics card, your other mods and a
+screenshot.
 
 ## How it works
 
-1. **Noise is generated on the CPU at load**: a tiling 384² Perlin-Worley *weather field*
-   (where the clouds are; 1536² over four times the distance with *Larger weather pattern*) and a
-   tiling 64³ 3D noise (their shape and erosion).
-2. **One density function.** `SampleDensity` in `CloudCommon.cginc` is the only definition of
-   the cloud volume; the visible pass and the shadow pass both march it, so clouds and shadows
-   cannot drift apart.
-3. **Shadows are a light cookie.** A 2048² render texture marches one sun ray per texel through
-   that volume and becomes the sun's directional cookie — the only thing that darkens the world.
-4. **Coverage is solved, not swept.** A threshold table is bisected against the field's
-   histogram, so a coverage setting means a share of the sky. Rain reuses that table with a
-   higher threshold, which makes rain a subset of the clouds by construction.
-5. **The weather is read, never written** — writing it would change solar plants and the
-   savegame. The single change to the simulation is a Harmony postfix on
-   `WeatherManager.SampleRainIntensity`, so rain sound and wet roads follow the clouds — and on
-   winter maps road snow, which the game keeps as road wetness.
-6. **Rain, lightning and fog share the cloud pass** and composite front to back. Fog is a level
-   slab above the map's sea level, or follows the ground through a 256² height texture, and is lit through the cloud shadow map — that is where
-   the sun shafts come from. The rainbow is an arch on a thin shell round a spot on the ground
-   (`Sky/RainbowArch.cs`), coloured by each point's angle from that spot's antisolar axis
-   (`Sky/RainbowTable.cs`), lit only where the same shadow map says the sun reaches the rain there,
-   and dimmed by the rain and fog in front of it.
-7. **Halos are a shader replacement**, swapped into the batched light layers and the
-   dynamic-light slot each frame. The game's own materials are never modified.
+1. **Noise is made at load**: a tiling Perlin-Worley *weather map* (where the clouds are) and
+   tiling 3D noise (their shape, billows and erosion), built on the CPU off the main thread.
+2. **One density function.** `SampleDensity` in `CloudCommon.cginc` is the only definition of the
+   cloud volume. The visible pass and the shadow pass both march it, so clouds and their shadows
+   always match.
+3. **Shadows are a light cookie.** A 2048² texture marches one sun ray per texel through the volume
+   and becomes the sun's cookie, the only thing that darkens the world.
+4. **Coverage is solved, not guessed.** A threshold is solved against the weather map's histogram,
+   so a coverage setting means a share of the sky. Rain uses the same table with a higher
+   threshold, so it can only fall from clouds.
+5. **The weather is read, never written.** The one change to the simulation is a Harmony postfix
+   on `WeatherManager.SampleRainIntensity`, so rain sound, wet roads and road snow follow the
+   clouds.
+6. **Rain, lightning, fog and rainbows share the cloud pass** and are blended front to back. The fog
+   is lit through the cloud shadow map, which is where the sun shafts come from. The rainbow is an
+   arch fixed in the world, colored by Airy's theory of light in a raindrop.
+7. **Halos are a shader swap** into the game's light layers; the game's own materials are never
+   modified.
 
-What has to happen before a release is in
-[`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
+What happens before each release is in [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
 
 ## Translations
 
-The mod is English only for now, but every text it shows is in one file,
-[`VolumetricClouds/Localization/en.xml`](VolumetricClouds/Localization/en.xml). To translate it,
-copy that file under the game's code for your language (`de.xml`, `fr.xml`, …) and translate
-the text between the tags; the comment at the top of the file explains the rest. A language
-with gaps still works: anything not yet translated shows in English.
+Every text the mod shows lives in
+[`VolumetricClouds/Localization/en.xml`](VolumetricClouds/Localization/en.xml), with Spanish
+(`es.xml`), French (`fr.xml`) and Simplified Chinese (`zh.xml`) beside it. To add a language, copy
+`en.xml` under the game's code for it (`de.xml`, `pt.xml`, …) and translate the text between the
+tags; the comment at the top explains the rest. Anything not yet translated shows in English.
+Corrections from native speakers are welcome.
 
-## Build and test
+## Building
 
-See [BUILDING.md](BUILDING.md). In short: `dotnet build VolumetricClouds/VolumetricClouds.csproj`
-builds **and** deploys; the compiled shader bundles (one per platform) are committed, so Unity
-is only needed after editing `UnityProject\Assets`. There is no automated test suite — pure maths is tested offline
-by `tools/test-*.ps1`, everything else is verified in the game by reading the mod's log.
+See [BUILDING.md](BUILDING.md). In short, `dotnet build VolumetricClouds/VolumetricClouds.csproj`
+builds **and** deploys to the game's mods folder. The compiled shader bundles are committed, so
+Unity 5.6.6 is only needed after editing `UnityProject\Assets`. Pure logic is tested offline by
+`tools/test-*.ps1`; the rest is checked in the game through the mod's log.
 
-## AI disclosure
+## Credits and license
 
-This mod was developed with heavy use of AI. Almost all of the C#, the shaders, the
-reverse-engineering tools and the documentation — this file included — were written by
-**Claude** (Anthropic) through Claude Code. I set the goals, made the design decisions, and did
-all of the in-game testing and visual judgement; the commits Claude wrote carry a
-`Co-Authored-By: Claude` trailer.
+Made with the help of AI tools (Claude Code). The goals, design decisions and all of the in-game
+testing and tuning are mine.
 
-What that means in practice:
-
-- The code was not taken on trust. Game APIs were checked by reflection and by reading the
-  game's IL, the shader ports were checked by diffing disassembly, and pure maths is tested
-  offline. But there is no automated test suite, and the mod has been seen on two machines,
-  a Windows PC and a Mac.
-- AI-written code can be confidently wrong. Several theories during development were, and
-  were only caught in the game or in its IL. Read the code before you depend on it.
-- The mod is provided as-is, with no warranty of any kind. Use it at your own risk.
-
-## Credits and licence
-
-The source is distributed under the [MIT License](LICENSE), copyright © 2026 Anthony Ibrahim.
-
-Two files are excluded: `LightHalo.shader` and `LightHaloDynamic.shader` are hand-written ports
-of the game's own halo shader, reconstructed for interoperability. So are the few lines of
-`FogLamps.shader` copied from the first of them (its blink table and lamp switch-on). Those,
-the shipped third-party DLLs, and the published cloud-rendering technique this mod builds on
-are all credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+The source is under the [MIT License](LICENSE), copyright © 2026 Anthony Ibrahim, except
+`LightHalo.shader`, `LightHaloDynamic.shader` and the few lines of `FogLamps.shader` taken from
+them, which are ports of the game's own halo shader made for compatibility. Those, the shipped
+third-party DLLs, the icons and the published cloud-rendering techniques this mod builds on are
+credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The distant clouds' photographed
+skies are from [Poly Haven](https://polyhaven.com) (CC0).
 
 Cities: Skylines is © Colossal Order Ltd., published by Paradox Interactive AB. Unity is a
 trademark of Unity Technologies. This is an unofficial fan-made mod, not affiliated with or
-endorsed by any of them. Apart from the ported shader code, this repository contains no game
-code and no game assets; the game's DLLs are referenced from your own installation and never
-copied.
-
-Release history is in [CHANGELOG.md](CHANGELOG.md).
+endorsed by either. Apart from the ported shader code, this repository holds no game code or
+assets; the game's DLLs are referenced from your own installation and never copied.
