@@ -294,11 +294,11 @@ namespace VolumetricClouds.Sky
         /// downpours are several times denser, but a city builder has to stay readable from a
         /// kilometre up: at this value 1 km of heavy rain still passes about half the view.
         /// </summary>
-        private const float RainExtinction = 0.0006f;
-        private const float RainMaxDistance = 14000f;
+        internal const float RainExtinction = 0.0006f;
+        internal const float RainMaxDistance = 14000f;
 
         /// <summary>Snow's curtains are this much thicker than rain's at the same amount (winter maps, 1.3.0).</summary>
-        private const float SnowExtinction = 1.5f;
+        internal const float SnowExtinction = 1.5f;
 
         /// <summary>Radiance the night glow adds to the very base of a cloud, at 100%.</summary>
         private const float NightGlowStrength = 0.03f;

@@ -78,9 +78,9 @@ namespace VolumetricClouds.Sky
         public const int MaxOwn = 3;
 
         /// <summary>
-        /// Events a second of simulation in showery weather at 100%: one an hour. Some attempts
-        /// find no water under cloud near the view, so on a coastal map that is about one sighting
-        /// every two hours of showery play (the plan's "most like real life"). Inland, none.
+        /// Events a second of simulation under a cloudy sky at 100%: one an hour. Some attempts
+        /// find no water under cloud near the view (or only behind rain), so on a coastal map that is
+        /// about one sighting every two hours of cloudy play (the plan's "most like real life"). Inland, none.
         /// </summary>
         public const float BaseRate = 1f / 3600f;
 
@@ -120,17 +120,31 @@ namespace VolumetricClouds.Sky
         /// </summary>
         public const float Density = 0.08f;
 
-        /// <summary>How much the weather allows, 0..1: a showery sky (cover over ~half, rain about).</summary>
-        public static float Weather(float coverage, float rain)
+        /// <summary>
+        /// How much the weather allows, 0..1: the cloud cover alone (over ~half). Rain plays no part
+        /// (the author, 2026-10-20: "fair-weather waterspouts can happen"); until then a sky without
+        /// rain formed a third as many. Where it rains they are hidden, so none forms there
+        /// (<see cref="RainAtSpot"/>, <see cref="SightThroughRain"/>).
+        /// </summary>
+        public static float Weather(float coverage)
         {
-            return FunnelShape.SmoothStep(0.45f, 0.75f, coverage) * (rain > 0.02f ? 1f : 0.35f);
+            return FunnelShape.SmoothStep(0.45f, 0.75f, coverage);
         }
 
         /// <summary>Events a second of simulation: the chance (1 = 100%) times the base rate times the weather.</summary>
-        public static float EventsPerSecond(float chance, float coverage, float rain)
+        public static float EventsPerSecond(float chance, float coverage)
         {
-            return Mathf.Max(0f, chance) * BaseRate * Weather(coverage, rain);
+            return Mathf.Max(0f, chance) * BaseRate * Weather(coverage);
         }
+
+        /// <summary>The most of the drawn rain mask (0..1) at and round a spot for one to form there: out of the curtains.</summary>
+        public const float RainAtSpot = 0.1f;
+
+        /// <summary>The least share of the view the rain curtains between the camera and it may let through.</summary>
+        public const float SightThroughRain = 0.6f;
+
+        /// <summary>How far round its spot the rain is looked at, metres (its spray and collar).</summary>
+        public const float RainClearance = 250f;
 
         /// <summary>A new waterspout's character, before it has a place: how it ends is the dice's too.</summary>
         public static Spout Make(System.Random random, bool overWater)

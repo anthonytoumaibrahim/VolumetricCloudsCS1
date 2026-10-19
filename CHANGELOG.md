@@ -296,14 +296,15 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
 
 ### New: waterspouts
 
-- **Waterspouts**, for everyone: now and then, in showery weather, a small, wispy funnel hangs from
-  a cloud over the sea or near the shore, rising into the cloud and lit like it where they meet.
+- **Waterspouts**, for everyone: now and then, under a cloudy sky (rain or not), a small, wispy
+  funnel hangs from a cloud over the sea or near the shore, never in the rain or behind it, where it
+  would be hidden; it rises into the cloud and is lit like it where they meet.
   About half stay up there; three in ten stop part way, with only a faint thread down to a ring of
   spray; one in five reaches the water. They are small (a few metres to 30 m across), last one to
   five minutes, ride along with their cloud, and die when they come ashore.
   Now and then two or three form under one line of cloud. Only to look at: they damage nothing and
   the game does not know about them. *Waterspout chance* on the Now tab: 100% is about as often as
-  on a real showery coast (about one an hour of showery weather near water), 0% none, up to 400%.
+  on a real coast (about one an hour of cloudy weather near water), 0% none, up to 400%.
 - They throw up what is under them: spray over the water (sand, leaves, dust or grit where one is
   by the shore), as a cloud round their foot and, near the camera, as flying bits. The water under
   them darkens a little, with faint foam turning into it.

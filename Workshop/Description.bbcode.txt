@@ -4,7 +4,7 @@ Soft: fair-weather clouds made of many puffs with wispy edges. Mixed: one style 
 [h3]Day, sunset and night, clear sky and overcast[/h3]
 A lot of options now get different sliders for time of day, and for overcast conditions.
 [h3]Changing fog, and waterspouts[/h3]
-Fog that changes with the weather, morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under rain over the sea.
+Fog that changes with the weather, morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under the clouds over the sea.
 [h3]New panel styles[/h3]
 3 new looks for the in-game panel, with the new Frosted Glass theme as the default.
 

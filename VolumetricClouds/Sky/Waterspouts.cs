@@ -6,8 +6,8 @@ using UnityEngine;
 namespace VolumetricClouds.Sky
 {
     /// <summary>
-    /// Our waterspouts (1.5.0, "Waterspout chance" on the Now tab): small funnels under showery
-    /// clouds, mostly over the sea, mostly hanging from the base without reaching it -- for every
+    /// Our waterspouts (1.5.0, "Waterspout chance" on the Now tab): small funnels under a cloudy
+    /// sky, out of the rain (where they would be hidden), mostly over the sea, mostly hanging from the base without reaching it -- for every
     /// player, DLC or not. VISUAL ONLY: no damage, no disaster, nothing the simulation can see, never
     /// saved. The rules are <see cref="WaterspoutRules"/>; this places them, moves them with their
     /// cloud and ages them, on simulation time (a paused city's stand still).
@@ -33,6 +33,7 @@ namespace VolumetricClouds.Sky
         private static float _nextDetail;
         private static int _formed;
         private static int _missed;
+        private static int _hiddenByRain;
 
         /// <summary>"Waterspout chance": 1 = 100%.</summary>
         public static float Chance
@@ -48,7 +49,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Once a frame, from Funnels. <paramref name="draw"/>: the clouds are shown. Ages, moves and
-        /// ends the ones there are; now and then, in showery weather, forms one.
+        /// ends the ones there are; now and then, under a cloudy sky, forms one.
         /// </summary>
         public static void Advance(CloudDensityField field, Camera camera, bool draw, float deltaTime, float simulationRate)
         {
@@ -107,8 +108,7 @@ namespace VolumetricClouds.Sky
 
             if (chance > 0f && dt > 0f && Active() < WaterspoutRules.MaxOwn)
             {
-                float rain = CloudRain.Active ? CloudRain.Amount : CloudWeather.Rain;
-                float rate = WaterspoutRules.EventsPerSecond(chance, CloudWeather.Coverage, rain);
+                float rate = WaterspoutRules.EventsPerSecond(chance, CloudWeather.Coverage);
                 if (rate > 0f && _random.NextDouble() < rate * dt)
                     Form(field, camera);
             }
@@ -117,8 +117,9 @@ namespace VolumetricClouds.Sky
             {
                 _nextDetail = Time.time + 5f;
                 Log.Detail("waterspouts: " + Describe() + " | chance " + (chance * 100f).ToString("F0") + "%, weather allows " +
-                           (WaterspoutRules.Weather(CloudWeather.Coverage, CloudRain.Active ? CloudRain.Amount : CloudWeather.Rain) * 100f).ToString("F0") +
-                           "% (cover " + (CloudWeather.Coverage * 100f).ToString("F0") + "%), formed " + _formed + ", no place found " + _missed);
+                           (WaterspoutRules.Weather(CloudWeather.Coverage) * 100f).ToString("F0") +
+                           "% (cover " + (CloudWeather.Coverage * 100f).ToString("F0") + "%), formed " + _formed + ", no place found " + _missed +
+                           " (" + _hiddenByRain + " spots passed over for rain)");
             }
         }
 
@@ -141,7 +142,7 @@ namespace VolumetricClouds.Sky
 
         /// <summary>
         /// Tries to form one (and now and then its family): always under cloud, over water or by the
-        /// shore.
+        /// shore, where no rain hides it.
         /// </summary>
         private static void Form(CloudDensityField field, Camera camera)
         {
@@ -156,7 +157,7 @@ namespace VolumetricClouds.Sky
             {
                 _missed++;
                 if (Log.Detailed)
-                    Log.Detail("waterspout: one could have formed, but no water under cloud near the view");
+                    Log.Detail("waterspout: one could have formed, but no water under cloud near the view, out of the rain");
                 return;
             }
 
@@ -215,10 +216,78 @@ namespace VolumetricClouds.Sky
                 if (!water && !(allowLand && GroundUnder.WaterNear(spot, WaterspoutRules.ShoreReach)))
                     continue;
 
+                // Out of the rain, and not behind it: a curtain hides one (the author, 2026-10-20).
+                if (InRain(spot) || !SeenThroughRain(cam, spot, cloudBase))
+                {
+                    _hiddenByRain++;
+                    continue;
+                }
+
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>Drawn rain at the spot or round it (its spray and collar).</summary>
+        private static bool InRain(Vector3 spot)
+        {
+            if (CloudRain.Amount <= 0f)
+                return false;
+
+            float r = WaterspoutRules.RainClearance;
+            float top = Mathf.Max(spot.y, CloudRain.CloudBottom - 1f);
+            for (int k = 0; k < 5; k++)
+            {
+                Vector3 p = spot;
+                if (k == 1) p.x += r;
+                else if (k == 2) p.x -= r;
+                else if (k == 3) p.z += r;
+                else if (k == 4) p.z -= r;
+
+                // At its foot and up under the base: the curtains lean with the wind.
+                p.y = spot.y;
+                if (CloudRain.OnScreen(p) > WaterspoutRules.RainAtSpot)
+                    return true;
+                p.y = top;
+                if (CloudRain.OnScreen(p) > WaterspoutRules.RainAtSpot)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The share of the view the rain curtains between the camera and its middle let through is
+        /// enough: the shader's RainSigma along the line (its curtain noise taken as its average, 1).
+        /// </summary>
+        private static bool SeenThroughRain(Vector3 cam, Vector3 spot, float cloudBase)
+        {
+            if (CloudRain.Amount <= 0f)
+                return true;
+
+            float curtains = Settings.RainCurtains != null ? Mathf.Max(0f, Settings.RainCurtains.value) : 1f;
+            float sigma = CloudVolume.RainExtinction * curtains * (CloudRain.IsSnow ? CloudVolume.SnowExtinction : 1f) * CloudRain.Amount;
+            if (sigma <= 0f)
+                return true;
+
+            const int Steps = 32;
+            Vector3 target = new Vector3(spot.x, 0.5f * (spot.y + cloudBase), spot.z);
+            float length = Vector3.Distance(cam, target);
+            float step = length / Steps;
+            float tau = 0f;
+            for (int k = 0; k < Steps; k++)
+            {
+                float t = (k + 0.5f) * step;
+                Vector3 p = Vector3.Lerp(cam, target, t / length);
+                if (p.y >= cloudBase)
+                    continue;
+
+                float fade = Mathf.Clamp01(1f - t / CloudVolume.RainMaxDistance);
+                tau += sigma * CloudRain.OnScreen(p) * fade * fade * step;
+            }
+
+            return Mathf.Exp(-tau) >= WaterspoutRules.SightThroughRain;
         }
 
         private static void Family(CloudDensityField field, Vector3 first, bool water, float cloudBase)
@@ -235,6 +304,8 @@ namespace VolumetricClouds.Sky
                 if (cloudBase - spot.y < MinRoom || CloudAt(field, spot) < 0.4f)
                     continue;
                 if (water && GroundUnder.WaterDepth(spot) < 2f)
+                    continue;
+                if (InRain(spot))
                     continue;
 
                 Spout s = Add(spot, water, -(5f + 35f * (float)_random.NextDouble()));

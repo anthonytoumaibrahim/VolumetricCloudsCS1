@@ -64,13 +64,13 @@ $tip = [double]$shape.GetField("TipLength").GetValue($null)
 
 "=== WaterspoutRules: how often ==="
 $events = $rules.GetMethod("EventsPerSecond")
-$perHour = [double]$events.Invoke($null, @([float]1, [float]1, [float]1)) * 3600
-Check (Near $perHour 1.0 1e-4) "100% in full showery weather: one event an hour of simulation ($perHour)"
-Check ([double]$events.Invoke($null, @([float]0, [float]1, [float]1)) -eq 0) "0%: none"
-Check (Near ([double]$events.Invoke($null, @([float]4, [float]1, [float]1)) * 3600) 4.0 1e-3) "400%: four an hour"
-Check ([double]$events.Invoke($null, @([float]1, [float]0.3, [float]1)) -eq 0) "a sky under 45% cover: none"
-$dry = [double]$events.Invoke($null, @([float]1, [float]1, [float]0)) * 3600
-Check (Near $dry 0.35 1e-3) "a full sky without rain: a third as often ($dry)"
+$perHour = [double]$events.Invoke($null, @([float]1, [float]1)) * 3600
+Check (Near $perHour 1.0 1e-4) "100% under a full cloud cover, rain or not: one event an hour of simulation ($perHour)"
+Check ([double]$events.Invoke($null, @([float]0, [float]1)) -eq 0) "0%: none"
+Check (Near ([double]$events.Invoke($null, @([float]4, [float]1)) * 3600) 4.0 1e-3) "400%: four an hour"
+Check ([double]$events.Invoke($null, @([float]1, [float]0.3)) -eq 0) "a sky under 45% cover: none"
+$half = [double]$events.Invoke($null, @([float]1, [float]0.6)) * 3600
+Check (Near $half 0.5 1e-3) "60% cover: half as often ($half)"
 
 "=== WaterspoutRules: small, rarely down, 1-5 minutes ==="
 $make = $rules.GetMethod("Make")
