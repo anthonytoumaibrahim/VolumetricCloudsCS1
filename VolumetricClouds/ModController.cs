@@ -21,6 +21,7 @@ namespace VolumetricClouds
         private CloudVolume _volume;
         private CloudDensityField _field;
         private bool _hotkeyWasDown;
+        private bool _weatherKeyWasDown;
 
         /// <summary>Rebuilds the button after the UUI preference changes.</summary>
         public static void RefreshButton()
@@ -43,6 +44,9 @@ namespace VolumetricClouds
         private void Awake()
         {
             Instance = this;
+
+            // Hidden by its key in the last city: every city opens with the weather the panel says.
+            Settings.HiddenByKey = false;
         }
 
         private void Start()
@@ -167,21 +171,33 @@ namespace VolumetricClouds
         {
             ApplyNewPattern();
 
+            // Don't steal a key while a text field has focus or a modal is up,
+            // otherwise typing into a rename box toggles the panel.
+            if (UIView.HasModalInput() || UIView.HasInputFocus())
+            {
+                _hotkeyWasDown = false;
+                _weatherKeyWasDown = false;
+                return;
+            }
+
+            // Hide / show Volumetric Weather: ours alone, also while Unified UI holds the panel's key.
+            bool weatherDown = IsDown(Settings.WeatherKey);
+            if (weatherDown && !_weatherKeyWasDown)
+            {
+                Settings.HiddenByKey = !Settings.HiddenByKey;
+                Log.Msg("weather: " + (Settings.HiddenByKey ? "hidden" : "shown again") + " by its key (" +
+                        Settings.WeatherKey.ToLocalizedString("KEYNAME") + "), not saved");
+            }
+
+            _weatherKeyWasDown = weatherDown;
+
             // When the button is registered, Unified UI owns the hotkey (we hand it
             // over as UUIHotKeys.ActivationKey). Polling it here as well would toggle
             // the panel twice per press, which looks like the key doing nothing.
             if (UUIIntegration.IsRegistered)
                 return;
 
-            // Don't steal the key while a text field has focus or a modal is up,
-            // otherwise typing into a rename box toggles the panel.
-            if (UIView.HasModalInput() || UIView.HasInputFocus())
-            {
-                _hotkeyWasDown = false;
-                return;
-            }
-
-            bool down = IsHotkeyDown();
+            bool down = IsDown(Settings.ToggleKey);
             if (down && !_hotkeyWasDown)
                 SetPanelVisible(_panel != null && !_panel.isVisible);
 
@@ -222,9 +238,8 @@ namespace VolumetricClouds
                 SettingsCatalog.RefreshAllUIs();
         }
 
-        private static bool IsHotkeyDown()
+        private static bool IsDown(SavedInputKey key)
         {
-            SavedInputKey key = Settings.ToggleKey;
             if (key == null || key.Key == KeyCode.None)
                 return false;
 

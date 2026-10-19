@@ -344,6 +344,8 @@
 
   <String key="ToggleKey.Label">Abrir este panel</String>
 
+  <String key="WeatherKey.Label">Ocultar o mostrar Volumetric Weather</String>
+
   <String key="ShowAdvancedInPanel.Label">Mostrar opciones avanzadas en el panel</String>
 
   <String key="PanelSkin.Label">Aspecto del panel</String>

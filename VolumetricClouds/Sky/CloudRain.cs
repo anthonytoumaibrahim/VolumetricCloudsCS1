@@ -104,7 +104,7 @@ namespace VolumetricClouds.Sky
         public static void Advance(CloudDensityField field, bool shadersAvailable, float deltaTime, float simulationRate)
         {
             bool wanted = Settings.RainEnabled == null || Settings.RainEnabled.value;
-            bool cloudsShowing = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
+            bool cloudsShowing = Settings.WeatherShown;
 
             // On winter maps the game's "rain" is snow: it falls under the clouds too (1.3.0).
             bool wasSnow = IsSnow;

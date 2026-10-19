@@ -76,7 +76,7 @@ namespace VolumetricClouds.Sky
             SimTime += deltaTime * simulationRate;
 
             Camera camera = Camera.main;
-            bool clouds = Settings.CloudsVisible == null || Settings.CloudsVisible.value;
+            bool clouds = Settings.WeatherShown;
             float cloudBase = CloudRain.CloudBottom;
             Vector3 eye = camera != null ? camera.transform.position : Vector3.zero;
 

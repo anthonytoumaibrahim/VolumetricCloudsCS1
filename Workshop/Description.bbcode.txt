@@ -17,6 +17,7 @@ If something stopped working after the update, please let me know.
 [*][b]Subscribe[/b] to [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]Harmony[/url] and then this mod, make sure both are enabled. If you use Skyve, make sure the mod is enabled in it.
 [*][b]Load a city[/b] (new or saved) and the volumetric weather should appear. The mod does not run in the editors or in scenarios.
 [*][b]Press F4[/b] (or click the mod's button) to open the in-game panel.
+[*][b]Press Shift+F4[/b] to hide all of the weather while you build, and again to bring it back (new in v1.5). Both keys can be changed in the mod's options.
 [/olist]
 
 To see more tabs in the in-game UI like the screenshots above, go to the mod's options in the Pause Menu, then toggle "Show advanced options in the in-game panel".

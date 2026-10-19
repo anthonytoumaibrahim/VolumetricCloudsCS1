@@ -129,7 +129,7 @@ namespace VolumetricClouds.Sky
             if (_mode != _loggedMode)
             {
                 _loggedMode = _mode;
-                bool hidden = Settings.CloudsVisible != null && !Settings.CloudsVisible.value;
+                bool hidden = !Settings.WeatherShown;
                 Log.Msg("shadows: sun cookie = " + _mode +
                         (_mode != "off" ? "" : hidden ? " (the clouds are hidden)" : " (cloud shadows are switched off)"));
             }

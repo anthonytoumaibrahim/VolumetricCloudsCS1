@@ -10,9 +10,9 @@ below; the mods list shows it after the mod's name, and the first line of
 A new look for the in-game panel, fog that changes on its own, two new cloud styles, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, the mod's
-defaults in the profile list, and waterspouts.
-`VolumetricClouds.xml` gains seventy-four lines and loses eleven; profiles saved before are read the
-same way. Twenty-three are new settings: `WaterspoutChance` (100%: everyone may now see a
+defaults in the profile list, waterspouts, and a key that hides the weather while you build.
+`VolumetricClouds.xml` gains seventy-five lines and loses eleven; profiles saved before are read the
+same way. Twenty-four are new settings: `WeatherKey` (Shift+F4), `WaterspoutChance` (100%: everyone may now see a
 waterspout now and then), `LargerWeatherPattern` (off), `CloudsToHorizon` (off), `DynamicDistantClouds`
 (on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
@@ -118,11 +118,9 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   sky, without the sun's glow, instead of letting through whatever is behind them. With the game's
   sky that's what showed there anyway, so the clouds look as before. For everyone, nothing to turn
   on. Under Real Light's sky the far clouds fade into it as before.
-- *Clouds to the horizon* on the Weather tab (advanced panel), off by default: with it on, under a
-  full overcast (95% cover or more, fading in from 90%), the cloud deck carries on all the way to
-  the horizon, following the curve of the Earth, instead of ending a few degrees above it with clear
-  sky underneath. Seen from high up, it also covers the sky beyond the edge of the map. It hides a
-  low sun too. Off, as everyone has it after the update, the clouds end above the horizon, as before.
+- *Clouds to the horizon* (the cloud deck carrying on to the horizon under a full overcast) is not
+  in the panel yet: it doesn't look right against the game's own sky. The settings file lists it
+  (`CloudsToHorizon`, off), and it does nothing for now. The clouds end above the horizon, as before.
 
 ### New: the Mixed cloud style
 
@@ -311,6 +309,15 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   them darkens a little, with faint foam turning into it.
 - Nothing of them is drawn without one, and the cloud pass costs what it did on every other frame.
   Natural Disasters' tornadoes stay the game's.
+
+### New: hide the weather while you build
+
+- **Shift+F4** hides all of Volumetric Weather (clouds, their shadows, rain, fog, lightning and
+  waterspouts) until it is pressed again, for when the clouds are in the way while you build. It
+  works like unticking *Volumetric Weather* on the Clouds tab, but nothing is saved: loading a city
+  always brings the weather back. The key can be changed on the options page,
+  under *The in-game panel* (*Hide or show Volumetric Weather*; Backspace clears it). The game uses
+  no Shift+F4 of its own.
 
 ### Changed
 

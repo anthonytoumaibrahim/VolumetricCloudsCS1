@@ -370,7 +370,7 @@ namespace VolumetricClouds.Sky
             get
             {
                 return (Settings.FogEnabled != null && Settings.FogEnabled.value)
-                    && (Settings.CloudsVisible == null || Settings.CloudsVisible.value);
+                    && Settings.WeatherShown;
             }
         }
 

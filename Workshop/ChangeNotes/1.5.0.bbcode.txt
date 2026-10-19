@@ -11,7 +11,7 @@
 [*][b]Fog fills valleys[/b] and [b]Fog over water[/b]: fog gathering in hollows and gorges, and fog banks drifting ashore from the sea and the lakes (Fog tab; off by default).
 [*][b]Waterspouts[/b]: now and then, in showery weather, a small funnel hangs from a cloud over the sea or near the shore. Only to look at; [i]Waterspout chance[/i] on the Now tab.
 [*][b]Clouds hide the sky[/b]: now by day too, so a cubemap's sun no longer shines through a thick overcast (Light tab). Far clouds fade into the game's own sky for everyone.
-[*][b]Clouds to the horizon[/b]: under a full overcast the deck carries on to the horizon (Weather tab; off by default).
+[*][b]Hide the weather[/b]: Shift+F4 hides all of the weather while you build, and brings it back when pressed again. Never saved; the key can be changed on the options page.
 [*][b]Wind direction[/b]: follow the game, follow it slowly so the sky doesn't swing round every few minutes, or fix it (Now tab).
 [*][b]Larger weather pattern[/b]: the cloud layout repeats four times further apart, for zooming far out with a camera mod (Weather tab; off by default).
 [*][b]Smoother clouds[/b]: blends frames together for less grain (options page; off by default).

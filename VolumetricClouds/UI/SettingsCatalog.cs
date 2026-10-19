@@ -1575,7 +1575,12 @@ namespace VolumetricClouds.UI
                 Panel = PanelPage.Clouds,
                 Bool = Settings.CloudsVisible,
                 DefaultBool = Settings.Defaults.CloudsVisible,
-                AfterChange = State("show clouds", OnOff(Settings.CloudsVisible)),
+                // Ticked while its key had hidden the weather: the row is what the player sees again.
+                AfterChange = () =>
+                {
+                    Settings.HiddenByKey = false;
+                    State("show clouds", OnOff(Settings.CloudsVisible))();
+                },
             });
 
             // Classic, the layer the mod has always drawn, Cumulus, EVE-Redux V5's model
@@ -2150,6 +2155,8 @@ namespace VolumetricClouds.UI
                 Options = OptionsPage.Weather,
                 Bool = Settings.CloudsToHorizon,
                 DefaultBool = Settings.Defaults.CloudsToHorizon,
+                // Under Real Light only, for now (Sky.CloudVolume, the far deck): its look was tuned there.
+                Shown = () => RealLightPresence.Seen,
                 AfterChange = State("clouds to the horizon", OnOff(Settings.CloudsToHorizon)),
             });
 
@@ -2734,6 +2741,16 @@ namespace VolumetricClouds.UI
                 Group = "Panel",
                 Key = Settings.ToggleKey,
                 DefaultKey = Settings.DefaultToggleKey,
+                Profiled = false,
+            });
+
+            // 1.5.0: hides the whole of Volumetric Weather until it is pressed again (Settings.HiddenByKey).
+            Add(new Row
+            {
+                Kind = RowKind.Key,
+                Options = OptionsPage.General,
+                Key = Settings.WeatherKey,
+                DefaultKey = Settings.DefaultWeatherKey,
                 Profiled = false,
             });
 

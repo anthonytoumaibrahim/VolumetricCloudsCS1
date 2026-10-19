@@ -45,6 +45,28 @@ namespace VolumetricClouds
         public static SavedInputKey ToggleKey { get; private set; }
 
         /// <summary>
+        /// Hides and shows the whole of Volumetric Weather for now (1.5.0, Shift+F4: the author, "if the
+        /// user is editing and the clouds are in the way"). It sets <see cref="HiddenByKey"/>, never
+        /// <see cref="CloudsVisible"/>: nothing is saved, no profile changes.
+        /// </summary>
+        public static SavedInputKey WeatherKey { get; private set; }
+
+        /// <summary>
+        /// Hidden by <see cref="WeatherKey"/>: as "Volumetric Weather" unticked, in memory only. Back on
+        /// with the key again, by ticking that row, and in every new city (ModController).
+        /// </summary>
+        public static bool HiddenByKey;
+
+        /// <summary>
+        /// Volumetric Weather drawn: the "Volumetric Weather" row ticked and not hidden by the key.
+        /// Everything that stops when that row is unticked asks this, not <see cref="CloudsVisible"/>.
+        /// </summary>
+        public static bool WeatherShown
+        {
+            get { return (CloudsVisible == null || CloudsVisible.value) && !HiddenByKey; }
+        }
+
+        /// <summary>
         /// Where the mod's own button sits when it is not in Unified UI: its top-left corner, in
         /// UI units from the top left of the screen. The player drags it there (1.1.0).
         /// </summary>
@@ -1076,6 +1098,7 @@ namespace VolumetricClouds
 
                 ShowInUnifiedUI = new BoolSetting("ShowInUnifiedUI", Defaults.ShowInUnifiedUI);
                 ToggleKey = new SavedInputKey("ToggleKey", InMemory, DefaultToggleKey, false);
+                WeatherKey = new SavedInputKey("WeatherKey", InMemory, DefaultWeatherKey, false);
                 ShowAdvancedInPanel = new BoolSetting("ShowAdvancedInPanel", Defaults.ShowAdvancedInPanel);
                 PanelSkin = new IntSetting("PanelSkin", Defaults.PanelSkin);
                 DetailedLogging = new BoolSetting("DetailedLogging", Defaults.DetailedLogging);
@@ -1308,6 +1331,15 @@ namespace VolumetricClouds
         }
 
         /// <summary>
+        /// Shift+F4. Free in the game: its F-key defaults are F1 quick save, F7 debug output, F12 and
+        /// Shift+F12 screenshots (DefaultSettings..cctor IL, 2026-10-20).
+        /// </summary>
+        public static int DefaultWeatherKey
+        {
+            get { return SavedInputKey.Encode(KeyCode.F4, false, true, false); }
+        }
+
+        /// <summary>
         /// How brightly the clouds are lit right now (1.5.0): Cloud brightness, each time of day's
         /// Clear sky and Overcast values blended by the cover (Sky.Overcast, the share
         /// CloudVolume.ApplyLighting has just set from the same cover), then the three by the sun's
@@ -1417,8 +1449,7 @@ namespace VolumetricClouds
         {
             get
             {
-                return (CloudShadows == null || CloudShadows.value)
-                    && (CloudsVisible == null || CloudsVisible.value);
+                return (CloudShadows == null || CloudShadows.value) && WeatherShown;
             }
         }
 

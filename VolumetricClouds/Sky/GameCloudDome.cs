@@ -37,7 +37,7 @@ namespace VolumetricClouds.Sky
 
         private static bool OurCloudsShowing
         {
-            get { return Settings.CloudsVisible == null || Settings.CloudsVisible.value; }
+            get { return Settings.WeatherShown; }
         }
 
         private void LateUpdate()

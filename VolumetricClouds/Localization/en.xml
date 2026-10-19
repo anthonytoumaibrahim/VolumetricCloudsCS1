@@ -388,6 +388,8 @@
 
   <String key="ToggleKey.Label">Open this panel</String>
 
+  <String key="WeatherKey.Label">Hide or show Volumetric Weather</String>
+
   <String key="ShowAdvancedInPanel.Label">Show advanced options in the in-game panel</String>
 
   <String key="PanelSkin.Label">Panel look</String>

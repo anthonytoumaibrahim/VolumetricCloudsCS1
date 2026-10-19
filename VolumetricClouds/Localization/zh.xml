@@ -358,6 +358,8 @@
 
   <String key="ToggleKey.Label">打开此面板</String>
 
+  <String key="WeatherKey.Label">隐藏或显示体积天气</String>
+
   <String key="ShowAdvancedInPanel.Label">在游戏内面板显示高级选项</String>
 
   <String key="PanelSkin.Label">面板外观</String>

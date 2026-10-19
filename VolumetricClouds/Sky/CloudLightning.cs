@@ -166,7 +166,7 @@ namespace VolumetricClouds.Sky
                 return;
 
             bool enabled = (Settings.LightningEnabled == null || Settings.LightningEnabled.value)
-                        && (Settings.CloudsVisible == null || Settings.CloudsVisible.value);
+                        && Settings.WeatherShown;
 
             HideGameBolt(enabled && _boltMaterial != null && _invisible != null
                          && (Settings.LightningReplaceBolt == null || Settings.LightningReplaceBolt.value));
