@@ -1,10 +1,10 @@
 [h1]Version 1.5[/h1]
 [h3]New cloud styles: Mixed & Soft[/h3]
-These new styles are more demanding, recommended only for users with powerful hardware.
+Soft: fair-weather clouds made of many puffs with wispy edges. Mixed: one style for every kind of weather. Both cost more to draw than Classic (about as much as Cumulus), so they suit powerful hardware best.
 [h3]Day, sunset and night, clear sky and overcast[/h3]
 A lot of options now get different sliders for time of day, and for overcast conditions.
 [h3]Changing fog, and waterspouts[/h3]
-Morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under rain over the sea.
+Fog that changes with the weather, morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under rain over the sea.
 [h3]New panel styles[/h3]
 3 new looks for the in-game panel, with the new Frosted Glass theme as the default.
 
@@ -36,7 +36,7 @@ To see more tabs in the in-game UI like the screenshots above, go to the mod's o
 [h3]Fog and light (optional)[/h3]
 [list]
 [*]Volumetric fog that rolls over the city, changes with the weather and the time of day, fills valleys and drifts in from the water
-[*]Every setting can have its own value at sunset, at night and under an overcast sky
+[*]Cloud colors, brightness, density, shadows and the fog can each have their own value at sunset, at night and under an overcast sky
 [*]Smaller light halos around lamps, buildings and vehicles (off by default)
 [/list]
 
