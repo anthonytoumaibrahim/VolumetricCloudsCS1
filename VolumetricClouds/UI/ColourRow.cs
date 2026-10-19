@@ -231,16 +231,25 @@ namespace VolumetricClouds.UI
             if (_row.Colour == null)
                 return;
 
+            Color32 was = _row.Colour.value;
             _row.Colour.value = colour;
             _shown = _row.Colour.value;
 
-            // One colour for all it stands for: the others go with it.
+            // One colour for all it stands for: the others that still equal it go with it; one set apart
+            // under the row's other button (a Night colour of its own) keeps it (SettingsCatalog.StoreAll
+            // does the same for a slider).
+            _moved.Clear();
             if (Targets != null)
             {
                 foreach (Row value in Targets)
                 {
-                    if (value.Colour != null)
+                    if (value == _row || value.Colour == null)
+                        continue;
+                    if (ColorText.Same(value.Colour.value, was))
+                    {
                         value.Colour.value = colour;
+                        _moved.Add(value.Name);
+                    }
                 }
             }
 
@@ -290,17 +299,13 @@ namespace VolumetricClouds.UI
             Log.Msg("setting: " + _row.Name + " = " + hex + " (" + how + (Targets != null ? ", with " + Others() : "") + ")");
         }
 
+        /// <summary>The other values the last pick went to (<see cref="Store"/>), for the log.</summary>
+        private readonly List<string> _moved = new List<string>();
+
         /// <summary>For the log: the other values a pick went to.</summary>
         private string Others()
         {
-            var names = new List<string>();
-            foreach (Row value in Targets)
-            {
-                if (value != _row)
-                    names.Add(value.Name);
-            }
-
-            return names.Count > 0 ? string.Join(", ", names.ToArray()) : "nothing else";
+            return _moved.Count > 0 ? string.Join(", ", _moved.ToArray()) : "nothing else";
         }
 
         private void Submit(string text)

@@ -273,7 +273,9 @@ namespace VolumetricClouds.UI
             /// <summary>
             /// The values its slider or colour stands for (1.5.0), when more than its own: the own line of a
             /// row with a clock (all of them), a Day line (its clear and overcast), a Clear sky line (its three
-            /// times). Its reset puts all of them back. Null: its own row's only.
+            /// times). The first is the line's own: a move takes the others along while they equal it, and
+            /// leaves one set apart under the row's other button (SettingsCatalog.StoreAll, ColourRow.Store).
+            /// Its reset puts all of them back. Null: its own row's only.
             /// </summary>
             public Row[] Targets;
 
@@ -341,14 +343,6 @@ namespace VolumetricClouds.UI
         /// <summary>The rows whose cloud button is open (Settings.PanelOpenWeather, 1.5.0), as last read.</summary>
         private readonly List<string> _openWeather = new List<string>();
         private string _openWeatherRead;
-
-        /// <summary>
-        /// What each row with a clock shows under it (ModeClosed...), decided when a button is clicked or
-        /// the open ones are read, and kept: a value moved in the table never folds it back into lines
-        /// under the player's pointer. Lines that stop standing for one value (a profile picked) become
-        /// the table (<see cref="CheckModes"/>).
-        /// </summary>
-        private readonly Dictionary<string, int> _modes = new Dictionary<string, int>();
 
         public override void Start()
         {
@@ -611,9 +605,6 @@ namespace VolumetricClouds.UI
             if (Settings.PanelOpenWeather != null && Settings.PanelOpenWeather.value != _openWeatherRead)
                 ReadOpenWeather();
 
-            // Lines that no longer stand for one value each become the table (the walk below lays it out).
-            CheckModes();
-
             // The open groups changed under the panel: a reset, a hand edit of the file.
             if (Settings.PanelOpenGroups != null && Settings.PanelOpenGroups.value != _openRead)
             {
@@ -665,14 +656,12 @@ namespace VolumetricClouds.UI
         {
             _openClocksRead = Settings.PanelOpenClocks != null ? Settings.PanelOpenClocks.value : string.Empty;
             ReadNames(_openClocksRead, _openClocks);
-            _modes.Clear();
         }
 
         private void ReadOpenWeather()
         {
             _openWeatherRead = Settings.PanelOpenWeather != null ? Settings.PanelOpenWeather.value : string.Empty;
             ReadNames(_openWeatherRead, _openWeather);
-            _modes.Clear();
         }
 
         private static void ReadNames(string text, List<string> names)
@@ -689,25 +678,16 @@ namespace VolumetricClouds.UI
             }
         }
 
-        /// <summary>What a row with a clock shows under it now: as decided last (<see cref="_modes"/>), or decided now.</summary>
-        private int ModeOf(Row row)
-        {
-            int mode;
-            if (!_modes.TryGetValue(row.Name, out mode))
-            {
-                mode = DecideMode(row);
-                _modes[row.Name] = mode;
-            }
-
-            return mode;
-        }
-
         /// <summary>
-        /// Both buttons closed: nothing. Both open: the table. One open: its lines, where each of them stands
-        /// for one value -- the clock's while each time is the same in both weathers, the cloud's while each
-        /// weather is the same at every hour; otherwise the table, so every value has a slider of its own.
+        /// What a row with a clock shows under it, from its two buttons alone. Both closed: nothing. Both
+        /// open: the table. One open: ITS lines only -- the clock's Day, Sunset and Night, the cloud's Clear
+        /// sky and Overcast -- whatever the values under the other button do (the author's call, 2026-10-19:
+        /// the cloud button on Fog brightness, whose night differs, opened "the time of day" as the table).
+        /// A line's slider shows its first value (the Day's, the Clear sky's) and moves with it the ones
+        /// that still equal it; one set apart under the other button keeps its own (SettingsCatalog.StoreAll).
+        /// Until then one button open showed the table whenever the other axis's values differed.
         /// </summary>
-        private int DecideMode(Row row)
+        private int ModeOf(Row row)
         {
             bool clock = IsClockOpen(row);
             bool weather = IsWeatherOpen(row);
@@ -715,35 +695,8 @@ namespace VolumetricClouds.UI
                 return ModeClosed;
             if (clock && weather)
                 return ModeTable;
-            if (clock)
-                return SettingsCatalog.SameInEveryWeather(row) ? ModeTimes : ModeTable;
 
-            return SettingsCatalog.SameAtEveryHour(row) ? ModeWeathers : ModeTable;
-        }
-
-        /// <summary>
-        /// Lines that no longer stand for one value each (a profile picked, a reset, a hand edit of the
-        /// file under them) become the table, never the other way round (<see cref="_modes"/>).
-        /// </summary>
-        private void CheckModes()
-        {
-            foreach (Control control in _controls)
-            {
-                if (!control.IsClockTop)
-                    continue;
-
-                Row row = control.Source;
-                int mode;
-                if (!_modes.TryGetValue(row.Name, out mode))
-                    continue;
-
-                if ((mode == ModeTimes && !SettingsCatalog.SameInEveryWeather(row)) ||
-                    (mode == ModeWeathers && !SettingsCatalog.SameAtEveryHour(row)))
-                {
-                    _modes[row.Name] = ModeTable;
-                    Log.Msg("panel: " + row.Name + "'s values now differ under its open button: shown as the table");
-                }
-            }
+            return clock ? ModeTimes : ModeWeathers;
         }
 
         /// <summary>
@@ -764,7 +717,6 @@ namespace VolumetricClouds.UI
                 Settings.PanelOpenWeather.value = _openWeatherRead;
             SettingsXml.SaveNow();
 
-            _modes.Remove(row.Name);
             Log.Msg("panel: " + row.Name + "'s cloud button " + (open ? "opened" : "closed") + " (open now: " +
                     (_openWeatherRead.Length > 0 ? _openWeatherRead : "none") + "; " + Sky.Overcast.Describe() +
                     "; shown as " + ModeName(ModeOf(row)) + ")");
@@ -801,7 +753,6 @@ namespace VolumetricClouds.UI
                 Settings.PanelOpenClocks.value = _openClocksRead;
             SettingsXml.SaveNow();
 
-            _modes.Remove(row.Name);
             Log.Msg("panel: " + row.Name + "'s clock " + (open ? "opened" : "closed") + " (open now: " +
                     (_openClocksRead.Length > 0 ? _openClocksRead : "none") + "; " + Sky.TimeOfDay.Describe() +
                     "; shown as " + ModeName(ModeOf(row)) + ")");
@@ -1142,8 +1093,8 @@ namespace VolumetricClouds.UI
 
                 // A row with a clock (1.5.0): every line it can show under it, each a row of its own --
                 // its Day, Sunset and Night (the clock open), its Clear sky and Overcast (the cloud button
-                // open), the table (both, or one while the other's values differ) -- shown by ModeOf. No
-                // clock (the icon missing): no lines, the row is one value.
+                // open), the table (both open) -- shown by ModeOf. No clock (the icon missing): no lines,
+                // the row is one value.
                 if (row.HasClock && control.IsClockTop)
                 {
                     for (int time = 0; time < row.Times.Length; time++)

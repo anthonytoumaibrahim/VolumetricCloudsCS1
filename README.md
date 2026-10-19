@@ -207,8 +207,10 @@ Corrections from native speakers are welcome.
 
 ## Building
 
-See [BUILDING.md](BUILDING.md). In short, `dotnet build VolumetricClouds/VolumetricClouds.csproj`
-builds **and** deploys to the game's mods folder. The compiled shader bundles are committed, so
+See [BUILDING.md](BUILDING.md). In short, clone with `--recurse-submodules` (the panel's controls
+come from the [ModsLibCS1](https://github.com/anthonytoumaibrahim/ModsLibCS1) submodule), then
+`dotnet build VolumetricClouds/VolumetricClouds.csproj` builds **and** deploys to the game's mods
+folder. The compiled shader bundles are committed, so
 Unity 5.6.6 is only needed after editing `UnityProject\Assets`. Pure logic is tested offline by
 `tools/test-*.ps1`; the rest is checked in the game through the mod's log.
 

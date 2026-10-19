@@ -38,7 +38,7 @@ $deployed = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\Addons\Mods\Volume
 $parked = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\VolumetricClouds-dev-parked"
 $shipped = @("VolumetricClouds.dll", "UnifiedUILib.dll", "CitiesHarmony.API.dll")
 # "amd" builds every shipped shader with AMD's compiler (needs Radeon GPU Analyzer: see test-amd.ps1).
-$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "fogoptions", "fogplaces", "emptysky", "mix", "timeofday", "amd")
+$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "fogoptions", "fogplaces", "emptysky", "mix", "timeofday", "soft", "skylayer", "waterspouts", "fogcoverage", "amd")
 
 $problems = 0
 
@@ -72,6 +72,29 @@ $dirty = @(git -C $root status --porcelain)
 if ($dirty.Count -gt 0) {
     Stop-Release "$($dirty.Count) uncommitted change(s). Commit first, so the tag can point at what was uploaded."
 } else { Ok ("clean, at " + (git -C $root rev-parse --short HEAD)) }
+
+# The panel's controls come from the ModsLibCS1 submodule, compiled into the DLL. The tag must point
+# at a tree anyone can build: the submodule committed, the commit this repo pins pushed to its remote.
+Step "The ModsLibCS1 submodule is committed, pinned and pushed"
+$sub = Join-Path $root "ModsLibCS1"
+if (-not (Test-Path (Join-Path $sub "ModsLibCS1.props"))) {
+    Stop-Release "ModsLibCS1 is missing: git submodule update --init"
+} else {
+    $subDirty = @(git -C $sub status --porcelain)
+    $pinned = ((git -C $root ls-tree HEAD ModsLibCS1) -split "\s+")[2]
+    $subHead = (git -C $sub rev-parse HEAD).Trim()
+    if ($subDirty.Count -gt 0) {
+        Stop-Release "ModsLibCS1 has $($subDirty.Count) uncommitted change(s)"
+    } elseif ($subHead -ne $pinned) {
+        Stop-Release "ModsLibCS1 is at $subHead but this repo pins ${pinned}: commit the submodule pointer"
+    } else {
+        git -C $sub fetch -q origin
+        $onRemote = @(git -C $sub branch -r --contains $pinned)
+        if ($onRemote.Count -eq 0) {
+            Stop-Release "ModsLibCS1 commit $pinned is not on its remote: push it, or a clone of this repo cannot build"
+        } else { Ok ("pinned " + $pinned.Substring(0, 7) + ", clean, on " + $onRemote[0].Trim()) }
+    }
+}
 
 Step "The version is new"
 $modCs = Get-Content (Join-Path $root "VolumetricClouds\Mod.cs") -Raw

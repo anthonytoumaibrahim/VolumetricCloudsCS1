@@ -72,7 +72,6 @@ Shader "VolumetricClouds/CloudRaymarch"
             float _TemporalMode;        // 0 = the camera's draw, 1 = march into the target, 2 = blend
             float _TemporalOn;          // mode 0: 1 while there is a blend to read -- by the camera standing at
                                         // _TemporalEye only (the main camera): any other marches
-            float _TemporalTint;        // mode 0, TEMPORARY test switch: blended clouds red, marched ones blue
             sampler2D _TemporalTex;     // mode 0: the blend; mode 2: this frame's march (rgb = light,
                                         // a = 1 - transmittance, before the distance fade)
             float4x4 _TemporalVP;       // mode 0: the view-projection it was marched with (OpenGL convention)
@@ -1339,10 +1338,6 @@ Shader "VolumetricClouds/CloudRaymarch"
                     clouds = raw.a >= 0.0
                         ? FinishClouds(raw, tEnter, dir, sceneDist >= 1e9)
                         : MarchClouds(origin, dir, tEnter, tExit, boltStop, jitter, cosTheta, sceneDist >= 1e9);
-
-                    // TEMPORARY test switch: which way each cloud pixel was drawn.
-                    if (_TemporalTint > 0.5 && tExit > tEnter)
-                        clouds.rgb *= raw.a >= 0.0 ? float3(1.0, 0.3, 0.3) : float3(0.3, 0.3, 1.0);
                 }
 
                 // The far deck, behind them, wherever there is sky (from any height: until 1.5.0's second

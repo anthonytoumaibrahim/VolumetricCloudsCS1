@@ -1,12 +1,14 @@
 [h1]Version 1.5[/h1]
-[h3]New cloud style: Mixed[/h3]
-Separate fair-weather clouds that grow and gather into a full overcast as the weather turns. Fully customizable.
-[h3]Distant clouds[/h3]
-HDRI skies from [url=https://polyhaven.com]Poly Haven[/url] (cirrus, sheep clouds, far cumulus) behind the mod's clouds that interact with the world.
+[h3]New cloud styles: Mixed & Soft[/h3]
+These new styles are more demanding, recommended only for users with powerful hardware.
+[h3]Day, sunset and night, clear sky and overcast[/h3]
+A lot of options now get different sliders for time of day, and for overcast conditions.
+[h3]Changing fog, and waterspouts[/h3]
+Morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under rain over the sea.
 [h3]New panel styles[/h3]
-3 new looks for the in-game panel, with the new frosted glass theme as the default.
+3 new looks for the in-game panel, with the new Frosted Glass theme as the default.
 
-And more: see everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
+See everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
 If something stopped working after the update, please let me know.
 
 [hr][/hr]
@@ -23,17 +25,18 @@ To see more tabs in the in-game UI like the screenshots above, go to the mod's o
 [h1]Features[/h1]
 [h3]Clouds[/h3]
 [list]
-[*]Volumetric 3D clouds with real shadows, in three styles: Classic, Cumulus and Mixed
+[*]Volumetric 3D clouds with real shadows, in four styles: Classic, Cumulus, Soft and Mixed
 [*]Distant clouds, light inside the clouds and cloud fragments
 [/list]
 [h3]Weather[/h3]
 [list]
 [*]Follows the game's weather, or set it yourself
-[*]Rain and lightning that come from the clouds, and rainbows
+[*]Rain and lightning that come from the clouds, rainbows, and waterspouts
 [/list]
 [h3]Fog and light (optional)[/h3]
 [list]
-[*]Volumetric fog that rolls over the city, and changes with the weather and the time of day
+[*]Volumetric fog that rolls over the city, changes with the weather and the time of day, fills valleys and drifts in from the water
+[*]Every setting can have its own value at sunset, at night and under an overcast sky
 [*]Smaller light halos around lamps, buildings and vehicles (off by default)
 [/list]
 

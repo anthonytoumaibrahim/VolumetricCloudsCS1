@@ -67,7 +67,7 @@ namespace VolumetricClouds.Sky
 
     /// <summary>
     /// Our waterspouts' rules (1.5.0), pure: how often, how big, how they live. The author
-    /// (2026-10-18): "In real life, in climates such as the one in Lebanon, very small tornadoes form
+    /// (2026-10-18): "In real life, in climates such as [a Mediterranean coast's], very small tornadoes form
     /// over the sea or close to the sky, and rarely they touch the ground. But they are very very small
     /// in size", "they don't go over a certain intensity, or turn to a tornado, they are just sprouts".
     /// Visual only.

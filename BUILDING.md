@@ -11,6 +11,17 @@
   Build Support** modules of the same version — **only** if you edit shaders. The compiled
   bundles (one per platform) are committed, so C# work needs no Unity.
 
+## Getting the source
+
+```
+git clone --recurse-submodules https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1.git
+```
+
+The in-game panel's controls, skins and sprite sheet come from
+[ModsLibCS1](https://github.com/anthonytoumaibrahim/ModsLibCS1), a git submodule at `ModsLibCS1/`
+that is compiled into the mod's DLL. A clone made without it stops the build with
+"ModsLibCS1 is missing": run `git submodule update --init`.
+
 ## Build and deploy
 
 ```
@@ -120,6 +131,7 @@ your own installed copy.
 | Path | What is there |
 | --- | --- |
 | `VolumetricClouds/` | The mod. `Sky/` clouds, weather, rain, lightning, fog · `Lighting/` halos · `UI/` the panel, the options page, and the settings catalog both are drawn from |
+| `ModsLibCS1/` | Git submodule: the panel's controls, skins and sprite sheet, compiled into the DLL (its own `THIRD-PARTY-NOTICES.md` covers its icons) |
 | `UnityProject/` | Unity 5.6 project holding the shaders and the headless bundle builder |
 | `libs/` | Third-party DLLs referenced at build time (see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)) |
 | `tools/` | The PowerShell tools above |

@@ -893,11 +893,25 @@ namespace VolumetricClouds.UI
             StoreAll(ValuesOf(row), display);
         }
 
-        /// <summary>One slider standing for several values: each goes there.</summary>
+        /// <summary>
+        /// One slider standing for several values, the line's own first: it goes there, and so does every
+        /// other that still EQUALS it -- a value set apart under the row's other button (a Night set lower
+        /// than the Day, an Overcast set darker than the Clear sky) keeps its own value (the author's call,
+        /// 2026-10-19: the cloud button alone must show only its two lines, and never undo the clock's).
+        /// All equal (the row's own line, shown only then): all move, as before.
+        /// </summary>
         public static void StoreAll(IList<Row> rows, float display)
         {
-            foreach (Row value in rows)
-                value.Store(display);
+            Row own = rows[0];
+            bool compare = own.Float != null;
+            float was = compare ? own.Float.value : 0f;
+            own.Store(display);
+            for (int i = 1; i < rows.Count; i++)
+            {
+                Row other = rows[i];
+                if (!compare || other.Float == null || other.Float.value.Equals(was))
+                    other.Store(display);
+            }
         }
 
         /// <summary>

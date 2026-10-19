@@ -549,15 +549,12 @@ namespace VolumetricClouds.Sky
             if (_material == null)
                 return;
 
-            // Every camera that draws the box, once each (1.5.0: smoother clouds showed no difference
-            // in-game -- is another camera in between?), and whether it comes after the main camera's
-            // preparation in the same frame.
+            // Every camera that draws the box, logged once each, and whether it comes after the main
+            // camera's preparation in the same frame (only the main camera reads the blend).
             string name = camera == null ? "(none)" : camera.name;
             bool main = camera != null && camera == _camera;
             if (main)
                 _mainPreparedFrame = Time.frameCount;
-            else
-                _otherCameraDraws++;
             if (!_boxCameras.Contains(name))
             {
                 _boxCameras.Add(name);
@@ -579,15 +576,6 @@ namespace VolumetricClouds.Sky
 
         private readonly System.Collections.Generic.HashSet<string> _boxCameras = new System.Collections.Generic.HashSet<string>();
         private int _mainPreparedFrame = -1;
-        private int _otherCameraDraws;
-
-        /// <summary>Draws of the box by cameras other than the main one since the last call (detailed log).</summary>
-        private int TakeOtherCameraDraws()
-        {
-            int draws = _otherCameraDraws;
-            _otherCameraDraws = 0;
-            return draws;
-        }
 
         /// <summary>
         /// With "Show clouds" off there is nothing to cast a shadow, and the pass does not run.
@@ -1556,7 +1544,6 @@ namespace VolumetricClouds.Sky
                        " farDeck=" + (_farDeckShown * 100f).ToString("F0") + "%" +
                        // 1.5.0: Smoother clouds (frames blended / fresh starts in this line's second).
                        " temporal=" + (_temporal != null && _temporal.Running ? "on(" + _temporal.TakeCounts() + ")" : "off") +
-                       " otherCameraDraws=" + TakeOtherCameraDraws() +
                        // 1.5.0: distant clouds' four rows (cirrus/sheep/far/layers), or off.
                        " skyLayer=" + (_skyLayer != null ? _skyLayer.Describe() : "none") +
                        " fog=" + (CloudFog.Active ? (CameraInFog() ? "INSIDE" : "on") : "off") +

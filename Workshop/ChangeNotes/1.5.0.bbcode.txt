@@ -1,0 +1,39 @@
+[h1]Version 1.5.0[/h1]
+[b]New[/b]
+[list]
+[*][b]Soft cloud style[/b]: fair-weather clouds made of many puffs with soft, wispy edges; as the weather gets heavier the Classic layer comes in among them (Clouds tab, [i]Cloud style[/i]).
+[*][b]Mixed cloud style[/b]: one style for every kind of weather, from soft puffs in a light sky to a full overcast, with the balance changing across the sky.
+[*][b]Cumulus size, height and amount[/b]: three sliders for the Cumulus heaps (Clouds tab).
+[*][b]Distant clouds[/b]: photographed skies behind the mod's clouds, lit by the game's sun and drifting with the wind. They come and go with the weather by themselves, or set each kind on the new [i]Distant clouds[/i] tab.
+[*][b]Day, sunset and night[/b]: a clock button on eleven rows (colors, brightness, density, shadows, the fog) gives each its own value for the day, the sunset and the night.
+[*][b]Clear sky and overcast[/b]: a cloud button on nine rows gives a value for a clear sky and one for a full overcast.
+[*][b]Changing fog[/b]: fog that changes with the weather, morning fog that lifts during the morning, and mist after rain (Fog tab, [i]Dynamic fog[/i]; off by default).
+[*][b]Fog fills valleys[/b] and [b]Fog over water[/b]: fog gathering in hollows and gorges, and fog banks drifting ashore from the sea and the lakes (Fog tab; off by default).
+[*][b]Waterspouts[/b]: now and then, in showery weather, a small funnel hangs from a cloud over the sea or near the shore. Only to look at; [i]Waterspout chance[/i] on the Now tab.
+[*][b]Clouds hide the sky[/b]: now by day too, so a cubemap's sun no longer shines through a thick overcast (Light tab). Far clouds fade into the game's own sky for everyone.
+[*][b]Clouds to the horizon[/b]: under a full overcast the deck carries on to the horizon (Weather tab; off by default).
+[*][b]Wind direction[/b]: follow the game, follow it slowly so the sky doesn't swing round every few minutes, or fix it (Now tab).
+[*][b]Larger weather pattern[/b]: the cloud layout repeats four times further apart, for zooming far out with a camera mod (Weather tab; off by default).
+[*][b]Smoother clouds[/b]: blends frames together for less grain (options page; off by default).
+[*][b]Panel look[/b]: [i]Frosted glass[/i] (the new default), [i]See-through[/i], [i]Blue[/i] or [i]Vanilla[/i], the panel as it was (options page). Every row has a reset button, and the advanced panel's headings fold.
+[*][b](mod defaults)[/b] in the profile list, and a [b]Revert[/b] button beside Save.
+[/list]
+[b]Fixed[/b]
+[list]
+[*]Far clouds no longer cut a lightning bolt into pieces.
+[*]Cloud shadows no longer flicker at sunrise and sunset, and fade out instead of vanishing just before sunset.
+[*]A cubemap or any other replaced sky no longer shows through the far clouds.
+[/list]
+[b]Changed[/b]
+[list]
+[*]Smoke, steam and fire are drawn inside the fog again, as before 1.4.0.
+[*]The [i]Advanced[/i] tab is gone: its three rows are back on the Clouds, Fog and Light tabs.
+[*]The Now tab's status lines and [i]Test lightning[/i] are gone, and several rows have shorter names.
+[*]A clear sky costs less to draw: the mod skips the parts of the sky that can hold no cloud.
+[*]Your settings, profiles and saved cities keep their values. The four cloud brightness rows and the two night switches move into the new clock and cloud buttons with the values they had.
+[*]The download grows to about 6.5 MB (the photographed skies).
+[/list]
+[b]Removed[/b]
+[list]
+[*][i]Brightness differs at night[/i], [i]Different colors at night[/i] and the four cloud brightness rows: their values live on in the clock and cloud buttons. [i]Clouds dim at full overcast to[/i] leaves the panel (it still dims the fog's sunlight).
+[/list]

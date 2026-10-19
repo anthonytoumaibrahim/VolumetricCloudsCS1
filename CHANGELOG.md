@@ -11,7 +11,8 @@ A new look for the in-game panel, fog that changes on its own, two new cloud sty
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
 clouds, a wind direction of your own, a larger weather pattern for zooming far out, the mod's
 defaults in the profile list, and waterspouts.
-`VolumetricClouds.xml` gains twenty-three lines: `WaterspoutChance` (100%: everyone may now see a
+`VolumetricClouds.xml` gains seventy-four lines and loses eleven; profiles saved before are read the
+same way. Twenty-three are new settings: `WaterspoutChance` (100%: everyone may now see a
 waterspout now and then), `LargerWeatherPattern` (off), `CloudsToHorizon` (off), `DynamicDistantClouds`
 (on: everyone gets the distant clouds now and then, following the weather), `SkyCirrus`, `SkySheepClouds`, `SkyFarClouds` and
 `SkyCloudLayers` at 0%, `PanelSkin`
@@ -22,24 +23,25 @@ back), `PanelOpenGroups` (the advanced panel's open headings), `DynamicFog` (off
 `CumulusAmount` at 100%. At those values the fog, the clouds and the wind are exactly as
 before, so apart from the distant clouds and the waterspouts nothing changes for anyone until they
 move one. Profiles saved before read the new
-sliders at those values. Thirteen settings get a value at sunset and at night (*Day, sunset and
-night*): twenty-five more lines, each written with the player's own value of that setting, so their
+sliders at those values. Eleven rows get a value at sunset and at night (*Day, sunset and
+night*): a Sunset and a Night line each (`CloudNightOpacity`, the old *Clouds hide the stars at
+night*, is already one of them), each written with the player's own value of that row, so their
 sky is the same at every hour, and `PanelOpenClocks` (empty). The seven lines of the two 1.3.0 night
 switches go (`CloudNightBrightness` and its three values, `CloudNightColors`, `CloudMoonlitColor`,
 `CloudNightShadeColor`): where a switch was on, its night values move into the new lines and draw
-exactly what they drew; profiles saved before are read the same way. Nine settings get a value under
-an overcast sky (*Clear sky and overcast*): twenty-seven more lines, each written with the player's own
-clear-sky value, so their sky is the same in every weather, and `PanelOpenWeather` (empty). The four
-cloud brightness rows become one, *Cloud brightness* (`CloudLight`, six lines): with *Brightness
+exactly what they drew. Nine of those rows get a value under an overcast sky too (*Clear sky and
+overcast*): three Overcast lines each, one per time of day, written with the player's own clear-sky
+value, so their sky is the same in every weather, and `PanelOpenWeather` (empty). The four
+cloud brightness rows become one, *Cloud brightness* (`CloudLight`, with its sunset, night and
+overcast lines among those): with *Brightness
 follows the cloud intensity* on, as it is for nearly everyone, its clear sky and full overcast values
 move in and draw exactly what they drew; with it off, the fixed brightness moves in under both, dimmed
 under an overcast sky by *Clouds dim at full overcast to* -- the same sunlit sides, while the shaded
-undersides at full overcast now dim with it too (they didn't). The thirteen old lines go
-(`CloudBrightnessAuto`, `CloudBrightness`, `CloudBrightnessClear`, `CloudBrightnessOvercast`, each of the
-three with its sunset and night); profiles saved before are read the same way. *Clouds dim at full
+undersides at full overcast now dim with it too (they didn't). The four old lines go
+(`CloudBrightnessAuto`, `CloudBrightness`, `CloudBrightnessClear`, `CloudBrightnessOvercast`). *Clouds dim at full
 overcast to* leaves the panel and stays in the settings file, now dimming only the fog's sunlight, as
 it always did for anyone with the automatic brightness on. *Cloud style* gains two choices, *Mixed* and *Soft*: nobody's style
-changes with the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6 MB (the
+changes with the update. Nothing in saved cities changes. The download grows from 1.3 MB to about 6.5 MB (the
 photographed skies).
 
 ### New: the panel's look
@@ -116,11 +118,11 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   sky, without the sun's glow, instead of letting through whatever is behind them. With the game's
   sky that's what showed there anyway, so the clouds look as before. For everyone, nothing to turn
   on. Under Real Light's sky the far clouds fade into it as before.
-- *Clouds to the horizon* on the Weather tab (advanced panel), on by default: under a full
-  overcast (95% cover or more, fading in from 90%), the cloud deck now carries on all the way to
+- *Clouds to the horizon* on the Weather tab (advanced panel), off by default: with it on, under a
+  full overcast (95% cover or more, fading in from 90%), the cloud deck carries on all the way to
   the horizon, following the curve of the Earth, instead of ending a few degrees above it with clear
   sky underneath. Seen from high up, it also covers the sky beyond the edge of the map. It hides a
-  low sun too. Off: the clouds end above the horizon, as before.
+  low sun too. Off, as everyone has it after the update, the clouds end above the horizon, as before.
 
 ### New: the Mixed cloud style
 
@@ -280,8 +282,9 @@ the other at 100%) or one. The photographs are Poly Haven's, free for any use (C
   *Fog color*. Clicking it shows the row's Clear sky and Overcast values; the clouds blend them
   straight with the cloud cover (0% all Clear sky, 100% all Overcast), at every time of day: the two
   buttons are separate, and with both open a table shows each time's Clear sky and Overcast side by
-  side, a slider each. One button open while the other's values differ shows the table too, so every
-  value always has its own slider.
+  side, a slider each. One button open shows only its own lines: a Clear sky slider shows the day's
+  value and moves the sunset's and the night's with it while they are the same; a time you set apart
+  with the clock keeps its own value, and the other way round for the clock's lines.
 - *Cloud brightness* is one row now: *Brightness follows the cloud intensity*, *Brightness: clear
   sky*, *Brightness: full overcast* and *Cloud brightness (fixed)* are gone, and *Clouds dim at full
   overcast to* has left the panel (see above). Four rows fewer.
@@ -364,10 +367,12 @@ at full strength): his check in-game.
 The four temporary test switches (*Skip the empty sky*, *Clouds to the horizon*, *Grain changes every
 frame*, *Tint smoother clouds*) were removed 2026-10-13 with the Advanced tab (the author: "we already
 tested with them"): the skip and the far deck are always on, the jitter stays as it was, no tint.
-The far deck came back the same day as a real row, *Clouds to the horizon* on the Weather tab (on;
+The far deck came back the same day as a real row, *Clouds to the horizon* on the Weather tab (on
+at first; off by default since 2026-10-18, so nobody's horizon changes with the update;
 the author: "add it as a real option under Weather"), no longer waiting for *Clouds hide the sky by
 day*: by day at its default 0% a ticked switch would have done nothing. Check in the log:
-`features: ... cloudsToHorizon=on`, the frame line's `farDeck=` (0% with it off, or under 90% cover).
+`features: ... cloudsToHorizon=off` (on once ticked), the frame line's `farDeck=` (0% with it off, or
+under 90% cover).
 Then (awaiting his look): the band read as a white hue under clouds whose detail ended ~7 degrees up
 ("I remember it being much more detailed"). With the band behind them, the near clouds keep their
 detail to the last 30% of their reach by day too, as at night (they thinned over the last 65%: that
@@ -409,7 +414,8 @@ view: Soft 100-135 ms at 54-100%, Cumulus 40-45 ms): Soft and Mixed now march th
 (96, was 192 -- their 900 m slab put 2.4x Cumulus's steps in every cloud) and read the fine detail in the
 first of the light's sun looks only. Offline: half the density reads per pixel, within 0.3-0.5/255 of
 before on average. To check in-game: the frame line (`steps=96 ... style=Soft`) against those numbers in
-the same view, and no new grain on the near clouds (Smoother clouds off too).
+the same view, and no new grain on the near clouds (Smoother clouds off too). His log of 2026-10-19
+(47% cover, night, 4K, the same minute): Soft 22-36 ms mean against Cumulus 27-46 ms -- no dearer now.
 
 Built, awaiting the in-game test:
 
@@ -417,7 +423,9 @@ Built, awaiting the in-game test:
   be lower if it's really overcast versus just a few clouds". His calls: a separate button, not tied
   to the time of day ("overcast should apply for day and night"); the four brightness rows merged; the
   three fog colour rows in; the TABLE when both are open ("way better"); one button open must always
-  show sliders (the table then, when the other's values differ); *Clouds dim at full overcast to* kept
+  show sliders (the table then, when the other's values differ -- until 2026-10-19: "Fog brightness, when I
+  click the clear sky and overcast, it also opens time of day"; his pick: one button open shows its own
+  lines only, a line moving the values that still equal it, see the section above); *Clouds dim at full overcast to* kept
   ("it's an old setting"); overcast density 80%. C# only, no bundle. His settings and profiles copied
   first to docs/settings-backup-2026-10-14-before-weather. To check: the `settings:` line names the 27
   Overcast lines and the 6 `CloudLight` lines "written before these existed" (his: CloudLight
@@ -463,7 +471,9 @@ Built, awaiting the in-game test:
   names in capitals fit (Spanish and French). Default: Frosted glass (the author's call, 2026-10-12). Before the
   1.5.0 commits are pushed: ModsLibCS1 public (a public repo can't build with a private submodule),
   release.ps1 checks the submodule (committed, pinned commit pushed), README: clone with
-  `--recurse-submodules`. Run the build on a copy of the author's XML (invariant 15). 2026-10-13:
+  `--recurse-submodules` -- all three DONE by the 2026-10-19 sweep (ModsLibCS1 is public, its pinned
+  commit on origin/main; BUILDING.md has the clone line). Run the build on a copy of the author's XML
+  (invariant 15): his own file read with 156 values and nothing ignored on 2026-10-19. 2026-10-13:
   the reset buttons (`ResetRow`; the colour rows keep their own), the names' column per tab (log:
   `panel: <tab> tab names N wide`), "Profile" given room; check every tab's names in every language.
   2026-10-13 later: folding headings (advanced only; log `panel: <Group> folded/opened (open now: ...)`), icon tabs
@@ -513,9 +523,9 @@ Built, awaiting the in-game test:
 - *Smoother clouds* (written up above), built 2026-10-12, tested: works (the tint showed the blend
   in use), same shapes, no frame-time gain in fog-heavy views (fog dominates there; +~1 ms). KEPT, off
   by default (the author's call). Left: one fog-off measurement looking up at Cumulus, on vs off, to
-  learn whether it saves time where the clouds are the cost (then say so above, or not); remove the
-  camera diagnostics (`otherCameraDraws` in the frame line). (Its tint switch is gone; the shader's
-  `_TemporalTint` branch is left unused until the next bundle build.)
+  learn whether it saves time where the clouds are the cost (then say so above, or not). The camera
+  diagnostics (`otherCameraDraws` in the frame line) and the shader's `_TemporalTint` branch were
+  removed in the 2026-10-19 release sweep (bundles rebuilt).
 - Smoke and fire back inside the fog (written up under Changed), done 2026-10-13 on the author's
   call ("This is worse than before"): GameParticles removed, the game's particles keep their own
   queues (3000/3001, before the air at 3095). Check in-game: smoke in a thick fog hidden as in 1.3,
@@ -549,8 +559,8 @@ Undecided (not agreed yet, decide before building):
   marched the clouds themselves out there: the weather map's 13.5 km repeats showed as arcs
   fanning into the vanishing point, and it was grainy.) KEPT (2026-10-12, "We'll keep this"),
   written up under *Clouds hide the sky by day*; it hides a low sun too. Its switch was removed
-  2026-10-13: always on; back the same day as the row *Clouds to the horizon* (on), no longer tied to
-  the day/night opacity.
+  2026-10-13: always on; back the same day as the row *Clouds to the horizon* (on then, off by
+  default since 2026-10-18), no longer tied to the day/night opacity.
 
 Then a sweep over every item above before release: each one built or deliberately moved to a
 later version, tested in-game, and written up in this changelog.
