@@ -30,17 +30,6 @@ namespace VolumetricClouds.Sky
     /// Without Real Light the flag reads 0, the two are the same colour, the multiplier is 1, and
     /// nothing changes.
     /// </remarks>
-    internal static class RealLightPresence
-    {
-        /// <summary>
-        /// Real Light seen in this game session: its ambient held apart or its sky drawn (SceneAmbient),
-        /// set by CloudVolume.ApplyLighting and never cleared, so nothing that hangs on it flickers when
-        /// Real Light lets go for a moment (its sky is not drawn at night). Its own class, with no Shader
-        /// call: the catalog reads it, and the offline tests build the catalog.
-        /// </summary>
-        public static bool Seen;
-    }
-
     internal static class SceneAmbient
     {
         private static readonly int IdRealLightHeld = Shader.PropertyToID("_RLAmbientHeld");

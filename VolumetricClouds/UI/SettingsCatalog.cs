@@ -1846,17 +1846,6 @@ namespace VolumetricClouds.UI
                 AfterChange = State("volumetric fog", OnOff(Settings.FogEnabled)),
             });
 
-            // Right under the fog switch: it is a part of the fog.
-            Add(new Row
-            {
-                Kind = RowKind.Toggle,
-                Panel = PanelPage.Fog,
-                Bool = Settings.FogLampsEnabled,
-                DefaultBool = Settings.Defaults.FogLampsEnabled,
-                Enabled = FogOn,
-                AfterChange = State("fog lit by the city's lights", OnOff(Settings.FogLampsEnabled)),
-            });
-
             // With a clock (1.5.0), as are the fog's brightness, tint and colour below.
             Row density = new Row
             {
@@ -2004,35 +1993,12 @@ namespace VolumetricClouds.UI
                 Settings.FogColorSunsetOvercast, Settings.Defaults.FogColorSunsetOvercast,
                 Settings.FogColorNightOvercast, Settings.Defaults.FogColorNightOvercast);
 
-            Add(new Row
-            {
-                Kind = RowKind.Percent,
-                Panel = PanelPage.Fog,
-                Group = "FogLamps",
-                Float = Settings.FogLampLight,
-                DefaultFloat = Settings.Defaults.FogLampLight,
-                Min = 0f, Max = 400f, Step = 5f,
-                Enabled = FogLampsOn,
-            });
-
-            // Lit radius around a light: on the Advanced tab in 1.4.0, back here in 1.5.0.
-            Add(new Row
-            {
-                Kind = RowKind.Value,
-                Panel = PanelPage.Fog,
-                Float = Settings.FogLampRadius,
-                DefaultFloat = Settings.Defaults.FogLampRadius,
-                Min = 2f, Max = 40f, Step = 1f,
-                Format = Metres,
-                Enabled = FogLampsOn,
-            });
-
             // 1.5.0, asked for by a player: fog that is "not just a fixed density of fog moving
             // around" but changes -- denser on autumn nights, "lowered if the sun shines again",
             // light and tall "after a summer rain". The sliders above are the MOST fog (the
             // author's call: "Ceiling"), so these only ever take it lower, thinner or wispier
-            // (Sky.FogSources). All 0% for everyone: at 0% the fog is exactly as before. Last on the
-            // tab, under their own heading: a heading claims every row below it up to the next one.
+            // (Sky.FogSources). All 0% for everyone: at 0% the fog is exactly as before. Under their
+            // own heading, near the end: a heading claims every row below it up to the next one.
             // The three in one switch (1.5.0, the author: "a quick toggle that allows the user to
             // disable the dynamic fog"). Off by default (his call). "Override fog" overrides it too
             // (CloudFog.Dynamic), so it greys with the override on.
@@ -2089,6 +2055,42 @@ namespace VolumetricClouds.UI
                 Min = 0f, Max = 100f, Step = 5f,
                 // "Override fog" overrides every amount of fog, this one too (the author's call).
                 Enabled = () => FogOn() && !CloudFog.Overridden,
+            });
+
+            // Last on the tab (1.5.0, the author: it "should be at the bottom because it triggers the
+            // options for it at the bottom"): the switch heads its own two rows. It sat right under the
+            // fog switch until then, with its rows far below it.
+            Add(new Row
+            {
+                Kind = RowKind.Toggle,
+                Panel = PanelPage.Fog,
+                Group = "FogLamps",
+                Bool = Settings.FogLampsEnabled,
+                DefaultBool = Settings.Defaults.FogLampsEnabled,
+                Enabled = FogOn,
+                AfterChange = State("fog lit by the city's lights", OnOff(Settings.FogLampsEnabled)),
+            });
+
+            Add(new Row
+            {
+                Kind = RowKind.Percent,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogLampLight,
+                DefaultFloat = Settings.Defaults.FogLampLight,
+                Min = 0f, Max = 400f, Step = 5f,
+                Enabled = FogLampsOn,
+            });
+
+            // Lit radius around a light: on the Advanced tab in 1.4.0, back here in 1.5.0.
+            Add(new Row
+            {
+                Kind = RowKind.Value,
+                Panel = PanelPage.Fog,
+                Float = Settings.FogLampRadius,
+                DefaultFloat = Settings.Defaults.FogLampRadius,
+                Min = 2f, Max = 40f, Step = 1f,
+                Format = Metres,
+                Enabled = FogLampsOn,
             });
         }
 
@@ -2155,8 +2157,6 @@ namespace VolumetricClouds.UI
                 Options = OptionsPage.Weather,
                 Bool = Settings.CloudsToHorizon,
                 DefaultBool = Settings.Defaults.CloudsToHorizon,
-                // Under Real Light only, for now (Sky.CloudVolume, the far deck): its look was tuned there.
-                Shown = () => RealLightPresence.Seen,
                 AfterChange = State("clouds to the horizon", OnOff(Settings.CloudsToHorizon)),
             });
 

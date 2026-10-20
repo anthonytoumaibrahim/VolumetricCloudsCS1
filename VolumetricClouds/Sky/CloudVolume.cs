@@ -1273,12 +1273,6 @@ namespace VolumetricClouds.Sky
                     : "lighting: Real Light's sky is not drawn -- the clouds take the game's light as it is");
             }
 
-            if ((held || brightened) && !RealLightPresence.Seen)
-            {
-                RealLightPresence.Seen = true;
-                Log.Msg("lighting: Real Light is here -- \"Clouds to the horizon\" is offered (Weather tab)");
-            }
-
             Color cloudSun = cloudLightSun * (brightness * underRealLight);
             Color cloudAmbient = WithFloor(lightAmbient * brightness) * underRealLight;
 
@@ -1672,9 +1666,10 @@ namespace VolumetricClouds.Sky
             // its own: by day at the default 0% a ticked switch did nothing.)
             float cover = Mathf.Clamp01(CloudShaderParams.Coverage);
             float overcast = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FarDeckCoverFrom, FarDeckCoverFull, cover));
-            // Under Real Light only (2026-10-20, the author: it "looks pretty good for RealLight. But for
-            // my subscribers, it will look bad"): without it the row is hidden and a ticked one does nothing.
-            bool toHorizon = Settings.CloudsToHorizon != null && Settings.CloudsToHorizon.value && RealLightPresence.Seen;
+            // For everyone: a Real-Light-only lock was built and taken out again on 2026-10-20 (the author,
+            // after seeing it without Real Light: "it honestly looks good, maybe on some LUTs it looks bad
+            // but that's up to each user, since this option is off by default anyway").
+            bool toHorizon = Settings.CloudsToHorizon != null && Settings.CloudsToHorizon.value;
             _farDeckShown = toHorizon ? overcast : 0f;
 
             // How soon before that they start to thin: the last 30% at night, as always (the stars stay

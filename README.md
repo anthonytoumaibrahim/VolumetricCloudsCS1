@@ -35,8 +35,9 @@ their own rain, snow, lightning, rainbows and fog with them.
   clouds, cumulus on the horizon and layered skies. They're lit by the game's sun, go gold at
   sunset, drift with the wind and slowly change as they go. By default they come and go on their
   own, following the weather; or set each kind yourself.
-- **Clouds hide the sky** (**1.5**): keeps a cubemap's sun from shining through a thick daytime
-  overcast.
+- **To the horizon**: under a full overcast the cloud deck carries on to the horizon, following
+  the curve of the Earth. *Clouds hide the sky* (**1.5**) keeps a cubemap's sun from shining through
+  a thick daytime overcast.
 - **Cloud colors**: tint the sunlit and shaded sides separately, for warm tops over cool bases, a
   golden hour, or an orange city glow at night. Only the hue changes; white leaves the clouds as
   they are.

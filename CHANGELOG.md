@@ -68,7 +68,8 @@ fog, a sun, a rain cloud for *Weather*, a light bulb for *Halos*), each tab's na
 the open tab's name stands beside the panel's title; *Vanilla* keeps its named tabs. Every icon in
 the panel is Lucide's (ISC licence, credited in THIRD-PARTY-NOTICES.md). The *Clouds* and *Fog* tabs
 have headings of their own now (*Height and shape*; *Thickness and height*, *Look and movement*,
-*City lights in the fog*). With *Show advanced options* on, a click on a heading folds its settings
+*City lights in the fog*, now last on the Fog tab with *Fog lit by the city's lights* at its top
+instead of under the fog switch). With *Show advanced options* on, a click on a heading folds its settings
 away and back. Each tab starts with its first heading open and the rest folded (also open:
 *Cloud brightness* on the Light tab, *Cloud position* on Weather, *Near lights* on Halos), so the
 advanced panel opens about as short as the basic one. Which are open is kept in `PanelOpenGroups`,
@@ -118,9 +119,11 @@ Two more sliders on the Fog tab, 0% to 100%, 0% by default.
   sky, without the sun's glow, instead of letting through whatever is behind them. With the game's
   sky that's what showed there anyway, so the clouds look as before. For everyone, nothing to turn
   on. Under Real Light's sky the far clouds fade into it as before.
-- *Clouds to the horizon* (the cloud deck carrying on to the horizon under a full overcast) is not
-  in the panel yet: it doesn't look right against the game's own sky. The settings file lists it
-  (`CloudsToHorizon`, off), and it does nothing for now. The clouds end above the horizon, as before.
+- *Clouds to the horizon* on the Weather tab (advanced panel), off by default: with it on, under a
+  full overcast (95% cover or more, fading in from 90%), the cloud deck carries on all the way to
+  the horizon, following the curve of the Earth, instead of ending a few degrees above it with clear
+  sky underneath. Seen from high up, it also covers the sky beyond the edge of the map. It hides a
+  low sun too. Off, as everyone has it after the update, the clouds end above the horizon, as before.
 
 ### New: the Mixed cloud style
 
