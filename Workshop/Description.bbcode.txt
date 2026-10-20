@@ -1,16 +1,5 @@
 [h1]Version 1.5[/h1]
-[h3]New cloud styles: Mixed & Soft[/h3]
-Soft: fair-weather clouds made of many puffs with wispy edges. Mixed: one style for every kind of weather. Both cost more to draw than Classic (about as much as Cumulus), so they suit powerful hardware best.
-[h3]Distant clouds[/h3]
-HDRI skies from [url=https://polyhaven.com]Poly Haven[/url] (cirrus, sheep clouds, far cumulus) behind the mod's clouds that interact with the world.
-[h3]Day, sunset and night, clear sky and overcast[/h3]
-A lot of options now get different sliders for time of day, and for overcast conditions.
-[h3]Changing fog, and waterspouts[/h3]
-Fog that changes with the weather, morning fog, mist after rain, fog in valleys and fog banks over water, with the chance of a small waterspout under the clouds over the sea.
-[h3]New panel styles[/h3]
-3 new looks for the in-game panel, with the new Frosted Glass theme as the default.
-
-See everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
+Soft and Mixed cloud styles, distant clouds, sliders for sunset, night and overcast, changing fog, waterspouts and new panel looks. See everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
 If something stopped working after the update, please let me know.
 
 [hr][/hr]
@@ -28,19 +17,22 @@ To see more tabs in the in-game UI like the screenshots above, go to the mod's o
 [h1]Features[/h1]
 [h3]Clouds[/h3]
 [list]
-[*]Volumetric 3D clouds with real shadows, in four styles: Classic, Cumulus, Soft and Mixed
-[*]Distant clouds, light inside the clouds and cloud fragments
+[*]Volumetric 3D clouds with real shadows
+[*]4 cloud styles: Classic, Cumulus, Soft and Mixed
+[*]Distant clouds: HDRI skies from [url=https://polyhaven.com]Poly Haven[/url]
 [/list]
 [h3]Weather[/h3]
 [list]
 [*]Follows the game's weather, or set it yourself
-[*]Rain and lightning that come from the clouds, rainbows, and waterspouts
+[*]Rain, lightning, rainbows and waterspouts
+[*]Volumetric fog and smaller light halos (optional)
 [/list]
-[h3]Fog and light (optional)[/h3]
+[h3]Mod options[/h3]
 [list]
-[*]Volumetric fog that rolls over the city, changes with the weather and the time of day, fills valleys and drifts in from the water
-[*]Cloud colors, brightness, density, shadows and the fog can each have their own value at sunset, at night and under an overcast sky
-[*]Smaller light halos around lamps, buildings and vehicles (off by default)
+[*]Different values at sunset, at night and under an overcast sky
+[*]Profiles for your favorite skies
+[*]4 panel looks
+[*]Localizations: English, Spanish, French and Simplified Chinese
 [/list]
 
 [hr][/hr]
@@ -66,3 +58,4 @@ On a Mac it is in [i]~/Library/Application Support/Colossal Order/Cities_Skyline
 [*][b]What happened[/b]: what you did and expected, screenshots, your graphics card and your other mods.
 [/olist]
 Both logs start fresh at every launch, so copy them before restarting, upload them (Google Drive, Pastebin...) and post the link in the comments.
+Or [url=https://github.com/anthonytoumaibrahim/VolumetricCloudsCS1/issues]open an issue on GitHub[/url] instead, where you can attach the log files directly.
