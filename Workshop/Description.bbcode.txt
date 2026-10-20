@@ -1,6 +1,8 @@
 [h1]Version 1.5[/h1]
 [h3]New cloud styles: Mixed & Soft[/h3]
 Soft: fair-weather clouds made of many puffs with wispy edges. Mixed: one style for every kind of weather. Both cost more to draw than Classic (about as much as Cumulus), so they suit powerful hardware best.
+[h3]Distant clouds[/h3]
+HDRI skies from [url=https://polyhaven.com]Poly Haven[/url] (cirrus, sheep clouds, far cumulus) behind the mod's clouds that interact with the world.
 [h3]Day, sunset and night, clear sky and overcast[/h3]
 A lot of options now get different sliders for time of day, and for overcast conditions.
 [h3]Changing fog, and waterspouts[/h3]
