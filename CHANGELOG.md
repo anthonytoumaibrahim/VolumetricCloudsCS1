@@ -5,7 +5,7 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
-## 1.5.0 — 2026-10-19
+## 1.5.0 — 2026-10-20
 
 A new look for the in-game panel, fog that changes on its own, two new cloud styles, more say over
 cumulus clouds, distant clouds from photographed skies, clouds that can hide the sky by day, smoother
