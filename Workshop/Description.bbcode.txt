@@ -1,5 +1,5 @@
-[h1]Version 1.5[/h1]
-Soft and Mixed cloud styles, distant clouds, sliders for sunset, night and overcast, changing fog, waterspouts and new panel looks. See everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
+[h1]Version 1.5.1[/h1]
+Hotfix for clouds not rendering on Linux. Soft and Mixed cloud styles, distant clouds, sliders for sunset, night and overcast, changing fog, waterspouts and new panel looks. See everything in the [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3805863507]change notes[/url].
 If something stopped working after the update, please let me know.
 
 [hr][/hr]

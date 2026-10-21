@@ -8,8 +8,6 @@ their own rain, snow, lightning, rainbows and fog with them.
 **[Subscribe on the Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3805863507)**
 · [Changelog](CHANGELOG.md) · [Building from source](BUILDING.md)
 
-> Features marked **1.5** are in this repository and come to the Workshop with the next update.
-
 ## Features
 
 ### Clouds
@@ -21,22 +19,22 @@ their own rain, snow, lightning, rainbows and fog with them.
 - **Four cloud styles**:
   - *Classic*, the default: an even, broken layer.
   - *Cumulus*: heaped clouds of every size, with flat bases and billowing tops, standing among the
-    Classic layer. **1.5** adds sliders for their size, height and amount.
-  - *Soft* (**1.5**): fair-weather clouds made of many puffs, with wispy, cotton-candy edges. As the
+    Classic layer, with sliders for their size, height and amount.
+  - *Soft*: fair-weather clouds made of many puffs, with wispy, cotton-candy edges. As the
     weather gets heavier the Classic layer comes in among them.
-  - *Mixed* (**1.5**): one style for every kind of weather. Soft puffs in a light sky grow and
+  - *Mixed*: one style for every kind of weather. Soft puffs in a light sky grow and
     gather into the Classic layer toward overcast, and the balance changes across the sky.
 - **Cloud detail and fragments**: crisp edges and billows, and small shreds of cloud around and
   between the big ones.
 - **Light inside the clouds**: thin cloud glows with the sun behind it, shaded sides are softer,
   and the sunlit city lights the cloud bases. At sunset the clouds keep the low sun's light, turning
   orange and then red, a little after the sun has set for the city below.
-- **Distant clouds** (**1.5**): photographed skies behind the mod's own clouds, with cirrus, sheep
+- **Distant clouds**: photographed skies behind the mod's own clouds, with cirrus, sheep
   clouds, cumulus on the horizon and layered skies. They're lit by the game's sun, go gold at
   sunset, drift with the wind and slowly change as they go. By default they come and go on their
   own, following the weather; or set each kind yourself.
 - **To the horizon**: under a full overcast the cloud deck carries on to the horizon, following
-  the curve of the Earth. *Clouds hide the sky* (**1.5**) keeps a cubemap's sun from shining through
+  the curve of the Earth. *Clouds hide the sky* keeps a cubemap's sun from shining through
   a thick daytime overcast.
 - **Cloud colors**: tint the sunlit and shaded sides separately, for warm tops over cool bases, a
   golden hour, or an orange city glow at night. Only the hue changes; white leaves the clouds as
@@ -47,7 +45,7 @@ their own rain, snow, lightning, rainbows and fog with them.
 - **Follows the game's weather**: cloud cover, rain, fog and wind come from the game, so random
   weather, disasters and mods such as Play It! drive the sky. Any of them can be overridden from
   the in-game panel.
-- **Wind direction** (**1.5**): follow the game's wind, follow it slowly so the sky doesn't swing
+- **Wind direction**: follow the game's wind, follow it slowly so the sky doesn't swing
   round every few minutes, or fix it in one direction.
 - **Rain from the clouds**: rain curtains hang under the clouds that are actually raining, streaks
   fall near the camera, and the rain sound and wet roads follow the showers instead of covering
@@ -57,7 +55,7 @@ their own rain, snow, lightning, rainbows and fog with them.
   a fire.
 - **Rainbows**: an arch standing in a sunlit shower near where you look, with its fainter second
   bow, colored by the physics of real raindrops.
-- **Larger weather pattern** (**1.5**): the cloud layout repeats four times further apart, for
+- **Larger weather pattern**: the cloud layout repeats four times further apart, for
   zooming far out with a camera mod.
 
 ### Fog *(opt-in)*
@@ -65,17 +63,17 @@ their own rain, snow, lightning, rainbows and fog with them.
 - **Volumetric fog**: fog as a layer of its own with a top surface, self-shadowing and sun shafts.
   Level from the sea, or draped over the terrain. At night it glows around street lamps, building
   lights and headlights.
-- **Changing fog** (**1.5**): fog that changes with the weather and the time of day, morning fog
+- **Changing fog**: fog that changes with the weather and the time of day, morning fog
   that lifts as the day warms up, and mist rising from the wet ground after rain.
-- **Fog fills valleys** and **fog over water** (**1.5**): fog that gathers in hollows and river
+- **Fog fills valleys** and **fog over water**: fog that gathers in hollows and river
   gorges, and fog banks that drift ashore from the sea, lakes and rivers.
 
 ### Day, night and weather
 
-- **Day, sunset and night** (**1.5**): a clock button on eleven settings (cloud colors, brightness,
+- **Day, sunset and night**: a clock button on eleven settings (cloud colors, brightness,
   density, shadows, the fog and more) gives each a value for the day, the sunset and the night,
   blended by the sun's height.
-- **Clear sky and overcast** (**1.5**): a cloud button on nine of them gives a value for a clear
+- **Clear sky and overcast**: a cloud button on nine of them gives a value for a clear
   sky and one for a full overcast, blended by the cloud cover.
 - **Night sky**: the clouds hide the stars behind them and carry a faint glow underneath.
 
@@ -83,16 +81,16 @@ their own rain, snow, lightning, rainbows and fog with them.
 
 - **One panel for everything**: press **F4** (or use the mod's button) for the in-game panel.
   Every setting has its own reset button.
-- **Out of the way while you build** (**1.5**): **Shift+F4** hides all of the weather until you
+- **Out of the way while you build**: **Shift+F4** hides all of the weather until you
   press it again. Both keys can be changed on the options page.
-- **Four looks** (**1.5**): *Frosted glass* (the default), *See-through*, *Blue*, or *Vanilla*, the
+- **Four looks**: *Frosted glass* (the default), *See-through*, *Blue*, or *Vanilla*, the
   game's own style.
 - **Profiles**: save the whole sky under a name and switch skies from a list. Each profile is a
-  plain XML file, easy to share. The list also has the mod's defaults (**1.5**).
+  plain XML file, easy to share. The list also has the mod's defaults.
 - **Languages**: English, Spanish, French and Simplified Chinese.
 - **Light halos** *(opt-in)*: smaller night halos on street lamps, buildings and vehicles, and a fix
   for the game bug that turns a halo into a solid box.
-- **Smoother clouds** (**1.5**, opt-in): blends frames together for cleaner, grain-free clouds.
+- **Smoother clouds** *(opt-in)*: blends frames together for cleaner, grain-free clouds.
 
 ## Requirements and installation
 

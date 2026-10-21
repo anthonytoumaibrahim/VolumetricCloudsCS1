@@ -5,6 +5,20 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.5.1 — 2026-10-21
+
+A fix for players whose game draws with OpenGL: native Linux, and the game started with
+`-force-glcore`. Nothing changes in `VolumetricClouds.xml`, profiles or saves, and on Windows
+(Direct3D 11) the clouds are drawn exactly as before.
+
+### Fixed
+
+- Under OpenGL the clouds were invisible since 1.5.0, in every style and at any intensity, while
+  their shadows, the distant clouds, rain and fog still showed. The graphics driver handed the
+  cloud pass the wrong position for every pixel, so each ray looked straight down and never
+  reached the clouds. The part of the cloud shader behind it, added for *Smoother clouds*, is
+  written another way now, and OpenGL draws the clouds again.
+
 ## 1.5.0 — 2026-10-20
 
 A new look for the in-game panel, fog that changes on its own, two new cloud styles, more say over

@@ -151,19 +151,21 @@ Shader "VolumetricClouds/CloudRaymarch"
                 // camera's rays between them (Sky/CloudTemporal.cs). Its up as GL.GetGPUProjectionMatrix
                 // says the target has it (probed in the 5.6 editor, 2026-10-12: -1 on D3D11), so a texel
                 // written at uv is read back at uv.
-                if (_TemporalMode > 0.5)
-                {
-                    float2 uv = v.vertex.xy;
-                    o.pos = float4(uv.x * 2.0 - 1.0, (uv.y * 2.0 - 1.0) * _TemporalEye.w, 0.5, 1.0);
-                    o.worldPos = _TemporalEye.xyz + lerp(lerp(_TemporalCorner0.xyz, _TemporalCorner1.xyz, uv.x),
-                                                         lerp(_TemporalCorner2.xyz, _TemporalCorner3.xyz, uv.x), uv.y);
-                    o.screenPos = float4(uv, 0.0, 1.0);
-                    return o;
-                }
+                //
+                // Both outputs are made and one is picked, each written once: NO early return. 1.5.0 returned
+                // from inside the quad's branch, and under OpenGL (NVIDIA, Linux and -force-glcore alike) the
+                // box's outputs then reached the pixels divided by w -- every ray pointed straight down, and
+                // no cloud showed (issue #2; reproduced in the 5.6 editor under -force-glcore, 2026-10-21).
+                bool quad = _TemporalMode > 0.5;
+                float2 uv = v.vertex.xy;
+                float4 quadPos = float4(uv.x * 2.0 - 1.0, (uv.y * 2.0 - 1.0) * _TemporalEye.w, 0.5, 1.0);
+                float3 quadWorld = _TemporalEye.xyz + lerp(lerp(_TemporalCorner0.xyz, _TemporalCorner1.xyz, uv.x),
+                                                           lerp(_TemporalCorner2.xyz, _TemporalCorner3.xyz, uv.x), uv.y);
+                float4 boxPos = UnityObjectToClipPos(v.vertex);
 
-                o.pos = UnityObjectToClipPos(v.vertex);
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.screenPos = ComputeScreenPos(o.pos);
+                o.pos = quad ? quadPos : boxPos;
+                o.worldPos = quad ? quadWorld : mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.screenPos = quad ? float4(uv, 0.0, 1.0) : ComputeScreenPos(boxPos);
                 return o;
             }
 

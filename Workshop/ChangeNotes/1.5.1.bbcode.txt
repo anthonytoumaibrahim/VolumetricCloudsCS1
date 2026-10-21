@@ -1,0 +1,5 @@
+[h1]Version 1.5.1[/h1]
+[b]Fixed[/b]
+[list]
+[*]On Linux, and anywhere the game runs with OpenGL, the clouds were invisible since 1.5.0 while their shadows still showed; they're back.
+[/list]
