@@ -10,8 +10,8 @@
 #   1. Checks the release is ready: the game is closed, the git tree is committed, Mod.Version
 #      is newer than the last v* tag, and CHANGELOG.md has that version dated (not "unreleased").
 #   2. Builds (which deploys to Addons\Mods) and checks the deployed DLL carries Mod.Version.
-#   3. Runs every offline test, including the AMD compile check of the shipped shaders; one
-#      failure stops the release.
+#   3. Runs every offline test, including the Metal (Apple) and AMD compile checks of the shipped
+#      shaders; one failure stops the release.
 #   4. Copies exactly the three shipped files into the SUBSCRIBED Workshop folder, then reads
 #      the version and the file hashes back out of that folder to prove the copy landed.
 #   5. Moves the local Addons\Mods copy out of the way, so the game loads ONE copy of the mod --
@@ -37,8 +37,10 @@ $workshop = "C:\Program Files (x86)\Steam\steamapps\workshop\content\255710\$wor
 $deployed = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\Addons\Mods\VolumetricClouds"
 $parked = "$env:LOCALAPPDATA\Colossal Order\Cities_Skylines\VolumetricClouds-dev-parked"
 $shipped = @("VolumetricClouds.dll", "UnifiedUILib.dll", "CitiesHarmony.API.dll")
-# "amd" builds every shipped shader with AMD's compiler (needs Radeon GPU Analyzer: see test-amd.ps1).
-$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "fogoptions", "fogplaces", "emptysky", "mix", "timeofday", "soft", "skylayer", "waterspouts", "fogcoverage", "amd")
+# "metal" compiles every shipped Metal program with Apple's compiler (needs Apple's Metal Developer
+# Tools for Windows: see test-metal.ps1); "amd" builds every shipped shader with AMD's compiler
+# (needs Radeon GPU Analyzer: see test-amd.ps1).
+$tests = @("color", "settings", "skystate", "lightning", "placement", "localization", "reporter", "detail", "cumulus", "bluenoise", "profiles", "rainbow", "fogoptions", "fogplaces", "emptysky", "mix", "timeofday", "soft", "skylayer", "waterspouts", "fogcoverage", "metal", "amd")
 
 $problems = 0
 

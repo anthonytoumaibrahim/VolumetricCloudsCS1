@@ -76,6 +76,8 @@ A new shader goes in the one `Shaders` array in `UnityProject/Assets/Editor/Bund
 UnityProject/Bundles/win/volumetricclouds -Name "VolumetricClouds/<shader>"` disassembles the
 Direct3D 11 code of any of them, and `tools/bundle-apis.ps1 -Bundle <new> -Compare <old>`
 proves, shader by shader, that a change left the Direct3D 11 code untouched.
+`tools/test-metal.ps1` compiles every Metal program in the mac bundle with Apple's own compiler
+(Metal Developer Tools for Windows), the way a Mac does when the shader loads.
 
 ## Hard constraints
 

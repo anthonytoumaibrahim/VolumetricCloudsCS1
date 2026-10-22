@@ -156,6 +156,16 @@ exactly as it stands, so this is the release artifact.
       needs Radeon GPU Analyzer, which runs on any GPU (`-Rga <path>` or `VC_RGA` if it is not in
       `Documents\Projects\RGA`). Compare the cloud pixel shader's size and registers with the last
       release (1.4.0 on gfx1100: 13,446 instructions, 90 VGPRs, 102 SGPRs); a big jump is worth a look.
+- [ ] **Every release, and before any hand-staged build or Mac test build:** `tools\test-metal.ps1`
+      passes (`release.ps1` runs it with the other tests). Unity 5.6 ships Metal as source and the
+      Mac compiles it when the shader loads; one program it refuses makes the whole shader
+      unsupported. The script cuts every program out of the shipped mac bundle and compiles it with
+      Apple's own compiler at Metal 1.1 and 4.0. It needs Apple's Metal Developer Tools for Windows
+      (any GPU; `-Metal <path>` or `VC_METAL` if it is not in `Program Files\Metal Developer Tools`).
+      Watch the cloud pass's samplers: Unity 5.6 gives every texture its own sampler on Metal (also
+      the ones that share one on Direct3D 11), and Metal allows 16. First run (2026-10-22, the 1.5.1
+      bundle): 29 programs of 11 shaders pass; both CloudRaymarch fragment programs use 16 samplers,
+      top slot 15 -- no sampler left for a new texture there on the Mac.
 - [ ] The deployed copy is the one that was tested in step 2 — not an older or newer build.
 - [ ] Decide on a `Source` subfolder. There is none today; if one is ever added, the panel's
       *Include source* checkbox decides whether it is uploaded, and it is deleted from the

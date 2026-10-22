@@ -3,7 +3,10 @@ param(
     [string]$Expect = "",
     [string]$Compare = "",
     [int]$ComparePlatform = 4,
-    [string[]]$Shaders = @()
+    [string[]]$Shaders = @(),
+    # Writes every decompressed platform blob to <DumpDir>\<shader>-<platform>.bin, for
+    # tools\test-metal.ps1 (the Metal source the Mac compiles, exactly as shipped).
+    [string]$DumpDir = ""
 )
 
 # Lists what an UNCOMPRESSED shader bundle really holds: for every shader, which graphics
@@ -23,6 +26,8 @@ param(
 #       exit 1 unless the decompressed blob for that platform is byte-identical per shader:
 #       the proof that a change elsewhere (another platform added, a tool updated) left the
 #       code Windows players run untouched.
+#   .\bundle-apis.ps1 -Bundle <bundle> -DumpDir <folder>
+#       also writes each decompressed blob to <folder>\<shader, / -> _>-<platform>.bin.
 #
 # Platform ids: 1 D3D9, 4 D3D11, 14 Metal, 15 OpenGLCore, 18 Vulkan.
 #
@@ -50,6 +55,7 @@ public class BundleBlob
     public int Length;
     public string Sha1;
     public string Kind;
+    public byte[] Bytes;
 }
 
 public class BundleShader
@@ -286,6 +292,7 @@ public static class BundleApis
                 {
                     byte[] bytes = Lz4(data, blobStart + (int)arrays[1][i], (int)arrays[2][i], (int)arrays[3][i]);
                     blob.Length = bytes.Length;
+                    blob.Bytes = bytes;
                     blob.Sha1 = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
                     blob.Kind = Describe(bytes);
                 }
@@ -344,6 +351,16 @@ foreach ($file in $Bundle) {
 
         $desc = @($s.Blobs | ForEach-Object { "{0} {1} B: {2}" -f [BundleApis]::PlatformName($_.Platform), $_.Length, $_.Kind }) -join "  |  "
         Write-Host ("  {0,-36} {1}" -f $name, $desc)
+
+        if ($DumpDir) {
+            New-Item -ItemType Directory -Force $DumpDir | Out-Null
+            foreach ($b in $s.Blobs) {
+                if ($null -eq $b.Bytes) { continue }
+                $dump = Join-Path $DumpDir ("{0}-{1}.bin" -f ($name -replace '[/\\]', '_'), [BundleApis]::PlatformName($b.Platform))
+                [IO.File]::WriteAllBytes($dump, $b.Bytes)
+                Write-Host ("    dumped {0}" -f $dump)
+            }
+        }
 
         foreach ($b in $s.Blobs) {
             if ($b.Kind -eq "EMPTY") {
