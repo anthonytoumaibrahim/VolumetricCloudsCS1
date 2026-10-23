@@ -895,10 +895,12 @@ namespace VolumetricClouds
             public const string PanelOpenWeather = "";
 
             /// <summary>
-            /// "Dynamic distant clouds" (1.5.0, the author's call: on by default): the four below are
-            /// set by the mod (Sky.SkyLayerMix.Dynamic), a mix that changes as the sky travels.
+            /// "Dynamic distant clouds" (1.5.0): the four below are set by the mod
+            /// (Sky.SkyLayerMix.Dynamic), a mix that changes as the sky travels. On by default in
+            /// 1.5.0-1.5.1, OFF since 1.5.2 (the author's call): new installs and a Reset only; a file
+            /// written by 1.5.x keeps its own value. Off with the sliders at 0 nothing of it is loaded.
             /// </summary>
-            public const bool DynamicDistantClouds = true;
+            public const bool DynamicDistantClouds = false;
 
             /// <summary>Distant clouds (1.5.0): the sliders all at 0, read only with DynamicDistantClouds off.</summary>
             public const float SkyCirrus = 0f;

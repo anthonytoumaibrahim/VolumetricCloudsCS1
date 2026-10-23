@@ -5,6 +5,16 @@ Notable changes to Volumetric Weather. The format follows
 below; the mods list shows it after the mod's name, and the first line of
 `VolumetricClouds.log` gives it with the exact build.
 
+## 1.5.2 — unreleased
+
+### Changed
+
+- *Dynamic distant clouds* is off by default. This reaches new installs and *Reset all* only: a
+  `VolumetricClouds.xml` written by 1.5.0 or 1.5.1 already holds
+  `<DynamicDistantClouds>true</DynamicDistantClouds>` and keeps it, so players who have it stay as
+  they are. A profile saved before 1.5.0 has no such line and now reads it off, as it looked then.
+  With it off and the four *Distant clouds* sliders at 0%, no photographed sky is loaded at all.
+
 ## 1.5.1 — 2026-10-21
 
 A fix for players whose game draws with OpenGL: native Linux, and the game started with

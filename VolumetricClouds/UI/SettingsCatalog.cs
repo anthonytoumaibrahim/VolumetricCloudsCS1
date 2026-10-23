@@ -1771,7 +1771,7 @@ namespace VolumetricClouds.UI
             // Each walks through its pictures, thinnest first (Sky.SkyLayerMix). Look rows, so profiled:
             // a profile saved before them reads 0. No AfterChange (a slider's runs per drag tick):
             // SkyLayer logs them.
-            // "Dynamic distant clouds" first (the author's call: on by default, in this tab): the mod
+            // "Dynamic distant clouds" first (the author's call, in this tab; off by default since 1.5.2): the mod
             // mixes the four kinds itself (Sky.SkyLayerMix.Dynamic) and the sliders grey -- hidden on the
             // basic tab, as every greyed row is. A look row, so profiled like the sliders.
             Add(new Row
